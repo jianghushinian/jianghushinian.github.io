@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<head><meta name="generator" content="Hexo 3.9.0">
+<head>
     
 
     
@@ -22,17 +22,18 @@
     
     <meta name="keywords" content="JavaScript,异步编程">
     <meta name="description" content="由于 JavaScript 通常是由单线程来执行代码，所以在编写 JavaScript 代码时经常需要使用异步操作来提高程序性能。一般来说异步执行在 JavaScript 中使用 回调函数 的形式来实现。不过近年来由于社区的推动，Promise 已经成为 JavaScript 异步编程的一个标准，使用 Promise 进行异步编程，代码的可维护性将有很大提升，尤其是使用 Promise 取代多层">
-<meta name="keywords" content="JavaScript,异步编程">
 <meta property="og:type" content="article">
 <meta property="og:title" content="JavaScript 异步操作之 Promise">
-<meta property="og:url" content="http://www.jianghushinian.cn/2019/08/24/JavaScript-异步操作之-Promise/index.html">
+<meta property="og:url" content="http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/index.html">
 <meta property="og:site_name" content="江湖十年">
 <meta property="og:description" content="由于 JavaScript 通常是由单线程来执行代码，所以在编写 JavaScript 代码时经常需要使用异步操作来提高程序性能。一般来说异步执行在 JavaScript 中使用 回调函数 的形式来实现。不过近年来由于社区的推动，Promise 已经成为 JavaScript 异步编程的一个标准，使用 Promise 进行异步编程，代码的可维护性将有很大提升，尤其是使用 Promise 取代多层">
-<meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2019-08-25T09:00:10.788Z">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-08-24T11:16:43.000Z">
+<meta property="article:modified_time" content="2019-08-25T09:00:10.788Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="JavaScript">
+<meta property="article:tag" content="异步编程">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="JavaScript 异步操作之 Promise">
-<meta name="twitter:description" content="由于 JavaScript 通常是由单线程来执行代码，所以在编写 JavaScript 代码时经常需要使用异步操作来提高程序性能。一般来说异步执行在 JavaScript 中使用 回调函数 的形式来实现。不过近年来由于社区的推动，Promise 已经成为 JavaScript 异步编程的一个标准，使用 Promise 进行异步编程，代码的可维护性将有很大提升，尤其是使用 Promise 取代多层">
     
         <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
     
@@ -43,7 +44,7 @@
     <!-- custom head -->
     
 
-</head>
+<meta name="generator" content="Hexo 4.2.0"></head>
 
 <body>
     <div id="loading" class="active"></div>
@@ -241,7 +242,6 @@
 <p>这有什么用？假设我们需要等待多个异步操作都执行完才能执行下一步逻辑，此时就是使用 <code>all</code> 方法的绝佳时机。这种情况使用 <code>回调函数</code> 的形式不太好解决，而使用 <code>Promise</code> 就非常简单。</p>
 <p>我们通过请求三次 <code>http://httpbin.org/get</code> 来模拟需要等待的三个异步操作，写出的代码如下：</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> p1 = getResponse(<span class="string">'http://httpbin.org/get'</span>);</span><br><span class="line"><span class="keyword">const</span> p2 = getResponse(<span class="string">'http://httpbin.org/get'</span>);</span><br><span class="line"><span class="keyword">const</span> p3 = getResponse(<span class="string">'http://httpbin.org/get'</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> p = <span class="built_in">Promise</span>.all([p1, p2, p3]);</span><br><span class="line">p.then(<span class="function"><span class="params">res</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(res);</span><br><span class="line">&#125;).catch(<span class="function"><span class="params">err</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(err);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
-
 <p><code>all</code> 方法接收一个数组作为参数，数组每一项都是一个 <code>Promise</code> 对象，<code>Promise</code> 实例 <code>p</code> 就是合并后的对象，<code>p1</code>、<code>p2</code>、<code>p3</code> 的状态决定了 <code>p</code> 的最终状态。</p>
 <p>只有 <code>p1</code>、<code>p2</code>、<code>p3</code> 的状态同时都变为 <code>fulfilled</code> 时，<code>p</code> 的状态才会变为 <code>fulfilled</code>。只要 <code>p1</code>、<code>p2</code>、<code>p3</code> 的状态有一个变为 <code>rejected</code>，<code>p</code> 的状态就会变为 <code>rejected</code>。当 <code>p</code> 的状态变为 <code>fulfilled</code>时，<code>p1</code>、<code>p2</code>、<code>p3</code> 的返回结果会组成一个列表，自动传递给 <code>p</code> 的 <code>then</code> 方法的回调函数。并且这个列表的顺序由传入 <code>all</code> 方法的数组中 <code>p1</code>、<code>p2</code>、<code>p3</code> 的顺序决定。</p>
 <p>当 <code>p1</code>、<code>p2</code>、<code>p3</code> 任意一个状态变为 <code>rejected</code> 时，只有其没有自己的 <code>catch</code> 方法时才会调用 <code>all</code> 方法后面的 <code>catch</code> 方法。否则只会调用其自己的 <code>catch</code> 方法。</p>
@@ -261,7 +261,7 @@
 
 
         
-        <a href="/2019/08/24/JavaScript-异步操作之-Promise/" target="_blank" rel="external">http://www.jianghushinian.cn/2019/08/24/JavaScript-异步操作之-Promise/</a>
+        <a href="/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/" target="_blank" rel="external">http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/</a>
         
     </div>
     
@@ -278,7 +278,7 @@
 
         <div class="post-footer">
             
-	<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/JavaScript/">JavaScript</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/异步编程/">异步编程</a></li></ul>
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/JavaScript/" rel="tag">JavaScript</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" rel="tag">异步编程</a></li></ul>
 
 
             
@@ -288,7 +288,7 @@
 <div class="page-share" id="pageShare">
     <ul class="reset share-icons">
       <li>
-        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-异步操作之-Promise/&title=《JavaScript 异步操作之 Promise》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/&title=《JavaScript 异步操作之 Promise》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
           <i class="icon icon-weibo"></i>
         </a>
       </li>
@@ -298,22 +298,22 @@
         </a>
       </li>
       <li>
-        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-异步操作之-Promise/&title=《JavaScript 异步操作之 Promise》 — 江湖十年&source=由于 JavaScript 通常是由单线程来执行代码，所以在编写 JavaScript 代码时经常需要使用异步操作来提高程序性能。一般来说异步执行在 Ja..." data-title=" QQ">
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/&title=《JavaScript 异步操作之 Promise》 — 江湖十年&source=由于 JavaScript 通常是由单线程来执行代码，所以在编写 JavaScript 代码时经常需要使用异步操作来提高程序性能。一般来说异步执行在 Ja..." data-title=" QQ">
           <i class="icon icon-qq"></i>
         </a>
       </li>
       <li>
-        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2019/08/24/JavaScript-异步操作之-Promise/" data-title=" Facebook">
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/" data-title=" Facebook">
           <i class="icon icon-facebook"></i>
         </a>
       </li>
       <li>
-        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《JavaScript 异步操作之 Promise》 — 江湖十年&url=http://www.jianghushinian.cn/2019/08/24/JavaScript-异步操作之-Promise/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《JavaScript 异步操作之 Promise》 — 江湖十年&url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/&via=http://www.jianghushinian.cn" data-title=" Twitter">
           <i class="icon icon-twitter"></i>
         </a>
       </li>
       <li>
-        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-异步操作之-Promise/" data-title=" Google+">
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/" data-title=" Google+">
           <i class="icon icon-google-plus"></i>
         </a>
       </li>
@@ -336,7 +336,7 @@
 <nav class="post-nav flex-row flex-justify-between">
   
     <div class="waves-block waves-effect prev">
-      <a href="/2019/09/08/Python-赋值与拷贝/" id="post-prev" class="post-nav-link">
+      <a href="/2019/09/08/Python-%E8%B5%8B%E5%80%BC%E4%B8%8E%E6%8B%B7%E8%B4%9D/" id="post-prev" class="post-nav-link">
         <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
         <h4 class="title">Python 赋值与拷贝</h4>
       </a>
@@ -345,7 +345,7 @@
 
   
     <div class="waves-block waves-effect next">
-      <a href="/2019/08/22/Python-中对象的比较操作/" id="post-next" class="post-nav-link">
+      <a href="/2019/08/22/Python-%E4%B8%AD%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%AF%94%E8%BE%83%E6%93%8D%E4%BD%9C/" id="post-next" class="post-nav-link">
         <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
         <h4 class="title">Python 中对象的比较操作 == 与 is</h4>
       </a>
@@ -399,11 +399,11 @@
             
                 <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
             
-            <span>博客内容遵循 <a rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
         </p>
     </div>
     <div class="bottom">
-        <p><span>江湖十年 &copy; 2019</span>
+        <p><span>江湖十年 &copy; 2019 - 2020</span>
             <span>
                 
                 Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
@@ -421,7 +421,7 @@
 <div class="global-share" id="globalShare">
     <ul class="reset share-icons">
       <li>
-        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-异步操作之-Promise/&title=《JavaScript 异步操作之 Promise》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/&title=《JavaScript 异步操作之 Promise》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
           <i class="icon icon-weibo"></i>
         </a>
       </li>
@@ -431,22 +431,22 @@
         </a>
       </li>
       <li>
-        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-异步操作之-Promise/&title=《JavaScript 异步操作之 Promise》 — 江湖十年&source=由于 JavaScript 通常是由单线程来执行代码，所以在编写 JavaScript 代码时经常需要使用异步操作来提高程序性能。一般来说异步执行在 Ja..." data-title=" QQ">
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/&title=《JavaScript 异步操作之 Promise》 — 江湖十年&source=由于 JavaScript 通常是由单线程来执行代码，所以在编写 JavaScript 代码时经常需要使用异步操作来提高程序性能。一般来说异步执行在 Ja..." data-title=" QQ">
           <i class="icon icon-qq"></i>
         </a>
       </li>
       <li>
-        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2019/08/24/JavaScript-异步操作之-Promise/" data-title=" Facebook">
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/" data-title=" Facebook">
           <i class="icon icon-facebook"></i>
         </a>
       </li>
       <li>
-        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《JavaScript 异步操作之 Promise》 — 江湖十年&url=http://www.jianghushinian.cn/2019/08/24/JavaScript-异步操作之-Promise/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《JavaScript 异步操作之 Promise》 — 江湖十年&url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/&via=http://www.jianghushinian.cn" data-title=" Twitter">
           <i class="icon icon-twitter"></i>
         </a>
       </li>
       <li>
-        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-异步操作之-Promise/" data-title=" Google+">
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/" data-title=" Google+">
           <i class="icon icon-google-plus"></i>
         </a>
       </li>
@@ -457,7 +457,7 @@
 <div class="page-modal wx-share" id="wxShare">
     <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
     <p>扫一扫，分享到微信</p>
-    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACrklEQVR42u3ay26DQAwFUP7/p9ttqjbk2saUxWEVRTzmDBIeXc9xxMfXy/H6T37tu7u9u+e7q46NAw8PD28w9OqDf5+ZTEdyfnK38zHj4eHhbfPOP+jnpOTMZOjVOydFCA8PD+85vOTayRq/Wlrw8PDwnslLFrWT0KFXJPDw8PD+i5fcOgFUF9/JtTdlLXh4eHgxr9rEesLvlf4eHh4e3rirXl0uVwtA9YNeHi0eHh7eAm+ydWAS5k6W2vlWAzw8PLwN3h6jWmCqJSGZPjw8PLx7eJN44pzXa32dj+3DOXh4eHhrvHyxW0XOF9yju+Hh4eHdwjtn5+BJAUhg0VV4eHh4C7y8sTRv5FcX3JNNDHh4eHh7vPzUeWNsEvVWpw8PDw/vTl51uNU4uDehR+/Aw8PDW+MlkUS+BWqjADQX+nh4eHgLvGo7Pw8vkonLY9xeEIyHh4e3was+oDBnxTZ//sRkso78/eDh4eEVeb3PdLWc5HFGHlIUAhE8PDy8S3nVi3stsd7mreijf47Ew8PDW+BVF77VxfE8rs1DZDw8PLx7eElDqxou5I8vNLHiMRw5Aw8PD2/Mm4S2efGYTES5nYaHh4e3xut9dvOBTtjJcz/09/Dw8PAu5U3i2nwTQG/iqkv/6B3i4eHhLfCST3kvmEg++vNIt5Be4OHh4Y15eegw317Q26qVw/4oDHh4eHgLvF4DLC8DeTNschQSFzw8PLwW76t4TNr8vd/VbQc//sHDw8Nb4E3qSa94VKegt3y/oFzi4eHhnT4lLwb5DOUR7WSrQfTe8PDw8NZ4ySc7QVYDiygvKRYwPDw8vKfxqoFvbwNWvtnrw6Tj4eHhPYA330rVKwx50IyHh4d3D68XRiQhbO//3sRdHOPi4eHhjRtg8wV3Pk29icDDw8Nb5n0DjCY8GPVrdKgAAAAASUVORK5CYII=" alt="微信分享二维码">
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/" alt="微信分享二维码">
 </div>
 
 
