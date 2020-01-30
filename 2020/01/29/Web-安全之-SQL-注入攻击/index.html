@@ -38,7 +38,7 @@
 <meta property="og:image" content="http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/input_sql_inject_script_info1.png">
 <meta property="og:image" content="http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/login_fail1.png">
 <meta property="article:published_time" content="2020-01-29T01:25:19.000Z">
-<meta property="article:modified_time" content="2020-01-30T06:44:30.877Z">
+<meta property="article:modified_time" content="2020-01-30T07:02:45.367Z">
 <meta property="article:author" content="江湖十年">
 <meta property="article:tag" content="Web">
 <meta property="article:tag" content="安全">
@@ -217,27 +217,27 @@
 
 <p>这个 Web 应用中只包含一个 <code>login</code> 视图函数，它分别接收两个请求方法 <code>GET</code>、<code>POST</code>。如果为 <code>GET</code> 请求，返回登录页面，如果为 <code>POST</code> 请求，解析前端页面通过 <code>form</code> 表单传递过来的用户名、密码，然后根据用户名、密码拼接 SQL 语句，接下来执行这条 SQL 语句来查询 <code>user</code> 表中的数据，能够查询出数据，则代表用户输入的用户名和密码正确，登录成功，否则登录失败。</p>
 <p>启动 <code>Flask</code> 应用，浏览器访问登录页面 <code>http://127.0.0.1:5000/login</code>。</p>
-<img src="login.png" width="80%">
+<img src="login.png" width="80%" style="max-width: 500px">
 
 <p>首先输入正确的用户名 <code>test</code> 和密码 <code>test</code>，点击登录按钮，将得到 <code>登录成功</code> 响应。</p>
-<img src="input_right_info.png" width="80%">
+<img src="input_right_info.png" width="80%" style="max-width: 500px">
 
-<img src="login_success.png" width="80%">
+<img src="login_success.png" width="80%" style="max-width: 500px">
 
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># 控制台打印信息</span><br><span class="line">username: test, password: test</span><br><span class="line">sql: select * from user where username&#x3D;&#39;test&#39; and password&#x3D;&#39;test&#39;</span><br><span class="line">result: [(1, &#39;test&#39;, &#39;test&#39;)]</span><br></pre></td></tr></table></figure>
 
 <p>然后测试输入错误的用户名或密码，如输入 <code>123</code> 作为密码，点击登录按钮，将得到 <code>登录失败</code> 响应。</p>
-<img src="input_error_info.png" width="80%">
+<img src="input_error_info.png" width="80%" style="max-width: 500px">
 
-<img src="login_fail.png" width="80%">
+<img src="login_fail.png" width="80%" style="max-width: 500px">
 
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># 控制台打印信息</span><br><span class="line">username: test, password: 123</span><br><span class="line">sql: select * from user where username&#x3D;&#39;test&#39; and password&#x3D;&#39;123&#39;</span><br><span class="line">result: []</span><br></pre></td></tr></table></figure>
 
 <p>目前来看，我们的 Web 程序似乎能够正常工作，接下来我将演示如何通过传入 SQL 关键字来实现注入攻击。</p>
 <p>这次在用户名的输入框输入 <code>demo&#39; or 1=1; --</code>，密码输入框输入 <code>123</code>，点击登录按钮，你会惊奇的发现我们使用错误的用户名和密码竟然得到了 <code>登录成功</code> 响应。</p>
-<img src="input_sql_inject_script_info.png" width="80%">
+<img src="input_sql_inject_script_info.png" width="80%" style="max-width: 500px">
 
-<img src="login_success1.png" width="80%">
+<img src="login_success1.png" width="80%" style="max-width: 500px">
 
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># 控制台打印信息</span><br><span class="line">username: demo&#39; or 1&#x3D;1; --, password: 123</span><br><span class="line">sql: select * from user where username&#x3D;&#39;demo&#39; or 1&#x3D;1; --&#39; and password&#x3D;&#39;123&#39;</span><br><span class="line">result: [(1, &#39;test&#39;, &#39;test&#39;)]</span><br></pre></td></tr></table></figure>
 
@@ -254,9 +254,9 @@
 
 <p>可以看到，程序其实只修改了两行代码，修改后的程序不再通过字符串的方式拼接 SQL，而是首先构建参数化查询语句 <code>select * from user where username=? and password=?</code>，使用 <code>?</code> 对参数进行占位，然后在执行 SQL 时 <code>cursor.execute(sql, (username, password))</code> 将用户名和密码组装成元组传入。</p>
 <p>再次测试在用户名的输入框输入 <code>demo&#39; or 1=1; --</code>，密码输入框输入 <code>123</code>，点击登录按钮，将会得到 <code>登录失败</code> 响应。</p>
-<img src="input_sql_inject_script_info1.png" width="80%">
+<img src="input_sql_inject_script_info1.png" width="80%" style="max-width: 500px">
 
-<img src="login_fail1.png" width="80%">
+<img src="login_fail1.png" width="80%" style="max-width: 500px">
 
 <p>使用 <code>sqlite3</code> 驱动自带的参数化查询方式能够有效的避免 SQL 注入攻击，其原理就是在执行 <code>cursor.execute(sql, (username, password))</code> 时，<code>sqlite3</code> 内部会自动对 SQL 关键字进行转义。</p>
 <ol start="2">
@@ -271,7 +271,7 @@
     <div class="content">
         
 <span class="post-time">
-    最后更新时间：<time datetime="2020-01-30T06:44:30.877Z" itemprop="dateUpdated">2020-01-30 14:44:30</time>
+    最后更新时间：<time datetime="2020-01-30T07:02:45.367Z" itemprop="dateUpdated">2020-01-30 15:02:45</time>
 </span><br>
 
 
