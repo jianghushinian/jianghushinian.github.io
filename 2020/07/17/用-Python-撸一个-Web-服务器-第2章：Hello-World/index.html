@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>用 Python 撸一个 Web 服务器-第2章：Hello World | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Python,Web">
+    <meta name="description" content="从一个 Hello World 程序说起要编写 Web 服务器，需要用到一个 Python 内置库 socket。Socket 是一个比较抽象的概念，中文叫套接字，它代表一个网络连接。两台计算机之间要进行通讯，大概分为三个步骤：建立连接，传输数据，关闭连接。而 socket 库为我们提供了这个能力。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="用 Python 撸一个 Web 服务器-第2章：Hello World">
+<meta property="og:url" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="从一个 Hello World 程序说起要编写 Web 服务器，需要用到一个 Python 内置库 socket。Socket 是一个比较抽象的概念，中文叫套接字，它代表一个网络连接。两台计算机之间要进行通讯，大概分为三个步骤：建立连接，传输数据，关闭连接。而 socket 库为我们提供了这个能力。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/Hello_World_Server.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/Hello_World.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/Hello_World_Client_Request_Data.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/Hello_World_Client_Request_Data2.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/Hello_World_Chrome_Request_Data.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/Hello_World_Request_Headers_And_Response_Headers.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/Hello_World_Response.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/Favicon_Request_Headers_And_Response_Headers.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/Favicon_Response.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/JD_Favicon.png">
+<meta property="article:published_time" content="2020-07-17T08:36:09.000Z">
+<meta property="article:modified_time" content="2022-12-24T13:16:45.394Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="Web">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/Hello_World_Server.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">用 Python 撸一个 Web 服务器-第2章：Hello World</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">用 Python 撸一个 Web 服务器-第2章：Hello World</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2020-07-17T08:36:09.000Z" itemprop="datePublished" class="page-time">
+  2020-07-17
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#从一个-Hello-World-程序说起"><span class="post-toc-number">1.</span> <span class="post-toc-text">从一个 Hello World 程序说起</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#让服务器永久运行"><span class="post-toc-number">2.</span> <span class="post-toc-text">让服务器永久运行</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#让服务器同时支持多个客户端连接"><span class="post-toc-number">3.</span> <span class="post-toc-text">让服务器同时支持多个客户端连接</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-用-Python-撸一个-Web-服务器-第2章：Hello-World"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">用 Python 撸一个 Web 服务器-第2章：Hello World</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2020-07-17 16:36:09" datetime="2020-07-17T08:36:09.000Z"  itemprop="datePublished">2020-07-17</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <h3 id="从一个-Hello-World-程序说起"><a href="#从一个-Hello-World-程序说起" class="headerlink" title="从一个 Hello World 程序说起"></a>从一个 Hello World 程序说起</h3><p>要编写 Web 服务器，需要用到一个 Python 内置库 <code>socket</code>。Socket 是一个比较抽象的概念，中文叫套接字，它代表一个网络连接。两台计算机之间要进行通讯，大概分为三个步骤：建立连接，传输数据，关闭连接。而 <code>socket</code> 库为我们提供了这个能力。</p>
+<a id="more"></a>
+
+<p>按照国际惯例，我们将通过编写一个 Hello World 程序来开始 Web 服务器的学习 。</p>
+<p>首先要创建一个基于 <code>TCP</code> 的 <code>socket</code> 对象：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 导入 socket</span></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"></span><br><span class="line"><span class="comment"># 创建 socket 对象</span></span><br><span class="line">sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)</span><br></pre></td></tr></table></figure>
+
+<p><code>socket.socket()</code> 方法用来创建一个 <code>socket</code> 对象。同时我们给它传递了两个参数：<code>socket.AF_INET</code> 表示使用IPv4 协议，<code>socket.SOCK_STREAM</code> 表示这是一个基于 <code>TCP</code> 的 <code>socket</code> 对象。这两个参数也是默认参数，都可以不传。</p>
+<p>HTTP 协议是基于请求 —— 响应模型的，请求只可以是客户端发起的，服务器进行响应。服务器并不具备主动发起请求的能力，但是它需要被动的等待客户端的请求。所以现在有了 <code>socket</code> 对象以后我们接下来要做的就是监听客户端的请求：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 绑定 IP 和端口</span></span><br><span class="line">sock.bind((<span class="string">'127.0.0.1'</span>, <span class="number">8000</span>))</span><br><span class="line"><span class="comment"># 开始监听</span></span><br><span class="line">sock.listen(<span class="number">5</span>)</span><br></pre></td></tr></table></figure>
+
+<p><code>socket</code> 对象的 <code>bind</code> 方法用来绑定监听的 IP 地址和端口，它接收一个由 IP 和端口组成的 <code>tuple</code> 作为参数，<code>127.0.0.1</code> 代表本机 IP，只有运行在本机上的浏览器才能连接。端口号允许范围在 <code>0~65535</code> 之间，但是小于 <code>1024</code> 的端口号需要管理员权限才可使用。<code>sock.listen(5)</code> 用来开启监听，等待连接的最大数量指定为 <code>5</code>。</p>
+<p>开启监听以后，就可以等待接收客户端的请求了：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client, addr = sock.accept()</span><br></pre></td></tr></table></figure>
+
+<p><code>sock.accept()</code> 会阻塞程序，等待客户端的连接，一旦有客户端连接上来，它会分别返回客户端连接对象和客户端的地址。</p>
+<p>与客户端建立好连接后，接下来就是接收客户端发来的请求数据：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">data = <span class="string">b''</span></span><br><span class="line"><span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">    chunk = client.recv(<span class="number">1024</span>)</span><br><span class="line">    data += chunk</span><br><span class="line">    <span class="keyword">if</span> len(chunk) &lt; <span class="number">1024</span>:</span><br><span class="line">        <span class="keyword">break</span></span><br></pre></td></tr></table></figure>
+
+<p>接收客户端请求数据需要调用客户端连接对象的 <code>recv</code> 方法，参数为每一次接收的数据长度。<code>socket</code> 通讯过程中的数据都为 Python 的 <code>bytes</code> 类型。这里每次接收 1024 个字节，等待数据全部接收完成退出循环。</p>
+<p>接收到客户端发来的数据后，就需要对数据进行处理，然后返回响应给客户端的浏览器：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 打印从客户端接收的数据</span></span><br><span class="line">print(<span class="string">f'data: <span class="subst">&#123;data&#125;</span>'</span>)</span><br><span class="line"><span class="comment"># 给客户端发送响应数据</span></span><br><span class="line">client.sendall(<span class="string">b'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n&lt;h1&gt;Hello World&lt;/h1&gt;'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>为了简单起见，在接收到客户端发来的数据后直接进行打印，并没有做进一步的解析处理。接着就是服务器给客户端发送响应数据。发送的数据同样为 <code>bytes</code> 类型。数据按照 HTTP 协议的规范进行组装，首先是状态行 <code>HTTP/1.1 200 OK</code>，紧跟是着一个换行符 <code>\r\n</code>，然后通过响应头 <code>Content-Type: text/html</code> 指定响应结果为 HTML 类型，接下来是两个连续的 <code>\r\n\r\n</code>，注意因为在响应头和响应报文之间隔着一个空行，所以才会出现两个连续的 <code>\r\n\r\n</code>，最后就是响应体部分 <code>&lt;h1&gt;Hello World&lt;/h1&gt;</code>。</p>
+<p>在发送完响应数据后，我们需要关闭客户端连接对象和服务端 <code>socket</code> 对象：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 关闭客户端连接对象</span></span><br><span class="line">client.close()</span><br><span class="line"><span class="comment"># 关闭 socket 对象</span></span><br><span class="line">sock.close()</span><br></pre></td></tr></table></figure>
+
+<p>至此，一个 <code>Hello World</code> 服务器程序编写完成，下面是完整代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># server.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="comment"># 创建 socket 对象</span></span><br><span class="line">    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)</span><br><span class="line">    <span class="comment"># 允许端口复用</span></span><br><span class="line">    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, <span class="number">1</span>)</span><br><span class="line">    <span class="comment"># 绑定 IP 和端口</span></span><br><span class="line">    sock.bind((<span class="string">'127.0.0.1'</span>, <span class="number">8000</span>))</span><br><span class="line">    <span class="comment"># 开始监听</span></span><br><span class="line">    sock.listen(<span class="number">5</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 等待客户端请求</span></span><br><span class="line">    client, addr = sock.accept()</span><br><span class="line">    print(<span class="string">f'client type: <span class="subst">&#123;type(client)&#125;</span>\naddr: <span class="subst">&#123;addr&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 接收客户端发来的数据</span></span><br><span class="line">    data = <span class="string">b''</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        chunk = client.recv(<span class="number">1024</span>)</span><br><span class="line">        data += chunk</span><br><span class="line">        <span class="keyword">if</span> len(chunk) &lt; <span class="number">1024</span>:</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 打印从客户端接收的数据</span></span><br><span class="line">    print(<span class="string">f'data: <span class="subst">&#123;data&#125;</span>'</span>)</span><br><span class="line">    <span class="comment"># 给客户端发送响应数据</span></span><br><span class="line">    client.sendall(<span class="string">b'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n&lt;h1&gt;Hello World&lt;/h1&gt;'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 关闭客户端连接对象</span></span><br><span class="line">    client.close()</span><br><span class="line">    <span class="comment"># 关闭 socket 对象</span></span><br><span class="line">    sock.close()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    main()</span><br></pre></td></tr></table></figure>
+
+<p>将以上代码写入到 <code>server.py</code> 文件中。然后在终端中使用 Python 运行此文件：<code>python3 server.py</code>。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Hello_World_Server.png" alt="运行 Hello World 程序" title="">
+                </div>
+                <div class="image-caption">运行 Hello World 程序</div>
+            </figure>
+
+<p>打开浏览器，地址栏输入 <code>http://127.0.0.1:8000</code>，你将得到如下结果：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Hello_World.png" alt="Hello World" title="">
+                </div>
+                <div class="image-caption">Hello World</div>
+            </figure>
+
+<p><code>Hello World</code>！浏览器成功渲染出了服务器的响应结果。</p>
+<p>回到终端可以查看打印出来的客户端请求信息：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Hello_World_Client_Request_Data.png" alt="客户端请求信息" title="">
+                </div>
+                <div class="image-caption">客户端请求信息</div>
+            </figure>
+
+<p>可以发现，客户端连接对象实际上也是一个 <code>socket</code> 对象，客户端 IP 地址为 <code>127.0.0.1</code> 端口为 <code>50510</code>。最后是客户端请求数据，只有请求行和请求头，由于没有请求体，所以最后以两个连续的 <code>\r\n\r\n</code> 结束。</p>
+<p>细心的读者可能已经发现在最后给出的完整的 Hello World 程序代码中，在创建 <code>socket</code> 对象后有一行：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, <span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<p>前面并没有介绍这行代码的作用，实际上它的作用是允许端口复用。如果不写这行代码，那么在程序运行完成后需要马上重启程序时，由于上次的端口还在占用，会导致程序抛出异常，端口需要在间隔一段时间后才会被释放允许使用。加上这行代码就不会出现此问题，方便调试。</p>
+<p>以上，我们实现了一个简单的能够返回 Hello World 的服务器程序。</p>
+<h3 id="让服务器永久运行"><a href="#让服务器永久运行" class="headerlink" title="让服务器永久运行"></a>让服务器永久运行</h3><p>上面实现的 Hello World 服务器程序运行一次就退出了。通常来说，服务器端的程序是永久运行的程序。因为你不知道客户端什么时候发送请求，所以就需要服务器端一直处在监听状态。这样才能保证任何时候客户端发送请求都能被服务器端接收到。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># server_forever.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="comment"># 创建 socket 对象</span></span><br><span class="line">    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)</span><br><span class="line">    <span class="comment"># 允许端口复用</span></span><br><span class="line">    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, <span class="number">1</span>)</span><br><span class="line">    <span class="comment"># 绑定 IP 和端口</span></span><br><span class="line">    sock.bind((<span class="string">'127.0.0.1'</span>, <span class="number">8000</span>))</span><br><span class="line">    <span class="comment"># 开始监听</span></span><br><span class="line">    sock.listen(<span class="number">5</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        <span class="comment"># 等待客户端请求</span></span><br><span class="line">        client, addr = sock.accept()</span><br><span class="line">        print(<span class="string">f'client type: <span class="subst">&#123;type(client)&#125;</span>\naddr: <span class="subst">&#123;addr&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 接收客户端发来的数据</span></span><br><span class="line">        data = <span class="string">b''</span></span><br><span class="line">        <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">            chunk = client.recv(<span class="number">1024</span>)</span><br><span class="line">            data += chunk</span><br><span class="line">            <span class="keyword">if</span> len(chunk) &lt; <span class="number">1024</span>:</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 打印从客户端接收的数据</span></span><br><span class="line">        print(<span class="string">f'data: <span class="subst">&#123;data&#125;</span>'</span>)</span><br><span class="line">        <span class="comment"># 给客户端发送响应数据</span></span><br><span class="line">        client.sendall(<span class="string">b'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n&lt;h1&gt;Hello World&lt;/h1&gt;'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 关闭客户端连接对象</span></span><br><span class="line">        client.close()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    main()</span><br></pre></td></tr></table></figure>
+
+<p>上面的程序中加入了一个 <code>while True</code> 无限循环，在处理完一个客户端连接对象以后程序马上执行到下一次循环，开始等待新的客户端连接，这样就实现了服务器程序永久运行。并且删除了 <code>main</code> 函数最后一行 <code>sock.close()</code> 代码，因为既然要让程序永久运行下去，那么也就不需要关闭服务器端 <code>socket</code> 连接了。</p>
+<p>将以上代码保存到 <code>server_forever.py</code> 文件中，同样在命令行终端使用 Python 运行此程序，浏览器多刷新几次页面，依然能够正常加载 <code>Hello World</code>。</p>
+<p>不过，此时如果在终端查看打印信息，会发现每次刷新浏览器时，浏览器并不是一次只发送一个请求，而是两个请求。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Hello_World_Client_Request_Data2.png" alt="客户端请求信息" title="">
+                </div>
+                <div class="image-caption">客户端请求信息</div>
+            </figure>
+
+<p>打开 Chrome 控制台查看 <code>Network</code>，果然浏览器发送了两个请求。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Hello_World_Chrome_Request_Data.png" alt="Chrome 请求" title="">
+                </div>
+                <div class="image-caption">Chrome 请求</div>
+            </figure>
+
+<p>第一个请求路径为 <code>/</code>，根据浏览器请求及响应记录来看是符合预期的。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Hello_World_Request_Headers_And_Response_Headers.png" alt="Hello World 请求头及响应头信息" title="">
+                </div>
+                <div class="image-caption">Hello World 请求头及响应头信息</div>
+            </figure>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Hello_World_Response.png" alt="Hello World 响应信息" title="">
+                </div>
+                <div class="image-caption">Hello World 响应信息</div>
+            </figure>
+
+<p>第二个请求路径为 <code>/favicon.ico</code>，这个请求的响应结果同样为 <code>&lt;h1&gt;Hello World&lt;/h1&gt;</code>。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Favicon_Request_Headers_And_Response_Headers.png" alt="网站图标请求头及响应头信息" title="">
+                </div>
+                <div class="image-caption">网站图标请求头及响应头信息</div>
+            </figure>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Favicon_Response.png" alt="网站图标响应信息" title="">
+                </div>
+                <div class="image-caption">网站图标响应信息</div>
+            </figure>
+
+<p>实际上，这个请求是 Chrome 浏览器自主发起的，是为了获取网站图标用的。当在浏览器中打开京东网站首页时，浏览器标签栏就会加载出京东网站的图标。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="JD_Favicon.png" alt="京东网站图标" title="">
+                </div>
+                <div class="image-caption">京东网站图标</div>
+            </figure>
+
+<p>我们自己编写的 Hello World 服务器由于没有返回正确的图标文件，而是返回了一个 <code>&lt;h1&gt;Hello World&lt;/h1&gt;</code> 字符串，所以浏览器并不能将其识别为图标。最终在 <code>Hello World</code> 页面标签栏也就不会有像京东网站类似的图标了。这个问题目前来说我们并不需要关心，在之后实现 Todo List 程序时再来解决。</p>
+<p>有些读者可能会疑惑为什么 Hello World 服务器返回的是一个不完整的 HTML 页面，只是一个带有 <code>h1</code> 标签的字符串 <code>&lt;h1&gt;Hello World&lt;/h1&gt;</code>，浏览器就能够正常渲染页面，并对 <code>Hello World</code> 做加粗处理。这其实是 Chrome 浏览器的容错机制，如果检测到 HTML 标签不全，那么它会自动补全缺少的标签。以达到更好的渲染效果。</p>
+<p>现在如果要结束服务器程序，只需要在程序运行终端按组合键 <code>Ctrl + C</code> 即可。</p>
+<h3 id="让服务器同时支持多个客户端连接"><a href="#让服务器同时支持多个客户端连接" class="headerlink" title="让服务器同时支持多个客户端连接"></a>让服务器同时支持多个客户端连接</h3><p>我们现在实现的 Hello World 服务器程序由于是单线程的，所以服务器一次只能处理一个请求。但我们使用的京东等网站实际上同时会有很多客户端在连接的，如果一次只能处理一个请求，那么客户端体验将非常差。</p>
+<p>为了让我们的程序也能支持同时处理多个客户端连接，需要将其改成多线程版本。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># threading_server_forever.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">process_connection</span><span class="params">(client)</span>:</span></span><br><span class="line">    <span class="string">"""处理客户端连接"""</span></span><br><span class="line">    <span class="comment"># 接收客户端发来的数据</span></span><br><span class="line">    data = <span class="string">b''</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        chunk = client.recv(<span class="number">1024</span>)</span><br><span class="line">        data += chunk</span><br><span class="line">        <span class="keyword">if</span> len(chunk) &lt; <span class="number">1024</span>:</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 打印从客户端接收的数据</span></span><br><span class="line">    print(<span class="string">f'data: <span class="subst">&#123;data&#125;</span>'</span>)</span><br><span class="line">    <span class="comment"># 给客户端发送响应数据</span></span><br><span class="line">    client.sendall(<span class="string">b'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n&lt;h1&gt;Hello World&lt;/h1&gt;'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 关闭客户端连接对象</span></span><br><span class="line">    client.close()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="comment"># 创建 socket 对象</span></span><br><span class="line">    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)</span><br><span class="line">    <span class="comment"># 允许端口复用</span></span><br><span class="line">    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, <span class="number">1</span>)</span><br><span class="line">    <span class="comment"># 绑定 IP 和端口</span></span><br><span class="line">    sock.bind((<span class="string">'127.0.0.1'</span>, <span class="number">8000</span>))</span><br><span class="line">    <span class="comment"># 开始监听</span></span><br><span class="line">    sock.listen(<span class="number">5</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        <span class="comment"># 等待客户端请求</span></span><br><span class="line">        client, addr = sock.accept()</span><br><span class="line">        print(<span class="string">f'client type: <span class="subst">&#123;type(client)&#125;</span>\naddr: <span class="subst">&#123;addr&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 创建新的线程来处理客户端连接</span></span><br><span class="line">        t = threading.Thread(target=process_connection, args=(client,))</span><br><span class="line">        t.start()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    main()</span><br></pre></td></tr></table></figure>
+
+<p>改成多线程版本以后，服务器每接收到一个客户端连接，就将其交给一个新的子线程来处理，主线程继续执行到下一轮循环等待新的客户端连接。这样，就实现了让服务器同时支持多个客户端连接。</p>
+<p>本章通过编写一个 Hello World 程序学习了 Web 服务器的开发 。如果你是编程新手，对 <code>socket</code> 编程理解起来还是略有困难，那么你可以类比 Python 的文件操作来进行对比学习。文件处理通常也是三个步骤：打开文件、读写数据、关闭文件。通过这样利用已有知识来类比学习新技术也是一个不错的方法。</p>
+<blockquote>
+<p>本章源码：<a href="https://github.com/jianghushinian/todo-list/tree/master/chapter2" target="_blank" rel="noopener">chapter2</a></p>
+</blockquote>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2022-12-24T13:16:45.394Z" itemprop="dateUpdated">2022-12-24 21:16:45</time>
+</span><br>
+
+
+        
+        <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/" target="_blank" rel="external">http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/&title=《用 Python 撸一个 Web 服务器-第2章：Hello World》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/&title=《用 Python 撸一个 Web 服务器-第2章：Hello World》 — 江湖十年&source=从一个 Hello World 程序说起要编写 Web 服务器，需要用到一个 Python 内置库 socket。Socket 是一个比较抽象的概念，中文..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《用 Python 撸一个 Web 服务器-第2章：Hello World》 — 江湖十年&url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">用 Python 撸一个 Web 服务器-第3章：使用 MVC 构建程序</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">用 Python 撸一个 Web 服务器-第1章：Web 开发简介</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2022</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/&title=《用 Python 撸一个 Web 服务器-第2章：Hello World》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/&title=《用 Python 撸一个 Web 服务器-第2章：Hello World》 — 江湖十年&source=从一个 Hello World 程序说起要编写 Web 服务器，需要用到一个 Python 内置库 socket。Socket 是一个比较抽象的概念，中文..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《用 Python 撸一个 Web 服务器-第2章：Hello World》 — 江湖十年&url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

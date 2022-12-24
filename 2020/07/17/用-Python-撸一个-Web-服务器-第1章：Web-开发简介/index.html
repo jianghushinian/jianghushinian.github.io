@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>用 Python 撸一个 Web 服务器-第1章：Web 开发简介 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Python,Web">
+    <meta name="description" content="前言Web 开发技术一直在高速发展，各种新奇概念与框架层出不穷，尤其在 Web 前端领域，几年前还是 jQuery 的天下，而如今在 Vue、React 等框架面前也显得廉颇老矣。 不过，虽然各种框架技术日新月异，但 Web 开发的核心概念与本质依旧不曾改变，本教程将通过一个 Todo List 应用带你探索 Web 开发基本原理，只有真正明白了 Web 开发的核心基础，才能更轻松的应对新框架与技">
+<meta property="og:type" content="article">
+<meta property="og:title" content="用 Python 撸一个 Web 服务器-第1章：Web 开发简介">
+<meta property="og:url" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="前言Web 开发技术一直在高速发展，各种新奇概念与框架层出不穷，尤其在 Web 前端领域，几年前还是 jQuery 的天下，而如今在 Vue、React 等框架面前也显得廉颇老矣。 不过，虽然各种框架技术日新月异，但 Web 开发的核心概念与本质依旧不曾改变，本教程将通过一个 Todo List 应用带你探索 Web 开发基本原理，只有真正明白了 Web 开发的核心基础，才能更轻松的应对新框架与技">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/JD_Index.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/HTTP%E6%A8%A1%E5%9E%8B.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/HTTP%E8%AF%B7%E6%B1%82%E5%92%8C%E5%93%8D%E5%BA%94%E6%8A%A5%E6%96%87.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/Elements.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/Network.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/HTTP_Request.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/HTTP_Request_Headers.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/HTTP_Response.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/HTTP_Response_Headers.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/HTTP_Response_Body.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/URL.png">
+<meta property="article:published_time" content="2020-07-17T08:23:59.000Z">
+<meta property="article:modified_time" content="2022-12-24T13:16:45.374Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="Web">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/JD_Index.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">用 Python 撸一个 Web 服务器-第1章：Web 开发简介</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">用 Python 撸一个 Web 服务器-第1章：Web 开发简介</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2020-07-17T08:23:59.000Z" itemprop="datePublished" class="page-time">
+  2020-07-17
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#前言"><span class="post-toc-number">1.</span> <span class="post-toc-text">前言</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Web-开发简介"><span class="post-toc-number">2.</span> <span class="post-toc-text">Web 开发简介</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#HTTP-简介"><span class="post-toc-number">3.</span> <span class="post-toc-text">HTTP 简介</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#URL-简介"><span class="post-toc-number">4.</span> <span class="post-toc-text">URL 简介</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#TCP-IP-简介"><span class="post-toc-number">5.</span> <span class="post-toc-text">TCP&#x2F;IP 简介</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#扩展"><span class="post-toc-number">6.</span> <span class="post-toc-text">扩展</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#开发环境"><span class="post-toc-number">7.</span> <span class="post-toc-text">开发环境</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-用-Python-撸一个-Web-服务器-第1章：Web-开发简介"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">用 Python 撸一个 Web 服务器-第1章：Web 开发简介</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2020-07-17 16:23:59" datetime="2020-07-17T08:23:59.000Z"  itemprop="datePublished">2020-07-17</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>Web 开发技术一直在高速发展，各种新奇概念与框架层出不穷，尤其在 Web 前端领域，几年前还是 jQuery 的天下，而如今在 Vue、React 等框架面前也显得廉颇老矣。</p>
+<p>不过，虽然各种框架技术日新月异，但 Web 开发的核心概念与本质依旧不曾改变，本教程将通过一个 Todo List 应用带你探索 Web 开发基本原理，只有真正明白了 Web 开发的核心基础，才能更轻松的应对新框架与技术。</p>
+<a id="more"></a>
+
+
+<h3 id="Web-开发简介"><a href="#Web-开发简介" class="headerlink" title="Web 开发简介"></a>Web 开发简介</h3><p>我们常见的软件种类有桌面软件、移动 APP以及网页应用等，Web 开发通常就是在开发网页应用。桌面软件、移动 APP 需要先安装在 Windows、Android 等宿主机才能使用，每个客户端每次升级更新软件时都需要重新下载并安装。而 Web 应用所依赖的客户端是浏览器，实际数据都存储在远程服务器端，如果应用需要升级，那么只需要升级服务器，所有用户通过浏览器打开网页时都将实时获取最新的数据，这也是 Web 开发能够流行起来的很重要的原因。</p>
+<h3 id="HTTP-简介"><a href="#HTTP-简介" class="headerlink" title="HTTP 简介"></a>HTTP 简介</h3><p>要学习 Web 开发，首先要明白什么是 HTTP 协议，因为 Web 开发就是建立在 HTTP 协议之上的。</p>
+<p>在浏览器地址栏输入网址 <code>https://www.jd.com/</code> 将得到京东商城首页。我们在浏览器页面中看到的所有数据都是服务器通过 HTTP 协议传输过来的。 </p>
+<p><img src="JD_Index.png" alt="京东首页"></p>
+<p>HTTP 协议中文叫超文本传输协议，可以拆分成三部分理解：超文本、传输、协议。</p>
+<p>所谓超文本就是 HTML、CSS、图片、视频等内容的集合。传输既超文本内容从浏览器（客户端）到服务器或从服务器到浏览器之间的传输过程。而协议是规范，大家约定俗成的规约既是协议。</p>
+<p>HTTP 基于请求 —— 响应模型，浏览器向服务器的某个网址发起请求，服务器响应浏览器对应的资源。以下就是一个 HTTP 请求 —— 响应的模型图。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="HTTP模型.png" alt="HTTP 模型" title="">
+                </div>
+                <div class="image-caption">HTTP 模型</div>
+            </figure>
+
+<p>左侧是浏览器，右侧是服务器。浏览器和服务器之间通讯是通过文本传输来完成的。浏览器发起请求时发送的数据叫作请求报文，得到的服务端响应的数据叫作响应报文。下图示展示了请求报文和响应报文的格式。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="HTTP请求和响应报文.png" alt="HTTP 请求和响应报文" title="">
+                </div>
+                <div class="image-caption">HTTP 请求和响应报文</div>
+            </figure>
+
+<p>根据图示可以看到，无论是请求报文还是响应报文基本都分为四个部分，每个部分之间以 <code>\r\n</code> 作为换行分隔符。</p>
+<p>请求报文包含请求行、报文首部、空行、报文主体四个部分。</p>
+<p>响应报文包含状态行、报文首部、空行、报文主体四个部分。</p>
+<p>在请求报文中，请求行和报文首部可以看成一个整体叫作请求头，报文主体又叫请求体。</p>
+<p>在响应报文中，状态行和报文首部可以看成一个整体叫作响应头，报文主体又叫响应体。</p>
+<p>如何在 Chrome 浏览器中查看请求与响应的报文信息呢？浏览器页面任意位置点击鼠标右键 —— 选择检查，就能够在页面底部显示 Chrome 开发者工具。点击 <code>Elements</code> 选项卡，你就能够看到网页的源代码，也就是服务器的响应数据。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Elements.png" alt="Elements" title="">
+                </div>
+                <div class="image-caption">Elements</div>
+            </figure>
+
+<p>点击 <code>Network</code> 选项卡，就能够看到所有请求、响应记录。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Network.png" alt="Network" title="">
+                </div>
+                <div class="image-caption">Network</div>
+            </figure>
+
+<p>每一行记录即为一个请求，为什么只是在地址栏里输入了 <code>https://www.jd.com/</code> 会出现这么多请求呢？我们知道，HTML 中不止可以写简单的文本标签，还可以写 <code>img</code>、<code>video</code> 等多媒体标签加载图片或视频，以及 <code>link</code>、<code>script</code> 等标签来加载 CSS 样式 和 JavaScript 脚本。浏览器在得到服务器的第一个响应时，会检查服务器返回的 HTML 页面，如果页面源码中包含这些特殊的标签，浏览器就会针对每一个标签专门发起一次请求。</p>
+<p>点击第一个请求，在右侧将会显示该请求及响应信息。找到 <code>Request Headers</code> 点击右侧的 <code>view source</code>，将会看到此次请求的请求头信息。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="HTTP_Request.png" alt="请求头" title="">
+                </div>
+                <div class="image-caption">请求头</div>
+            </figure>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="HTTP_Request_Headers.png" alt="请求头" title="">
+                </div>
+                <div class="image-caption">请求头</div>
+            </figure>
+
+<p>第一行 <code>GET / HTTP/1.1</code> 即为请求行。它由三个部分组成：请求方法、请求地址、HTTP 协议版本号，分别对应 <code>GET</code>、<code>/</code>、<code>HTTP/1.1</code>。每个部分之间通过一个空格隔开。</p>
+<p>HTTP 请求方法有很多，不过最常见的只有四种：<code>POST</code>、<code>DELETE</code>、<code>PUT</code>、<code>GET</code> 分别对应增、删、改、查四个操作。由于我们只是想查看京东首页，所以这里发送的是 <code>GET</code> 请求。</p>
+<p>请求地址 <code>/</code> 代表首页，你可能看过如 <code>/index</code>、<code>/index.html</code> 等类似的地址，其实这只是一个约定俗成的做法，它们都代表首页。</p>
+<p>现在最常用的 HTTP 版本即为 <code>1.1</code>。虽然 HTTP 2.0 早已发布，不过目前来说普及率依旧不是很高。所以现在大可不必纠结版本的问题。</p>
+<p>从第二行开始，所有内容都是诸如 <code>Key: Value</code> 这种键值对的形式组合成的，我们管每一组键值对都叫作请求首部字段，这些首部字段加在一起就是请求的报文首部，一般会直接叫请求头。</p>
+<p>其中最重要的请求首部字段就是 <code>Host: www.jd.com</code> 这一行，因为只有这一行是 HTTP 协议明确规定为必传的首部字段，其他请求首部字段都是非必传字段。<code>Host: www.jd.com</code> 的作用是当服务器上部署了多个网站，那么服务器就会根据这一行的信息来确定浏览器到底想访问哪个网站。</p>
+<p><code>Connection: keep-alive</code> 代表长连接，<code>User-Agent</code> 标识了浏览器信息，<code>Accept</code> 代表浏览器能够接收的报文格式，其他的请求首部字段可以等我们用到了再做说明。</p>
+<p>在 HTTP 请求报文中，还缺少一个空行和请求体是我们目前没有看到的。实际上虽然我们是点击浏览器的 <code>view source</code> 功能来查看请求报文信息，但它仍然是浏览器处理过的数据，并不是原始数据，所以空行是看不到的。而此次请求为 <code>GET</code> 请求，通常 <code>GET</code> 请求是没有请求体的，所以请求体被省略了。</p>
+<p>一个 HTTP <code>GET</code> 请求大概长这样：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">GET &#x2F; HTTP&#x2F;1.1</span><br><span class="line">Host: www.jd.com</span><br><span class="line">Connection: keep-alive</span><br><span class="line">User-Agent: Mozilla&#x2F;5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit&#x2F;537.36 (KHTML, like Gecko) Chrome&#x2F;83.0.4103.61 Safari&#x2F;537.36</span><br><span class="line">Accept: text&#x2F;html,application&#x2F;xhtml+xml,application&#x2F;xml;q&#x3D;0.9,image&#x2F;webp,image&#x2F;apng,*&#x2F;*;q&#x3D;0.8,application&#x2F;signed-exchange;v&#x3D;b3;q&#x3D;0.9</span><br></pre></td></tr></table></figure>
+
+<p>一个 HTTP <code>POST</code> 请求大概长这样：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">POST &#x2F;login HTTP&#x2F;1.1</span><br><span class="line">Host: www.jd.com</span><br><span class="line">Connection: keep-alive</span><br><span class="line">User-Agent: Mozilla&#x2F;5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit&#x2F;537.36 (KHTML, like Gecko) Chrome&#x2F;83.0.4103.61 Safari&#x2F;537.36</span><br><span class="line">Accept: text&#x2F;html,application&#x2F;xhtml+xml,application&#x2F;xml;q&#x3D;0.9,image&#x2F;webp,image&#x2F;apng,*&#x2F;*;q&#x3D;0.8,application&#x2F;signed-exchange;v&#x3D;b3;q&#x3D;0.9</span><br><span class="line"></span><br><span class="line">username&#x3D;test&amp;password&#x3D;pass</span><br></pre></td></tr></table></figure>
+
+<p>上面 <code>POST</code> 请求示例中 <code>username=test&amp;password=pass</code> 即为请求体。</p>
+<p>需要注意，以上请求报文中每一个换行都是用 <code>\r\n</code> 来标识的，这一点在后面实际开发的章节中就能体会到。</p>
+<p>分析完请求报文，接下来分析下响应报文。找到 <code>Response Headers</code> 同样点击右侧的 <code>view source</code>，将会看到此次请求的响应头信息。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="HTTP_Response.png" alt="响应头" title="">
+                </div>
+                <div class="image-caption">响应头</div>
+            </figure>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="HTTP_Response_Headers.png" alt="响应头" title="">
+                </div>
+                <div class="image-caption">响应头</div>
+            </figure>
+
+<p>第一行 <code>HTTP/1.1 200 OK</code> 即为状态行。它同样由三部分组成：HTTP协议版本号、状态码、当前状态码对应的原因短语，分别对应 <code>HTTP/1.1</code>、<code>200</code>、<code>OK</code>。每个部分之间仍然通过一个空格隔开。</p>
+<p>其中状态码用来告知服务器返回的响应状态，为一个数字。状态码大概分为四类：<code>2XX</code>、<code>3XX</code>、<code>4XX</code>、<code>5XX</code>，分别对应成功、重定向、客户端错误、服务端错误。所以状态码为 <code>200</code> 表示请求成功。</p>
+<p>原因短语 <code>OK</code> 其实并不是很重要，它主要是给客户端返回一个人类可读的短语，来标识请求结果，对浏览器来说没什么作用。</p>
+<p>响应首部字段同样是 <code>Key: Value</code> 这种键值对形式，并且有些是和请求首部字段一样的，称为通用首部字段，如 <code>Connection: keep-alive</code> 同样存在于响应首部字段。还有些字段是和请求首部字段搭配着使用的，如你所见 <code>Content-Type</code> 字段就是搭配请求首部字段中的 <code>Accept</code> 来使用的，<code>Accept</code> 是浏览器用来告诉服务器它能够接收的数据格式，而 <code>Content-Type: text/html</code> 标识了服务器返回的数据格式为 <code>html</code>。其他的响应首部字段可以等我们用到了再做说明。</p>
+<p>同样的，响应报文中的空行并不会在浏览器中展现出来，不过响应体是可以在浏览器中看到的。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="HTTP_Response_Body.png" alt="响应体" title="">
+                </div>
+                <div class="image-caption">响应体</div>
+            </figure>
+
+<p>当前请求的响应体实际上就是服务器返回的 <code>HTML</code> 源码。</p>
+<p>一个 HTTP 响应大概长这样：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">HTTP&#x2F;1.1 200 OK</span><br><span class="line">Connection: keep-alive</span><br><span class="line">Content-Type: text&#x2F;html</span><br><span class="line"></span><br><span class="line">&lt;html&gt;XXX&lt;&#x2F;html&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="URL-简介"><a href="#URL-简介" class="headerlink" title="URL 简介"></a>URL 简介</h3><p>介绍完 HTTP 协议基础，我们再来简单介绍下 <code>URL</code>。</p>
+<p>京东首页的网址是 <code>https://www.jd.com/</code>，这就是一个 <code>URL</code>。<code>URL</code> 中文叫作统一资源定位符。<code>URL</code> 的作用是在网络中唯一的标记一个资源。</p>
+<p>你可能听说过 <code>URI</code>，实际上 <code>URL</code> 是 <code>URI</code> 的一个子集。在基础学习阶段，我们并不需要弄清楚它们之间到底有什么差别，只需要把我们常见的网址统称为 <code>URL</code> 即可。</p>
+<p>一个 <code>URL</code> 的完整格式如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">scheme:&#x2F;&#x2F;user:passwd@host:port&#x2F;path?query#fragment</span><br></pre></td></tr></table></figure>
+
+<p>每一个部分代表含义如下：</p>
+<p><code>scheme</code>：协议名，表示资源使用哪种协议，<code>http</code> 就代表了 HTTP 协议，<code>file</code> 代表文件协议。</p>
+<p><code>://</code>：这个是固定写法，记住就好，没必要深究。</p>
+<p><code>user:passwd@</code>：身份信息，表示访问主机时需要提供的用户名和密码，但这种将隐私信息完全暴露在外部的作法已经几乎没人使用了。</p>
+<p><code>host:port</code>：表示资源所在的主机名和端口号。主机名为 IP 地址或域名，必须要有，HTTP 协议默认端口号是  <code>80</code>，可以省略，其他端口号则不可省略。</p>
+<p><code>path</code>：标识资源所在位置。它采用类似 Unix 系统的目录风格，必须以 <code>/</code> 开头，如果是多级路径，可以写成 <code>/a/b/c</code> 这种形式。</p>
+<p><code>query</code>：查询参数，在路径之后第一个 <code>?</code> 开始（不包含<code>?</code>）到 <code>#</code> 之前结束，所有的内容都是查询参数，一个参数的格式为 <code>key=value</code>，如果存在多个参数，中间用 <code>&amp;</code> 隔开。假如我们需要对数据做分页处理就可以使用这个参数，如 <code>page=1&amp;offset=20</code> 表示需要获取第一页的数据，每页数据 20 条。这时候服务器端就可以解析到这个参数并返回对应的数据。</p>
+<p><code>fragment</code>：最后一部分为片段标识符。也可以将其叫做锚点，从 <code>#</code> 开始，浏览器可以根据锚点跳转到页面指定位置，但这个参数是不会被发送到服务器端的，所以开发服务器端通常不太需要关心。</p>
+<p>下面通过对一个实际的 <code>URL</code> 地址进行分析来加强理解。</p>
+<p>以下图示为在京东首页搜索 <code>Python书籍</code>后浏览器地址栏 <code>URL</code> 截图。为了能够更清晰的说明问题 <code>URL</code> 部分略有删减。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="URL.png" alt="URL" title="">
+                </div>
+                <div class="image-caption">URL</div>
+            </figure>
+
+<p>我们可以将 <code>URL</code> 复制出来：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https:&#x2F;&#x2F;search.jd.com&#x2F;Search?keyword&#x3D;python%E4%B9%A6%E7%B1%8D&amp;enc&#x3D;utf-8</span><br></pre></td></tr></table></figure>
+
+<p>以上 <code>URL</code> 按标准格式拆分如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">scheme: https</span><br><span class="line">host:port: search.jd.com</span><br><span class="line">path: &#x2F;Search</span><br><span class="line">query: keyword&#x3D;python%E4%B9%A6%E7%B1%8D&amp;enc&#x3D;utf-8</span><br></pre></td></tr></table></figure>
+
+<p>你应该已经发现上面复制出来的 <code>URL</code> 和截图中的有些不同。</p>
+<p>首先我们复制出来的 <code>URL</code> 是以 <code>https</code> 开头，而浏览器中却是以 <code>search</code> 开头，其实这是浏览器为了让 <code>URL</code> 更加可读，而将 <code>https://</code> 隐藏了，实际上它仍然是存在的。</p>
+<p>你可能有个疑惑，我们上面一直在介绍 HTTP 协议，一个完整的 <code>URL</code> 是以 <code>http</code> 开头的。但实际上京东网站的 <code>URL</code> 都是以 <code>https</code> 开头的。其实 <code>https</code> 是基于 <code>http</code> 的，只是在 <code>http</code> 的基础上又加了一个安全套接层，默认端口 <code>443</code>，HTTP 协议传输数据都是明文传输，HTTPS 协议传输数据是经过加密的，所以使得数据的传输更加安全，仅此而已。本教程不会使用 HTTPS 协议，故此不做过多讲解。</p>
+<p>还有一个较大的差异就是在浏览器地址栏中看到的查询参数 <code>Python书籍</code> 复制出来以后就变成了 <code>python%E4%B9%A6%E7%B1%8D</code>。这是 <code>URL</code> 编码造成的，通常在 <code>URL</code> 中只能使用 ASCII 码，并且 <code>URL</code> 本身会使用如 <code>?</code>、<code>&amp;</code> 等符号作为分隔符。这就导致了很多特殊符号或者 ASCII 以外的字符（如中文）不能够直接使用，所以就规定了一种转码规范，将不能直接用于 <code>URL</code> 的字符通过转义操作使其变为可用字符。这就是 <code>书籍</code> 两个字符变成了 <code>%E4%B9%A6%E7%B1%8D</code> 的原因。在浏览器地址栏中能够正常显示同样是浏览器为了让 <code>URL</code> 更加可读做的特殊处理。URL 转义具体规则可以查看相关文档进行学习。</p>
+<h3 id="TCP-IP-简介"><a href="#TCP-IP-简介" class="headerlink" title="TCP/IP 简介"></a>TCP/IP 简介</h3><p>多个计算机之间通讯靠的是网络协议，最早的计算机厂商生产的计算机只能跟自家的计算机通讯，为让所有计算机之间都能够通讯就有了 TCP/IP 协议。这就比如几个人对话，有的说汉语、有的说英语、有的说日语，大家谁也听不懂其他人说话，所以最后大家都规定用一种语言来交流一样。</p>
+<p>TCP/IP 协议并不是单个的协议，它是一个协议族，包含了很多种网络通讯协议，HTTP 协议也在其中。在网络中两台计算机之间如果需要通讯，就要知道对方在哪，所以就有了 IP 地址。就像我们要给别人发快递，那么就要知道对方的家庭住址一样。现在常用的 IP 地址为 IPv4 版本，格式如 <code>192.168.3.14</code>，最新版本是 IPv6，格式如 <code>ABCD:EF01:2345:6789:ABCD:EF01:2345:6789</code>。</p>
+<p>有了 IP 地址还不够，就像你把快递邮寄到一个家庭住址，但家里有五口人，你还要确定这个快递是寄给谁的。端口的作用就是干这个的。计算机通过端口号区分收到的信息该转发给哪个软件。</p>
+<p>IP 地址加上端口号就是上面介绍的 <code>URL</code> 中 <code>host:port</code> 部分，如 <code>192.168.3.14:80</code>。但 IP 地址是一串数字，不容易记住，所以就有了域名。<code>www.jd.com</code> 就是京东的域名。我们在浏览器中输入这个域名时，计算机会自动将其转换成 IP 地址加端口号的形式。这个转换过程是通过一个叫 DNS 解析的技术。它能够将域名和 IP 之间的关系做绑定，知道了域名它就能查出其对应的 IP 地址是多少。</p>
+<p>HTTP 协议是建立在 TCP/IP 协议之上的，HTTP 的数据传输依靠的是 <code>TCP</code> 协议。总结起来就是 <code>TCP</code> 用来传输数据，<code>HTTP</code> 用来规范数据传输格式。</p>
+<h3 id="扩展"><a href="#扩展" class="headerlink" title="扩展"></a>扩展</h3><p>从浏览器地址栏输入网址 <code>https://www.jd.com/</code> 到看见京东网站首页经历了什么？</p>
+<ol>
+<li>浏览器从地址栏获取 URL</li>
+<li>浏览器或操作系统通过 DNS 解析将 URL 中域名和端口号解析成对应的 IP 地址和端口号</li>
+<li>浏览器通过 TCP 与服务器建立连接</li>
+<li>浏览器向服务器发送请求报文</li>
+<li>服务器收到请求报文后做对应的处理，将处理结果组装成响应报文返回给浏览器</li>
+<li>浏览器解析响应报文，渲染页面</li>
+</ol>
+<p>以上就是从浏览器地址栏输入网址 <code>https://www.jd.com/</code> 到看见京东网站首页所经历的过程概述。</p>
+<p>如果你对 Web 开发完全零基础，看了以上我对 HTTP 协议的简介，感觉不是很明白的话，那么我推荐你可以看一本叫作《图解HTTP》的书，看完后再来学习本教程能够达到事半功倍的效果。</p>
+<h3 id="开发环境"><a href="#开发环境" class="headerlink" title="开发环境"></a>开发环境</h3><p>本教程项目开发环境如下：</p>
+<ul>
+<li><p>Python：Python3.7</p>
+</li>
+<li><p>浏览器：Chrome83</p>
+</li>
+<li><p>开发工具：PyCharm 2020.1</p>
+</li>
+<li><p>操作系统：macOS 10.15</p>
+</li>
+</ul>
+<p>有 Python 基础的同学想必搭建开发环境肯定不在话下，所以具体搭建过程这里不再做过多介绍，需要强调的一点是浏览器我只推荐 Chrome 或者 Firefox，这样能够得到更好的开发体验。</p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2022-12-24T13:16:45.374Z" itemprop="dateUpdated">2022-12-24 21:16:45</time>
+</span><br>
+
+
+        
+        <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/" target="_blank" rel="external">http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/&title=《用 Python 撸一个 Web 服务器-第1章：Web 开发简介》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/&title=《用 Python 撸一个 Web 服务器-第1章：Web 开发简介》 — 江湖十年&source=前言Web 开发技术一直在高速发展，各种新奇概念与框架层出不穷，尤其在 Web 前端领域，几年前还是 jQuery 的天下，而如今在 Vue、React ..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《用 Python 撸一个 Web 服务器-第1章：Web 开发简介》 — 江湖十年&url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">用 Python 撸一个 Web 服务器-第2章：Hello World</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC0%E7%AB%A0%EF%BC%9A%E5%BC%80%E7%AF%87%E8%AF%8D/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">用 Python 撸一个 Web 服务器-第0章：开篇词</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2022</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/&title=《用 Python 撸一个 Web 服务器-第1章：Web 开发简介》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/&title=《用 Python 撸一个 Web 服务器-第1章：Web 开发简介》 — 江湖十年&source=前言Web 开发技术一直在高速发展，各种新奇概念与框架层出不穷，尤其在 Web 前端领域，几年前还是 jQuery 的天下，而如今在 Vue、React ..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《用 Python 撸一个 Web 服务器-第1章：Web 开发简介》 — 江湖十年&url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC1%E7%AB%A0%EF%BC%9AWeb-%E5%BC%80%E5%8F%91%E7%AE%80%E4%BB%8B/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

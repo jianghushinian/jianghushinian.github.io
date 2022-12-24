@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Python 字典的一个奇异现象 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Python">
+    <meta name="description" content="字典（dict）类型在 Python 基础数据类型中有着举足轻重的地位，日常编码中几乎离不开字典的使用。不过字典中有一个看似非常奇怪的现象，常被人忽略。本篇文章就来探索这一奇异现象。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python 字典的一个奇异现象">
+<meta property="og:url" content="http://www.jianghushinian.cn/2019/10/28/Python-%E5%AD%97%E5%85%B8%E7%9A%84%E4%B8%80%E4%B8%AA%E5%A5%87%E5%BC%82%E7%8E%B0%E8%B1%A1/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="字典（dict）类型在 Python 基础数据类型中有着举足轻重的地位，日常编码中几乎离不开字典的使用。不过字典中有一个看似非常奇怪的现象，常被人忽略。本篇文章就来探索这一奇异现象。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-10-28T13:15:12.000Z">
+<meta property="article:modified_time" content="2022-12-24T13:16:45.345Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Python">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Python 字典的一个奇异现象</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Python 字典的一个奇异现象</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2019-10-28T13:15:12.000Z" itemprop="datePublished" class="page-time">
+  2019-10-28
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+
+<article id="post-Python-字典的一个奇异现象"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Python 字典的一个奇异现象</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2019-10-28 21:15:12" datetime="2019-10-28T13:15:12.000Z"  itemprop="datePublished">2019-10-28</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>字典（<code>dict</code>）类型在 Python 基础数据类型中有着举足轻重的地位，日常编码中几乎离不开字典的使用。不过字典中有一个看似非常奇怪的现象，常被人忽略。本篇文章就来探索这一奇异现象。</p>
+<a id="more"></a>
+
+<p>请用 5 秒钟思考一下，下面这个字典表达式会输出什么？</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span>&#123;<span class="literal">True</span>: <span class="string">'True'</span>, <span class="number">1</span>: <span class="string">'1'</span>, <span class="number">1.0</span>: <span class="string">'1.0'</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>将以上字典表达式复制到 Python 控制台中执行，将会得到如下结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;True: &#39;1.0&#39;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>初次见到这个结果时我是非常吃惊的，what ？这看起来似乎并不符合常理，但当我们一步一步分析出背后的原因之后，就不会对这个结果感到奇怪了。</p>
+<p>我们可以将上面的字典表达式拆解为多个步骤来分析。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span>d = dict()</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>d[<span class="literal">True</span>] = <span class="string">'True'</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>d[<span class="number">1</span>] = <span class="string">'1'</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>d[<span class="number">1.0</span>] = <span class="string">'1.0'</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>d</span><br><span class="line">&#123;<span class="literal">True</span>: <span class="string">'1.0'</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先，先创建一个空的字典对象，然后依次给字典赋值，最终得到字典结果为 <code>{True: &#39;1.0&#39;}</code>。</p>
+<p>从以上代码的执行步骤和结果，我们可以分析出，在 Python 中字典会将作为键的 <code>True</code>、<code>1</code> 和 <code>1.0</code> 认为是 <code>相等</code> 的。我们可以在 Python 控制台得到验证。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="literal">True</span> == <span class="number">1</span> == <span class="number">1.0</span></span><br><span class="line"><span class="literal">True</span></span><br></pre></td></tr></table></figure>
+
+<p>果然，这三个对象对 python 来说是 <code>相等</code> 的。实际上，在 Python 中，<code>bool</code> 类型继承自 <code>int</code> 类型，所以这三个对象 <code>相等</code> 也是合理的。</p>
+<p>Python 提供了 <code>issubclass</code> 函数可以判断一个类型是否是另一个类型的子类，使用这个函数来验证 <code>bool</code> 类型是 <code>int</code> 类型的子类。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span>issubclass(bool, int)</span><br><span class="line"><span class="literal">True</span></span><br></pre></td></tr></table></figure>
+
+<p>还可以使用 <code>isinstance</code> 函数来判断一个对象是否是一个类型的实例，由于 <code>True</code> 是 <code>bool</code> 类型的实例，那么 <code>True</code> 自然也是 <code>int</code> 类型的实例对象。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span>isinstance(<span class="literal">True</span>, int)</span><br><span class="line"><span class="literal">True</span></span><br></pre></td></tr></table></figure>
+
+<p>我们证实了 <code>True</code>、<code>1</code> 和 <code>1.0</code> 是 <code>相等</code> 的对象。但这还不足以说明问题，在 Python 中两个对象的值 <code>相等</code> 并不能说明它们放到字典中时会变为同一个键。这点通过稍后的示例就会明白。</p>
+<p>在 Python 中，一个对象是否可以作为字典的键是有要求的，我们知道只有不可变类型才能作为字典的键。实际上 Python 判断一个对象是否可以作为字典的键，其实是判断这个对象是否为 <code>可哈希</code>（<code>hashable</code>）对象。</p>
+<p>Python 在 <a href="https://docs.python.org/3/glossary.html#term-hashable" target="_blank" rel="noopener">官网文档</a> 中对 <code>可哈希</code> 对象进行了说明。大概意思是说：如果一个对象的 <code>hash</code> 值在其生命周期内不会改变（需要实现 <code>__hash__()</code> 方法），并且这个对象可以与其他对象进行比较（需要实现 <code>__eq__()</code> 方法），则该对象是 <code>可哈希</code> 的。由于 Python 内置的常见不可变类型都实现了 <code>__hash__()</code> 方法 和 <code>__eq__()</code> 方法，所以它们都是 <code>可哈希</code> 的。</p>
+<p>这里还要强调一点：如果两个 <code>可哈希</code> 对象的值是相等的，那么它们的 <code>hash</code> 值也必然是相等的。这是 Python 的规范，我们自定义的类型也要遵循这个规范。</p>
+<p>说的直白一些，Python 字典的键是不可重复的，而 Python 在操作字典的键时，如果两个对象的 <code>hash</code> 值相同，并且这两个对象的值也 <code>相等</code>，那么这两个对象会被当作同一个键。</p>
+<p>Python 提供了 <code>hash</code> 函数可以获得一个对象的 <code>hash</code> 值，它会自动调用对象的 <code>__hash__()</code> 方法。至于判断两个对象的值是否相等，实际上就是使用 <code>==</code> 运算符，它会自动调用对象的 <code>__eq__()</code> 方法。</p>
+<p>知道了有关字典的键的特性，接下来我们自己实现一个类，通过三个示例分别对三种不同的情况进行探索，从而通过实际的代码来验证字典的键的特性。</p>
+<p>（以下示例代码中定义的 <code>__init__</code> 方法和 <code>__repr__</code> 方法只用于辅助观察，并不会对结果产生影响。）</p>
+<p>示例一：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="class"><span class="keyword">class</span> <span class="title">A</span><span class="params">(object)</span>:</span></span><br><span class="line"><span class="meta">... </span>    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, name)</span>:</span></span><br><span class="line"><span class="meta">... </span>            self.name = name</span><br><span class="line"><span class="meta">... </span>    <span class="function"><span class="keyword">def</span> <span class="title">__repr__</span><span class="params">(self)</span>:</span></span><br><span class="line"><span class="meta">... </span>            <span class="keyword">return</span> self.name</span><br><span class="line"><span class="meta">... </span>    <span class="function"><span class="keyword">def</span> <span class="title">__eq__</span><span class="params">(self, other)</span>:</span></span><br><span class="line"><span class="meta">... </span>            <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line"><span class="meta">... </span>    <span class="function"><span class="keyword">def</span> <span class="title">__hash__</span><span class="params">(self)</span>:</span></span><br><span class="line"><span class="meta">... </span>            <span class="keyword">return</span> id(self)</span><br><span class="line">...</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>a1 = A(<span class="string">'a1'</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>a2 = A(<span class="string">'a2'</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>a1 == a2</span><br><span class="line"><span class="literal">True</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>hash(a1), hash(a2)</span><br><span class="line">(<span class="number">4332959632</span>, <span class="number">4332959248</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>d = &#123;a1: <span class="number">1</span>, a2: <span class="number">2</span>&#125;</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>d</span><br><span class="line">&#123;a1: <span class="number">1</span>, a2: <span class="number">2</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由示例一可知，<code>a1</code> 和 <code>a2</code> 两个对象的值相等，但 <code>hash</code> 值不同，最终得到的字典并不会将这两个对象看作同一个键。</p>
+<p>示例二：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="class"><span class="keyword">class</span> <span class="title">A</span><span class="params">(object)</span>:</span></span><br><span class="line"><span class="meta">... </span>    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, name)</span>:</span></span><br><span class="line"><span class="meta">... </span>            self.name = name</span><br><span class="line"><span class="meta">... </span>    <span class="function"><span class="keyword">def</span> <span class="title">__repr__</span><span class="params">(self)</span>:</span></span><br><span class="line"><span class="meta">... </span>            <span class="keyword">return</span> self.name</span><br><span class="line"><span class="meta">... </span>    <span class="function"><span class="keyword">def</span> <span class="title">__eq__</span><span class="params">(self, other)</span>:</span></span><br><span class="line"><span class="meta">... </span>            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"><span class="meta">... </span>    <span class="function"><span class="keyword">def</span> <span class="title">__hash__</span><span class="params">(self)</span>:</span></span><br><span class="line"><span class="meta">... </span>            <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">...</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>a1 = A(<span class="string">'a1'</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>a2 = A(<span class="string">'a2'</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>a1 == a2</span><br><span class="line"><span class="literal">False</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>hash(a1), hash(a2)</span><br><span class="line">(<span class="number">1</span>, <span class="number">1</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>d = &#123;a1: <span class="number">1</span>, a2: <span class="number">2</span>&#125;</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>d</span><br><span class="line">&#123;a1: <span class="number">1</span>, a2: <span class="number">2</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由示例二可知，<code>a1</code> 和 <code>a2</code> 两个对象的 <code>hash</code> 值相同，但值不相等，最终得到的字典也不会将这两个对象看作同一个键。</p>
+<p>示例三：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="class"><span class="keyword">class</span> <span class="title">A</span><span class="params">(object)</span>:</span></span><br><span class="line"><span class="meta">... </span>    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, name)</span>:</span></span><br><span class="line"><span class="meta">... </span>            self.name = name</span><br><span class="line"><span class="meta">... </span>    <span class="function"><span class="keyword">def</span> <span class="title">__repr__</span><span class="params">(self)</span>:</span></span><br><span class="line"><span class="meta">... </span>            <span class="keyword">return</span> self.name</span><br><span class="line"><span class="meta">... </span>    <span class="function"><span class="keyword">def</span> <span class="title">__eq__</span><span class="params">(self, other)</span>:</span></span><br><span class="line"><span class="meta">... </span>            <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line"><span class="meta">... </span>    <span class="function"><span class="keyword">def</span> <span class="title">__hash__</span><span class="params">(self)</span>:</span></span><br><span class="line"><span class="meta">... </span>            <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">...</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>a1 = A(<span class="string">'a1'</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>a2 = A(<span class="string">'a2'</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>a1 == a2</span><br><span class="line"><span class="literal">True</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>hash(a1), hash(a2)</span><br><span class="line">(<span class="number">1</span>, <span class="number">1</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>d = &#123;a1: <span class="number">1</span>, a2: <span class="number">2</span>&#125;</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>d</span><br><span class="line">&#123;a1: <span class="number">2</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由示例三可知，<code>a1</code> 和 <code>a2</code> 两个对象的 <code>hash</code> 值相同，并且值也相等，最终得到的字典会将这两个对象看作同一个键。</p>
+<p>通过以上三个示例代码的演示，想必不用我多说，你一定已经猜测到了，实际上在 Python 中，<code>True</code>、<code>1</code> 和 <code>1.0</code> 这三个对象的 <code>hash</code> 值也是相同的。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span>hash(<span class="literal">True</span>), hash(<span class="number">1</span>), hash(<span class="number">1.0</span>)</span><br><span class="line">(<span class="number">1</span>, <span class="number">1</span>, <span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<p>至此，关于 Python 字典中的 <code>奇异</code> 现象也就解释通了，下次再见到同样的问题就不会觉得奇怪了。</p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2022-12-24T13:16:45.345Z" itemprop="dateUpdated">2022-12-24 21:16:45</time>
+</span><br>
+
+
+        
+        <a href="/2019/10/28/Python-%E5%AD%97%E5%85%B8%E7%9A%84%E4%B8%80%E4%B8%AA%E5%A5%87%E5%BC%82%E7%8E%B0%E8%B1%A1/" target="_blank" rel="external">http://www.jianghushinian.cn/2019/10/28/Python-%E5%AD%97%E5%85%B8%E7%9A%84%E4%B8%80%E4%B8%AA%E5%A5%87%E5%BC%82%E7%8E%B0%E8%B1%A1/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2019/10/28/Python-%E5%AD%97%E5%85%B8%E7%9A%84%E4%B8%80%E4%B8%AA%E5%A5%87%E5%BC%82%E7%8E%B0%E8%B1%A1/&title=《Python 字典的一个奇异现象》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2019/10/28/Python-%E5%AD%97%E5%85%B8%E7%9A%84%E4%B8%80%E4%B8%AA%E5%A5%87%E5%BC%82%E7%8E%B0%E8%B1%A1/&title=《Python 字典的一个奇异现象》 — 江湖十年&source=字典（dict）类型在 Python 基础数据类型中有着举足轻重的地位，日常编码中几乎离不开字典的使用。不过字典中有一个看似非常奇怪的现象，常被人忽略。本..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2019/10/28/Python-%E5%AD%97%E5%85%B8%E7%9A%84%E4%B8%80%E4%B8%AA%E5%A5%87%E5%BC%82%E7%8E%B0%E8%B1%A1/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Python 字典的一个奇异现象》 — 江湖十年&url=http://www.jianghushinian.cn/2019/10/28/Python-%E5%AD%97%E5%85%B8%E7%9A%84%E4%B8%80%E4%B8%AA%E5%A5%87%E5%BC%82%E7%8E%B0%E8%B1%A1/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2019/10/28/Python-%E5%AD%97%E5%85%B8%E7%9A%84%E4%B8%80%E4%B8%AA%E5%A5%87%E5%BC%82%E7%8E%B0%E8%B1%A1/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2020/01/18/JavaScript-%E7%AB%8B%E5%8D%B3%E6%89%A7%E8%A1%8C%E5%87%BD%E6%95%B0/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">JavaScript 立即执行函数</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2019/10/27/Python-lambda-%E8%A1%A8%E8%BE%BE%E5%BC%8F/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Python lambda 表达式</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2022</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2019/10/28/Python-%E5%AD%97%E5%85%B8%E7%9A%84%E4%B8%80%E4%B8%AA%E5%A5%87%E5%BC%82%E7%8E%B0%E8%B1%A1/&title=《Python 字典的一个奇异现象》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2019/10/28/Python-%E5%AD%97%E5%85%B8%E7%9A%84%E4%B8%80%E4%B8%AA%E5%A5%87%E5%BC%82%E7%8E%B0%E8%B1%A1/&title=《Python 字典的一个奇异现象》 — 江湖十年&source=字典（dict）类型在 Python 基础数据类型中有着举足轻重的地位，日常编码中几乎离不开字典的使用。不过字典中有一个看似非常奇怪的现象，常被人忽略。本..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2019/10/28/Python-%E5%AD%97%E5%85%B8%E7%9A%84%E4%B8%80%E4%B8%AA%E5%A5%87%E5%BC%82%E7%8E%B0%E8%B1%A1/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Python 字典的一个奇异现象》 — 江湖十年&url=http://www.jianghushinian.cn/2019/10/28/Python-%E5%AD%97%E5%85%B8%E7%9A%84%E4%B8%80%E4%B8%AA%E5%A5%87%E5%BC%82%E7%8E%B0%E8%B1%A1/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2019/10/28/Python-%E5%AD%97%E5%85%B8%E7%9A%84%E4%B8%80%E4%B8%AA%E5%A5%87%E5%BC%82%E7%8E%B0%E8%B1%A1/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2019/10/28/Python-%E5%AD%97%E5%85%B8%E7%9A%84%E4%B8%80%E4%B8%AA%E5%A5%87%E5%BC%82%E7%8E%B0%E8%B1%A1/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Golang 常见设计模式之选项模式 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Golang">
+    <meta name="description" content="在程序开发中，有些场景是我们经常会遇到的，软件行业的先行者们帮我们总结了一些解决常见场景编码问题的最佳实践，于是就有了设计模式。选项模式在 Go 语言开发中会经常用到，所以今天我们来介绍一下选项模式的应用。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Golang 常见设计模式之选项模式">
+<meta property="og:url" content="http://www.jianghushinian.cn/2021/12/12/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E9%80%89%E9%A1%B9%E6%A8%A1%E5%BC%8F/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在程序开发中，有些场景是我们经常会遇到的，软件行业的先行者们帮我们总结了一些解决常见场景编码问题的最佳实践，于是就有了设计模式。选项模式在 Go 语言开发中会经常用到，所以今天我们来介绍一下选项模式的应用。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-12-12T07:35:06.000Z">
+<meta property="article:modified_time" content="2022-12-24T13:16:45.321Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Golang">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Golang 常见设计模式之选项模式</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Golang 常见设计模式之选项模式</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2021-12-12T07:35:06.000Z" itemprop="datePublished" class="page-time">
+  2021-12-12
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Golang/">Golang</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#通过多构造函数实现"><span class="post-toc-number">1.</span> <span class="post-toc-text">通过多构造函数实现</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#通过默认参数选项实现"><span class="post-toc-number">2.</span> <span class="post-toc-text">通过默认参数选项实现</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#通过选项模式实现"><span class="post-toc-number">3.</span> <span class="post-toc-text">通过选项模式实现</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-Golang-常见设计模式之选项模式"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Golang 常见设计模式之选项模式</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2021-12-12 15:35:06" datetime="2021-12-12T07:35:06.000Z"  itemprop="datePublished">2021-12-12</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Golang/">Golang</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在程序开发中，有些场景是我们经常会遇到的，软件行业的先行者们帮我们总结了一些解决常见场景编码问题的最佳实践，于是就有了设计模式。选项模式在 Go 语言开发中会经常用到，所以今天我们来介绍一下选项模式的应用。</p>
+<a id="more"></a>
+
+<p>熟悉 Python 开发的同学都知道，Python 有默认参数的存在，使得我们在实例化一个对象的时候，可以根据需要来选择性的覆盖某些默认参数，以此来决定如何实例化对象。当一个对象有多个默认参数时，这个特性非常好用，能够优雅的简化代码。</p>
+<p>而 Go 语言从语法上是不支持默认参数的，所以为了实现既能通过默认参数创建对象，又能通过传递自定义参数创建对象，我们就需要通过一些编程技巧来实现。</p>
+<h3 id="通过多构造函数实现"><a href="#通过多构造函数实现" class="headerlink" title="通过多构造函数实现"></a>通过多构造函数实现</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	defaultAddr = <span class="string">"127.0.0.1"</span></span><br><span class="line">	defaultPort = <span class="number">8000</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Server <span class="keyword">struct</span> &#123;</span><br><span class="line">	Addr <span class="keyword">string</span></span><br><span class="line">	Port <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewServer</span><span class="params">()</span> *<span class="title">Server</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Server&#123;</span><br><span class="line">		Addr: defaultAddr,</span><br><span class="line">		Port: defaultPort,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewServerWithOptions</span><span class="params">(addr <span class="keyword">string</span>, port <span class="keyword">int</span>)</span> *<span class="title">Server</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Server&#123;</span><br><span class="line">		Addr: addr,</span><br><span class="line">		Port: port,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	s1 := NewServer()</span><br><span class="line">	s2 := NewServerWithOptions(<span class="string">"localhost"</span>, <span class="number">8001</span>)</span><br><span class="line">	fmt.Println(s1)  <span class="comment">// &amp;&#123;127.0.0.1 8000&#125;</span></span><br><span class="line">	fmt.Println(s2)  <span class="comment">// &amp;&#123;localhost 8001&#125;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里我们为 <code>Server</code> 结构体实现了两个构造函数，其中 <code>NewServer</code> 无需传递参数即可直接返回 <code>Server</code> 对象，<code>NewServerWithOptions</code> 则需要传递 <code>addr</code> 和 <code>port</code> 两个参数来构造 <code>Server</code> 对象。当我们无需对 <code>Server</code> 进行定制，通过默认参数创建的对象即可满足需求时，我们可以使用 <code>NewServer</code> 来生成对象（<code>s1</code>），而当我们需要对其进行定制时，则可以使用 <code>NewServerWithOptions</code> 来生成对象（<code>s2</code>）。</p>
+<h3 id="通过默认参数选项实现"><a href="#通过默认参数选项实现" class="headerlink" title="通过默认参数选项实现"></a>通过默认参数选项实现</h3><p>另外一种实现默认参数的方案是，我们可以为要生成的结构体对象定义一个选项结构体，用来生成要创建对象的默认参数，代码实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	defaultAddr = <span class="string">"127.0.0.1"</span></span><br><span class="line">	defaultPort = <span class="number">8000</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Server <span class="keyword">struct</span> &#123;</span><br><span class="line">	Addr <span class="keyword">string</span></span><br><span class="line">	Port <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> ServerOptions <span class="keyword">struct</span> &#123;</span><br><span class="line">	Addr <span class="keyword">string</span></span><br><span class="line">	Port <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewServerOptions</span><span class="params">()</span> *<span class="title">ServerOptions</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;ServerOptions&#123;</span><br><span class="line">		Addr: defaultAddr,</span><br><span class="line">		Port: defaultPort,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewServerWithOptions</span><span class="params">(opts *ServerOptions)</span> *<span class="title">Server</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Server&#123;</span><br><span class="line">		Addr: opts.Addr,</span><br><span class="line">		Port: opts.Port,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	s1 := NewServerWithOptions(NewServerOptions())</span><br><span class="line">	s2 := NewServerWithOptions(&amp;ServerOptions&#123;</span><br><span class="line">		Addr: <span class="string">"localhost"</span>,</span><br><span class="line">		Port: <span class="number">8001</span>,</span><br><span class="line">	&#125;)</span><br><span class="line">	fmt.Println(s1)  <span class="comment">// &amp;&#123;127.0.0.1 8000&#125;</span></span><br><span class="line">	fmt.Println(s2)  <span class="comment">// &amp;&#123;localhost 8001&#125;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们为 <code>Server</code> 结构体专门实现了一个 <code>ServerOptions</code> 用来生成默认参数，调用 <code>NewServerOptions</code> 函数即可获得默认参数配置，构造函数 <code>NewServerWithOptions</code> 接收一个 <code>*ServerOptions</code> 类型作为参数，所以我们可以直接将调用 <code>NewServerOptions</code> 函数的返回值传递给 <code>NewServerWithOptions</code> 来实现通过默认参数生成对象（<code>s1</code>），也可以通过手动构造 <code>ServerOptions</code> 配置来生成定制对象（<code>s2</code>）。</p>
+<h3 id="通过选项模式实现"><a href="#通过选项模式实现" class="headerlink" title="通过选项模式实现"></a>通过选项模式实现</h3><p>以上两种方式虽然都能够完成功能，但实现上却都不够优雅，接下来我们一起来看下如何通过选项模式更优雅的解决这个问题，代码实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	defaultAddr = <span class="string">"127.0.0.1"</span></span><br><span class="line">	defaultPort = <span class="number">8000</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Server <span class="keyword">struct</span> &#123;</span><br><span class="line">	Addr <span class="keyword">string</span></span><br><span class="line">	Port <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> ServerOptions <span class="keyword">struct</span> &#123;</span><br><span class="line">	Addr <span class="keyword">string</span></span><br><span class="line">	Port <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> ServerOption <span class="keyword">interface</span> &#123;</span><br><span class="line">	apply(*ServerOptions)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> FuncServerOption <span class="keyword">struct</span> &#123;</span><br><span class="line">	f <span class="function"><span class="keyword">func</span><span class="params">(*ServerOptions)</span></span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(fo FuncServerOption)</span> <span class="title">apply</span><span class="params">(option *ServerOptions)</span></span> &#123;</span><br><span class="line">	fo.f(option)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithAddr</span><span class="params">(addr <span class="keyword">string</span>)</span> <span class="title">ServerOption</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> FuncServerOption&#123;</span><br><span class="line">		f: <span class="function"><span class="keyword">func</span><span class="params">(options *ServerOptions)</span></span> &#123;</span><br><span class="line">			options.Addr = addr</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithPort</span><span class="params">(port <span class="keyword">int</span>)</span> <span class="title">ServerOption</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> FuncServerOption&#123;</span><br><span class="line">		f: <span class="function"><span class="keyword">func</span><span class="params">(options *ServerOptions)</span></span> &#123;</span><br><span class="line">			options.Port = port</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewServer</span><span class="params">(opts ...ServerOption)</span> *<span class="title">Server</span></span> &#123;</span><br><span class="line">	options := ServerOptions&#123;</span><br><span class="line">		Addr: defaultAddr,</span><br><span class="line">		Port: defaultPort,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> _, opt := <span class="keyword">range</span> opts &#123;</span><br><span class="line">		opt.apply(&amp;options)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> &amp;Server&#123;</span><br><span class="line">		Addr: options.Addr,</span><br><span class="line">		Port: options.Port,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	s1 := NewServer()</span><br><span class="line">	s2 := NewServer(WithAddr(<span class="string">"localhost"</span>), WithPort(<span class="number">8001</span>))</span><br><span class="line">	s3 := NewServer(WithPort(<span class="number">8001</span>))</span><br><span class="line">	fmt.Println(s1)  <span class="comment">// &amp;&#123;127.0.0.1 8000&#125;</span></span><br><span class="line">	fmt.Println(s2)  <span class="comment">// &amp;&#123;localhost 8001&#125;</span></span><br><span class="line">	fmt.Println(s3)  <span class="comment">// &amp;&#123;127.0.0.1 8001&#125;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>乍一看，我们的代码复杂了很多，但其实都是定义上的复杂，调用构造函数生成对象的代码复杂度是没有改变的。</p>
+<p>在这里我们定义了 <code>ServerOptions</code> 结构体用来配置默认参数，因为这里 <code>Addr</code> 和 <code>Port</code> 都有默认参数，所以 <code>ServerOptions</code> 的定义和 <code>Server</code> 定义是一样的，但有一定复杂性的结构体中可能会有些参数没有默认参数，必须让用户来配置，这时 <code>ServerOptions</code> 的字段就会少一些，大家可以按需定义。</p>
+<p>同时，我们还定义了一个 <code>ServerOption</code> 接口和实现了此接口的 <code>FuncServerOption</code> 结构体，它们的作用是让我们能够通过 <code>apply</code> 方法为 <code>ServerOptions</code> 结构体单独配置某项参数。</p>
+<p>我们可以分别为每个默认参数都定义一个 <code>WithXXX</code> 函数用来配置参数，如这里定义的 <code>WithAddr</code> 和 <code>WithPort</code> ，这样用户就可以通过调用 <code>WithXXX</code> 函数来定制需要覆盖的默认参数。</p>
+<p>此时默认参数定义在构造函数 <code>NewServer</code> 中，构造函数的接收一个不定长参数，类型为 <code>ServerOption</code>，在构造函数内部通过一个 <code>for</code> 循环调用每个传进来的 <code>ServerOption</code> 对象的 <code>apply</code> 方法，将用户配置的参数依次赋值给构造函数内部的默认参数对象 <code>options</code> 中，以此来替换默认参数，<code>for</code> 循环执行完成后，得到的 <code>options</code> 对象将是最终配置，将其属性依次赋值给 <code>Server</code> 即可生成新的对象。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>通过 <code>s2</code> 和 <code>s3</code> 的打印结果可以发现，使用选项模式实现的构造函数更加灵活，相较于前两种实现，选项模式中我们可以自由的更改其中任意一项或多项默认配置。</p>
+<p>虽然选项模式确实会多写一些代码，但多数情况下这是值得的，Google 的 <code>gRPC</code> 框架 Go 语言实现中创建 <code>gRPC</code> server 的构造函数 <a href="https://github.com/grpc/grpc-go/blob/master/server.go#L561" target="_blank" rel="noopener"><code>NewServer</code></a> 就使用了选项模式，感兴趣的同学可以看下其源码的实现思想其实和这里的示例程序如出一辙。</p>
+<p>希望今天的分享能够给你带来一点帮助。</p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2022-12-24T13:16:45.321Z" itemprop="dateUpdated">2022-12-24 21:16:45</time>
+</span><br>
+
+
+        
+        <a href="/2021/12/12/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E9%80%89%E9%A1%B9%E6%A8%A1%E5%BC%8F/" target="_blank" rel="external">http://www.jianghushinian.cn/2021/12/12/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E9%80%89%E9%A1%B9%E6%A8%A1%E5%BC%8F/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Golang/" rel="tag">Golang</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2021/12/12/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E9%80%89%E9%A1%B9%E6%A8%A1%E5%BC%8F/&title=《Golang 常见设计模式之选项模式》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2021/12/12/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E9%80%89%E9%A1%B9%E6%A8%A1%E5%BC%8F/&title=《Golang 常见设计模式之选项模式》 — 江湖十年&source=在程序开发中，有些场景是我们经常会遇到的，软件行业的先行者们帮我们总结了一些解决常见场景编码问题的最佳实践，于是就有了设计模式。选项模式在 Go 语言开发..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2021/12/12/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E9%80%89%E9%A1%B9%E6%A8%A1%E5%BC%8F/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Golang 常见设计模式之选项模式》 — 江湖十年&url=http://www.jianghushinian.cn/2021/12/12/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E9%80%89%E9%A1%B9%E6%A8%A1%E5%BC%8F/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2021/12/12/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E9%80%89%E9%A1%B9%E6%A8%A1%E5%BC%8F/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2022/02/28/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E8%A3%85%E9%A5%B0%E6%A8%A1%E5%BC%8F/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Golang 常见设计模式之装饰模式</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2021/10/13/Python-%E4%B8%AD%E7%9A%84%E7%B1%BB%E6%96%B9%E6%B3%95%E5%92%8C%E9%9D%99%E6%80%81%E6%96%B9%E6%B3%95/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Python 中的类方法和静态方法</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2022</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2021/12/12/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E9%80%89%E9%A1%B9%E6%A8%A1%E5%BC%8F/&title=《Golang 常见设计模式之选项模式》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2021/12/12/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E9%80%89%E9%A1%B9%E6%A8%A1%E5%BC%8F/&title=《Golang 常见设计模式之选项模式》 — 江湖十年&source=在程序开发中，有些场景是我们经常会遇到的，软件行业的先行者们帮我们总结了一些解决常见场景编码问题的最佳实践，于是就有了设计模式。选项模式在 Go 语言开发..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2021/12/12/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E9%80%89%E9%A1%B9%E6%A8%A1%E5%BC%8F/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Golang 常见设计模式之选项模式》 — 江湖十年&url=http://www.jianghushinian.cn/2021/12/12/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E9%80%89%E9%A1%B9%E6%A8%A1%E5%BC%8F/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2021/12/12/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E9%80%89%E9%A1%B9%E6%A8%A1%E5%BC%8F/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2021/12/12/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E9%80%89%E9%A1%B9%E6%A8%A1%E5%BC%8F/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

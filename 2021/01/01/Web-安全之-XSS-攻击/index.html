@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Web 安全之 XSS 攻击 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Web,安全">
+    <meta name="description" content="XSS 攻击中文为跨站脚本攻击，全拼为 Cross-Site Scripting，其缩写本应为 CSS，但这个名称已经被作为 Cascading Style Sheets(层叠样式表) 的缩写，为了避免冲突，就将 Cross(交叉) 缩写成了看起来像一个交叉形状的字母 X。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Web 安全之 XSS 攻击">
+<meta property="og:url" content="http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="XSS 攻击中文为跨站脚本攻击，全拼为 Cross-Site Scripting，其缩写本应为 CSS，但这个名称已经被作为 Cascading Style Sheets(层叠样式表) 的缩写，为了避免冲突，就将 Cross(交叉) 缩写成了看起来像一个交叉形状的字母 X。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/hello.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/xss.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/xss_fail.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/source.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/a_xss.png">
+<meta property="article:published_time" content="2021-01-01T01:28:54.000Z">
+<meta property="article:modified_time" content="2022-12-24T13:16:45.353Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Web">
+<meta property="article:tag" content="安全">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/hello.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Web 安全之 XSS 攻击</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Web 安全之 XSS 攻击</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2021-01-01T01:28:54.000Z" itemprop="datePublished" class="page-time">
+  2021-01-01
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#攻击原理"><span class="post-toc-number">1.</span> <span class="post-toc-text">攻击原理</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#攻击分类"><span class="post-toc-number">2.</span> <span class="post-toc-text">攻击分类</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#攻击示例"><span class="post-toc-number">3.</span> <span class="post-toc-text">攻击示例</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#防范方法"><span class="post-toc-number">4.</span> <span class="post-toc-text">防范方法</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-Web-安全之-XSS-攻击"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Web 安全之 XSS 攻击</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2021-01-01 09:28:54" datetime="2021-01-01T01:28:54.000Z"  itemprop="datePublished">2021-01-01</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>XSS 攻击中文为跨站脚本攻击，全拼为 Cross-Site Scripting，其缩写本应为 CSS，但这个名称已经被作为 Cascading Style Sheets(层叠样式表) 的缩写，为了避免冲突，就将 Cross(交叉) 缩写成了看起来像一个交叉形状的字母 X。</p>
+<a id="more"></a>
+
+<h3 id="攻击原理"><a href="#攻击原理" class="headerlink" title="攻击原理"></a>攻击原理</h3><p>XSS 攻击是一种网站应用程序的安全漏洞攻击，是代码注入的一种。它允许恶意用户将代码注入到网页上，其他用户在观看网页时就会受到影响。攻击成功后，攻击者可能得到更高的权限，如窃取网站个人主页信息、Cookie 信息等。</p>
+<h3 id="攻击分类"><a href="#攻击分类" class="headerlink" title="攻击分类"></a>攻击分类</h3><p>根据攻击来源的不同，XSS 攻击一般可以分为三类：存储型、反射型（非持久型） 和 DOM 型。</p>
+<ul>
+<li><p>存储型攻击步骤：</p>
+<ol>
+<li>攻击者将恶意代码通过表单等方式提交至目标网站数据库中。</li>
+<li>用户访问目标网站，目标网站后端程序从数据库中提取出恶意代码并返回给浏览器。</li>
+<li>浏览器解析并渲染响应结果的过程中执行了恶意代码。</li>
+<li>恶意代码此时便可以执行窃取用户数据等非法操作。</li>
+</ol>
+</li>
+<li><p>反射型攻击步骤：</p>
+<ol>
+<li>攻击者将恶意代码嵌入至 URL 中并诱导用户点击。</li>
+<li>用户点击恶意 URL，目标网站后端程序从 URL 中提取出恶意代码并返回给浏览器。</li>
+<li>浏览器解析并渲染响应结果的过程中执行了恶意代码。</li>
+<li>恶意代码此时便可以执行窃取用户数据等非法操作。</li>
+</ol>
+</li>
+<li><p>DOM 型攻击步骤：</p>
+<ol>
+<li>攻击者将恶意代码嵌入至 URL 中并诱导用户点击。</li>
+<li>用户点击恶意 URL，目标网站前端程序从 URL 中提取出恶意代码。</li>
+<li>浏览器在渲染过程中执行了恶意代码。</li>
+<li>恶意代码此时便可以执行窃取用户数据等非法操作。</li>
+</ol>
+</li>
+</ul>
+<p>存储型攻击和反射型攻击恶意代码都是经由目标网站后端程序返回，存储型攻击恶意代码被存储到了数据库中，反射型攻击恶意代码通常存在于 URL 中，因此也称作非持久型攻击。</p>
+<p>DOM 型攻击恶意代码通常也存在于 URL 中，与存储型攻击和反射型攻击区别在于恶意代码不经过后端程序，完全由浏览器端触发。</p>
+<p>可以发现 XSS 攻击的本质就是浏览器执行了非法的恶意代码，从而出现用户信息被窃取等非法操作。</p>
+<h3 id="攻击示例"><a href="#攻击示例" class="headerlink" title="攻击示例"></a>攻击示例</h3><p>这里我用 <code>Flask</code> 编写一个简单的 Web 应用来作为反射型 XSS 攻击的示例。执行以下代码之前你需要使用 <code>pip install flask</code> 的方式安装 <code>Flask</code>。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask, request, make_response</span><br><span class="line"></span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/hello')</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    name = request.args.get(<span class="string">'name'</span>)</span><br><span class="line">    response = make_response(<span class="string">f'&lt;h1&gt;Hello <span class="subst">&#123;name&#125;</span>!&lt;/h1&gt;'</span>)</span><br><span class="line">    response.set_cookie(<span class="string">'csrftoken'</span>, <span class="string">'0yz8xHMCQEfUwuUBIfiOmrre1XV2GyFAYgwdscY4XxpK9BLBuT34nSP1wFhK3GFD'</span>)</span><br><span class="line">    <span class="keyword">return</span> response</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    app.run()</span><br></pre></td></tr></table></figure>
+
+<p>这个 Web 应用中只包含一个 <code>hello</code> 视图函数，它返回一个简单的欢迎页面，并设置了一条 <code>Cookie</code> 信息到用户浏览器中。</p>
+<p>启动 <code>Flask</code> 应用，使用浏览器访问 <code>http://127.0.0.1:5000/hello?name=xiaoming</code> 即可看到 <code>Hello xiaoming!</code>。</p>
+<img src="hello.png" width="100%" style="max-width: 500px">
+
+<p>目前来看，我们的 Web 程序似乎能够正常工作，接下来我将演示如何通过传入恶意代码来实现 XSS 攻击。</p>
+<p>这次我们使用浏览器访问 <code>http://127.0.0.1:5000/hello?name=&lt;script&gt;alert(document.cookie);&lt;/script&gt;</code> 就可以通过 XSS 攻击的方式获取到用户浏览器中的 <code>Cookie</code> 信息。</p>
+<img src="xss.png" width="100%" style="max-width: 500px">
+
+<p>既然 <code>alert</code> 可以执行，并且成功获取到了 <code>Cookie</code> 信息，那么就意味着任意 <code>JavaScript</code> 代码都可以被执行，这是相当危险的。比如通过 <code>AJAX</code> 请求将获取到的 <code>Cookie</code> 信息发送至攻击者的服务器，此时攻击者就可以使用窃取到的用户 <code>Cookie</code> 信息来做一些非法操作。</p>
+<p>由于几种不同类型 XSS 攻击的本质是一样的，所以其他类型 XSS 攻击不再进行演示，读者可以自行尝试。</p>
+<h3 id="防范方法"><a href="#防范方法" class="headerlink" title="防范方法"></a>防范方法</h3><p>防范 XSS 攻击最主要的手段就是在前端渲染 <code>HTML</code> 之前对将要渲染的内容进行转义操作。转义后的内容在浏览器中将会被看作文本，而不是可执行的代码。</p>
+<p>修改 <code>hello</code> 视图函数，不再通过拼接字符串的形式构造响应内容，而是使用 <code>Jinja2</code> 模板对内容进行渲染。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask, request, make_response, render_template</span><br><span class="line"></span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/hello')</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    name = request.args.get(<span class="string">'name'</span>)</span><br><span class="line">    response = make_response(render_template(<span class="string">'index.html'</span>, name=name))</span><br><span class="line">    response.set_cookie(<span class="string">'csrftoken'</span>, <span class="string">'0yz8xHMCQEfUwuUBIfiOmrre1XV2GyFAYgwdscY4XxpK9BLBuT34nSP1wFhK3GFD'</span>)</span><br><span class="line">    <span class="keyword">return</span> response</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    app.run()</span><br></pre></td></tr></table></figure>
+
+<p><code>index.html</code> 模板内容如下：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>Hello<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>Hello &#123;&#123; name &#125;&#125;!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>再次使用浏览器访问 <code>http://127.0.0.1:5000/hello?name=&lt;script&gt;alert(document.cookie);&lt;/script&gt;</code> 将不会看到 <code>alert</code> 弹框。</p>
+<img src="xss_fail.png" width="100%" style="max-width: 500px">
+
+<p>此时查看网页源码将会看到 <code>&lt;script&gt;alert(document.cookie);&lt;/script&gt;</code> 被 <code>Jinja2</code> 模板转义成了 <code>&amp;lt;script&amp;gt;alert(document.cookie);&amp;lt;/script&amp;gt;</code>。</p>
+<img src="source.png" width="100%" style="max-width: 500px">
+
+<p>可以发现 <code>&lt;script&gt;</code> 标签中的 <code>&lt;</code> 被转义成了 <code>&amp;lt;</code>，<code>&gt;</code> 被转义成了 <code>&amp;gt;</code>。这样，浏览器就不会把用户输入的内容作为代码进行解析了，而是当作普通文本进行渲染，从而避免了 XSS 攻击。</p>
+<p>但是转义并不能完全过滤 XSS 攻击。将以上演示代码再次进行修改：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask, request, make_response, render_template</span><br><span class="line"></span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/hello')</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    name = request.args.get(<span class="string">'name'</span>)</span><br><span class="line">    url = <span class="string">'javascript:alert(document.cookie)'</span>  <span class="comment"># 假如这是一个用户提交的 URL</span></span><br><span class="line">    response = make_response(render_template(<span class="string">'index.html'</span>, name=name, url=url))</span><br><span class="line">    response.set_cookie(<span class="string">'csrftoken'</span>, <span class="string">'0yz8xHMCQEfUwuUBIfiOmrre1XV2GyFAYgwdscY4XxpK9BLBuT34nSP1wFhK3GFD'</span>)</span><br><span class="line">    <span class="keyword">return</span> response</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    app.run()</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>Hello<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>Hello &#123;&#123; name &#125;&#125;!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"&#123;&#123; url &#125;&#125;"</span>&gt;</span>这是一个用户提交的 URL<span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>在 <code>index.html</code> 中添加了一个 <code>a</code> 标签作为跳转链接，假设 <code>javascript:alert(document.cookie)</code> 是用户提交的非法 <code>URL</code>，如果我们仅仅是对内容进行转义，则无法过滤此 XSS 攻击。当用户点击页面中的 <code>a</code> 标签时依然会看到 <code>alert</code> 弹框。</p>
+<img src="a_xss.png" width="100%" style="max-width: 500px">
+
+<p>所以针对 <code>a</code> 标签的 <code>href</code> 属性，我们还要做特殊处理，判断 <code>URL</code> 是否以 <code>javascript:</code> 开头，过滤掉非法 <code>URL</code>。</p>
+<p>虽然 XSS 攻击常见类型只有三种，但可以被攻击的漏洞却非常多。如 <code>HTML</code> 中的内嵌文本、<code>a</code>标签的 <code>href</code> 属性、<code>img</code> 标签的 <code>src</code> 属性、标签的 <code>onclick</code> 等内联事件。一切渲染用户输入数据的地方都有可能存在漏洞，所以开发人员一定要对用户输入的文本进行合适的过滤操作。</p>
+<p>不要试图在前端页面用户提交数据的地方对内容进行过滤，因为攻击者可能不通过前端页面进行数据提交。所以要在浏览器渲染代码之前对内容进行过滤。</p>
+<p>如果你对 <code>Jinja2</code> 比较熟悉，可能用过 <code>safe</code> 过滤器，当你了解了 XSS 攻击以后请一定要慎用，确保数据源安全的情况下才可以将不转义的内容原样返回给浏览器。对于 <code>Vue</code> 的 <code>v-html</code>、<code>React</code> 的 <code>dangerouslySetInnerHTML</code> 功能同理。</p>
+<p>当然，所谓安全都是相对的，并没有绝对的安全，对于 XSS 攻击的防范，开发者应该保持警惕，做到尽量降低安全风险。</p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2022-12-24T13:16:45.353Z" itemprop="dateUpdated">2022-12-24 21:16:45</time>
+</span><br>
+
+
+        
+        <a href="/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/" target="_blank" rel="external">http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%AE%89%E5%85%A8/" rel="tag">安全</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/&title=《Web 安全之 XSS 攻击》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/&title=《Web 安全之 XSS 攻击》 — 江湖十年&source=XSS 攻击中文为跨站脚本攻击，全拼为 Cross-Site Scripting，其缩写本应为 CSS，但这个名称已经被作为 Cascading Styl..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Web 安全之 XSS 攻击》 — 江湖十年&url=http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Web 安全之 CSRF 攻击</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">JavaScript 异步操作之回调函数</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2022</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/&title=《Web 安全之 XSS 攻击》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/&title=《Web 安全之 XSS 攻击》 — 江湖十年&source=XSS 攻击中文为跨站脚本攻击，全拼为 Cross-Site Scripting，其缩写本应为 CSS，但这个名称已经被作为 Cascading Styl..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Web 安全之 XSS 攻击》 — 江湖十年&url=http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

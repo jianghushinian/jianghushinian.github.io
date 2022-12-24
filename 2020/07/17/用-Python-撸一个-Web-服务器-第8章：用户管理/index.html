@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>用 Python 撸一个 Web 服务器-第8章：用户管理 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Python,Web">
+    <meta name="description" content="用户登录原理用户登录与注册功能几乎已成为 Web 应用的标配。所以我们有必要给 Todo List 程序增加一个用户管理模块，以此来学习用户登录原理。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="用 Python 撸一个 Web 服务器-第8章：用户管理">
+<meta property="og:url" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="用户登录原理用户登录与注册功能几乎已成为 Web 应用的标配。所以我们有必要给 Todo List 程序增加一个用户管理模块，以此来学习用户登录原理。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/Cookie.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/Browser_Cookie.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/Test_Register.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/Test_Login.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/Test_Login_After.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/Current_User_todo.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/404.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/500.png">
+<meta property="article:published_time" content="2020-07-17T13:32:12.000Z">
+<meta property="article:modified_time" content="2022-12-24T13:16:45.411Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="Web">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/Cookie.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">用 Python 撸一个 Web 服务器-第8章：用户管理</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">用 Python 撸一个 Web 服务器-第8章：用户管理</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2020-07-17T13:32:12.000Z" itemprop="datePublished" class="page-time">
+  2020-07-17
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#用户登录原理"><span class="post-toc-number">1.</span> <span class="post-toc-text">用户登录原理</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#用户管理功能设计"><span class="post-toc-number">2.</span> <span class="post-toc-text">用户管理功能设计</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#用户管理功能编码实现"><span class="post-toc-number">3.</span> <span class="post-toc-text">用户管理功能编码实现</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#完善项目"><span class="post-toc-number">4.</span> <span class="post-toc-text">完善项目</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-用-Python-撸一个-Web-服务器-第8章：用户管理"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">用 Python 撸一个 Web 服务器-第8章：用户管理</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2020-07-17 21:32:12" datetime="2020-07-17T13:32:12.000Z"  itemprop="datePublished">2020-07-17</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <h3 id="用户登录原理"><a href="#用户登录原理" class="headerlink" title="用户登录原理"></a>用户登录原理</h3><p>用户登录与注册功能几乎已成为 Web 应用的标配。所以我们有必要给 Todo List 程序增加一个用户管理模块，以此来学习用户登录原理。</p>
+<a id="more"></a>
+
+<p>HTTP 协议是无状态的，这意味着每个完整的 HTTP 请求 —— 响应过程都是相对独立的，Web 服务器无法分辨前后两次连续请求是否为同一个用户（客户端）发送过来的。为了让服务器能够记住用户，就有了一种叫作 <code>Cookie</code> 的技术。我画了一张图来描述 <code>Cookie</code> 的工作过程：</p>
+<img src="Cookie.png" alt="Cookie" style="zoom:50%;" />
+
+<p>首先浏览器向服务器 <code>/</code> 路径发送了一个 <code>GET</code> 请求，服务器返回响应给浏览器时，在响应头中设置了两个键为 <code>Set-Cookie</code> 的响应首部字段，接下来浏览器收到 <code>Set-Cookie</code> 响应首部字段后会<strong>自动</strong>将其保存下来，在之后的所有请求中浏览器都会<strong>自动</strong>加上 <code>Cookie</code> 请求首部字段。</p>
+<p>这就是 <code>Cookie</code> 的大致工作原理，总结起来 <code>Cookie</code> 有如下几个特点：</p>
+<ul>
+<li><code>Cookie</code> 需要服务器和浏览器共同配合使用，服务器通过 <code>Set-Cookie</code> 响应首部字段来设置 <code>Cookie</code>，并且可以同时设置多个 <code>Set-Cookie</code> 响应首部字段。浏览器收到 <code>Set-Cookie</code> 响应首部字段时，会<strong>自动</strong>保存 <code>Cookie</code> 内容，在之后的请求中就会通过<strong>自动</strong>加上 <code>Cookie</code> 请求首部字段来携带 <code>Cookie</code> 内容到服务器。</li>
+<li><code>Cookie</code> 总是以键值对的形式存在，如 <code>a=123</code>、<code>b=456</code>，多个 <code>Cookie</code> 使用 <code>;</code> 分隔。</li>
+<li><code>Cookie</code> 并不限制请求方法，任何 <code>HTTP</code> 请求方法都可以使用 <code>Cookie</code>。</li>
+<li>出于安全考虑，<code>Cookie</code> 有域名限制。任何厂商的浏览器在保存 <code>Cookie</code> 时都会记录这个 <code>Cookie</code> 是属于哪个域名的，在给服务器发送请求时，只有这个域名下的 <code>Cookie</code> 才会被携带。如访问 <code>127.0.0.1:8000</code> 域名时浏览器就只会携带这个域名下的 <code>Cookie</code>，如果此时浏览器也保存了 <code>www.jd.com</code> 域名下的 <code>Cookie</code>，是不会被携带到 <code>127.0.0.1:8000</code> 服务器的。</li>
+<li><code>Cookie</code> 可以设置过期时间，像上图这样只设置了 <code>Cookie</code> 的键值为 <code>a=123</code> 这种情况，浏览器默认的处理机制是当浏览器关闭时自动删除这个 <code>Cookie</code>。如果需要设置过期时间则可以这样设置 <code>Set-Cookie: a=123; Max-Age=60</code>，此时 <code>a=123</code> 这条 <code>Cookie</code> 的过期时间就是 60 秒，60 秒后浏览器会自动将保存的这条 <code>Cookie</code> 删除。</li>
+</ul>
+<p>如何在 Chrome 浏览器中查看 <code>Cookie</code> 呢？打开 Chrome 浏览器开发者工具，选择 <code>Application</code> 选项卡，点击 <code>Cookies</code> 就能看到当前域名下记录的所有 <code>Cookie</code> 信息。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Browser_Cookie.png" alt="Cookie" title="">
+                </div>
+                <div class="image-caption">Cookie</div>
+            </figure>
+
+<p>如果利用 <code>Cookie</code> 实现用户登录，那么流程大致如下：</p>
+<ol>
+<li>浏览器访问 Web 应用的登录页面。</li>
+<li>用户在登录页面输入用户名、密码，点击登录按钮进行登录。</li>
+<li>服务器端收到浏览器传输过来的用户名、密码，然后到数据库中查找是否存在这个用户，身份验证一旦通过，就在返回给浏览器的响应中加入 <code>Set-Cookie: username=zhangsan</code> 响应首部字段。</li>
+<li>浏览器在收到带有 <code>Set-Cookie: username=zhangsan</code> 响应首部字段的响应后，会将 <code>username=zhangsan</code> 保存下来。</li>
+<li>当浏览器再次请求 Web 应用的某个页面时，就会<strong>自动</strong>携带 <code>Cookie: username=zhangsan</code> 请求首部字段。</li>
+<li>此时服务器端收到浏览器请求，通过解析 <code>Cookie</code> 请求首部字段，服务器就知道这个请求是 <code>zhangsan</code> 发送过来的了。</li>
+</ol>
+<p>虽然使用 <code>Cookie</code> 能够实现用户登录，但是这种直接将用户信息 <code>username=zhangsan</code> 存储到 <code>Cookie</code> 的方式并不可靠。因为用户名很容易暴露，也很容易被猜到。假如网站的攻击者知道了我们系统中有 <code>zhangsan</code> 这个用户存在，那么他并不需要知道 <code>zhangsan</code> 这个用户的密码，只需要在浏览器中将 <code>username=zhangsan</code> 这个 <code>Cookie</code> 添加到 <code>127.0.0.1:8000</code> 域名下（在 Chorme 开发者工具中可以手动更改 <code>Cookie</code>），浏览器在下次请求 <code>127.0.0.1:8000</code> 服务器时就会自动携带这个 <code>Cookie</code>，服务器收到请求后就会认为请求是 <code>zhangsan</code> 这个用户发送过来的，这样网站攻击者就骗过了服务器的登录机制。故此，为了解决这个问题，又有人提出了一个叫作 <code>Session</code> 的概念。</p>
+<p><code>Session</code> 并不是一个具体的技术实现，而是一种思想。在利用 <code>Cookie</code> 实现用户登录时，是直接将用户信息 <code>username=zhangsan</code> 以明文的形式存储到浏览器 <code>Cookie</code> 中的。而采用 <code>Session</code> 机制后，则可以将用户信息保存到服务器端（可以是任何存储介质），例如可以保存成 <code>JSON</code> 对象放到文件中：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">"6d78289e237c48719201640736226e39"</span>: <span class="string">"zhangsan"</span>,</span><br><span class="line">    <span class="attr">"3cdb8c488abb4eccad2c7cc8c3c9d065"</span>: <span class="string">"lisi"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对象的键是一个随机字符串，叫作 <code>session_id</code>，值为用户名。这样在服务器返回响应时，不再直接将用户名以明文的方式发送给浏览器，而是将 <code>session_id</code> 放到响应首部字段中 <code>Set-Cookie: session_id=6d78289e237c48719201640736226e39</code> 发送给浏览器。这种改变对于浏览器端来说并没有任何本质变化，浏览器依旧将这个 <code>Cookie</code> 保存到本地，下次发送请求时<strong>自动</strong>携带。但 <code>Session</code> 机制的加入，使得用户登录机制变得更加安全。因为 <code>session_id</code> 是一个随机生成的字符串，恶意用户即使知道用户名也无法伪造这个 <code>session_id</code>。</p>
+<p>不过加入了 <code>Session</code> 机制以后，服务器验证用户 <code>Cookie</code> 的机制就要稍作修改。以前服务器只需要解析浏览器传过来的 <code>Cookie</code>，就能得到用户名 <code>zhangsan</code>，但现在解析 <code>Cookie</code> 后得到的是 <code>session_id</code>，服务器还需要再到存储了所有 <code>Session</code> 的 <code>JSON</code> 对象中查找这个 <code>session_id</code> 键所对应的值，这样就得到了当前登录的用户名。</p>
+<p>加入 <code>Session</code> 机制以后，登录流程大致如下：</p>
+<ol>
+<li>浏览器访问 Web 应用的登录页面。</li>
+<li>用户在登录页面输入用户名、密码，点击登录按钮进行登录。</li>
+<li>服务器端收到浏览器传输过来的用户名、密码，然后到数据库中查找是否存在这个用户，身份验证通过以后，为 <code>zhangsan</code> 这个用户生成一个随机的 <code>session_id</code>，然后将 <code>session_id</code> 和用户名以键值对的形式存储到 <code>JSON</code> 文件中，接着在返回给浏览器的响应中加入 <code>Set-Cookie: session_id=6d78289e237c48719201640736226e39</code> 响应首部字段。</li>
+<li>浏览器在收到带有 <code>Set-Cookie: session_id=6d78289e237c48719201640736226e39</code> 响应首部字段的响应后，会将 <code>session_id=6d78289e237c48719201640736226e39</code> 保存下来。</li>
+<li>当浏览器再次请求 Web 应用的某个页面时，就会<strong>自动</strong>携带 <code>Cookie: session_id=6d78289e237c48719201640736226e39</code>  请求首部字段。</li>
+<li>此时服务器端收到浏览器请求，通过解析 <code>Cookie</code> 请求首部字段得到 <code>session_id</code>，然后再到存储了所有 <code>Session</code> 的 <code>JSON</code> 文件中查找 <code>6d78289e237c48719201640736226e39</code> 这个 <code>session_id</code> 所对应的用户名为 <code>zhangsan</code> ，服务器就知道这个请求是 <code>zhangsan</code> 发送过来的了。</li>
+</ol>
+<p>以上就是最常见的采用 <code>Session</code> + <code>Cookie</code> 的方式实现用户登录的机制，<code>Session</code> 只是一种思想，也可以不搭配 <code>Cookie</code> 来使用，而用户登录的实现方式也有多种，有兴趣的读者可以根据自己的需求自行探索。</p>
+<h3 id="用户管理功能设计"><a href="#用户管理功能设计" class="headerlink" title="用户管理功能设计"></a>用户管理功能设计</h3><p>知道了用户登录原理，我们再来分析下要为 Todo List 程序增加用户管理功能，应该如何实现：</p>
+<ul>
+<li>对于模型层，需要新增 <code>User</code>、<code>Session</code> 两个模型类分别处理用户和 <code>Session</code>。</li>
+<li>对于视图层，需要新增 <code>register.html</code>（注册）、<code>login.html</code>（登录）两个 HTML 页面。</li>
+<li>对于控制器层，需要实现 <code>register</code>（注册）、<code>login</code>（登录）两个视图函数。</li>
+</ul>
+<p>除了对 <code>MVC</code> 模式中每一层需要增加的功能部分外。我们还需要增加 <code>user.json</code>、<code>session.json</code>两个 <code>JSON</code> 文件，来分别存储用户信息和 <code>Session</code> 信息。</p>
+<p>另外，Todo List 程序在加入用户管理功能后，只有已登录用户才可查看管理自己的 todo。所以还要对 todo 管理部分现有的视图函数做些修改。</p>
+<h3 id="用户管理功能编码实现"><a href="#用户管理功能编码实现" class="headerlink" title="用户管理功能编码实现"></a>用户管理功能编码实现</h3><p>根据以上对用户管理功能的分析，设计当前的Todo List 程序目录结构如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">todo_list</span><br><span class="line">├── server.py</span><br><span class="line">├── tests</span><br><span class="line">│   ├── test_controllers.py</span><br><span class="line">└── todo</span><br><span class="line">    ├── __init__.py</span><br><span class="line">    ├── config.py</span><br><span class="line">    ├── controllers</span><br><span class="line">    │   ├── __init__.py</span><br><span class="line">    │   ├── auth.py</span><br><span class="line">    │   ├── static.py</span><br><span class="line">    │   └── todo.py</span><br><span class="line">    ├── db</span><br><span class="line">    │   ├── session.json</span><br><span class="line">    │   ├── todo.json</span><br><span class="line">    │   └── user.json</span><br><span class="line">    ├── logs</span><br><span class="line">    │   └── todo.log</span><br><span class="line">    ├── models</span><br><span class="line">    │   ├── __init__.py</span><br><span class="line">    │   ├── session.py</span><br><span class="line">    │   ├── todo.py</span><br><span class="line">    │   └── user.py</span><br><span class="line">    ├── static</span><br><span class="line">    │   ├── css</span><br><span class="line">    │   │   └── style.css</span><br><span class="line">    │   └── favicon.ico</span><br><span class="line">    ├── templates</span><br><span class="line">    │   ├── auth</span><br><span class="line">    │   │   ├── login.html</span><br><span class="line">    │   │   └── register.html</span><br><span class="line">    │   └── todo</span><br><span class="line">    │       ├── edit.html</span><br><span class="line">    │       └── index.html</span><br><span class="line">    └── utils</span><br><span class="line">        ├── __init__.py</span><br><span class="line">        ├── error.py</span><br><span class="line">        ├── http.py</span><br><span class="line">        ├── logging.py</span><br><span class="line">        └── templating.py</span><br></pre></td></tr></table></figure>
+
+<p><code>Session</code> 模型类编写在 <code>models/session.py</code> 文件中：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/models/session.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> uuid</span><br><span class="line"><span class="keyword">import</span> datetime</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> . <span class="keyword">import</span> Model</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Session</span><span class="params">(Model)</span>:</span></span><br><span class="line">    <span class="string">"""</span></span><br><span class="line"><span class="string">    Session 模型类</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, **kwargs)</span>:</span></span><br><span class="line">        <span class="comment"># 为了安全起见，Session id 不使用自增数字，而使用 uuid</span></span><br><span class="line">        self.id = kwargs.get(<span class="string">'id'</span>)</span><br><span class="line">        <span class="keyword">if</span> self.id <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            self.id = uuid.uuid4().hex</span><br><span class="line"></span><br><span class="line">        self.user_id = kwargs.get(<span class="string">'user_id'</span>, <span class="number">-1</span>)</span><br><span class="line">        self.expire_in = kwargs.get(<span class="string">'expire_in'</span>)</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> self.expire_in <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            now = datetime.datetime.now()</span><br><span class="line">            expire_in = now + datetime.timedelta(days=<span class="number">1</span>)</span><br><span class="line">            self.expire_in = expire_in.strftime(<span class="string">'%Y-%m-%d %H:%M:%S'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">is_expired</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""判断 Session 是否过期"""</span></span><br><span class="line">        now = datetime.datetime.now()</span><br><span class="line">        <span class="keyword">return</span> datetime.datetime.strptime(self.expire_in, <span class="string">'%Y-%m-%d %H:%M:%S'</span>) &lt;= now</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">save</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""覆写父类的 save 方法，保存时过滤掉已经过期的 Session"""</span></span><br><span class="line">        models = [model.__dict__ <span class="keyword">for</span> model <span class="keyword">in</span> self.all()</span><br><span class="line">                  <span class="keyword">if</span> model.id != self.id <span class="keyword">and</span> <span class="keyword">not</span> model.is_expired()]</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self.is_expired():</span><br><span class="line">            models.append(self.__dict__)</span><br><span class="line">        self._save_db(models)</span><br></pre></td></tr></table></figure>
+
+<p><code>Session</code> 模型类继承自 <code>Model</code>。与 <code>Todo</code> 模型类只实现了 <code>__init__</code> 方法不同，<code>Session</code> 模型类还实现了 <code>is_expired</code>、<code>save</code> 两个方法。<code>is_expired</code> 方法用来判断当前 <code>Session</code> 是否过期，因为通常来说用户的登录时间都是有期限的。<code>save</code> 方法在保存当前 <code>Session</code> 对象时过滤掉已经过期的 <code>Session</code>。</p>
+<p>我设计了如下 <code>JSON</code> 对象用来存储用户登录的 <code>Session</code> 数据：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">"id"</span>: <span class="string">"6d78289e237c48719201640736226e39"</span>,</span><br><span class="line">    <span class="attr">"user_id"</span>: <span class="number">2</span>,</span><br><span class="line">    <span class="attr">"expire_in"</span>: <span class="string">"2020-05-31 22:27:55"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>id</code> 即为 <code>session_id</code>，<code>user_id</code> 对应当前登录用户的 <code>id</code>，这样就能通过这个 <code>Session</code> 对象查找到对应用户，<code>expire_in</code> 表示这条 <code>Session</code> 的过期时间。</p>
+<p>为了实现随机的 <code>session_id</code>，在 <code>Session</code> 模型的 <code>__init__</code> 方法中， 通过 <code>uuid</code> 来获取一个随机字符串。</p>
+<p><code>User</code> 模型类编写在 <code>models/user.py</code> 文件中：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo/models/user.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> . <span class="keyword">import</span> Model</span><br><span class="line"><span class="keyword">from</span> todo.config <span class="keyword">import</span> SECRET</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">User</span><span class="params">(Model)</span>:</span></span><br><span class="line">    <span class="string">"""</span></span><br><span class="line"><span class="string">    User 模型类</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, **kwargs)</span>:</span></span><br><span class="line">        self.id = kwargs.get(<span class="string">'id'</span>)</span><br><span class="line">        self.username = kwargs.get(<span class="string">'username'</span>, <span class="string">''</span>)</span><br><span class="line">        self.password = kwargs.get(<span class="string">'password'</span>, <span class="string">''</span>)</span><br><span class="line"></span><br><span class="line"><span class="meta">    @classmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">generate_password</span><span class="params">(cls, raw_password)</span>:</span></span><br><span class="line">        <span class="string">"""生成密码"""</span></span><br><span class="line">        md5 = hashlib.md5()</span><br><span class="line">        md5.update(SECRET.encode(<span class="string">'utf-8'</span>))</span><br><span class="line">        md5.update(raw_password.encode(<span class="string">'utf-8'</span>))</span><br><span class="line">        <span class="keyword">return</span> md5.hexdigest()</span><br><span class="line"></span><br><span class="line"><span class="meta">    @classmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">validate_password</span><span class="params">(cls, raw_password, password)</span>:</span></span><br><span class="line">        <span class="string">"""验证密码"""</span></span><br><span class="line">        md5 = hashlib.md5()</span><br><span class="line">        md5.update(SECRET.encode(<span class="string">'utf-8'</span>))</span><br><span class="line">        md5.update(raw_password.encode(<span class="string">'utf-8'</span>))</span><br><span class="line">        <span class="keyword">return</span> md5.hexdigest() == password</span><br></pre></td></tr></table></figure>
+
+<p>出于安全考虑，密码通常不会以明文的形式存储到数据库中。这样假使我们的 Web 应用被拖库，非明文密码能减小用户被撞库的风险。</p>
+<p>由于密码不使用明文存储到文件中，所以 <code>User</code> 模型中实现了生成密码和检查密码两个方法。调用 <code>generate_password</code> 方法传入原始密码，得到的是加密后的字符串，可以将其存储到文件中，这个字符串无法解密。验证时，将原始密码（用户输入的密码）和加密后的字符串一同传入 <code>validate_password</code> 方法，即可验证原始密码是否正确。</p>
+<p>这里采用了 <code>md5</code> 算法对用户密码进行加密。 <code>md5</code> 算法是一种被广泛使用的散列算法，但其有被碰撞的风险，所以代码中对其进行了 <code>加盐</code> 处理，这样就能够大大降低碰撞概率。</p>
+<p>在进行密码验证时，并不需要对文件中存储的加密密码进行解密，只要对原始密码使用同样的方法进行加密，然后比较两个加密后的字符串是否相等即可。因为 <code>md5</code> 算法对于相同的输入一定会得到相同的输出，也就是说对同样的数据每次加密结果一致。</p>
+<p>严格来讲，<code>md5</code> 并不属于加密算法，而是散列算法。因为通过加密算法加密后的数据是可以解密的，而通过散列算法得到的是一个信息摘要，不能通过这个摘要反向得到原始数据。但很多人都习惯把 <code>md5</code> 算法称作加密算法，故此，我这里也采用了加密算法来的叫法来介绍它。更多的关于 <code>md5</code> 算法的知识读者可自行搜索相关资料进行学习。</p>
+<p>用户信息将会存储到 <code>db/user.json</code> 文件中，格式如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">"id"</span>: <span class="number">1</span>,</span><br><span class="line">    <span class="attr">"username"</span>: <span class="string">"user"</span>,</span><br><span class="line">    <span class="attr">"password"</span>: <span class="string">"7fff062fcb96c6f041df7dbc3fa0dcaf"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>创建好了 <code>Session</code>、<code>User</code> 两个模型，我们接下来实现用户注册功能。</p>
+<p>注册页面的 HTML 如下：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- todo_list/todo/templates/auth/register.html --&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>Todo List | Register<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">link</span> <span class="attr">rel</span>=<span class="string">"stylesheet"</span> <span class="attr">href</span>=<span class="string">"/static/css/style.css"</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">h1</span> <span class="attr">class</span>=<span class="string">"container"</span>&gt;</span>Register<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"container"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">form</span> <span class="attr">class</span>=<span class="string">"register"</span> <span class="attr">action</span>=<span class="string">"/register"</span> <span class="attr">method</span>=<span class="string">"post"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">input</span> <span class="attr">type</span>=<span class="string">"text"</span> <span class="attr">name</span>=<span class="string">"username"</span> <span class="attr">placeholder</span>=<span class="string">"Username"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">input</span> <span class="attr">type</span>=<span class="string">"password"</span> <span class="attr">name</span>=<span class="string">"password"</span> <span class="attr">placeholder</span>=<span class="string">"Password"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">button</span>&gt;</span>注册<span class="tag">&lt;/<span class="name">button</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">form</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>将注册页面的 CSS 代码追加到 <code>style.css</code> 文件中：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* todo_list/todo/static/css/style.css */</span></span><br><span class="line"></span><br><span class="line"><span class="selector-class">.register</span> &#123;</span><br><span class="line">    <span class="attribute">width</span>: <span class="number">100%</span>;</span><br><span class="line">    <span class="attribute">max-width</span>: <span class="number">600px</span>;</span><br><span class="line">    <span class="attribute">text-align</span>: center;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="selector-class">.register</span> <span class="selector-tag">input</span> &#123;</span><br><span class="line">    <span class="attribute">width</span>: <span class="number">100%</span>;</span><br><span class="line">    <span class="attribute">height</span>: <span class="number">40px</span>;</span><br><span class="line">    <span class="attribute">padding</span>: <span class="number">0</span> <span class="number">4px</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="selector-class">.register</span> <span class="selector-tag">button</span> &#123;</span><br><span class="line">    <span class="attribute">margin-top</span>: <span class="number">20px</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在控制器层，编写一个 <code>register</code> 视图函数用来处理用户注册的业务逻辑：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/controllers/auth.py</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">register</span><span class="params">(request)</span>:</span></span><br><span class="line">    <span class="string">"""注册视图函数"""</span></span><br><span class="line">    <span class="keyword">if</span> request.method == <span class="string">'POST'</span>:</span><br><span class="line">        <span class="comment"># 获取表单中的用户名和密码</span></span><br><span class="line">        form = request.form</span><br><span class="line">        logger(<span class="string">f'form: <span class="subst">&#123;form&#125;</span>'</span>)</span><br><span class="line">        username = form.get(<span class="string">'username'</span>)</span><br><span class="line">        raw_password = form.get(<span class="string">'password'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 验证用户名和密码是否合法</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> username <span class="keyword">or</span> <span class="keyword">not</span> raw_password:</span><br><span class="line">            <span class="keyword">return</span> <span class="string">'无效的用户名或密码'</span>.encode(<span class="string">'utf-8'</span>)</span><br><span class="line">        user = User.find_by(username=username, ensure_one=<span class="literal">True</span>)</span><br><span class="line">        <span class="keyword">if</span> user:</span><br><span class="line">            <span class="keyword">return</span> <span class="string">'用户名已存在'</span>.encode(<span class="string">'utf-8'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 对密码进行散列计算，创建并保存用户信息</span></span><br><span class="line">        password = User.generate_password(raw_password)</span><br><span class="line">        user = User(username=username, password=password)</span><br><span class="line">        user.save()</span><br><span class="line">        <span class="comment"># 注册成功后重定向到登录页面</span></span><br><span class="line">        <span class="keyword">return</span> redirect(<span class="string">'/login'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> render_template(<span class="string">'auth/register.html'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>注册视图函数可以接收两种请求，<code>GET</code> 或 <code>POST</code>。如果为 <code>GET</code> 请求，则说明用户要访问注册页面，直接返回注册页面对应的 HTML。如果为 <code>POST</code> 请求，则说明用户点击了注册页面的注册按钮，需要处理注册逻辑。</p>
+<p>用户注册成功后，会被重定向到登录页面，所以接下来我们要实现用户登录功能。</p>
+<p>登录页面的 HTML 如下：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- todo_list/todo/templates/auth/login.html --&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>Todo List | Login<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">link</span> <span class="attr">rel</span>=<span class="string">"stylesheet"</span> <span class="attr">href</span>=<span class="string">"/static/css/style.css"</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">h1</span> <span class="attr">class</span>=<span class="string">"container"</span>&gt;</span>Login<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"container"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">form</span> <span class="attr">class</span>=<span class="string">"login"</span> <span class="attr">action</span>=<span class="string">"/login"</span> <span class="attr">method</span>=<span class="string">"post"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">input</span> <span class="attr">type</span>=<span class="string">"text"</span> <span class="attr">name</span>=<span class="string">"username"</span> <span class="attr">placeholder</span>=<span class="string">"Username"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">input</span> <span class="attr">type</span>=<span class="string">"password"</span> <span class="attr">name</span>=<span class="string">"password"</span> <span class="attr">placeholder</span>=<span class="string">"Password"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">button</span>&gt;</span>登录<span class="tag">&lt;/<span class="name">button</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">form</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>将登录页面的 CSS 代码追加到 <code>style.css</code> 文件中：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* todo_list/todo/static/css/style.css */</span></span><br><span class="line"></span><br><span class="line"><span class="selector-class">.login</span> &#123;</span><br><span class="line">    <span class="attribute">width</span>: <span class="number">100%</span>;</span><br><span class="line">    <span class="attribute">max-width</span>: <span class="number">600px</span>;</span><br><span class="line">    <span class="attribute">text-align</span>: center;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="selector-class">.login</span> <span class="selector-tag">input</span> &#123;</span><br><span class="line">    <span class="attribute">width</span>: <span class="number">100%</span>;</span><br><span class="line">    <span class="attribute">height</span>: <span class="number">40px</span>;</span><br><span class="line">    <span class="attribute">padding</span>: <span class="number">0</span> <span class="number">4px</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="selector-class">.login</span> <span class="selector-tag">button</span> &#123;</span><br><span class="line">    <span class="attribute">margin-top</span>: <span class="number">20px</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在控制器层，编写一个 <code>login</code> 视图函数用来处理用户登录的业务逻辑：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/controllers/auth.py</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">login</span><span class="params">(request)</span>:</span></span><br><span class="line">    <span class="string">"""登录视图函数"""</span></span><br><span class="line">    <span class="comment"># 如果用户已经登录，直接重定向到首页</span></span><br><span class="line">    <span class="keyword">if</span> current_user(request):</span><br><span class="line">        <span class="keyword">return</span> redirect(<span class="string">'/index'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> request.method == <span class="string">'POST'</span>:</span><br><span class="line">        message = <span class="string">'用户名或密码不正确'</span>.encode(<span class="string">'utf-8'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 获取表单中的用户名和密码</span></span><br><span class="line">        form = request.form</span><br><span class="line">        logger(<span class="string">f'form: <span class="subst">&#123;form&#125;</span>'</span>)</span><br><span class="line">        username = form.get(<span class="string">'username'</span>)</span><br><span class="line">        raw_password = form.get(<span class="string">'password'</span>)</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 验证用户名和密码是否正确</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> username <span class="keyword">or</span> <span class="keyword">not</span> raw_password:</span><br><span class="line">            <span class="keyword">return</span> message</span><br><span class="line">        user = User.find_by(username=username, ensure_one=<span class="literal">True</span>)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> user:</span><br><span class="line">            <span class="keyword">return</span> message</span><br><span class="line">        password = user.password</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> User.validate_password(raw_password, password):</span><br><span class="line">            <span class="keyword">return</span> message</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 创建 Session 并将 session_id 写入 Cookie 实现登录</span></span><br><span class="line">        session = Session(user_id=user.id)</span><br><span class="line">        session.save()</span><br><span class="line">        cookies = &#123;</span><br><span class="line">            <span class="string">'session_id'</span>: session.id,</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> redirect(<span class="string">'/index'</span>, cookies=cookies)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> render_template(<span class="string">'auth/login.html'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>登录视图函数同样可以接收 <code>GET</code> 和 <code>POST</code> 两种请求方式。如果为 <code>GET</code> 请求，则说明用户要访问登录页面，直接返回登录页面对应的 HTML。如果为 <code>POST</code> 请求，则说明用户点击了登录页面的登录按钮，需要处理登录逻辑。</p>
+<p>登录视图函数里调用了 <code>current_user</code> 函数来判断用户当前是否已经登录，<code>current_user</code> 函数实现如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/utils/auth.py</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">current_user</span><span class="params">(request)</span>:</span></span><br><span class="line">    <span class="string">"""获取当前登录用户"""</span></span><br><span class="line">    <span class="comment"># 从 Cookie 中获取 session_id</span></span><br><span class="line">    cookies = request.cookies</span><br><span class="line">    logger(<span class="string">f'cookies: <span class="subst">&#123;cookies&#125;</span>'</span>)</span><br><span class="line">    session_id = cookies.get(<span class="string">'session_id'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 查找 Session 并验证其是否过期</span></span><br><span class="line">    session = Session.get(session_id)</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> session:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line">    <span class="keyword">if</span> session.is_expired():</span><br><span class="line">        session.delete()</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 查找当前登录用户</span></span><br><span class="line">    user = User.get(session.user_id)</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> user:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line">    <span class="keyword">return</span> user</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>current_user</code> 函数中通过 <code>request</code> 对象的 <code>cookies</code> 属性获取当前请求中携带的 <code>Cookie</code> 信息，对于 <code>Request</code> 类如何解析请求中携带的 <code>Cookie</code> 信息部分相关的代码可以到本章节的源码仓库进行查看。</p>
+<p>为了实现用户登录，需要根据 <code>user_id</code> 创建一个 <code>Session</code> 对象，并将  <code>Session</code> 对象的 <code>session_id</code> 写入浏览器 <code>Cookie</code> 。因此对 <code>redirect</code> 函数和 <code>Response</code> 类做如下修改：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/utils/http.py</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">redirect</span><span class="params">(url, status=<span class="number">302</span>, cookies=None)</span>:</span></span><br><span class="line">    <span class="string">"""重定向"""</span></span><br><span class="line">    headers = &#123;</span><br><span class="line">        <span class="string">'Location'</span>: url,</span><br><span class="line">    &#125;</span><br><span class="line">    body = <span class="string">''</span></span><br><span class="line">    <span class="keyword">return</span> Response(body, headers=headers, status=status, cookies=cookies)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Response</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="string">"""响应类"""</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 根据状态码获取原因短语</span></span><br><span class="line">    reason_phrase = &#123;</span><br><span class="line">        <span class="number">200</span>: <span class="string">'OK'</span>,</span><br><span class="line">        <span class="number">302</span>: <span class="string">'FOUND'</span>,</span><br><span class="line">        <span class="number">405</span>: <span class="string">'METHOD NOT ALLOWED'</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, body, headers=None, status=<span class="number">200</span>, cookies=None)</span>:</span></span><br><span class="line">        <span class="comment"># 默认响应头，指定响应内容的类型为 HTML</span></span><br><span class="line">        _headers = &#123;</span><br><span class="line">            <span class="string">'Content-Type'</span>: <span class="string">'text/html; charset=utf-8'</span>,</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> headers <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            _headers.update(headers)</span><br><span class="line">        self.headers = _headers  <span class="comment"># 响应头</span></span><br><span class="line">        self.body = body  <span class="comment"># 响应体</span></span><br><span class="line">        self.status = status  <span class="comment"># 状态码</span></span><br><span class="line">        self.cookies = cookies  <span class="comment"># Cookie</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__bytes__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""构造响应报文"""</span></span><br><span class="line">        <span class="comment"># 状态行 'HTTP/1.1 200 OK\r\n'</span></span><br><span class="line">        header = <span class="string">f'HTTP/1.1 <span class="subst">&#123;self.status&#125;</span> <span class="subst">&#123;self.reason_phrase.get(self.status, <span class="string">""</span>)&#125;</span>\r\n'</span></span><br><span class="line">        <span class="comment"># 响应首部</span></span><br><span class="line">        header += <span class="string">''</span>.join(<span class="string">f'<span class="subst">&#123;k&#125;</span>: <span class="subst">&#123;v&#125;</span>\r\n'</span> <span class="keyword">for</span> k, v <span class="keyword">in</span> self.headers.items())</span><br><span class="line">        <span class="comment"># Cookie</span></span><br><span class="line">        <span class="keyword">if</span> self.cookies:</span><br><span class="line">            header += <span class="string">'Set-Cookie: '</span> + \</span><br><span class="line">                      <span class="string">'; '</span>.join(<span class="string">f'<span class="subst">&#123;k&#125;</span>=<span class="subst">&#123;v&#125;</span>'</span> <span class="keyword">for</span> k, v <span class="keyword">in</span> self.cookies.items())</span><br><span class="line">        <span class="comment"># 空行</span></span><br><span class="line">        blank_line = <span class="string">'\r\n'</span></span><br><span class="line">        <span class="comment"># 响应体</span></span><br><span class="line">        body = self.body</span><br><span class="line"></span><br><span class="line">        <span class="comment"># body 支持 str 或 bytes 类型</span></span><br><span class="line">        <span class="keyword">if</span> isinstance(body, str):</span><br><span class="line">            body = body.encode(<span class="string">'utf-8'</span>)</span><br><span class="line">        response_message = (header + blank_line).encode(<span class="string">'utf-8'</span>) + body</span><br><span class="line">        <span class="keyword">return</span> response_message</span><br></pre></td></tr></table></figure>
+
+<p>这样，当 <code>login</code> 视图函数处理完登录逻辑，执行到最后一行 <code>return redirect(&#39;/index&#39;, cookies=cookies)</code> 时，就能够实现重定向到首页并完成登录。</p>
+<p>现在可以到浏览器中测试注册、登录功能：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Test_Register.png" alt="注册" title="">
+                </div>
+                <div class="image-caption">注册</div>
+            </figure>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Test_Login.png" alt="登录前" title="">
+                </div>
+                <div class="image-caption">登录前</div>
+            </figure>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Test_Login_After.png" alt="登录后" title="">
+                </div>
+                <div class="image-caption">登录后</div>
+            </figure>
+
+<p>用户登录成功后，会被重定向到首页，展示当前用户所有 todo。</p>
+<p>目前 todo 和用户还没有做关联，为了使两者联系起来，还需要更改 Todo 模型和存储 todo 的 <code>JSON</code> 对象格式。</p>
+<p><code>Todo</code> 模型的 <code>__init__</code> 方法需要能够接收 <code>user_id</code>：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/models/todo.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> . <span class="keyword">import</span> Model</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Todo</span><span class="params">(Model)</span>:</span></span><br><span class="line">    <span class="string">"""</span></span><br><span class="line"><span class="string">    Todo 模型类</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, **kwargs)</span>:</span></span><br><span class="line">        self.id = kwargs.get(<span class="string">'id'</span>)</span><br><span class="line">        self.user_id = kwargs.get(<span class="string">'user_id'</span>, <span class="number">-1</span>)</span><br><span class="line">        self.content = kwargs.get(<span class="string">'content'</span>, <span class="string">''</span>)</span><br></pre></td></tr></table></figure>
+
+<p>存储 todo 的 <code>JSON</code> 对象中需要保存 <code>user_id</code>：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">"id"</span>: <span class="number">4</span>,</span><br><span class="line">    <span class="attr">"user_id"</span>: <span class="number">1</span>,</span><br><span class="line">    <span class="attr">"content"</span>: <span class="string">"hello world"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样就能通过当前用户的 <code>user_id</code> 查询出与之关联的所有 todo 了。</p>
+<p>修改 Todo List 程序首页视图函数，获取当前登录用户，查询与之关联的所有 todo。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/controllers/todo.py</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">index</span><span class="params">(request)</span>:</span></span><br><span class="line">    <span class="string">"""首页视图函数"""</span></span><br><span class="line">    user = current_user(request)</span><br><span class="line">    todo_list = Todo.find_by(user_id=user.id, sort=<span class="literal">True</span>, reverse=<span class="literal">True</span>)</span><br><span class="line">    context = &#123;</span><br><span class="line">        <span class="string">'todo_list'</span>: todo_list,</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> render_template(<span class="string">'todo/index.html'</span>, **context)</span><br></pre></td></tr></table></figure>
+
+<p>登录成功后再次访问程序首页将显示当前用户的 todo：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Current_User_todo.png" alt="当前登录用户 todo" title="">
+                </div>
+                <div class="image-caption">当前登录用户 todo</div>
+            </figure>
+
+<p>你可以再注册一个账号，在另一个浏览器中打开 Todo List 程序，试着给另一个用户添加几条 todo，看看效果。</p>
+<p>todo 关联了用户以后，对 todo 的新增操作，需要验证用户是否登录。而对于 todo 的删除、修改、查询操作，只有 todo 的创建者才有权限，所以不仅要验证用户是否登录，还要验证操作的 todo 是否属于当前登录用户。</p>
+<p>我们当然可以将验证操作都放到视图函数中，但仔细观察，你会发现对 todo 的所有操作有一个共同点，都需要验证用户是否登录。所以更优雅的做法是写一个验证登录的装饰器，这样所有需要验证用户登录的视图函数都只需要打上这个装饰器即可。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/utils/auth.py</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">login_required</span><span class="params">(func)</span>:</span></span><br><span class="line">    <span class="string">"""验证登录装饰器"""</span></span><br><span class="line"></span><br><span class="line"><span class="meta">    @functools.wraps(func)</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span><span class="params">(request)</span>:</span></span><br><span class="line">        user = current_user(request)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> user:</span><br><span class="line">            <span class="keyword">return</span> redirect(<span class="string">'/login'</span>)</span><br><span class="line">        result = func(request)</span><br><span class="line">        <span class="keyword">return</span> result</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br></pre></td></tr></table></figure>
+
+<p>以处理 Todo List 程序首页视图函数为例，验证登录装饰器的使用方法如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/controllers/auth.py</span></span><br><span class="line"></span><br><span class="line"><span class="meta">@login_required</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">index</span><span class="params">(request)</span>:</span></span><br><span class="line">    <span class="string">"""首页视图函数"""</span></span><br><span class="line">    user = current_user(request)</span><br><span class="line">    todo_list = Todo.find_by(user_id=user.id, sort=<span class="literal">True</span>, reverse=<span class="literal">True</span>)</span><br><span class="line">    context = &#123;</span><br><span class="line">        <span class="string">'todo_list'</span>: todo_list,</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> render_template(<span class="string">'todo/index.html'</span>, **context)</span><br></pre></td></tr></table></figure>
+
+<p>你不需要对 <code>index</code> 视图函数内部的代码做任何修改，只需要在函数定义处打上 <code>@login_required</code> 装饰即可。</p>
+<p>在视图函数内部通过给 <code>Todo</code> 模型的 <code>find_by</code> 方法传入 <code>user_id</code> 关键字参数来查询只属于当前登录用户的 todo。</p>
+<p>与 todo 相关的其他视图函数代码如下，这里不再一一讲解。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/controllers/auth.py</span></span><br><span class="line"></span><br><span class="line"><span class="meta">@login_required</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">new</span><span class="params">(request)</span>:</span></span><br><span class="line">    <span class="string">"""新建 todo 视图函数"""</span></span><br><span class="line">    form = request.form</span><br><span class="line">    logger(<span class="string">f'form: <span class="subst">&#123;form&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">    content = form.get(<span class="string">'content'</span>)</span><br><span class="line">    <span class="keyword">if</span> content:</span><br><span class="line">        user = current_user(request)</span><br><span class="line">        <span class="keyword">if</span> user:</span><br><span class="line">            todo = Todo(content=content, user_id=user.id)</span><br><span class="line">            todo.save()</span><br><span class="line">    <span class="keyword">return</span> redirect(<span class="string">'/index'</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@login_required</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">edit</span><span class="params">(request)</span>:</span></span><br><span class="line">    <span class="string">"""编辑 todo 视图函数"""</span></span><br><span class="line">    <span class="keyword">if</span> request.method == <span class="string">'POST'</span>:</span><br><span class="line">        form = request.form</span><br><span class="line">        logger(<span class="string">f'form: <span class="subst">&#123;form&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">        id = int(form.get(<span class="string">'id'</span>, <span class="number">-1</span>))</span><br><span class="line">        content = form.get(<span class="string">'content'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> id != <span class="number">-1</span> <span class="keyword">and</span> content:</span><br><span class="line">            user = current_user(request)</span><br><span class="line">            <span class="keyword">if</span> user:</span><br><span class="line">                todo = Todo.find_by(id=id, user_id=user.id, ensure_one=<span class="literal">True</span>)</span><br><span class="line">                <span class="keyword">if</span> todo:</span><br><span class="line">                    todo.content = content</span><br><span class="line">                    todo.save()</span><br><span class="line">        <span class="keyword">return</span> redirect(<span class="string">'/index'</span>)</span><br><span class="line"></span><br><span class="line">    args = request.args</span><br><span class="line">    logger(<span class="string">f'args: <span class="subst">&#123;args&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">    id = int(args.get(<span class="string">'id'</span>, <span class="number">-1</span>))</span><br><span class="line">    <span class="keyword">if</span> id == <span class="number">-1</span>:</span><br><span class="line">        <span class="keyword">return</span> redirect(<span class="string">'/index'</span>)</span><br><span class="line"></span><br><span class="line">    user = current_user(request)</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> user:</span><br><span class="line">        <span class="keyword">return</span> redirect(<span class="string">'/index'</span>)</span><br><span class="line"></span><br><span class="line">    todo = Todo.find_by(id=id, user_id=user.id, ensure_one=<span class="literal">True</span>)</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> todo:</span><br><span class="line">        <span class="keyword">return</span> redirect(<span class="string">'/index'</span>)</span><br><span class="line"></span><br><span class="line">    context = &#123;</span><br><span class="line">        <span class="string">'todo'</span>: todo,</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> render_template(<span class="string">'todo/edit.html'</span>, **context)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@login_required</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">delete</span><span class="params">(request)</span>:</span></span><br><span class="line">    <span class="string">"""删除 todo 视图函数"""</span></span><br><span class="line">    form = request.form</span><br><span class="line">    logger(<span class="string">f'form: <span class="subst">&#123;form&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">    id = int(form.get(<span class="string">'id'</span>, <span class="number">-1</span>))</span><br><span class="line">    <span class="keyword">if</span> id != <span class="number">-1</span>:</span><br><span class="line">        user = current_user(request)</span><br><span class="line">        <span class="keyword">if</span> user:</span><br><span class="line">            todo = Todo.find_by(id=id, user_id=user.id, ensure_one=<span class="literal">True</span>)</span><br><span class="line">            <span class="keyword">if</span> todo:</span><br><span class="line">                todo.delete()</span><br><span class="line">    <span class="keyword">return</span> redirect(<span class="string">'/index'</span>)</span><br></pre></td></tr></table></figure>
+
+<h3 id="完善项目"><a href="#完善项目" class="headerlink" title="完善项目"></a>完善项目</h3><p>一个比较完整的 Web 项目应该加入全局异常处理的机制，因为你无法在程序的每个函数中枚举全部可能出现的异常。没有被捕获的异常一旦直接暴露给用户，很可能会泄漏程序的重要信息。</p>
+<p>这里我设计了两个异常页面，<code>404</code> 页面用来告诉用户所访问的页面不存在，<code>500</code> 页面用来告诉用户服务器出现了未知错误。</p>
+<p><code>404</code> 页面的 HTML 代码如下：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- todo_list/todo/templates/error/404.html --&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>Todo List | Page Not Found<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span>Page Not Found<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><code>500</code> 页面的 HTML 代码如下：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- todo_list/todo/templates/error/500.html --&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>Todo List | Internal Server Error<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span>Internal Server Error<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>在 <code>templates</code> 模板目录下新建 <code>error/</code> 目录用来存放 <code>404</code> 和 <code>500</code> 两个全局异常页面。</p>
+<p>以下是 <code>404</code> 页面和 <code>500</code> 页面的处理函数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/utils/error.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> todo.utils.templating <span class="keyword">import</span> render_template</span><br><span class="line"><span class="keyword">from</span> utils.http <span class="keyword">import</span> Response</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">page_not_found</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">"""处理 400 异常"""</span></span><br><span class="line">    body = render_template(<span class="string">'error/404.html'</span>)</span><br><span class="line">    <span class="keyword">return</span> Response(body, status=<span class="number">400</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">internal_server_error</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">"""处理 500 异常"""</span></span><br><span class="line">    body = render_template(<span class="string">'error/500.html'</span>)</span><br><span class="line">    <span class="keyword">return</span> Response(body, status=<span class="number">500</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">errors = &#123;</span><br><span class="line">    <span class="number">404</span>: page_not_found,</span><br><span class="line">    <span class="number">500</span>: internal_server_error,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为 <code>server.py</code> 是服务器程序的入口和出口，所以全局捕获异常的代码适合写在此文件。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/server.py</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">process_connection</span><span class="params">(client)</span>:</span></span><br><span class="line">    <span class="string">"""处理客户端请求"""</span></span><br><span class="line">    request_bytes = <span class="string">b''</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        chunk = client.recv(BUFFER_SIZE)</span><br><span class="line">        request_bytes += chunk</span><br><span class="line">        <span class="keyword">if</span> len(chunk) &lt; BUFFER_SIZE:</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 请求报文</span></span><br><span class="line">    request_message = request_bytes.decode(<span class="string">'utf-8'</span>)</span><br><span class="line">    logger(<span class="string">f'request_message: <span class="subst">&#123;request_message&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 解析请求报文</span></span><br><span class="line">    request = Request(request_message)</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="comment"># 根据请求报文构造响应报文</span></span><br><span class="line">        response_bytes = make_response(request)</span><br><span class="line">    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">        logger(e)</span><br><span class="line">        <span class="comment"># 返回给用户 500 页面</span></span><br><span class="line">        response_bytes = bytes(errors[<span class="number">500</span>]())</span><br><span class="line">    <span class="comment"># 返回响应</span></span><br><span class="line">    client.sendall(response_bytes)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 关闭连接</span></span><br><span class="line">    client.close()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">make_response</span><span class="params">(request, headers=None)</span>:</span></span><br><span class="line">    <span class="string">"""构造响应报文"""</span></span><br><span class="line">    <span class="comment"># 默认状态码为 200</span></span><br><span class="line">    status = <span class="number">200</span></span><br><span class="line">    <span class="comment"># 处理静态资源请求</span></span><br><span class="line">    <span class="keyword">if</span> request.path.startswith(<span class="string">'/static'</span>):</span><br><span class="line">        route, methods = routes.get(<span class="string">'/static'</span>)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            route, methods = routes.get(request.path)</span><br><span class="line">        <span class="keyword">except</span> TypeError:</span><br><span class="line">            <span class="comment"># 返回给用户 404 页面</span></span><br><span class="line">            <span class="keyword">return</span> bytes(errors[<span class="number">404</span>]())</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 如果请求方法不被允许返回 405 状态码</span></span><br><span class="line">    <span class="keyword">if</span> request.method <span class="keyword">not</span> <span class="keyword">in</span> methods:</span><br><span class="line">        status = <span class="number">405</span></span><br><span class="line">        data = <span class="string">'Method Not Allowed'</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="comment"># 请求首页时 route 实际上就是我们在 controllers.py 中定义的 index 视图函数</span></span><br><span class="line">        data = route(request)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 如果返回结果为 Response 对象，直接获取响应报文</span></span><br><span class="line">    <span class="keyword">if</span> isinstance(data, Response):</span><br><span class="line">        response_bytes = bytes(data)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="comment"># 返回结果为字符串，需要先构造 Response 对象，然后再获取响应报文</span></span><br><span class="line">        response = Response(data, headers=headers, status=status)</span><br><span class="line">        response_bytes = bytes(response)</span><br><span class="line"></span><br><span class="line">    logger(<span class="string">f'response_bytes: <span class="subst">&#123;response_bytes&#125;</span>'</span>)</span><br><span class="line">    <span class="keyword">return</span> response_bytes</span><br></pre></td></tr></table></figure>
+
+<p>当用户访问的 <code>URL</code> 路径没有匹配的视图函数时，可以返回给用户 <code>404</code> 页面。当返回响应之前出现未捕获的异常时，会被 <code>process_connection</code> 函数中的全局异常处理所捕获，可以返回给用户 <code>500</code> 页面。记得将真正的异常信息写入日志，方便排查。</p>
+<p>以下是遇到 <code>404</code> 异常或 <code>500</code> 异常时的页面截图：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="404.png" alt="404" title="">
+                </div>
+                <div class="image-caption">404</div>
+            </figure>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="500.png" alt="500" title="">
+                </div>
+                <div class="image-caption">500</div>
+            </figure>
+
+<p>至此，Todo List 程序的功能就全部开发完成了。最后给读者留一个作业，可以试着实现用户登出功能。</p>
+<blockquote>
+<p>本章源码：<a href="https://github.com/jianghushinian/todo-list/tree/master/chapter8" target="_blank" rel="noopener">chapter8</a></p>
+</blockquote>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2022-12-24T13:16:45.411Z" itemprop="dateUpdated">2022-12-24 21:16:45</time>
+</span><br>
+
+
+        
+        <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/" target="_blank" rel="external">http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/&title=《用 Python 撸一个 Web 服务器-第8章：用户管理》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/&title=《用 Python 撸一个 Web 服务器-第8章：用户管理》 — 江湖十年&source=用户登录原理用户登录与注册功能几乎已成为 Web 应用的标配。所以我们有必要给 Todo List 程序增加一个用户管理模块，以此来学习用户登录原理。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《用 Python 撸一个 Web 服务器-第8章：用户管理》 — 江湖十年&url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC9%E7%AB%A0%EF%BC%9A%E9%A1%B9%E7%9B%AE%E6%80%BB%E7%BB%93/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">用 Python 撸一个 Web 服务器-第9章：项目总结</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC7%E7%AB%A0%EF%BC%9A%E9%87%8D%E6%9E%84%E2%80%94%E2%80%94%E6%9B%B4%E5%A5%BD%E7%9A%84%E7%BB%84%E7%BB%87%E4%BB%A3%E7%A0%81/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">用 Python 撸一个 Web 服务器-第7章：重构——更好的组织代码</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2022</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/&title=《用 Python 撸一个 Web 服务器-第8章：用户管理》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/&title=《用 Python 撸一个 Web 服务器-第8章：用户管理》 — 江湖十年&source=用户登录原理用户登录与注册功能几乎已成为 Web 应用的标配。所以我们有必要给 Todo List 程序增加一个用户管理模块，以此来学习用户登录原理。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《用 Python 撸一个 Web 服务器-第8章：用户管理》 — 江湖十年&url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC8%E7%AB%A0%EF%BC%9A%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

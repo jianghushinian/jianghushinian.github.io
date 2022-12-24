@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Web 安全之 CSRF 攻击 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Web,安全">
+    <meta name="description" content="CSRF 攻击中文为跨站请求伪造，全拼为 Cross-site request forgery，也常被称为 XSRF 攻击。虽然 CSRF 攻击没有 XSS 攻击更常见，但其破坏性同样不容小觑。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Web 安全之 CSRF 攻击">
+<meta property="og:url" content="http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="CSRF 攻击中文为跨站请求伪造，全拼为 Cross-site request forgery，也常被称为 XSRF 攻击。虽然 CSRF 攻击没有 XSS 攻击更常见，但其破坏性同样不容小觑。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/not_login.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/transfer.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/transfer_fail.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/login.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/logined.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/transfer_for_logined.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/transfer_success.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/hello_world.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/transfer_success_for_csrf.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/csrf_process.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/csrftoken.png">
+<meta property="article:published_time" content="2021-01-09T06:24:19.000Z">
+<meta property="article:modified_time" content="2022-12-24T13:16:45.347Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Web">
+<meta property="article:tag" content="安全">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/not_login.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Web 安全之 CSRF 攻击</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Web 安全之 CSRF 攻击</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2021-01-09T06:24:19.000Z" itemprop="datePublished" class="page-time">
+  2021-01-09
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#攻击原理"><span class="post-toc-number">1.</span> <span class="post-toc-text">攻击原理</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#攻击示例"><span class="post-toc-number">2.</span> <span class="post-toc-text">攻击示例</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#防范方法"><span class="post-toc-number">3.</span> <span class="post-toc-text">防范方法</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-Web-安全之-CSRF-攻击"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Web 安全之 CSRF 攻击</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2021-01-09 14:24:19" datetime="2021-01-09T06:24:19.000Z"  itemprop="datePublished">2021-01-09</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>CSRF 攻击中文为跨站请求伪造，全拼为 Cross-site request forgery，也常被称为 XSRF 攻击。虽然 CSRF 攻击没有 XSS 攻击更常见，但其破坏性同样不容小觑。</p>
+<a id="more"></a>
+
+<h3 id="攻击原理"><a href="#攻击原理" class="headerlink" title="攻击原理"></a>攻击原理</h3><p>CSRF 攻击是攻击者利用目标网站对用户浏览器的信任，对已登录用户执行非用户本意的操作。</p>
+<p>比如用户登录了 A 网站，记录用户登录的会话信息就会以 <code>Cookie</code> 的形式保存在浏览器中，此时用户访问攻击者提供的 B 网站，B 网站就可以在用户不知情的情况下，伪造一个请求发送给 A 网站的服务器，浏览器会自动在这个请求中携带 <code>Cookie</code>，A 网站的服务器收到这个请求，以为这个请求是 A 网站已登录的用户自己发送过来的，于是执行相应的操作（如发邮件、转账等），就此实现攻击。</p>
+<h3 id="攻击示例"><a href="#攻击示例" class="headerlink" title="攻击示例"></a>攻击示例</h3><p>这里我用 <code>Flask</code> 编写两个简单的 Web 应用来作为 CSRF 攻击的示例。执行以下代码之前你需要使用 <code>pip install flask</code> 的方式安装 <code>Flask</code>。</p>
+<p>首先编写一个带有转账功能的 Web 应用，代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># demo/app.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask, request, make_response, render_template, redirect</span><br><span class="line"></span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/')</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">index</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">"""首页"""</span></span><br><span class="line">    session_id = request.cookies.get(<span class="string">'session_id'</span>)</span><br><span class="line">    <span class="keyword">if</span> session_id:</span><br><span class="line">        is_login = <span class="string">'已登录'</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        is_login = <span class="string">'未登录'</span></span><br><span class="line">    <span class="keyword">return</span> render_template(<span class="string">'index.html'</span>, is_login=is_login)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/login')</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">login</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">"""登录"""</span></span><br><span class="line">    response = make_response(redirect(<span class="string">'/'</span>))</span><br><span class="line">    response.set_cookie(<span class="string">'session_id'</span>, <span class="string">'025fcb1587eea0a25493653dfcecc6f1'</span>)</span><br><span class="line">    <span class="keyword">return</span> response</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/transfer', methods=['POST'])</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">transfer</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">"""转账"""</span></span><br><span class="line">    session_id = request.cookies.get(<span class="string">'session_id'</span>)</span><br><span class="line">    target_user = request.form.get(<span class="string">'target_user'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> session_id:</span><br><span class="line">        <span class="keyword">return</span> <span class="string">f'给用户<span class="subst">&#123;target_user&#125;</span>转账成功'</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="string">'用户未登录'</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    app.run(port=<span class="number">5000</span>)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- demo/templates/index.html --&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>Index<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line">是否登录：&#123;&#123; is_login &#125;&#125;</span><br><span class="line"><span class="tag">&lt;<span class="name">form</span> <span class="attr">action</span>=<span class="string">"/transfer"</span> <span class="attr">method</span>=<span class="string">"post"</span>&gt;</span></span><br><span class="line">    接收用户：<span class="tag">&lt;<span class="name">input</span> <span class="attr">type</span>=<span class="string">"text"</span> <span class="attr">name</span>=<span class="string">"target_user"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">button</span>&gt;</span>转账<span class="tag">&lt;/<span class="name">button</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">form</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>这个 Web 应用中包含了三个视图函数，分别为首页、登录和转账，程序监听 <code>5000</code> 端口。</p>
+<p>应用逻辑比较简单，<code>index</code> 视图函数通过判断请求中是否存在键为 <code>session_id</code> 的 <code>Cookie</code> 信息来确认用户是否登录。<code>login</code> 视图函数用来进行登录操作，其实就是给用户浏览器设置一个键为 <code>session_id</code> 的 <code>Cookie</code> 信息，登录成功后重定向到首页。<code>transfer</code> 视图函数用来实现转账功能，只接受 <code>POST</code> 请求，判断用户是否登录的逻辑与 <code>index</code> 视图函数相同，已登录返回转账成功信息，未登录则返回 <code>用户未登录</code>。</p>
+<p>应用只包含了一个 <code>index.html</code> 页面，登录后即可通过 <code>form</code> 表单的形式进行转账操作。</p>
+<p>虽然这个 Web 应用看起来比较傻，但足以演示 CSRF 攻击过程。启动 <code>Flask</code> 应用，使用浏览器访问 <code>http://127.0.0.1:5000/</code> 即可看到首页内容。</p>
+<img src="not_login.png" width="100%" style="max-width: 500px">
+
+<p>此时在接收用户的输入框中输入 <code>张三</code>，点击 <code>转账</code> 按钮，会提示 <code>用户未登录</code>。</p>
+<img src="transfer.png" width="100%" style="max-width: 500px">
+
+<img src="transfer_fail.png" width="100%" style="max-width: 500px">
+
+<p>那么我们可以先访问 <code>http://127.0.0.1:5000/login</code> 进行登录操作。</p>
+<img src="login.png" width="100%" style="max-width: 500px">
+
+<img src="logined.png" width="100%" style="max-width: 500px">
+
+<p>登录成功后，再次进行转账操作即可成功。</p>
+<img src="transfer_for_logined.png" width="100%" style="max-width: 500px">
+
+<img src="transfer_success.png" width="100%" style="max-width: 500px">
+
+<p>接下来站在攻击者的角度，编写一个能够对这个转账应用进行攻击的 Web 应用，代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># demo_csrf/app.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask, render_template</span><br><span class="line"></span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/')</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">index</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="keyword">return</span> render_template(<span class="string">'index.html'</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    app.run(port=<span class="number">5001</span>)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- demo_csrf/templates/index.html --&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>CSRF<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line">Hello World!</span><br><span class="line"><span class="tag">&lt;<span class="name">form</span> <span class="attr">action</span>=<span class="string">"http://127.0.0.1:5000/transfer"</span> <span class="attr">method</span>=<span class="string">"post"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">input</span> <span class="attr">hidden</span> <span class="attr">type</span>=<span class="string">"text"</span> <span class="attr">name</span>=<span class="string">"target_user"</span> <span class="attr">value</span>=<span class="string">"张三"</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">form</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="javascript">    <span class="built_in">document</span>.forms[<span class="number">0</span>].submit();</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>这个 Web 应用中只包含一个首页视图函数，程序监听 <code>5001</code> 端口。</p>
+<p>在 <code>index.html</code> 页面中，有一句 <code>Hello World!</code> 和一个 <code>form</code> 表单。由于 <code>form</code> 表单中的 <code>input</code> 输入框带有 <code>hidden</code> 属性，所以不会显示在页面中。页面中还有一个 <code>&lt;script&gt;</code> 标签，包含一句 <code>JavaScript</code> 代码 <code>document.forms[0].submit();</code>，其作用是提交 <code>form</code> 表单。</p>
+<p>启动这个具有攻击效果的 <code>Flask</code> 应用，在刚刚已经成功登录到 <code>http://127.0.0.1:5000/</code> 的浏览器中访问 <code>http://192.168.3.14:5001/</code>（为了模拟不同域名，所以这里使用了内网 IP，如果你想在自己的电脑上运行程序则需要改为自己电脑的内网 IP）。</p>
+<img src="hello_world.png" width="100%" style="max-width: 500px">
+
+<img src="transfer_success_for_csrf.png" width="100%" style="max-width: 500px">
+
+<p>页面显示的内容一瞬间就从 <code>Hello World!</code> 变成了 <code>给用户张三转账成功</code>，此时攻击已经完成。</p>
+<p>打开浏览器的开发者工具查看请求过程，可以发现浏览器共发送了两个请求。</p>
+<img src="csrf_process.png" width="100%" style="max-width: 500px">
+
+<p>第一个请求即为在浏览器地址栏中访问 <code>http://192.168.3.14:5001/</code>，第二个请求则是通过 <code>JavaScript</code> 代码自动提交的 <code>form</code> 表单请求 <code>http://127.0.0.1:5000/transfer</code>，并且浏览器自动携带了 <code>Cookie</code> 信息。</p>
+<p>总结一下攻击流程：</p>
+<ol>
+<li>用户访问目标网站 <code>http://127.0.0.1:5000/</code> 并进行登录。</li>
+<li>用户访问攻击者网站 <code>http://192.168.3.14:5001/</code>。</li>
+<li>攻击者网站 <code>http://192.168.3.14:5001/</code> 通过 <code>JavaScript</code> 代码向 <code>http://127.0.0.1:5000/transfer</code> 发送转账请求，此时浏览器会自动携带 <code>http://127.0.0.1:5000/</code> 下的 <code>Cookie</code> 信息。</li>
+<li><code>http://127.0.0.1:5000/</code> 网站的后台服务器接收到攻击者发送过来的请求，通过 <code>Cookie</code> 信息验证用户身份通过，完成转账操作。</li>
+</ol>
+<p>当然在现实场景，用户不会主动去访问攻击者提供的网站。但攻击者会想尽各种办法诱导用户去访问。比如攻击者在给目标网站的留言中携带网站链接、在给用户发送的邮件中携带链接等。</p>
+<p>CSRF 攻击不止这一种方式，还可以通过 <code>a</code>标签的 <code>href</code> 属性、<code>img</code> 标签的 <code>src</code> 属性等。</p>
+<h3 id="防范方法"><a href="#防范方法" class="headerlink" title="防范方法"></a>防范方法</h3><p>CSRF 攻击的本质是在攻击者网站发送的跨站请求中，浏览器自动携带了 <code>Cookie</code> 信息，而浏览器和网站服务器不具备验证这个请求是否为用户自愿发起的请求的能力。</p>
+<p>所以防范方法就是在访问敏感数据请求时，要求用户浏览器提供不保存在 <code>Cookie</code> 中的，并且攻击者无法伪造的数据作为校验，这样 CSRF 攻击就无法完成。</p>
+<p>根据以上分析修改这个带有转账功能的 Web 应用，代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># demo/app.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> uuid</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask, request, make_response, render_template, redirect</span><br><span class="line"></span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line">csrftoken = uuid.uuid4().hex</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/')</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">index</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">"""首页"""</span></span><br><span class="line">    session_id = request.cookies.get(<span class="string">'session_id'</span>)</span><br><span class="line">    <span class="keyword">if</span> session_id:</span><br><span class="line">        is_login = <span class="string">'已登录'</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        is_login = <span class="string">'未登录'</span></span><br><span class="line">    <span class="keyword">return</span> render_template(<span class="string">'index.html'</span>, is_login=is_login, csrftoken=csrftoken)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/login')</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">login</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">"""登录"""</span></span><br><span class="line">    response = make_response(redirect(<span class="string">'/'</span>))</span><br><span class="line">    response.set_cookie(<span class="string">'session_id'</span>, <span class="string">'025fcb1587eea0a25493653dfcecc6f1'</span>)</span><br><span class="line">    <span class="keyword">return</span> response</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/transfer', methods=['POST'])</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">transfer</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">"""转账"""</span></span><br><span class="line">    session_id = request.cookies.get(<span class="string">'session_id'</span>)</span><br><span class="line">    target_user = request.form.get(<span class="string">'target_user'</span>)</span><br><span class="line">    token = request.form.get(<span class="string">'csrftoken'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> session_id:</span><br><span class="line">        <span class="keyword">if</span> csrftoken != token:</span><br><span class="line">            <span class="keyword">return</span> <span class="string">'csrftoken验证失败'</span></span><br><span class="line">        <span class="keyword">return</span> <span class="string">f'给用户<span class="subst">&#123;target_user&#125;</span>转账成功'</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="string">'用户未登录'</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    app.run(host=<span class="string">'0.0.0.0'</span>, port=<span class="number">5000</span>)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- demo/templates/index.html --&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>Index<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line">是否登录：&#123;&#123; is_login &#125;&#125;</span><br><span class="line"><span class="tag">&lt;<span class="name">form</span> <span class="attr">action</span>=<span class="string">"/transfer"</span> <span class="attr">method</span>=<span class="string">"post"</span>&gt;</span></span><br><span class="line">    接收用户：<span class="tag">&lt;<span class="name">input</span> <span class="attr">type</span>=<span class="string">"text"</span> <span class="attr">name</span>=<span class="string">"target_user"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">input</span> <span class="attr">hidden</span> <span class="attr">type</span>=<span class="string">"text"</span> <span class="attr">value</span>=<span class="string">"&#123;&#123; csrftoken &#125;&#125;"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">button</span>&gt;</span>转账<span class="tag">&lt;/<span class="name">button</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">form</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>在 <code>Flask</code> 应用启动时，生成一个随机的 <code>csrftoken</code> 用来校验请求发起方。当用户访问首页，这个 <code>csrftoken</code> 会被传递到 <code>index.html</code> 中，并且作为 <code>form</code> 表单中一个 <code>input</code> 标签的 <code>value</code> 值。为了不影响页面原有数据展示，将这个 <code>input</code> 标签隐藏了起来（带有 <code>hidden</code> 属性）。当提交 <code>form</code> 表单时 <code>csrftoken</code> 会随表单数据一同被提交。在 <code>transfer</code> 视图函数中从表单数据获取 <code>csrftoken</code> 值，对比内存中已有的 <code>csrftoken</code> 值，如果两者相同则说明该请求是用户发起的，如果两者不同则说明请求是攻击者伪造的跨站请求。因为攻击者无法在自己的网站中构造出这个 <code>csrftoken</code> 值，所以攻击者网站提交的 <code>form</code> 表单数据中无法携带有效的 <code>csrftoken</code>，这样就能够有效的防范 CSRF 攻击。</p>
+<p>现在再次尝试访问 <code>http://192.168.3.14:5001/</code>，攻击将无法完成。</p>
+<img src="csrftoken.png" width="100%" style="max-width: 500px">
+
+<p>可以看到，即使用户已经登录了，但 <code>csrftoken</code> 校验失败，依然无法转账成功。</p>
+<p>虽然我们的 Web 应用有效的防范了 CSRF 攻击，但这个实现并不完美。在生产环境的项目中，我们还需要考虑 <code>csrftoken</code> 的时效性，使其在一定时间内过期，并且使用过一次的 <code>csrftoken</code> 也要做失效处理。不过别担心，这些功能早有人帮我们实现了。在 <code>Flask</code> 项目中我们可以通过第三方扩展来实现，如 <code>Flask-WTF</code> 内置的 <a href="https://flask-wtf.readthedocs.io/en/stable/csrf.html" target="_blank" rel="noopener"><code>CSRFProtect</code></a>。<code>Django</code> 框架甚至默认集成了此功能。</p>
+<p>实际上还有很多其他方法可以用来防范 CSRF 攻击，如同源检测，服务端检查 <code>HTTP</code> 请求头中的 <code>Origin</code> 和 <code>Referer</code> 字段，再比如使用 <code>Cookie</code> 的 <code>SameSite</code> 属性来限制第三方 <code>Cookie</code>。</p>
+<p>每种防范机制都有各自的优缺点，使用哪种机制应该结合 Web 应用程序情况综合考量，一般来说我们这里举例用的 <code>csrftoken</code> 机制是比较通用的做法。</p>
+<p>此外，我们还需要注意程序中的 XSS 漏洞。如果网站中存在 XSS 漏洞，攻击者同样可以通过 XSS 攻击的方式先拿到 <code>csrftoken</code>，然后再进行 CSRF 攻击。</p>
+<p>当然，所谓安全都是相对的，并没有绝对的安全，对敏感数据的操作，多加一层校验，虽然看似麻烦，但总好过亡羊补牢。</p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2022-12-24T13:16:45.347Z" itemprop="dateUpdated">2022-12-24 21:16:45</time>
+</span><br>
+
+
+        
+        <a href="/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/" target="_blank" rel="external">http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%AE%89%E5%85%A8/" rel="tag">安全</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/&title=《Web 安全之 CSRF 攻击》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/&title=《Web 安全之 CSRF 攻击》 — 江湖十年&source=CSRF 攻击中文为跨站请求伪造，全拼为 Cross-site request forgery，也常被称为 XSRF 攻击。虽然 CSRF 攻击没有 XS..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Web 安全之 CSRF 攻击》 — 江湖十年&url=http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2021/01/21/Web-%E5%AE%89%E5%85%A8%E4%B9%8B%E9%87%8D%E5%AE%9A%E5%90%91%E6%94%BB%E5%87%BB/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Web 安全之重定向攻击</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Web 安全之 XSS 攻击</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2022</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/&title=《Web 安全之 CSRF 攻击》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/&title=《Web 安全之 CSRF 攻击》 — 江湖十年&source=CSRF 攻击中文为跨站请求伪造，全拼为 Cross-site request forgery，也常被称为 XSRF 攻击。虽然 CSRF 攻击没有 XS..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Web 安全之 CSRF 攻击》 — 江湖十年&url=http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2021/01/09/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-CSRF-%E6%94%BB%E5%87%BB/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

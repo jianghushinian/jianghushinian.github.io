@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>JavaScript 异步操作之回调函数 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="JavaScript,异步编程">
+    <meta name="description" content="本文试图尝试站在初学 异步 编程的角度来解释什么是 回调函数。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JavaScript 异步操作之回调函数">
+<meta property="og:url" content="http://www.jianghushinian.cn/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="本文试图尝试站在初学 异步 编程的角度来解释什么是 回调函数。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-12-31T00:45:50.000Z">
+<meta property="article:modified_time" content="2022-12-24T13:16:45.321Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="JavaScript">
+<meta property="article:tag" content="异步编程">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">JavaScript 异步操作之回调函数</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">JavaScript 异步操作之回调函数</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2020-12-31T00:45:50.000Z" itemprop="datePublished" class="page-time">
+  2020-12-31
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/JavaScript/">JavaScript</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#同步和异步"><span class="post-toc-number">1.</span> <span class="post-toc-text">同步和异步</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#回调函数"><span class="post-toc-number">2.</span> <span class="post-toc-text">回调函数</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#回调函数应用"><span class="post-toc-number">3.</span> <span class="post-toc-text">回调函数应用</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#P-S"><span class="post-toc-number">4.</span> <span class="post-toc-text">P.S.</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-JavaScript-异步操作之回调函数"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">JavaScript 异步操作之回调函数</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2020-12-31 08:45:50" datetime="2020-12-31T00:45:50.000Z"  itemprop="datePublished">2020-12-31</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/JavaScript/">JavaScript</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>本文试图尝试站在初学 <code>异步</code> 编程的角度来解释什么是 <code>回调函数</code>。</p>
+<a id="more"></a>
+
+<h3 id="同步和异步"><a href="#同步和异步" class="headerlink" title="同步和异步"></a>同步和异步</h3><p>在介绍 <code>回调函数</code> 之前，先来看两个概念 <code>同步</code> 和 <code>异步</code>。</p>
+<p><code>同步</code> 行为通常指代码从上到下一行一行的顺序执行，后面的代码总是在前面的代码执行完成以后才会执行。</p>
+<p><code>同步</code> 操作的例子如下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> a, b;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    a = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line">foo();</span><br><span class="line">b = a + <span class="number">1</span>;</span><br><span class="line"><span class="built_in">console</span>.log(b); <span class="comment">//2</span></span><br></pre></td></tr></table></figure>
+
+<p>由于代码顺序执行，先调用函数 <code>foo();</code>，后执行 <code>b = a + 1;</code>，所以在执行 <code>b = a + 1;</code> 时，<code>a</code> 的值一定已经被确定为 <code>1</code> 了，可以立即使用，变量 <code>b</code> 最终结果为 <code>2</code>。</p>
+<p><code>异步</code> 行为则指代码并非按照顺序执行，后面的代码不一定总是在前面的代码执行完成以后才会执行。</p>
+<p><code>异步</code> 操作的例子如下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> a, b;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    a = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line">setTimeout(foo, <span class="number">1000</span>); <span class="comment">//1 秒以后再调用 foo()</span></span><br><span class="line">b = a + <span class="number">1</span>;</span><br><span class="line"><span class="built_in">console</span>.log(b); <span class="comment">//NaN</span></span><br></pre></td></tr></table></figure>
+
+<p>这里没有显式的调用 <code>foo()</code>，而是将函数名 <code>foo</code> 传递给 <code>setTimeout</code>，JavaScript 运行时在 1 秒以后会自动调用 <code>foo()</code>。</p>
+<p>首先代码依然顺序执行，当执行到 <code>setTimeout(foo, 1000);</code> 时，JavaScript 主线程发现这是一个将要异步执行的任务，就会将 <code>foo()</code> 放入 <code>任务队列</code> 然后继续执行下面的同步代码 <code>b = a + 1;</code>，当 <code>b = a + 1;</code> 执行完毕，所有同步代码都被执行完成，此时 JavaScript 主线程再去 <code>任务队列</code> 中取出需要执行的任务来执行，也就是 1 秒后执行 <code>foo()</code>。</p>
+<p>因为 <code>b = a + 1;</code> 先于 <code>foo()</code> 执行，所以这段异步操作执行后，变量 <code>b</code> 最终结果为 <code>NaN</code>。</p>
+<h3 id="回调函数"><a href="#回调函数" class="headerlink" title="回调函数"></a>回调函数</h3><p>介绍了 <code>同步</code> 和 <code>异步</code> 的概念，我们再来看下何为 <code>回调函数</code>。</p>
+<p>在 <code>异步</code> 操作示例中，<code>setTimeout(foo, 1000);</code> 这句代码中的 <code>foo</code> 就可以被称作 <code>回调函数</code>。所谓 <code>回调函数</code>，就是被主线程放入到 <code>任务队列</code> 中的代码，这段代码通常以函数为单位，并且等到所有 <code>同步</code> 代码执行完成以后才会被执行。</p>
+<p>所以上面的 <code>异步</code> 操作示例程序如果想得到与 <code>同步</code> 操作一样的结果，就得改成这样：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> a, b;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    a = <span class="number">1</span>;</span><br><span class="line">    b = a + <span class="number">1</span>;</span><br><span class="line">    <span class="built_in">console</span>.log(b); <span class="comment">//2</span></span><br><span class="line">&#125;</span><br><span class="line">setTimeout(foo, <span class="number">1000</span>); <span class="comment">//1 秒以后再调用 foo()</span></span><br></pre></td></tr></table></figure>
+
+<p>因为计算 <code>b</code> 的值时依赖 <code>a</code> 的值，而 <code>a = 1;</code> 是在 <code>回调函数</code> 中执行的，也就是说所有 <code>同步</code> 代码执行完成以后才会执行 <code>回调函数</code> 中的 <code>异步</code> 代码，所以 <code>b = a + 1;</code> 也要移动到 <code>回调函数</code> 中。<code>回调函数</code> 中的代码也是顺序执行的，所以 <code>b = a + 1;</code> 语句要放在 <code>a = 1;</code> 语句之后。这样就能使变量 <code>b</code> 最终结果为 <code>2</code>。</p>
+<h3 id="回调函数应用"><a href="#回调函数应用" class="headerlink" title="回调函数应用"></a>回调函数应用</h3><p>在 JavaScript 编程中，<code>AJAX</code> 操作可以说是非常常见的 <code>异步</code> 操作场景了。如果你不了解 <code>AJAX</code> 的概念，那么我强烈建议你学习一下。</p>
+<p>以下是一个使用 <code>jQuery</code> 发送 <code>AJAX</code> 请求的示例：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">handleSuccess</span>(<span class="params">res</span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(res);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">handleError</span>(<span class="params">xhr</span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(xhr.status);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">$.ajax(&#123;</span><br><span class="line">    type: <span class="string">'GET'</span>,</span><br><span class="line">    url: <span class="string">'http://localhost:3000/'</span>,</span><br><span class="line">    success: handleSuccess,</span><br><span class="line">    error: handleError</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>success</code> 注册请求成功的 <code>回调函数</code> <code>handleSuccess</code>，<code>error</code> 注册请求失败的 <code>回调函数</code> <code>handleError</code>。</p>
+<p>当 <code>AJAX</code> 请求成功并得到响应，JavaScript 运行时会自动调用 <code>handleSuccess</code>，请求失败则自动调用 <code>handleError</code>。</p>
+<p>这里使用 <code>回调函数</code> 的目的，就是为了 <code>异步</code> 处理请求结果。因为发送 <code>AJAX</code> 请求是一个比较耗时的操作，如果 <code>同步</code> 处理，则会大大降低 JavaScript 运行效率。当 <code>AJAX</code> 请求发出以后，我们并不知道何时获得响应，所以采用 <code>异步</code> 编程的方式，将处理响应的代码注册为 <code>回调函数</code>。</p>
+<p>可以发现，<code>回调函数</code> 和 <code>异步</code> 密不可分，<code>回调函数</code> 的概念只会出现在 <code>异步</code> 编程中，<code>同步</code> 编程是没有必要存在 <code>回调函数</code> 的。</p>
+<h3 id="P-S"><a href="#P-S" class="headerlink" title="P.S."></a>P.S.</h3><p>文中对 JavaScript <code>异步</code> 执行机制描述并不准确，要想理解 JavaScript <code>异步</code> 执行机制则必须要学习 <code>Event Loop</code>。本文并不想引入太多复杂的概念，只想让初学 <code>异步</code> 编程的人能够快速理解什么是 <code>回调函数</code>。</p>
+<p>如果你是一个 JavaScript 开发者，那么本文到此就结束了。如果你恰巧也是一个 Python 开发者，你还可以继续看下去。</p>
+<p>对于写过 Python 爬虫的人来说，一定听说过 Scrapy 这个非常有名的爬虫框架，你可能在 Scrapy 项目的 spider 文件中见到过如下类似的代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DoubanSpider</span><span class="params">(scrapy.Spider)</span>:</span></span><br><span class="line">    name = <span class="string">'douban'</span></span><br><span class="line">    allowed_domains = [<span class="string">'movie.douban.com'</span>]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">start_requests</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">0</span>, <span class="number">10</span>):</span><br><span class="line">            url = <span class="string">f'https://movie.douban.com/top250?start=<span class="subst">&#123;i * <span class="number">25</span>&#125;</span>'</span></span><br><span class="line">            <span class="keyword">yield</span> scrapy.Request(url=url, callback=self.parse)</span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>callback=self.parse</code> 就是将 <code>self.parse</code> 注册为 <code>回调函数</code>。因为 Scrapy 是一个 <code>异步</code> 爬虫框架，当 <code>scrapy.Request</code> 发出请求以后，程序并不会阻塞，而当请求成功并得到响应时，Scrapy 会自动调用我们注册的 <code>回调函数</code> <code>self.parse</code>，这与 <code>jQuery</code> 的 <code>AJAX</code> 如出一辙。</p>
+<p>在用 Python 编程时，大部分时间都在写 <code>同步</code> 代码，所以很多初学者在初次接触 <code>异步</code> 编程时会感到不适应。当你在学习一门编程语言中陷入困惑，也许可以在其他编程语言中找到灵感。</p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2022-12-24T13:16:45.321Z" itemprop="dateUpdated">2022-12-24 21:16:45</time>
+</span><br>
+
+
+        
+        <a href="/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/" target="_blank" rel="external">http://www.jianghushinian.cn/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/JavaScript/" rel="tag">JavaScript</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" rel="tag">异步编程</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/&title=《JavaScript 异步操作之回调函数》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/&title=《JavaScript 异步操作之回调函数》 — 江湖十年&source=本文试图尝试站在初学 异步 编程的角度来解释什么是 回调函数。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《JavaScript 异步操作之回调函数》 — 江湖十年&url=http://www.jianghushinian.cn/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2021/01/01/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-XSS-%E6%94%BB%E5%87%BB/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Web 安全之 XSS 攻击</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2020/12/01/Windows-%E4%B8%8B-Python-%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Windows 下 Python 开发环境搭建</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2022</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/&title=《JavaScript 异步操作之回调函数》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/&title=《JavaScript 异步操作之回调函数》 — 江湖十年&source=本文试图尝试站在初学 异步 编程的角度来解释什么是 回调函数。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《JavaScript 异步操作之回调函数》 — 江湖十年&url=http://www.jianghushinian.cn/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2020/12/31/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

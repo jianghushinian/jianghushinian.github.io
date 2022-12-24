@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>用 Python 撸一个 Web 服务器-第3章：使用 MVC 构建程序 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Python,Web">
+    <meta name="description" content="Todo List 程序介绍我们将要编写的 Todo List 程序包含四个页面，分别是注册页面、登录页面、首页、编辑页面。以下分别为四个页面的截图。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="用 Python 撸一个 Web 服务器-第3章：使用 MVC 构建程序">
+<meta property="og:url" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="Todo List 程序介绍我们将要编写的 Todo List 程序包含四个页面，分别是注册页面、登录页面、首页、编辑页面。以下分别为四个页面的截图。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/Register.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/Login.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/Index.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/Edit.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/MVC.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/Run_Server.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/Todo_List_Index.png">
+<meta property="article:published_time" content="2020-07-17T08:52:44.000Z">
+<meta property="article:modified_time" content="2022-12-24T13:16:45.403Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="Web">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/Register.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">用 Python 撸一个 Web 服务器-第3章：使用 MVC 构建程序</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">用 Python 撸一个 Web 服务器-第3章：使用 MVC 构建程序</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2020-07-17T08:52:44.000Z" itemprop="datePublished" class="page-time">
+  2020-07-17
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Todo-List-程序介绍"><span class="post-toc-number">1.</span> <span class="post-toc-text">Todo List 程序介绍</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#初识-MVC"><span class="post-toc-number">2.</span> <span class="post-toc-text">初识 MVC</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#构建-Todo-List-程序"><span class="post-toc-number">3.</span> <span class="post-toc-text">构建 Todo List 程序</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Todo-List-首页开发"><span class="post-toc-number">4.</span> <span class="post-toc-text">Todo List 首页开发</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-用-Python-撸一个-Web-服务器-第3章：使用-MVC-构建程序"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">用 Python 撸一个 Web 服务器-第3章：使用 MVC 构建程序</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2020-07-17 16:52:44" datetime="2020-07-17T08:52:44.000Z"  itemprop="datePublished">2020-07-17</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <h3 id="Todo-List-程序介绍"><a href="#Todo-List-程序介绍" class="headerlink" title="Todo List 程序介绍"></a>Todo List 程序介绍</h3><p>我们将要编写的 Todo List 程序包含四个页面，分别是注册页面、登录页面、首页、编辑页面。以下分别为四个页面的截图。</p>
+<a id="more"></a>
+
+<p>注册页面：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Register.png" alt="注册" title="">
+                </div>
+                <div class="image-caption">注册</div>
+            </figure>
+
+<p>登录页面：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Login.png" alt="登录" title="">
+                </div>
+                <div class="image-caption">登录</div>
+            </figure>
+
+<p>首页：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Index.png" alt="首页" title="">
+                </div>
+                <div class="image-caption">首页</div>
+            </figure>
+
+<p>编辑页面：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Edit.png" alt="编辑" title="">
+                </div>
+                <div class="image-caption">编辑</div>
+            </figure>
+
+<p>程序页面非常简洁，甚至有些 Low。但这足够我们学习开发 Web 服务器程序原理，页面样式的问题并不是我们本次学习的重点，所以读者不必纠结于此。</p>
+<p>Todo List 程序功能大概分为两个部分，一部分是 todo 管理，包含增删改查基础功能；另一部分是用户管理，包含注册和登录功能。</p>
+<h3 id="初识-MVC"><a href="#初识-MVC" class="headerlink" title="初识 MVC"></a>初识 MVC</h3><p>介绍了 Todo List 程序的页面和功能，接下来我们就要思考如何设计程序。</p>
+<p>以客户端通过浏览器向服务器发送一个获取应用首页的请求为例，来分析下服务器在收到这个请求后都需要做哪些事情：</p>
+<ol>
+<li><p>首先服务器需要对请求数据进行解析，发现客户端是要获取应用首页。</p>
+</li>
+<li><p>然后找到代表首页的 HTML 文件，读取 HTML 文件中的内容。</p>
+</li>
+<li><p>最后将 HTML 内容组装成符合 HTTP 规范的数据进行返回。</p>
+</li>
+</ol>
+<p>这是一个较为理想的情况，因为 HTML 页面内容是固定的，我们不需要对其进行其他处理，直接返回给浏览器即可。通常我们管这种页面叫静态页面。</p>
+<p>但实际情况中，Todo List 程序首页内容并不是一成不变的，而是动态变化的。首页 HTML 文件中只定义基础结构，具体的 todo 数据需要动态填充进去。所以一个更加完整的服务器处理请求的过程应该像下面这样：</p>
+<ol>
+<li><p>首先服务器需要对请求数据进行解析，发现客户端是要获取应用首页。</p>
+</li>
+<li><p>然后从数据库中读取 todo 数据。</p>
+</li>
+<li><p>接着找到代表首页的 HTML 文件，读取 HTML 文件中的内容。</p>
+</li>
+<li><p>再将 todo 数据动态添加到 HTML 内容中。</p>
+</li>
+<li><p>最后将处理好的 HTML 内容组装成符合 HTTP 规范的数据进行返回。</p>
+</li>
+</ol>
+<p>现在已经知道了服务器处理请求的完整过程，我们就可以设计服务器程序了。试想一下，如果 Todo List 程序都像 Hello World 程序一样把代码都写在一个 Python 文件中也不是不可以。但这样的代码显然不具备良好的扩展性和可维护性。那么更好的设计模式是什么呢？</p>
+<p>其实对于 Web 服务器程序的设计，业界早已达成了一个普遍的共识，那就是 <code>MVC</code> 模式：</p>
+<p>M（Model）：模型，用来存储和处理 Web 应用数据。</p>
+<p>V（View）：视图，格式化显示 Web 应用页面。</p>
+<p>C（Controller）：控制器，负责基础逻辑，如从模型层读取数据并将数据填充到视图层，然后返回响应。</p>
+<p>通过 <code>MVC</code> 的分层结构，能够让 Web 应用设计更加清晰，可以很容易的构建可扩展、易维护的代码。模型层，说直白些其实就是用来读写数据库的 Python 代码，新增 todo 的时候，可以通过模型层的代码将数据保存到数据库中，访问首页时需要展示所有已保存的 todo，这时可以通过模型层的代码从数据库中读取所有 todo。视图层，可以将其简单的理解为 HTML 模板文件的集合。控制器起到粘合的作用，它将从模型层读取过来的数据填充到视图层并返回给浏览器，或者将浏览器通过 HTML 页面提交过来的数据解析出来再通过模型层写入数据库中。</p>
+<p>我画了一个示例图，来帮助你理解 <code>MVC</code> 模式。图中标注了浏览器发起一个请求到获得响应，中间经历的完整过程。 </p>
+<p><img src="MVC.png" alt="MVC"></p>
+<p>还是以客户端请求 Todo List 程序首页为例，一个完整的请求过程如下：</p>
+<ol>
+<li><p>浏览器发起请求。</p>
+</li>
+<li><p>请求到达服务器后首先进入控制器，然后控制器从模型获取 todo 数据。</p>
+</li>
+<li><p>模型操作数据库，查询 todo 数据。</p>
+</li>
+<li><p>数据库返回 todo 数据。</p>
+</li>
+<li><p>模型将从数据库中查询的 todo 数据返回给控制器，控制器暂时将数据保存在内存中。</p>
+</li>
+<li><p>控制器从视图中获取首页 HTML 模板。</p>
+</li>
+<li><p>控制器将从模型查出来的 todo 数据填充到首页 HTML 模板中，并组装成符合 HTTP 规范的数据。</p>
+</li>
+<li><p>服务器返回响应。</p>
+</li>
+</ol>
+<p>其实 <code>MVC</code> 是一个宏观上的分层，具体细节部分还需要根据我们设计程序的粒度来进行处理，比如有些逻辑既可以写在控制器层，也可以写在模型层，甚至我们还可以在 <code>MVC</code> 的基础上扩展更多的分层。这些都需要结合具体的业务逻辑来决定。</p>
+<h3 id="构建-Todo-List-程序"><a href="#构建-Todo-List-程序" class="headerlink" title="构建 Todo List 程序"></a>构建 Todo List 程序</h3><p>学习了 <code>MVC</code> 模式，我们就可以根据 <code>MVC</code> 模式来试着构建 Todo List 程序了。</p>
+<p>Todo List 程序分两部分：todo 管理、用户管理。在项目初期，我们肯定不会考虑的太过全面。所以可以先不考虑用户管理功能部分的实现，先只考虑如何实现 todo 管理功能。</p>
+<p>Todo List 程序目录结构设计如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">todo_list</span><br><span class="line">├── server.py</span><br><span class="line">└── todo</span><br><span class="line">    ├── __init__.py</span><br><span class="line">    ├── config.py</span><br><span class="line">    ├── controllers.py</span><br><span class="line">    ├── db</span><br><span class="line">    │   └── todo.json</span><br><span class="line">    ├── models.py</span><br><span class="line">    ├── templates</span><br><span class="line">    │   ├── edit.html</span><br><span class="line">    │   └── index.html</span><br><span class="line">    └── utils.py</span><br></pre></td></tr></table></figure>
+
+<p>这里以 <code>todo_list/</code> 作为程序的根目录，根目录下包含 <code>server.py</code> 文件和 <code>todo/</code> 目录。其中 <code>server.py</code> 主要功能就是作为一个 <code>Web Server</code> 来接收请求和返回响应，它是 Todo List 程序的入口和出口。而 <code>todo/</code> 目录则是 Todo List 程序处理业务逻辑的核心。</p>
+<p><code>todo/</code> 目录下的 <code>__init__.py</code> 将 <code>todo/</code> 文件夹标记为一个 Python 包。 <code>config.py</code> 用于存储一些项目的基础配置。<code>utils.py</code> 是一个工具集，里面可以定义一些供其他模块调用的类和方法。<code>db/</code> 目录作为 Todo List 程序存储数据的目录，<code>db/todo.json</code> 用来存储所有的 todo 内容。剩下还有两个 <code>.py</code> 文件和一个目录没有介绍，相信你已经猜到了 <code>models.py</code>、<code>templates/</code>、<code>controllers.py</code> 分别对应了 <code>MVC</code> 模式中的模型、视图、控制器。<code>models.py</code> 中编写操作 todo 数据的代码，<code>templates/</code> 目录用来存放 HTML 模板文件，<code>templates/index.html</code> 是首页，<code>templates/edit.html</code> 是编辑页面，<code>controllers.py</code> 编写负责程序控制的基础逻辑代码。</p>
+<p>我们对项目的目录结构有了一个概览，这里我要强调一下 <code>db/</code> 目录的作用。我们在开发整个 Todo List 程序的过程中都不会使用实际的数据库程序，项目中所有需要存储的数据都保存在  <code>db/</code> 目录下的文件中。在开发 Web 程序时，需要用到数据库的目的就是为了存储数据，对于 Todo List 程序来说使用文件同样能满足需求，同时能够照顾到对数据库不了解的读者。</p>
+<h3 id="Todo-List-首页开发"><a href="#Todo-List-首页开发" class="headerlink" title="Todo List 首页开发"></a>Todo List 首页开发</h3><p>Todo List 程序目录结构构建完成后就可以动手开发程序了，我们可以从一个请求经历的过程来着手。</p>
+<p>一个请求发送到服务器，首先服务器需要有一个能够接收请求的入口，在程序根目录 <code>todo_list/</code> 下的 <code>server.py</code> 就是这个入口。<code>server.py</code> 文件代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/server.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> todo.config <span class="keyword">import</span> HOST, PORT, BUFFER_SIZE</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">process_connection</span><span class="params">(client)</span>:</span></span><br><span class="line">    <span class="string">"""处理客户端请求"""</span></span><br><span class="line">    <span class="comment"># 接收请求报文数据</span></span><br><span class="line">    request_bytes = <span class="string">b''</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        chunk = client.recv(BUFFER_SIZE)</span><br><span class="line">        request_bytes += chunk</span><br><span class="line">        <span class="keyword">if</span> len(chunk) &lt; BUFFER_SIZE:</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 请求报文</span></span><br><span class="line">    request_message = request_bytes.decode(<span class="string">'utf-8'</span>)</span><br><span class="line">    print(<span class="string">f'request_message: <span class="subst">&#123;request_message&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># <span class="doctag">TODO:</span> 解析请求</span></span><br><span class="line">    <span class="comment"># <span class="doctag">TODO:</span> 返回响应</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 关闭连接</span></span><br><span class="line">    client.close()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">"""入口函数"""</span></span><br><span class="line">    <span class="keyword">with</span> socket.socket() <span class="keyword">as</span> s:</span><br><span class="line">        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, <span class="number">1</span>)</span><br><span class="line">        s.bind((HOST, PORT))</span><br><span class="line">        s.listen(<span class="number">5</span>)</span><br><span class="line">        print(<span class="string">f'running on http://<span class="subst">&#123;HOST&#125;</span>:<span class="subst">&#123;PORT&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">            client, address = s.accept()</span><br><span class="line">            print(<span class="string">f'client address: <span class="subst">&#123;address&#125;</span>'</span>)</span><br><span class="line">            <span class="comment"># 创建新的线程来处理客户端连接</span></span><br><span class="line">            t = threading.Thread(target=process_connection, args=(client,))</span><br><span class="line">            t.start()</span><br></pre></td></tr></table></figure>
+
+<p><code>server.py</code> 程序几乎就是之前实现的多线程版 Hello World 服务器程序照搬过来的。为了程序代码更加清晰，这里将服务器的 IP 地址、端口、接收请求的缓冲区大小定义为变量写在了配置文件 <code>todo/config.py</code> 中，所以需要在 <code>server.py</code> 文件顶部从配置文件中导入 <code>HOST</code> 、<code>PORT</code> 、<code>BUFFER_SIZE</code>。在 <code>main</code> 函数中，实例化 <code>socket</code> 对象部分的代码也有所改变，这里采用了 <code>with</code> 语句来实例化 <code>socket</code> 对象，这样能够保证任何情况下退出程序时 <code>socket</code> 都能够被正确关闭。此处 <code>with</code> 语句的用法可以类比文件操作时的  <code>with</code> 语句。处理客户端连接请求的 <code>process_connection</code> 函数内部基本逻辑没有改变，其中有两个 <code>TODO</code> 注释表示解析请求和返回响应的功能暂未实现。</p>
+<p>从 <code>server.py</code> 入口程序接收到客户端的请求以后，需要解析请求报文，并根据解析出来的请求报文来决定如何处理请求并返回响应。所以接下来我们需要编写解析请求的代码。</p>
+<p>不过在这之前，我先给出 <code>todo/config.py</code> 配置文件的代码，毕竟之后还会用到：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/config.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"></span><br><span class="line"><span class="comment"># todo/ 目录绝对路径</span></span><br><span class="line">BASE_DIR = os.path.dirname(os.path.abspath(__file__))</span><br><span class="line"></span><br><span class="line"><span class="comment"># IP</span></span><br><span class="line">HOST = <span class="string">'127.0.0.1'</span></span><br><span class="line"><span class="comment"># 端口</span></span><br><span class="line">PORT = <span class="number">8000</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 缓冲大小</span></span><br><span class="line">BUFFER_SIZE = <span class="number">1024</span></span><br></pre></td></tr></table></figure>
+
+<p>配置文件中除了包含前面介绍过的表示 IP 地址、端口、接收请求的缓冲区大小的几个变量，还有一个 <code>BASE_DIR</code> 变量用来表示 <code>todo/</code> 目录的绝对路径，方便在程序中获取项目路径。</p>
+<p>现在来看下如何解析请求，我们可以定义一个 <code>Request</code> 类用来专门解析请求报文，代码写在 <code>todo/utils.py</code> 文件中：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/utils.py</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Request</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="string">"""请求类"""</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, request_message)</span>:</span></span><br><span class="line">        method, path, headers = self.parse_data(request_message)</span><br><span class="line">        self.method = method  <span class="comment"># 请求方法 GET、POST</span></span><br><span class="line">        self.path = path  <span class="comment"># 请求路径 /index</span></span><br><span class="line">        self.headers = headers  <span class="comment"># 请求头 &#123;'Host': '127.0.0.1:8000'&#125;</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">parse_data</span><span class="params">(self, data)</span>:</span></span><br><span class="line">        <span class="string">"""解析请求报文数据"""</span></span><br><span class="line">        <span class="comment"># 用请求报文中的第一个 '\r\n\r\n' 做分割，将得到请求头和请求体</span></span><br><span class="line">        <span class="comment"># 请求体暂时用不到先不处理</span></span><br><span class="line">        header, body = data.split(<span class="string">'\r\n\r\n'</span>, <span class="number">1</span>)</span><br><span class="line">        method, path, headers = self._parse_header(header)</span><br><span class="line">        <span class="keyword">return</span> method, path, headers</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">_parse_header</span><span class="params">(self, data)</span>:</span></span><br><span class="line">        <span class="string">"""解析请求头"""</span></span><br><span class="line">        <span class="comment"># 拆分请求行和请求首部</span></span><br><span class="line">        request_line, request_header = data.split(<span class="string">'\r\n'</span>, <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 请求行拆包 'GET /index HTTP/1.1' -&gt; ['GET', '/index', 'HTTP/1.1']</span></span><br><span class="line">        <span class="comment"># 因为 HTTP 版本号没什么用，所以用一个下划线 _ 变量来接收</span></span><br><span class="line">        method, path, _ = request_line.split()</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 解析请求首部所有的键值对，组装成字典</span></span><br><span class="line">        headers = &#123;&#125;</span><br><span class="line">        <span class="keyword">for</span> header <span class="keyword">in</span> request_header.split(<span class="string">'\r\n'</span>):</span><br><span class="line">            k, v = header.split(<span class="string">': '</span>, <span class="number">1</span>)</span><br><span class="line">            headers[k] = v</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> method, path, headers</span><br></pre></td></tr></table></figure>
+
+<p> <code>Request</code> 类的初始化方法 <code>__init__</code> 接收请求报文字符串作为参数。在其内部调用 <code>parse_data</code> 方法将请求报文字符串解析成我们需要的结构化数据。</p>
+<p>解析完请求报文，我们需要根据请求报文信息来判断如何返回响应。基础逻辑判断部分的代码可以写在 <code>todo/controllers.py</code> 中：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/controllers.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> todo.utils <span class="keyword">import</span> render_template</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">index</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">"""首页视图函数"""</span></span><br><span class="line">    <span class="keyword">return</span> render_template(<span class="string">'index.html'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>定义在控制器层的函数也叫视图函数，因为它们通常返回视图层的 HTML 内容。<code>index</code> 视图函数用来处理请求首页的逻辑，它返回 <code>render_template</code> 函数的调用结果，<code>render_template</code> 函数的作用是将 HTML 内容读取成字符串并返回，其定义如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/utils.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> todo.config <span class="keyword">import</span> BASE_DIR</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">render_template</span><span class="params">(template)</span>:</span></span><br><span class="line">    <span class="string">"""读取 HTML 内容"""</span></span><br><span class="line">    <span class="comment"># 读取 'todo_list/todo/templates' 目录下的 HTML 文件内容</span></span><br><span class="line">    template_dir = os.path.join(BASE_DIR, <span class="string">'templates'</span>)</span><br><span class="line">    path = os.path.join(template_dir, template)</span><br><span class="line">    <span class="keyword">with</span> open(path, <span class="string">'r'</span>, encoding=<span class="string">'utf-8'</span>) <span class="keyword">as</span> f:</span><br><span class="line">        html = f.read()</span><br><span class="line">    <span class="keyword">return</span> html</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>todo/controllers.py</code> 文件底部还定义了一个 <code>routes</code> 字典，字典的键为请求路径，值为一个元组，元组的第一个元素作为处理请求的函数，第二个元素是一个列表，里面定义处理请求的函数所允许的请求方法。<code>index</code> 视图函数能够同时匹配两个路径：<code>/</code>、<code>/index</code>，因为这两个路径通常都代表首页。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/controllers.py</span></span><br><span class="line"></span><br><span class="line">routes = &#123;</span><br><span class="line">    <span class="string">'/'</span>: (index, [<span class="string">'GET'</span>]),</span><br><span class="line">    <span class="string">'/index'</span>: (index, [<span class="string">'GET'</span>]),</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>读取出 HTML 内容以后，我们就可以构造响应报文并返回给浏览器了。在 <code>utils.py</code> 文件下，编写一个 <code>Response</code> 类用来构造响应：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/utils.py</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Response</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="string">"""响应类"""</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 根据状态码获取原因短语</span></span><br><span class="line">    reason_phrase = &#123;</span><br><span class="line">        <span class="number">200</span>: <span class="string">'OK'</span>,</span><br><span class="line">        <span class="number">405</span>: <span class="string">'METHOD NOT ALLOWED'</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, body, headers=None, status=<span class="number">200</span>)</span>:</span></span><br><span class="line">        <span class="comment"># 默认响应首部字段，指定响应内容的类型为 HTML</span></span><br><span class="line">        _headers = &#123;</span><br><span class="line">            <span class="string">'Content-Type'</span>: <span class="string">'text/html; charset=utf-8'</span>,</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> headers <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            _headers.update(headers)</span><br><span class="line">        self.headers = _headers  <span class="comment"># 响应头</span></span><br><span class="line">        self.body = body  <span class="comment"># 响应体</span></span><br><span class="line">        self.status = status  <span class="comment"># 状态码</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__bytes__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""构造响应报文"""</span></span><br><span class="line">        <span class="comment"># 状态行 'HTTP/1.1 200 OK\r\n'</span></span><br><span class="line">        header = <span class="string">f'HTTP/1.1 <span class="subst">&#123;self.status&#125;</span> <span class="subst">&#123;self.reason_phrase.get(self.status, <span class="string">""</span>)&#125;</span>\r\n'</span></span><br><span class="line">        <span class="comment"># 响应首部</span></span><br><span class="line">        header += <span class="string">''</span>.join(<span class="string">f'<span class="subst">&#123;k&#125;</span>: <span class="subst">&#123;v&#125;</span>\r\n'</span> <span class="keyword">for</span> k, v <span class="keyword">in</span> self.headers.items())</span><br><span class="line">        <span class="comment"># 空行</span></span><br><span class="line">        blank_line = <span class="string">'\r\n'</span></span><br><span class="line">        <span class="comment"># 响应体</span></span><br><span class="line">        body = self.body</span><br><span class="line"></span><br><span class="line">        response_message = header + blank_line + body</span><br><span class="line">        <span class="keyword">return</span> response_message.encode(<span class="string">'utf-8'</span>)</span><br></pre></td></tr></table></figure>
+
+<p><code>Response</code> 类的初始化方法 <code>__init__</code> 接收三个参数，分别为响应体、响应首部字段、状态码。其中响应体为 <code>str</code> 类型，首页的响应体实际上就是 <code>index.html</code> 文件内容。响应首部字段为 <code>dict</code> 类型，在构造响应报文时，所有的响应首部字段最终按照 HTTP 规范拼接到一起作为响应首部。状态码为数值类型，目前只考虑了状态码为 <code>200</code> 正常响应和 <code>405</code> 请求方法不被允许。</p>
+<p>需要注意的是，<code>Response</code> 类定义了 <code>__bytes__</code> 魔法方法作为构造响应报文的方法。当使用 Python 内置的 <code>bytes</code> 方法转换 <code>Response</code> 实例对象时（<code>bytes(Response())</code>），会自动调用 <code>__bytes__</code> 魔法方法。</p>
+<p>从解析请求到构造响应报文的代码现在已经基本编写完成。接下来我们将整个处理请求的流程串联起来，回到 <code>server.py</code> 文件，继续完善代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/server.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> todo.config <span class="keyword">import</span> HOST, PORT, BUFFER_SIZE</span><br><span class="line"><span class="keyword">from</span> todo.utils <span class="keyword">import</span> Request, Response</span><br><span class="line"><span class="keyword">from</span> todo.controllers <span class="keyword">import</span> routes</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">process_connection</span><span class="params">(client)</span>:</span></span><br><span class="line">    <span class="string">"""处理客户端请求"""</span></span><br><span class="line">    <span class="comment"># 接收请求报文数据</span></span><br><span class="line">    request_bytes = <span class="string">b''</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        chunk = client.recv(BUFFER_SIZE)</span><br><span class="line">        request_bytes += chunk</span><br><span class="line">        <span class="keyword">if</span> len(chunk) &lt; BUFFER_SIZE:</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 请求报文</span></span><br><span class="line">    request_message = request_bytes.decode(<span class="string">'utf-8'</span>)</span><br><span class="line">    print(<span class="string">f'request_message: <span class="subst">&#123;request_message&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 解析请求报文，构造请求对象</span></span><br><span class="line">    request = Request(request_message)</span><br><span class="line">    <span class="comment"># 根据请求对象构造响应报文</span></span><br><span class="line">    response_bytes = make_response(request)</span><br><span class="line">    <span class="comment"># 返回响应</span></span><br><span class="line">    client.sendall(response_bytes)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 关闭连接</span></span><br><span class="line">    client.close()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">make_response</span><span class="params">(request, headers=None)</span>:</span></span><br><span class="line">    <span class="string">"""构造响应报文"""</span></span><br><span class="line">    <span class="comment"># 默认状态码为 200</span></span><br><span class="line">    status = <span class="number">200</span></span><br><span class="line">    <span class="comment"># 获取匹配当前请求路径的处理函数和函数所接收的请求方法</span></span><br><span class="line">    <span class="comment"># request.path 等于 '/' 或 '/index' 时，routes.get(request.path) 将返回 (index, ['GET'])</span></span><br><span class="line">    route, methods = routes.get(request.path)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 如果请求方法不被允许，返回 405 状态码</span></span><br><span class="line">    <span class="keyword">if</span> request.method <span class="keyword">not</span> <span class="keyword">in</span> methods:</span><br><span class="line">        status = <span class="number">405</span></span><br><span class="line">        data = <span class="string">'Method Not Allowed'</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="comment"># 请求首页时 route 实际上就是我们在 controllers.py 中定义的 index 视图函数</span></span><br><span class="line">        data = route()</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 获取响应报文</span></span><br><span class="line">    response = Response(data, headers=headers, status=status)</span><br><span class="line">    response_bytes = bytes(response)</span><br><span class="line">    print(<span class="string">f'response_bytes: <span class="subst">&#123;response_bytes&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> response_bytes</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">"""入口函数"""</span></span><br><span class="line">    <span class="keyword">with</span> socket.socket() <span class="keyword">as</span> s:</span><br><span class="line">        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, <span class="number">1</span>)</span><br><span class="line">        s.bind((HOST, PORT))</span><br><span class="line">        s.listen(<span class="number">5</span>)</span><br><span class="line">        print(<span class="string">f'running on http://<span class="subst">&#123;HOST&#125;</span>:<span class="subst">&#123;PORT&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">            client, address = s.accept()</span><br><span class="line">            print(<span class="string">f'client address: <span class="subst">&#123;address&#125;</span>'</span>)</span><br><span class="line">            <span class="comment"># 创建新的线程来处理客户端连接</span></span><br><span class="line">            t = threading.Thread(target=process_connection, args=(client,))</span><br><span class="line">            t.start()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    main()</span><br></pre></td></tr></table></figure>
+
+<p>首先完成之前未写完的 <code>process_connection</code> 函数。将原来标记 <code>TODO</code> 注释的地方替换成了如下代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 解析请求报文，构造请求对象</span></span><br><span class="line">request = Request(request_message)</span><br><span class="line"><span class="comment"># 根据请求对象构造响应报文</span></span><br><span class="line">response_bytes = make_response(request)</span><br><span class="line"><span class="comment"># 返回响应</span></span><br><span class="line">client.sendall(response_bytes)</span><br></pre></td></tr></table></figure>
+
+<p>新增了一个 <code>make_response</code> 函数，方便用来根据请求对象构造响应报文。函数中我写了比较详细的注释，你可以根据注释内容读懂代码逻辑。</p>
+<p>最后给出首页 <code>todo/templates/index.html</code> 的 HTML 代码：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!--todo_list/todo/templates/index.html--&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>Todo List<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">style</span>&gt;</span></span><br><span class="line">        * &#123;</span><br><span class="line">            margin: 0;</span><br><span class="line">            padding: 0;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        ul &#123;</span><br><span class="line">            list-style: none;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        a &#123;</span><br><span class="line">            text-decoration: none;</span><br><span class="line">            outline: none;</span><br><span class="line"><span class="css">            <span class="selector-tag">color</span>: <span class="selector-id">#000000</span>;</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        h1 &#123;</span><br><span class="line">            margin: 20px auto;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line"><span class="css">        <span class="selector-class">.container</span> &#123;</span></span><br><span class="line">            display: flex;</span><br><span class="line">            justify-content: center;</span><br><span class="line">            align-items: center;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line"><span class="css">        <span class="selector-class">.container</span> <span class="selector-tag">ul</span> &#123;</span></span><br><span class="line">            width: 100%;</span><br><span class="line">            max-width: 600px;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line"><span class="css">        <span class="selector-class">.container</span> <span class="selector-tag">ul</span> <span class="selector-tag">li</span> &#123;</span></span><br><span class="line">            height: 40px;</span><br><span class="line">            line-height: 40px;</span><br><span class="line">            margin-bottom: 4px;</span><br><span class="line">            padding: 0 6px;</span><br><span class="line">            display: flex;</span><br><span class="line">            justify-content: space-between;</span><br><span class="line"><span class="css">            <span class="selector-tag">background-color</span>: <span class="selector-id">#d2d2d2</span>;</span></span><br><span class="line">        &#125;</span><br><span class="line">    <span class="tag">&lt;/<span class="name">style</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">h1</span> <span class="attr">class</span>=<span class="string">"container"</span>&gt;</span>Todo List<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"container"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">ul</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">li</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">div</span>&gt;</span>Hello World<span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">li</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">ul</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>HTML 代码比较简单，其中顶部写了一些基础的 CSS 样式，都很容易看懂，这里不再讲解。</p>
+<p>接下来在终端中，进入 <code>todo_list/</code>目录下，使用 Python 运行 <code>server.py</code> 文件，看到如下打印结果说明程序已经正常启动：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Run_Server.png" alt="运行 Todo List 服务器" title="">
+                </div>
+                <div class="image-caption">运行 Todo List 服务器</div>
+            </figure>
+
+<p>打开浏览器，地址栏输入 <code>http://127.0.0.1:8000/</code> 或者 <code>http://127.0.0.1:8000/index</code>，你将看到 Todo List 程序首页：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Todo_List_Index.png" alt="Todo List 首页" title="">
+                </div>
+                <div class="image-caption">Todo List 首页</div>
+            </figure>
+
+<p>至此，Todo List 程序首页初步完成。不过我想很多读者看到这里会产生疑惑，说好的 <code>MVC</code> 呢，目前为止我们并没有编写一行模型层的代码，并且首页的 HTML 内容也不是动态填充的。没错，为了能够尽快让 Todo List 程序跑起来，我有意的避开了这两个问题，下一章我们再来解决这两个问题。</p>
+<blockquote>
+<p>本章源码：<a href="https://github.com/jianghushinian/todo-list/tree/master/chapter3" target="_blank" rel="noopener">chapter3</a></p>
+</blockquote>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2022-12-24T13:16:45.403Z" itemprop="dateUpdated">2022-12-24 21:16:45</time>
+</span><br>
+
+
+        
+        <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/" target="_blank" rel="external">http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/&title=《用 Python 撸一个 Web 服务器-第3章：使用 MVC 构建程序》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/&title=《用 Python 撸一个 Web 服务器-第3章：使用 MVC 构建程序》 — 江湖十年&source=Todo List 程序介绍我们将要编写的 Todo List 程序包含四个页面，分别是注册页面、登录页面、首页、编辑页面。以下分别为四个页面的截图。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《用 Python 撸一个 Web 服务器-第3章：使用 MVC 构建程序》 — 江湖十年&url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC4%E7%AB%A0%EF%BC%9A%E5%8A%A8%E6%80%81%E6%B8%B2%E6%9F%93%E6%95%B0%E6%8D%AE/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">用 Python 撸一个 Web 服务器-第4章：动态渲染数据</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC2%E7%AB%A0%EF%BC%9AHello-World/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">用 Python 撸一个 Web 服务器-第2章：Hello World</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2022</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/&title=《用 Python 撸一个 Web 服务器-第3章：使用 MVC 构建程序》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/&title=《用 Python 撸一个 Web 服务器-第3章：使用 MVC 构建程序》 — 江湖十年&source=Todo List 程序介绍我们将要编写的 Todo List 程序包含四个页面，分别是注册页面、登录页面、首页、编辑页面。以下分别为四个页面的截图。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《用 Python 撸一个 Web 服务器-第3章：使用 MVC 构建程序》 — 江湖十年&url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC3%E7%AB%A0%EF%BC%9A%E4%BD%BF%E7%94%A8-MVC-%E6%9E%84%E5%BB%BA%E7%A8%8B%E5%BA%8F/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

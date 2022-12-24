@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践下——原理篇 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Kubernetes,CSI,存储">
+    <meta name="description" content="本篇文章我将讲解 OpenEBS Device-LocalPV 实现原理，如果还不了解了 OpenEBS Device-LocalPV 如何使用，可以移步至本系列上篇文章 Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇 进行学习。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践下——原理篇">
+<meta property="og:url" content="http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="本篇文章我将讲解 OpenEBS Device-LocalPV 实现原理，如果还不了解了 OpenEBS Device-LocalPV 如何使用，可以移步至本系列上篇文章 Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇 进行学习。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/CSI.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/controller.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/CapacityWeighted.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/VolumeWeighted.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/FreeCapacityWeighted.png">
+<meta property="article:published_time" content="2022-11-16T00:24:14.000Z">
+<meta property="article:modified_time" content="2022-12-24T13:16:45.325Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Kubernetes">
+<meta property="article:tag" content="CSI">
+<meta property="article:tag" content="存储">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/CSI.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践下——原理篇</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践下——原理篇</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2022-11-16T00:24:14.000Z" itemprop="datePublished" class="page-time">
+  2022-11-16
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Kubernetes/">Kubernetes</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#CSI"><span class="post-toc-number">1.</span> <span class="post-toc-text">CSI</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#基础架构"><span class="post-toc-number">1.1.</span> <span class="post-toc-text">基础架构</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#工作流程"><span class="post-toc-number">1.2.</span> <span class="post-toc-text">工作流程</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Device-LocalPV"><span class="post-toc-number">2.</span> <span class="post-toc-text">Device-LocalPV</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#部署"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">部署</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#组件"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">组件</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#Identity-组件"><span class="post-toc-number">2.2.1.</span> <span class="post-toc-text">Identity 组件</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#Controller-组件"><span class="post-toc-number">2.2.2.</span> <span class="post-toc-text">Controller 组件</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#Agent-组件"><span class="post-toc-number">2.2.3.</span> <span class="post-toc-text">Agent 组件</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#调度策略"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">调度策略</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#CapacityWeighted"><span class="post-toc-number">2.3.1.</span> <span class="post-toc-text">CapacityWeighted</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#VolumeWeighted"><span class="post-toc-number">2.3.2.</span> <span class="post-toc-text">VolumeWeighted</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#自定义调度策略"><span class="post-toc-number">2.3.3.</span> <span class="post-toc-text">自定义调度策略</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#故障处理"><span class="post-toc-number">2.4.</span> <span class="post-toc-text">故障处理</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#节点故障"><span class="post-toc-number">2.4.1.</span> <span class="post-toc-text">节点故障</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#磁盘故障"><span class="post-toc-number">2.4.2.</span> <span class="post-toc-text">磁盘故障</span></a></li></ol></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">3.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-Kubernetes-本地持久化存储方案-OpenEBS-LocalPV-落地实践下——原理篇"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践下——原理篇</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2022-11-16 08:24:14" datetime="2022-11-16T00:24:14.000Z"  itemprop="datePublished">2022-11-16</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Kubernetes/">Kubernetes</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>本篇文章我将讲解 OpenEBS Device-LocalPV 实现原理，如果还不了解了 OpenEBS Device-LocalPV 如何使用，可以移步至本系列上篇文章 <a href="https://jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/" target="_blank" rel="noopener">Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇</a> 进行学习。</p>
+<a id="more"></a>
+
+<h3 id="CSI"><a href="#CSI" class="headerlink" title="CSI"></a>CSI</h3><p>在深入理解 OpenEBS Device-LocalPV 原理之前，我们不得不了解一个新的概念 CSI，它规定了 K8s 存储插件实现方式。</p>
+<p>在 K8s 中，如果 K8s 内置的存储功能不满足我们的生产需求，则可以通过一种叫作 CSI 的插件机制来对其进行扩展，而 Device-LocalPV 正是采用这种机制来实现的。</p>
+<p>CSI 是 Container Storage Interface 的简称，是 K8s 官方定义的容器存储接口规范，它试图定义一个统一的业界标准，专门用来扩展容器编排系统的存储能力。</p>
+<h4 id="基础架构"><a href="#基础架构" class="headerlink" title="基础架构"></a>基础架构</h4><p>CSI 基本架构如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="CSI.png" alt="CSI" title="">
+                </div>
+                <div class="image-caption">CSI</div>
+            </figure>
+
+<p>一个 CSI 插件包含两个主体部分 <code>External Components</code> 和 <code>Custom Components</code>，其中 <code>External Components</code> 由 K8s 官方提供，而 <code>Custom Components</code> 则由编写插件的作者来提供。这两个 <code>Components</code> 又各自包含 3 个组件，一起协同工作。</p>
+<h4 id="工作流程"><a href="#工作流程" class="headerlink" title="工作流程"></a>工作流程</h4><p>我先在这里大概描述一下 CSI 插件工作流程，方便稍后分析 Device-LocalPV 的实现原理。</p>
+<p>首先，在 CSI 插件启动时，<code>External Components</code> 中的 <code>Driver Registrar</code> 组件最先开始工作，它通过与 <code>Custom Components</code> 中的 <code>Identity</code> 组件进行通信，获取到 CSI 插件的基本信息，并将其注册到 kubelet 中。</p>
+<p>而 <code>External Components</code> 中的 <code>Provisioner</code> 组件则通过 Watch 机制，监听了 APIServer 中 PVC 对象的创建，一旦有新的 PVC <code>被创建，Provisioner</code> 就会与 <code>Custom Components</code> 中的 <code>Controller</code> 组件进行通信，让其创建 PV 相关资源。</p>
+<p>创建完 PV，下一步就到了 Attach 阶段，而 Attach 操作正对应了 <code>External Components</code> 中的 <code>Attacher</code> 组件，它同样会与 <code>Custom Components</code> 中的 <code>Controller</code> 组件进行通信，协同完成 Attach 操作。</p>
+<p>而最后一步 Mount 操作，则由 Node 节点上的 kubelet 直接调用 <code>External Components</code> 中的 <code>Node</code> 组件来完成。至此，Pod 内部应用就可以使用主机节点上挂载的 LocalPV 了。</p>
+<h3 id="Device-LocalPV"><a href="#Device-LocalPV" class="headerlink" title="Device-LocalPV"></a>Device-LocalPV</h3><p>以上我们简单的过了一遍 CSI 插件基本流程，接下来我们将通过对 OpenEBS Device-LocalPV 运行流程的分析，更深入的理解使用 CSI 插件机制实现 LocalPV 的原理。</p>
+<h4 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h4><p>要分析一个程序的执行流程，当然要从程序启动入口开始，而 OpenEBS 是一个面向云原生的应用，那么我们首先要看的，就是项目的部署方式，OpenEBS Device-LocalPV 项目部署 yaml 文件也在其项目的 <a href="https://github.com/openebs/device-localpv/blob/develop/deploy/device-operator.yaml" target="_blank" rel="noopener">git 仓库</a>中。</p>
+<p>可以看到，部署文件中最重要的两个资源分别是一个名为 <code>openebs-device-controller</code> 的 StatefulSet，和一个名为 <code>openebs-device-node</code> 的 DaemonSet。</p>
+<p>在 StatefulSet 中启动了两个容器，分别是 K8s 官方提供的 <code>External Provisioner</code> 组件，和由 OpenEBS 开发的 <code>Custom Controller</code> 组件，这两个组件被放在一个 Pod 中协同工作。</p>
+<p>而在 DaemonSet 中同样也启动了两个容器，分别是 K8s 官方提供的 <code>External Driver Registrar</code> 组件，和由 OpenEBS 开发的 <code>Custom Node</code> 组件。</p>
+<p>那么，CSI 机制中的 <code>External Attacher</code> 组件去哪里了？实际上 LocalPV 并没有 Attach 操作，创建出来后只需要一步 Mount 操作即可使用，所以也就没有必要部署这个组件了。</p>
+<p>你是否好奇 <code>External</code> 组件和 <code>Custom</code> 对应组件之间如何来进行通信？如果你详细看过我上面提供的 Device-LocalPV 项目部署 yaml 文件中的内容，就不难发现，里面有 <code>unix:///xxx/csi.sock</code> 字样，实际上它们之间的通信都是依靠基于 Unix socket 的 <code>gRPC</code> 来进行的，这样即实现了组件间的解耦，又能高效进行通信。</p>
+<h4 id="组件"><a href="#组件" class="headerlink" title="组件"></a>组件</h4><p>知道了 OpenEBS Device-LocalPV 项目都部署了哪些组件，接下来我们通过阅读源码来分析程序执行流程。</p>
+<p>无论是 StatefulSet 还是 DaemonSet，Device-LocalPV 程序启动<a href="https://github.com/openebs/device-localpv/blob/develop/cmd/main.go" target="_blank" rel="noopener">入口文件</a>都是同一个，程序启动后，在 <code>main</code> 函数里会调用 <code>run</code> 函数，<code>run</code> 函数定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">run</span><span class="params">(config *config.Config)</span></span> &#123;</span><br><span class="line">        <span class="keyword">if</span> config.Version == <span class="string">""</span> &#123;</span><br><span class="line">                config.Version = version.Current()</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        klog.Infof(<span class="string">"Device Driver Version :- %s - commit :- %s"</span>, version.Current(), version.GetGitCommit())</span><br><span class="line">        klog.Infof(</span><br><span class="line">                <span class="string">"DriverName: %s Plugin: %s EndPoint: %s NodeID: %s"</span>,</span><br><span class="line">                config.DriverName,</span><br><span class="line">                config.PluginType,</span><br><span class="line">                config.Endpoint,</span><br><span class="line">                config.NodeID,</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="built_in">len</span>(config.IgnoreBlockDevicesRegex) &gt; <span class="number">0</span> &#123;</span><br><span class="line">                device.DeviceConfiguration.IgnoreBlockDevicesRegex = regexp.MustCompile(config.IgnoreBlockDevicesRegex)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        err := driver.New(config).Run()</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                log.Fatalln(err)</span><br><span class="line">        &#125;</span><br><span class="line">        os.Exit(<span class="number">0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>值得注意的是 <code>err := driver.New(config).Run()</code> 这句代码，通过 <code>config</code> 参数启动了一个 <code>Driver</code> 并执行 <code>Run</code> 方法，我们可以跟踪到 <code>New</code> 函数内部来查看其实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(config *config.Config)</span> *<span class="title">CSIDriver</span></span> &#123;</span><br><span class="line">   driver := &amp;CSIDriver&#123;</span><br><span class="line">      config: config,</span><br><span class="line">      <span class="built_in">cap</span>:    GetVolumeCapabilityAccessModes(),</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">switch</span> config.PluginType &#123;</span><br><span class="line">   <span class="keyword">case</span> <span class="string">"controller"</span>:</span><br><span class="line">      driver.cs = NewController(driver)</span><br><span class="line">   <span class="keyword">case</span> <span class="string">"agent"</span>:</span><br><span class="line">      driver.ns = NewNode(driver)</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   driver.ids = NewIdentity(driver)</span><br><span class="line">   <span class="keyword">return</span> driver</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>New</code> 函数内部会通过 <code>config</code> 创建一个 <code>CSIDriver</code> 对象，这个对象会根据配置参数注册 <code>Controller</code> 组件或 <code>Node</code> 组件（在 Device-LocalPV 项目中 <code>agent</code> 和 <code>Node</code> 等价），而这两个组件分别对应的就是 StatefulSet 和 DaemonSet，也就是说，<code>Controller</code> 组件会以 StatefulSet 的方式启动，<code>Node</code> 组件则会以 DaemonSet 方式启动。</p>
+<h5 id="Identity-组件"><a href="#Identity-组件" class="headerlink" title="Identity 组件"></a>Identity 组件</h5><p>根据上面的源码可以发现，不管启动 <code>Controller</code> 或 <code>Node</code> 中的哪个组件，<code>Identity</code> 组件都会被注册进来（<code>driver.ids = NewIdentity(driver)</code>），因为我们将 Device-LocalPV 实现的 CSI 插件分开成两个工作负载来部署，而它们都需要注册给 K8s，<code>Identity</code> 组件正是干这件事情的。</p>
+<p><code>Identity</code> 代码实现在这里：<a href="https://github.com/openebs/device-localpv/blob/develop/pkg/driver/identity.go" target="_blank" rel="noopener"><code>identity.go</code></a>，这个文件中为 Identity 组件定义了 3 个方法，分别是 <code>GetPluginInfo</code> 、<code>Probe</code> 、<code>GetPluginCapabilities</code>。</p>
+<ul>
+<li><p>其中 <code>GetPluginInfo</code> 方法返回插件的名称和版本号。</p>
+</li>
+<li><p><code>Probe</code> 顾名思义是一个探针程序，K8s 可以根据这个探针检查插件是否正常工作。</p>
+</li>
+<li><p>而 <code>GetPluginCapabilities</code> 方法返回当前插件的能力，用告诉 K8s 这个 CSI 插件实现了哪些功能，比如 Device-LocalPV 项目没有实现 Attach 功能，当我们在创建 PVC 时指定了这个 CSI 插件作为存储类的 provisioner 时，K8s 就会自动跳过 Attach 阶段，直接进入 Mount 阶段。</p>
+</li>
+</ul>
+<p>细心的读者可能已经发现每个方法上都有一行 <code>// This implements csi.ControllerServer</code> 注释，实际上这些方法的名称都是固定的，已经被 CSI 规范所定义，而编写 CSI 插件的作者只需要按照规范实现对应方法即可。CSI spec 详细定义了每个组件需要实现的方法，其地址为：<a href="https://github.com/container-storage-interface/spec/blob/master/spec.md" target="_blank" rel="noopener"><code>spec.md</code></a></p>
+<h5 id="Controller-组件"><a href="#Controller-组件" class="headerlink" title="Controller 组件"></a>Controller 组件</h5><p>上面分析 CSI 基本架构的时候，讲到 <code>External Provisioner</code> 组件通过 Watch 机制监听 APIServer 中 PVC 对象的创建，一旦有新的 PVC 被创建，<code>Provisioner</code> 组件就会与 <code>Custom Controller</code> 组件进行通信，让其创建 <strong>PV 相关资源</strong>。这里我说的是创建 PV 相关资源，而不是创建 PV。所谓的 PV 相关资源则是一个 CRD，是编写 CSI 组件的开发人员自定义的一种资源类型，一个 CRD 会与一个 PV 对应，其生命周期也基本相同。这么做的原因是 PV 属于 K8s 内部资源，而 CSI 是一个通用规范，不止适用于 K8s，还适用于任何容器编排系统。所以 CSI 插件应该自己定义一种资源类型，来与 PV 进行对应。</p>
+<p>而这个与 PV 相对应的 CRD 叫作 <code>devicevolumes.local.openebs.io</code>，它定义在 Device-LocalPV 项目部署文件中，相当于 Device-LocalPV 自己管理的 PV 资源。一个典型的 <code>devicevolumes.local.openebs.io</code> 资源定义如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">items:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">apiVersion:</span> <span class="string">local.openebs.io/v1alpha1</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">DeviceVolume</span></span><br><span class="line">  <span class="attr">metadata:</span></span><br><span class="line">    <span class="attr">creationTimestamp:</span> <span class="string">"2022-08-01T08:45:51Z"</span></span><br><span class="line">    <span class="attr">finalizers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">device.openebs.io/finalizer</span></span><br><span class="line">    <span class="attr">generation:</span> <span class="number">3</span></span><br><span class="line">    <span class="attr">labels:</span></span><br><span class="line">      <span class="attr">kubernetes.io/nodename:</span> <span class="string">minikube-m02</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">pvc-8e659633-e052-439a-85eb-30a6d385a12b</span></span><br><span class="line">    <span class="attr">namespace:</span> <span class="string">openebs</span></span><br><span class="line">    <span class="attr">resourceVersion:</span> <span class="string">"1715"</span></span><br><span class="line">    <span class="attr">uid:</span> <span class="string">540aa699-4f6f-487c-b38b-38f8b414bd7c</span></span><br><span class="line">  <span class="attr">spec:</span></span><br><span class="line">    <span class="attr">capacity:</span> <span class="string">"1073741824"</span></span><br><span class="line">    <span class="attr">devname:</span> <span class="string">device-localpv</span></span><br><span class="line">    <span class="attr">ownerNodeID:</span> <span class="string">minikube</span></span><br><span class="line">  <span class="attr">status:</span></span><br><span class="line">    <span class="attr">state:</span> <span class="string">Ready</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">List</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">resourceVersion:</span> <span class="string">""</span></span><br></pre></td></tr></table></figure>
+
+<p>为了方便对节点块设备进行管理，Device-LocalPV 还定义了一个叫 <code>devicenodes.local.openebs.io</code> 的 CRD，这个 CRD 对应的是 K8s 工作节点，我们有几个供 Device-LocalPV 使用的节点，就有几个 <code>devicenodes.local.openebs.io</code> 资源，这个 CRD 中记录了当前节点上所有可用块设备。<br>那么 <code>devicevolumes.local.openebs.io</code> 是在什么时候创建的呢？在 <code>Custom Controller</code> 组件中有一个关键方法叫 <code>Createvolume</code>，正是这个方法负责 PV 相关 CRD 的创建。</p>
+<p><code>External Provisioner</code> 组件监听到有新的 PVC 创建，就会执行组件内部的 <code>Provision</code> 方法，而在 <code>Provision</code> 方法内部，会通过 <code>gRPC</code> 的方式调用 <code>Custom Controller</code> 组件的 <code>Createvolume</code> 方法来创建 CRD，CRD 创建完成后，会由 <code>Provisioner</code> 来创建 PV 对象。相关代码实现如下：</p>
+<blockquote>
+<p><a href="https://github.com/kubernetes-csi/external-provisioner/blob/master/pkg/controller/controller.go#L741" target="_blank" rel="noopener">https://github.com/kubernetes-csi/external-provisioner/blob/master/pkg/controller/controller.go#L741</a></p>
+</blockquote>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="controller.png" alt="Controller" title="">
+                </div>
+                <div class="image-caption">Controller</div>
+            </figure>
+
+<h5 id="Agent-组件"><a href="#Agent-组件" class="headerlink" title="Agent 组件"></a>Agent 组件</h5><p>最后一个要介绍的 Device-LocalPV 组件是 <code>Agent</code>，它实际上就是 CSI 插件中的 <code>Node</code> 组件，从这个名称不难猜测，所有在节点宿主机上的操作，都会通过这个组件来完成。</p>
+<p>当 <code>Provisioner</code> 组件和 <code>Controller</code> 组件分别创建好 PV 和 CRD 以后，那么还剩下 2 个步骤，分别是在块设备上创建分区和将分区 Mount 到容器内部，这两个操作正是 <code>Agent</code> 组件的职责。</p>
+<p><code>Agent</code> 组件其构造函数如下：</p>
+<blockquote>
+<p><a href="https://github.com/openebs/device-localpv/blob/develop/pkg/driver/agent.go" target="_blank" rel="noopener">https://github.com/openebs/device-localpv/blob/develop/pkg/driver/agent.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewNode returns a new instance</span></span><br><span class="line"><span class="comment">// of CSI NodeServer</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewNode</span><span class="params">(d *CSIDriver)</span> <span class="title">csi</span>.<span class="title">NodeServer</span></span> &#123;</span><br><span class="line">        <span class="keyword">var</span> ControllerMutex = sync.RWMutex&#123;&#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// set up signals so we handle the first shutdown signal gracefully</span></span><br><span class="line">        stopCh := signals.SetupSignalHandler()</span><br><span class="line"></span><br><span class="line">        <span class="comment">// start the device node resource watcher</span></span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">                err := devicenode.Start(&amp;ControllerMutex, stopCh)</span><br><span class="line">                <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                        klog.Fatalf(<span class="string">"Failed to start Device node controller: %s"</span>, err.Error())</span><br><span class="line">                &#125;</span><br><span class="line">        &#125;()</span><br><span class="line"></span><br><span class="line">        <span class="comment">// start the device volume  watcher</span></span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">                err := volume.Start(&amp;ControllerMutex, stopCh)</span><br><span class="line">                <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                        klog.Fatalf(<span class="string">"Failed to start Device volume management controller: %s"</span>, err.Error())</span><br><span class="line">                &#125;</span><br><span class="line">        &#125;()</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> d.config.ListenAddress != <span class="string">""</span> &#123;</span><br><span class="line">                exposeMetrics(d.config, stopCh)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> &amp;node&#123;</span><br><span class="line">                driver: d,</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现在 <code>Agent</code> 组件内部，启动了两个 Goroutine，它们分别用来监听 <code>devicenodes.local.openebs.io</code> 和 <code>devicevolumes.local.openebs.io</code> 这两个 CRD，其内部都实现了 <code>syncHandler</code> 方法，根据 CRD 状态进行相应操作。</p>
+<p>volume 的 <code>syncHandler</code> 主要逻辑如下：</p>
+<blockquote>
+<p><a href="https://github.com/openebs/device-localpv/blob/develop/pkg/mgmt/volume/volume.go#L39" target="_blank" rel="noopener">https://github.com/openebs/device-localpv/blob/develop/pkg/mgmt/volume/volume.go#L39</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *VolController)</span> <span class="title">syncHandler</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">   ...</span><br><span class="line">   <span class="comment">// Get the Vol resource with this namespace/name</span></span><br><span class="line">   Vol, err := c.VolLister.DeviceVolumes(namespace).Get(name)</span><br><span class="line">   <span class="keyword">if</span> K8serror.IsNotFound(err) &#123;</span><br><span class="line">      runtime.HandleError(fmt.Errorf(<span class="string">"devicevolume '%s' has been deleted"</span>, key))</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> err</span><br><span class="line">   &#125;</span><br><span class="line">   VolCopy := Vol.DeepCopy()</span><br><span class="line">   err = c.syncVol(VolCopy)</span><br><span class="line">   <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *VolController)</span> <span class="title">syncVol</span><span class="params">(vol *apis.DeviceVolume)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">   ...</span><br><span class="line">   <span class="comment">// if the status Pending means we will try to create the volume</span></span><br><span class="line">   <span class="keyword">if</span> vol.Status.State == device.DeviceStatusPending &#123;</span><br><span class="line">      err = device.CreateVolume(vol)</span><br><span class="line">      <span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">         err = device.UpdateVolInfo(vol, device.DeviceStatusReady)</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> custError, ok := err.(*apis.VolumeError); ok &amp;&amp; custError.Code == apis.InsufficientCapacity &#123;</span><br><span class="line">         vol.Status.Error = custError</span><br><span class="line">         <span class="keyword">return</span> device.UpdateVolInfo(vol, device.DeviceStatusFailed)</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，<code>syncHandler</code> 方法会将查询到的 <code>devicevolumes.local.openebs.io</code> 信息传递给 <code>syncVol</code> 方法，而这个方法中有一行非常关键的代码 <code>device.CreateVolume(vol)</code>，调用此方法的作用正是根据 CRD 的信息，在块设备上创建出真正的分区。</p>
+<p>分区一旦被成功创建，那么就只剩下最后一个步骤 Mount 操作了，Mount 操作由 PV 所在节点的 kubelet 直接调用 <code>Agent</code> 组件的 <code>NodePublishVolume</code> 方法来完成。值得注意的是，在部署 Device-LocalPV 项目的 yaml 文件中，Agent 组件所在容器的 <code>volumeMounts</code> 属性中有一个 <code>mountPropagation: &quot;Bidirectional&quot;</code> 配置，其作用是为了使在容器内部执行的 <code>Mount</code> <code>命令能够向上传播到宿主机上。所以尽管Agent</code> 组件运行在容器中，但在其内部执行的 <code>Mount</code> 命令依然能够在节点上生效。</p>
+<p>至此，整个 OpenEBS Device-LocalPV 项目的基本原理，我们就一起分析完成了。细心的你应该能够发现，CSI 插件其实就是一个  CRD + Custom Controller 的实践。</p>
+<h4 id="调度策略"><a href="#调度策略" class="headerlink" title="调度策略"></a>调度策略</h4><p>接下来我还想跟你分享下 Device-LocalPV 的调度原理。</p>
+<p>Device-LocalPV 提供了两种调度策略：<code>CapacityWeighted</code>、<code>VolumeWeighted</code>，其相关源码实现在：<a href="https://github.com/openebs/device-localpv/blob/develop/pkg/driver/schd_helper.go" target="_blank" rel="noopener"><code>schd_helper.go</code></a>，我们可以在存储类中通过参数指定调度策略：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">parameters:</span></span><br><span class="line"> <span class="attr">scheduler:</span> <span class="string">"VolumeWeighted"</span></span><br><span class="line"> <span class="attr">devname:</span> <span class="string">"test-device"</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="CapacityWeighted"><a href="#CapacityWeighted" class="headerlink" title="CapacityWeighted"></a>CapacityWeighted</h5><p><code>CapacityWeighted</code> 为默认调度策略，即根据使用容量调度，它会查找已部署了 OpenEBS 的节点，按节点上块设备已使用容量进行打分，优先调度到已使用容量较小的节点。</p>
+<p>下图中，Node1 节点上已经存在 3 个 PV，Node2 节点上存在 2 个 PV，Node3 节点上没有部署 OpenEBS，如果此时新创建一个 PVC，那么 PV 会如何调度呢？</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="CapacityWeighted.png" alt="CapacityWeighted" title="">
+                </div>
+                <div class="image-caption">CapacityWeighted</div>
+            </figure>
+
+<p>根据 <code>CapacityWeighted</code> 调度策略来看，Node3 节点第一个被排除，尽管 Node1 节点上已经存在的 PV 数量比 Node2 节点上的多，但已使用容量较少，故根据已使用容量来排序，显然这个新创建的 PV 将会被调度到 Node1 节点。</p>
+<h5 id="VolumeWeighted"><a href="#VolumeWeighted" class="headerlink" title="VolumeWeighted"></a>VolumeWeighted</h5><p><code>VolumeWeighted</code> 调度策略则根据使用卷数量来进行调度，查找已部署了 OpenEBS 的节点，按节点上块设备已分配卷数量进行打分，优先调度到已使用卷数量较小的节点。</p>
+<p>那么分析下来，在跟上图中同样的情况下，使用 <code>VolumeWeighted</code> 调度策略后，新创建的 PV 将会被调度到 Node2 节点。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="VolumeWeighted.png" alt="VolumeWeighted" title="">
+                </div>
+                <div class="image-caption">VolumeWeighted</div>
+            </figure>
+
+<h5 id="自定义调度策略"><a href="#自定义调度策略" class="headerlink" title="自定义调度策略"></a>自定义调度策略</h5><p>如果事情按照理想化方向发展，那么上面两种 Device-LocalPV 提供的调度策略没有任何问题，但真实场景中，也许你会遇到如下情况：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="FreeCapacityWeighted.png" alt="FreeCapacityWeighted" title="">
+                </div>
+                <div class="image-caption">FreeCapacityWeighted</div>
+            </figure>
+
+<p>现在部署了 OpenEBS 的节点从 2 个扩展成 3 个，但是 Node3 上仅仅部署了 OpenEBS，还没有插入块设备供 OpenEBS  使用。<br>在这种情况下，如果新创建 PVC，那么这个 PVC 将一直处于 <code>Pending</code> 状态，PV 无法完成创建。</p>
+<p>因为无论是哪种调度策略，Device-LocalPV 在为节点打分阶段，总是会将使块设备用量为 0 的节点排序在最前面，所以两种策略最终都会将 PV 调度到 Node3 节点，而又因为 Node3 节点上没有供 OpenEBS  使用的块设备，无法进行磁盘分区，PV 也就无法成功创建。</p>
+<p>这也是 Device-LocalPV 支持的调度策略存在问题的地方，如果想解决这个问题，我们可以参考官方提供的调度策略，实现自己的调度策略。我实现了一个 <code>FreeCapacityWeighted</code> 策略，根据节点上块设备剩余容量大小来调度 PV，这样就能够保证 Node3 这种情况在节点打分阶段使其排序在最后面。如果你感兴趣可以进入到这个 <a href="https://github.com/openebs/device-localpv/issues/61" target="_blank" rel="noopener"><code>issue</code></a> 查看。</p>
+<h4 id="故障处理"><a href="#故障处理" class="headerlink" title="故障处理"></a>故障处理</h4><p>如果你想在生产环境中使用 OpenEBS Device-LocalPV 来提供 LocalPV 的支持，那么就要考虑 LocalPV 的故障处理，根据 LocalPV 特点，我这里主要分析下如下两种情况的故障处理思路。</p>
+<h5 id="节点故障"><a href="#节点故障" class="headerlink" title="节点故障"></a>节点故障</h5><p>如果某个正在被 LocalPV 使用的节点出现故障，可以通过迁移块设备来让 LocalPV 恢复使用，具体步骤如下：</p>
+<ol>
+<li><p>将数据盘移动到新节点上</p>
+</li>
+<li><p>如果新节点没有部署 OpenEBS 则需要先部署 Device-LocalPV 的 DaemonSet 到新节点上</p>
+</li>
+<li><p>修改 CRD 资源 <code>devicevolumes.local.openebs.io</code> 所属的节点，即修改 <code>spec.ownerNodeID</code> 属性到新的节点</p>
+</li>
+<li><p>修改 PV 的节点信息，即修改 <code>spec.nodeAffinity</code> 属性到新的节点</p>
+</li>
+<li><p>删除使用 PV 的 Pod 让其自动重启，并调度到 PV 所指定的新节点上</p>
+</li>
+</ol>
+<h5 id="磁盘故障"><a href="#磁盘故障" class="headerlink" title="磁盘故障"></a>磁盘故障</h5><p>如果某个正在被 LocalPV 使用的块设备出现故障，则会造成数据丢失。</p>
+<p>需要注意的是，当某个 PV 所使用的磁盘分区出现故障时，PV 无法感知，只有部署在 Pod 内的程序可以感知到，可以尝试在出现故障的 Pod 容器内部执行读写操作，会得到如下错误：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/mnt/store <span class="comment"># echo abc &gt; a.txt</span></span><br><span class="line">sh: can<span class="string">'t create a.txt: Input/output error</span></span><br></pre></td></tr></table></figure>
+
+<p>所以使用 LocalPV 的程序要有比较完善的异常处理机制以应对可能出现的故障问题。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本篇文章我们一起学习了 CSI 的概念并对 OpenEBS Device-LocalPV 原理进行了剖析。其中 CSI 不仅可以用来实现 LocalPV，其他任何存储扩展都可以用它的规范来实现。通过分析 Device-LocalPV  源码，我们知道它其实是一个  CRD + Custom Controller 的实践。</p>
+<p>由于篇幅所限，文中不能将所有细节都涵盖，如果有问题，欢迎一起交流学习。</p>
+<p>参考：</p>
+<p><a href="https://openebs.io/" target="_blank" rel="noopener">https://openebs.io/</a><br><a href="https://github.com/container-storage-interface/spec" target="_blank" rel="noopener">https://github.com/container-storage-interface/spec</a><br><a href="https://github.com/openebs/device-localpv" target="_blank" rel="noopener">https://github.com/openebs/device-localpv</a></p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2022-12-24T13:16:45.325Z" itemprop="dateUpdated">2022-12-24 21:16:45</time>
+</span><br>
+
+
+        
+        <a href="/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/" target="_blank" rel="external">http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/CSI/" rel="tag">CSI</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Kubernetes/" rel="tag">Kubernetes</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%AD%98%E5%82%A8/" rel="tag">存储</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/&title=《Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践下——原理篇》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/&title=《Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践下——原理篇》 — 江湖十年&source=本篇文章我将讲解 OpenEBS Device-LocalPV 实现原理，如果还不了解了 OpenEBS Device-LocalPV 如何使用，可以移步..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践下——原理篇》 — 江湖十年&url=http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2022</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/&title=《Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践下——原理篇》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/&title=《Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践下——原理篇》 — 江湖十年&source=本篇文章我将讲解 OpenEBS Device-LocalPV 实现原理，如果还不了解了 OpenEBS Device-LocalPV 如何使用，可以移步..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践下——原理篇》 — 江湖十年&url=http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
