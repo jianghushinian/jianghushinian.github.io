@@ -3413,7 +3413,7 @@ var Gitment = function () {
       }, options);
 
       this.state.user.isLoggingIn = true;
-      _utils.http.post('http://imsun.net', {
+      _utils.http.post('https://baifachuan.com:8443/', {
         code: code,
         client_id: client_id,
         client_secret: client_secret
