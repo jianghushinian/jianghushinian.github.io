@@ -8,7 +8,7 @@ comments: false
 
 @card{
 
-我叫王佳兴，野生程序员，热爱编程，致力于从事互联网行业技术研发工作。
+我叫王佳兴，现居杭州，野生程序员。用过 Python、JavaScript，现在主要技术方向是 Go 和 K8s。
 
 }
 
