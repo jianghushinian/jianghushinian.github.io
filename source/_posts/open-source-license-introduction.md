@@ -81,6 +81,14 @@ Copyleft 类的许可证要比 Permissive 许可证限制更多。常见 Copylef
 
     如果是修改或衍生软件需要分发，则必须开源并且同样要使用此协议。这点与 GPL 协议一样。
 
+- [AGPL](https://www.gnu.org/licenses/agpl-3.0.en.html) (GNU Affero General Public License)
+
+    除了 AGPL 许可证，上面介绍的其他许可证的限制条件都是只有在分发时才需要遵守。而 SaaS 软件作为一项云服务则不构成分发，所以可以不遵守这些许可证条款。
+
+    为了解决这些早期发布的许可证对 SaaS 软件无效的尴尬，GNU 又发布了 AGPL 许可证，它规定如果 SaaS 用到的代码是该许可证，那么其云服务的代码也必须开源。
+
+    国产开源时序数据库 TDengine 为了阻止云厂商免费使用其开源版本，就采用了 AGPL 协议。
+
 - [MPL-2.0](https://opensource.org/licenses/MPL-2.0) (Mozilla Public License 2.0，Mozilla 基金会发布的许可证)
 
     MPL 融合了 BSD 开源许可证 和 GPL 开源许可证 的特性，力争在专有软件和开源软件开发者之间寻求平衡。是比 BSD 更严格，比 GPL 更宽松的开源许可证。
@@ -231,3 +239,4 @@ CC 许可证由 [Creative Commons 基金会](https://creativecommons.org/)提出
 > https://choosealicense.rustwiki.org/
 > https://wenshu.court.gov.cn/
 > https://www.oschina.net/news/159435
+> https://www.taosdata.com/tdengine/open_source_time-series_database
