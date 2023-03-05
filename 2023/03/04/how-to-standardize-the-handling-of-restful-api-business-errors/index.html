@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>如何规范 RESTful API 的业务错误处理 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Golang,Web">
+    <meta name="description" content="现如今，主流的 Web API 都采用 RESTful 设计风格，对于接口返回的 HTTP 状态码和响应内容都有统一的规范。针对接口错误响应，一般都会返回一个 Code（错误码）和 Message（错误消息内容），通常错误码 Code 用来定位一个唯一的错误，错误消息 Message 用来展示错误信息。 本文就来详细介绍下，如何将 RESTful API 的错误处理进行规范化。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="如何规范 RESTful API 的业务错误处理">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="现如今，主流的 Web API 都采用 RESTful 设计风格，对于接口返回的 HTTP 状态码和响应内容都有统一的规范。针对接口错误响应，一般都会返回一个 Code（错误码）和 Message（错误消息内容），通常错误码 Code 用来定位一个唯一的错误，错误消息 Message 用来展示错误信息。 本文就来详细介绍下，如何将 RESTful API 的错误处理进行规范化。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/web-server.png">
+<meta property="article:published_time" content="2023-03-04T09:49:41.000Z">
+<meta property="article:modified_time" content="2023-03-05T04:18:55.864Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Golang">
+<meta property="article:tag" content="Web">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/web-server.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">如何规范 RESTful API 的业务错误处理</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">如何规范 RESTful API 的业务错误处理</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-03-04T09:49:41.000Z" itemprop="datePublished" class="page-time">
+  2023-03-04
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#错误码"><span class="post-toc-number">1.</span> <span class="post-toc-text">错误码</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#为什么需要业务错误码"><span class="post-toc-number">1.1.</span> <span class="post-toc-text">为什么需要业务错误码</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#错误码功能"><span class="post-toc-number">1.2.</span> <span class="post-toc-text">错误码功能</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#错误码设计"><span class="post-toc-number">1.3.</span> <span class="post-toc-text">错误码设计</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#错误码调研"><span class="post-toc-number">1.3.1.</span> <span class="post-toc-text">错误码调研</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#业务错误码"><span class="post-toc-number">1.3.2.</span> <span class="post-toc-text">业务错误码</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#错误格式"><span class="post-toc-number">1.3.3.</span> <span class="post-toc-text">错误格式</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#错误码实现"><span class="post-toc-number">1.3.4.</span> <span class="post-toc-text">错误码实现</span></a></li></ol></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#错误包"><span class="post-toc-number">2.</span> <span class="post-toc-text">错误包</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#错误包功能"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">错误包功能</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#错误包设计"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">错误包设计</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#错误码及错误包的使用"><span class="post-toc-number">3.</span> <span class="post-toc-text">错误码及错误包的使用</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用示例"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">使用示例</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用建议"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">使用建议</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#使用尽量少的-HTTP-状态码"><span class="post-toc-number">3.2.1.</span> <span class="post-toc-text">使用尽量少的 HTTP 状态码</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#使用中间件来记录错误日志"><span class="post-toc-number">3.2.2.</span> <span class="post-toc-text">使用中间件来记录错误日志</span></a></li></ol></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-how-to-standardize-the-handling-of-restful-api-business-errors"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">如何规范 RESTful API 的业务错误处理</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-03-04 17:49:41" datetime="2023-03-04T09:49:41.000Z"  itemprop="datePublished">2023-03-04</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>现如今，主流的 Web API 都采用 RESTful 设计风格，对于接口返回的 HTTP 状态码和响应内容都有统一的规范。针对接口错误响应，一般都会返回一个 Code（错误码）和 Message（错误消息内容），通常错误码 Code 用来定位一个唯一的错误，错误消息 Message 用来展示错误信息。</p>
+<p>本文就来详细介绍下，如何将 RESTful API 的错误处理进行规范化。</p>
+<a id="more"></a>
+
+<h3 id="错误码"><a href="#错误码" class="headerlink" title="错误码"></a>错误码</h3><h4 id="为什么需要业务错误码"><a href="#为什么需要业务错误码" class="headerlink" title="为什么需要业务错误码"></a>为什么需要业务错误码</h4><p>虽然 RESTful API 能够通过 HTTP 状态码来标记一个请求的成功或失败，但 HTTP 状态码作为一个通用的标准，并不能很好的表达业务错误。</p>
+<p>比如一个 500 的错误响应，可能是由后端数据库连接异常引起的、也可能由内部代码逻辑错误引起，这些都无法通过 HTTP 状态码感知到，如果程序出现错误，不方便开发人员 Debug。</p>
+<p>因此我们有必要设计一套用来标识业务错误的错误码，这有别于 HTTP 状态码，是跟系统具体业务息息相关的。</p>
+<h4 id="错误码功能"><a href="#错误码功能" class="headerlink" title="错误码功能"></a>错误码功能</h4><p>在设计错误码之前，我们需要明确下错误码应该具备哪些属性，以满足业务需要。</p>
+<ul>
+<li><p>错误码必须是唯一的。只有错误码是唯一的才方便在程序出错时快速定位问题，不然程序出错，返回错误码不唯一，想要根据错误码排查问题，就要针对这一错误码所表示的错误列表进行逐一排查。</p>
+</li>
+<li><p>错误码需要是可阅读的。意思是说，通过错误码，我们就能快速定位到是系统的哪个组件出现了错误，并且知道错误的类型，不然也谈不上叫「业务错误码」了。一个清晰可读的错误码在微服务系统中定位问题尤其有效。</p>
+</li>
+<li><p>通过错误码能够方便知道 HTTP 状态码。这一点往往容易被人忽略，不过我比较推荐这种做法，因为在 Review 代码时，通过返回错误码，就能很容易知道接口返回 HTTP 状态码，这不仅方便理解代码，更方便错误的统一处理。</p>
+</li>
+</ul>
+<h4 id="错误码设计"><a href="#错误码设计" class="headerlink" title="错误码设计"></a>错误码设计</h4><h5 id="错误码调研"><a href="#错误码调研" class="headerlink" title="错误码调研"></a>错误码调研</h5><p>错误码的设计我们可以参考业内使用量比较大的开放 API 设计，比较有代表性的是阿里云和新浪网的开放 API。</p>
+<p>如以下是一个阿里云 ECS 接口错误的返回：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	<span class="attr">"RequestId"</span>: <span class="string">"5E571499-13C5-55E3-9EA6-DEFA0DBC85E4"</span>,</span><br><span class="line">	<span class="attr">"HostId"</span>: <span class="string">"ecs-cn-hangzhou.aliyuncs.com"</span>,</span><br><span class="line">	<span class="attr">"Code"</span>: <span class="string">"InvalidOperation.NotSupportedEndpoint"</span>,</span><br><span class="line">	<span class="attr">"Message"</span>: <span class="string">"The specified endpoint can't operate this region. Please use API DescribeRegions to get the appropriate endpoint, or upgrade your SDK to latest version."</span>,</span><br><span class="line">	<span class="attr">"Recommend"</span>: <span class="string">"https://next.api.aliyun.com/troubleshoot?q=InvalidOperation.NotSupportedEndpoint&amp;product=Ecs"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，Code 和 Message 都为字符串类型，并且还有 RequestId（当前请求唯一标识）、HostId（Host 唯一标识）、Recommend（错误诊断地址），可以说这个错误信息非常全面了。</p>
+<p>再来看下新浪网开放 API 错误返回结果的设计：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	<span class="attr">"request"</span>: <span class="string">"/statuses/home_timeline.json"</span>,</span><br><span class="line">	<span class="attr">"error_code"</span>: <span class="string">"20502"</span>,</span><br><span class="line">	<span class="attr">"error"</span>: <span class="string">"Need you follow uid."</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>相比阿里云，新浪网的错误返回更简洁一些。其中 request 为请求路径，error_code 即为错误码 Code，error 则表示错误信息 Message。</p>
+<p>错误代码 <code>20502</code> 说明如下：</p>
+<table>
+<thead>
+<tr>
+<th align="left">2</th>
+<th align="left">05</th>
+<th align="left">02</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">服务级错误（1为系统级错误）</td>
+<td align="left">服务模块代码</td>
+<td align="left">具体错误代码</td>
+</tr>
+</tbody></table>
+<p>新浪网的错误码为数字类型的字符串，相比阿里云的错误码要简短不少，并且对程序更加友好，也是我个人更推荐的设计。</p>
+<h5 id="业务错误码"><a href="#业务错误码" class="headerlink" title="业务错误码"></a>业务错误码</h5><p>结合市面上这些优秀的开放 API 错误码设计，以及我在实际开发中的工作总结，我设计的错误码规则如下：</p>
+<ul>
+<li><p>业务错误码由 8 位纯数字组成，类型为 <code>int</code>。</p>
+</li>
+<li><p>业务错误码示例格式：<code>40001002</code>。</p>
+</li>
+<li><p>错误码说明：</p>
+</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="left">1-3 位</th>
+<th align="left">4-5 位</th>
+<th align="left">6-8 位</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">400</td>
+<td align="left">01</td>
+<td align="left">002</td>
+</tr>
+<tr>
+<td align="left">HTTP 状态码</td>
+<td align="left">组件编号</td>
+<td align="left">组件内部错误码</td>
+</tr>
+</tbody></table>
+<p>错误码设计为纯数字主要是为了程序中使用起来更加方便，比如根据错误码计算 HTTP 状态码，只需要通过简单的数学取模计算就能做到。</p>
+<p>使用两位数字来标记不同组件，最多能表示 99 个组件，即使项目全部采用微服务开发，一般来说也是足够用的。</p>
+<p>最后三位代表组件内部错误码，最多能表示 1000 个错误。其实通常来说一个组件内部是用不上这么多错误的，如果组件较小，完全可以设计成两位数字。</p>
+<p>另外，有些厂商中还会设计一些公共的错误码，可以称为「全局错误码」，这些错误码在各组件间通用，以此来减少定义重复错误。在我们的错误码设计中，可以将组件编号为 <code>00</code> 的标记为全局错误码，其他组件编号从 <code>01</code> 开始。</p>
+<h5 id="错误格式"><a href="#错误格式" class="headerlink" title="错误格式"></a>错误格式</h5><p>有了错误码，还需要定义错误响应格式，设计一个标准的 API 错误响应格式如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	<span class="attr">"code"</span>: <span class="number">50000000</span>,</span><br><span class="line">	<span class="attr">"message"</span>: <span class="string">"系统错误"</span>,</span><br><span class="line">	<span class="attr">"reference"</span>: <span class="string">"https://github.com/jianghushinian/gokit/tree/main/errors"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>code</code> 即为错误码，<code>message</code> 为错误信息，<code>reference</code> 则是错误文档地址，用来告知用户如何解决这个错误，对标的是阿里云错误响应中的 <code>Recommend</code> 字段。</p>
+<h5 id="错误码实现"><a href="#错误码实现" class="headerlink" title="错误码实现"></a>错误码实现</h5><p>因为每一个错误码和错误信息以及错误文档地址都是一一对应的，所以我们需要一个对象来保存这些信息，在 Go 中可以使用结构体。</p>
+<p>可以设计如下结构体：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> apiCode <span class="keyword">struct</span> &#123;</span><br><span class="line">	code <span class="keyword">int</span></span><br><span class="line">	msg  <span class="keyword">string</span></span><br><span class="line">	ref  <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这是一个私有结构体，外部项目要想使用，则需要一个构造函数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewAPICode</span><span class="params">(code <span class="keyword">int</span>, message <span class="keyword">string</span>, reference ...<span class="keyword">string</span>)</span> <span class="title">APICoder</span></span> &#123;</span><br><span class="line">	ref := <span class="string">""</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(reference) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		ref = reference[<span class="number">0</span>]</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;apiCode&#123;</span><br><span class="line">		code: code,</span><br><span class="line">		msg:  message,</span><br><span class="line">		ref:  ref,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>reference</code> 被设计为可变参数，如果不传则默认为空。</p>
+<p><code>NewAPICode</code> 返回值 <code>APICoder</code> 是一个接口，这在 Go 中是一种惯用做法。通过接口可以解耦，方便依赖 <code>apiCode</code> 的代码编写测试，用户可以对 APICoder 进行 Mock；另一方面，我们稍后会为 <code>apiCode</code> 实现对应的错误包，使用接口来表示错误码可以方便用户定义自己的 <code>apiCode</code> 类型。</p>
+<p>为了便于使用，<code>apiCode</code> 提供了如下几个能力：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *apiCode)</span> <span class="title">Code</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> a.code</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *apiCode)</span> <span class="title">Message</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> a.msg</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *apiCode)</span> <span class="title">Reference</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> a.ref</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *apiCode)</span> <span class="title">HTTPStatus</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	v := a.Code()</span><br><span class="line">	<span class="keyword">for</span> v &gt;= <span class="number">1000</span> &#123;</span><br><span class="line">		v /= <span class="number">10</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> v</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>至此 <code>APICoder</code> 接口接口的定义也就有了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> APICoder <span class="keyword">interface</span> &#123;</span><br><span class="line">	Code() <span class="keyword">int</span></span><br><span class="line">	Message() <span class="keyword">string</span></span><br><span class="line">	Reference() <span class="keyword">string</span></span><br><span class="line">	HTTPStatus() <span class="keyword">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>apiCode</code> 则实现了 <code>APICoder</code> 接口。</p>
+<p>现在我们可以通过如下方式创建错误码结构体对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	CodeBadRequest   = NewAPICode(<span class="number">40001001</span>, <span class="string">"请求不合法"</span>)</span><br><span class="line">	CodeUnknownError = NewAPICode(<span class="number">50001001</span>, <span class="string">"系统错误"</span>, <span class="string">"https://github.com/jianghushinian/gokit/tree/main/errors"</span>)</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<h3 id="错误包"><a href="#错误包" class="headerlink" title="错误包"></a>错误包</h3><p>设计好了错误码，并不能直接使用，我们还需要一个与之配套的错误包来简化错误码的使用。</p>
+<h4 id="错误包功能"><a href="#错误包功能" class="headerlink" title="错误包功能"></a>错误包功能</h4><ul>
+<li><p>错误包要能够完美支持上面设计的错误码。所以需要使用 <code>APICoder</code> 来构造错误对象。</p>
+</li>
+<li><p>错误包应该能够查看原始错误原因。这就需要实现 <code>Unwrap</code> 方法，<code>Wrap/Unwrap</code> 方法是在 Go 1.13 中被加入进 <code>errors</code> 包的，目的是能够处理嵌套错误。</p>
+</li>
+<li><p>错误包应该能够支持对内对外展示不同信息。这就需要实现 <code>Format</code> 方法，根据需要可以将错误格式化成不同输出。</p>
+</li>
+<li><p>错误包应该能够支持展示堆栈信息。这对 Debug 来说相当重要，也是 Go 自带的 <code>errors</code> 包不足的地方。</p>
+</li>
+<li><p>为了方便在日志中记录结构化错误信息，错误包还要能够支持 JSON 序列化。这需要实现 <code>MarshalJSON/UnmarshalJSON</code> 两个方法。</p>
+</li>
+</ul>
+<h4 id="错误包设计"><a href="#错误包设计" class="headerlink" title="错误包设计"></a>错误包设计</h4><p>一个错误对象结构体设计如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> apiError <span class="keyword">struct</span> &#123;</span><br><span class="line">	coder APICoder</span><br><span class="line">	cause error</span><br><span class="line">	*stack</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>coder</code> 用来保存实现了 <code>APICoder</code> 接口的对象，<code>cause</code> 用来记录错误原因，<code>stack</code> 用来展示错误堆栈。</p>
+<p>错误对象的构造函数如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> WrapC = NewAPIError</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewAPIError</span><span class="params">(coder APICoder, cause ...error)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> c error</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(cause) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		c = cause[<span class="number">0</span>]</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;apiError&#123;</span><br><span class="line">		coder: coder,</span><br><span class="line">		cause: c,</span><br><span class="line">		stack: callers(),</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>NewAPIError</code> 通过 <code>APICoder</code> 来创建错误对象，第二个参数为一个可选的错误原因。</p>
+<p>其实构造一个错误对象也就是对一个错误进行 <code>Wrap</code> 的过程，所以我还为构造函数 <code>NewAPIError</code> 定义了一个别名 <code>WrapC</code>，表示使用错误码将一个错误包装成一个新的错误。</p>
+<p>一个错误对象必须要实现 <code>Error</code> 方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *apiError)</span> <span class="title">Error</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> fmt.Sprintf(<span class="string">"[%d] - %s"</span>, a.coder.Code(), a.coder.Message())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>默认情况下，获取到的错误内容只包含错误码 Code 和错误信息 Message。</p>
+<p>为了方便获取被包装错误的原始错误，还要实现 <code>Unwrap</code> 方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *apiError)</span> <span class="title">Unwrap</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> a.cause</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>为了能在打印或写入日志时展示不同信息，则要实现 <code>Format</code> 方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *apiError)</span> <span class="title">Format</span><span class="params">(s fmt.State, verb <span class="keyword">rune</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> verb &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'v'</span>:</span><br><span class="line">		<span class="keyword">if</span> s.Flag(<span class="string">'+'</span>) &#123;</span><br><span class="line">			str := a.Error()</span><br><span class="line">			<span class="keyword">if</span> a.Unwrap() != <span class="literal">nil</span> &#123;</span><br><span class="line">				str += <span class="string">" "</span> + a.Unwrap().Error()</span><br><span class="line">			&#125;</span><br><span class="line">			_, _ = io.WriteString(s, str)</span><br><span class="line">			a.stack.Format(s, verb)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> s.Flag(<span class="string">'#'</span>) &#123;</span><br><span class="line">			cause := <span class="string">""</span></span><br><span class="line">			<span class="keyword">if</span> a.Unwrap() != <span class="literal">nil</span> &#123;</span><br><span class="line">				cause = a.Unwrap().Error()</span><br><span class="line">			&#125;</span><br><span class="line">			data, _ := json.Marshal(errorMessage&#123;</span><br><span class="line">				Code:      a.coder.Code(),</span><br><span class="line">				Message:   a.coder.Message(),</span><br><span class="line">				Reference: a.coder.Reference(),</span><br><span class="line">				Cause:     cause,</span><br><span class="line">				Stack:     fmt.Sprintf(<span class="string">"%+v"</span>, a.stack),</span><br><span class="line">			&#125;)</span><br><span class="line">			_, _ = io.WriteString(s, <span class="keyword">string</span>(data))</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">fallthrough</span></span><br><span class="line">	<span class="keyword">case</span> <span class="string">'s'</span>:</span><br><span class="line">		_, _ = io.WriteString(s, a.Error())</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'q'</span>:</span><br><span class="line">		_, _ = fmt.Fprintf(s, <span class="string">"%q"</span>, a.Error())</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Format</code> 方法能够支持在使用 <code>fmt.Printf(&quot;%s&quot;, apiError)</code> 格式化输出时打印定制化的信息。</p>
+<p><code>Format</code> 方法支持的不同格式输出如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">格式占位符</th>
+<th align="left">输出信息</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">%s</td>
+<td align="left">错误码、错误信息</td>
+</tr>
+<tr>
+<td align="center">%v</td>
+<td align="left">错误码、错误信息，与 %s 等价</td>
+</tr>
+<tr>
+<td align="center">%+v</td>
+<td align="left">错误码、错误信息、错误原因、错误堆栈</td>
+</tr>
+<tr>
+<td align="center">%#v</td>
+<td align="left">JSON 格式的 错误码、错误信息、错误文档地址、错误原因、错误堆栈</td>
+</tr>
+<tr>
+<td align="center">%q</td>
+<td align="left">在 错误码、错误信息 外层增加了一个双引号</td>
+</tr>
+</tbody></table>
+<p>这些错误格式基本上能满足所有业务开发中的需求了，如果还有其他格式需要，则可以在此基础上进一步开发 <code>Format</code> 方法。</p>
+<p>用来进行 JSON 序列化和反序列化的 <code>MarshalJSON/UnmarshalJSON</code> 方法实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *apiError)</span> <span class="title">MarshalJSON</span><span class="params">()</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> json.Marshal(&amp;errorMessage&#123;</span><br><span class="line">		Code:      a.coder.Code(),</span><br><span class="line">		Message:   a.coder.Message(),</span><br><span class="line">		Reference: a.coder.Reference(),</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *apiError)</span> <span class="title">UnmarshalJSON</span><span class="params">(data []<span class="keyword">byte</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	e := &amp;errorMessage&#123;&#125;</span><br><span class="line">	<span class="keyword">if</span> err := json.Unmarshal(data, e); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	a.coder = NewAPICode(e.Code, e.Message, e.Reference)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> errorMessage <span class="keyword">struct</span> &#123;</span><br><span class="line">	Code      <span class="keyword">int</span>    <span class="string">`json:"code"`</span></span><br><span class="line">	Message   <span class="keyword">string</span> <span class="string">`json:"message"`</span></span><br><span class="line">	Reference <span class="keyword">string</span> <span class="string">`json:"reference,omitempty"`</span></span><br><span class="line">	Cause     <span class="keyword">string</span> <span class="string">`json:"cause,omitempty"`</span></span><br><span class="line">	Stack     <span class="keyword">string</span> <span class="string">`json:"stack,omitempty"`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>为了不对外部暴露敏感信息，对外的 HTTP API 只会返回 <code>Code</code>、<code>Message</code>、<code>Reference</code>（可选）三个字段，对内需要额外展示错误原因以及错误堆栈。所以 <code>errorMessage</code> 中 <code>Reference</code>、<code>Cause</code>、<code>Stack</code> 字段都带有 <code>omitempty</code> 属性，这样在 <code>MarshalJSON</code> 时只会序列化 <code>Code</code>、<code>Message</code>、<code>Reference</code> 这三个字段。</p>
+<p>至此，我们就实现了错误包的设计。</p>
+<h3 id="错误码及错误包的使用"><a href="#错误码及错误包的使用" class="headerlink" title="错误码及错误包的使用"></a>错误码及错误包的使用</h3><h4 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h4><p>通过上面的讲解，我们了解了错误码和错误包的设计规范，接下来看看如何使用它们。这里以错误码及错误包在 <a href="https://github.com/gin-gonic/gin" target="_blank" rel="noopener">Gin</a> 中的使用为例进行讲解。</p>
+<p>使用 Gin 构建一个简单的 Web Server 如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"errors"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"strconv"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/gin-gonic/gin"</span></span><br><span class="line"></span><br><span class="line">	apierr <span class="string">"github.com/jianghushinian/gokit/errors"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	ErrAccountNotFound = errors.New(<span class="string">"account not found"</span>)</span><br><span class="line">	ErrDatabase        = errors.New(<span class="string">"database error"</span>)</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	CodeBadRequest   = NewAPICode(<span class="number">40001001</span>, <span class="string">"请求不合法"</span>)</span><br><span class="line">	CodeNotFound     = NewAPICode(<span class="number">40401001</span>, <span class="string">"资源未找到"</span>)</span><br><span class="line">	CodeUnknownError = NewAPICode(<span class="number">50001001</span>, <span class="string">"系统错误"</span>, <span class="string">"https://github.com/jianghushinian/gokit/tree/main/errors"</span>)</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Account <span class="keyword">struct</span> &#123;</span><br><span class="line">	ID   <span class="keyword">int</span>    <span class="string">`json:"id"`</span></span><br><span class="line">	Name <span class="keyword">string</span> <span class="string">`json:"name"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AccountOne</span><span class="params">(id <span class="keyword">int</span>)</span> <span class="params">(*Account, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> _, v := <span class="keyword">range</span> accounts &#123;</span><br><span class="line">		<span class="keyword">if</span> id == v.ID &#123;</span><br><span class="line">			<span class="keyword">return</span> &amp;v, <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 模拟返回数据库错误</span></span><br><span class="line">	<span class="keyword">if</span> id == <span class="number">500</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, ErrDatabase</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span>, ErrAccountNotFound</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> accounts = []Account&#123;</span><br><span class="line">	&#123;ID: <span class="number">1</span>, Name: <span class="string">"account_1"</span>&#125;,</span><br><span class="line">	&#123;ID: <span class="number">2</span>, Name: <span class="string">"account_2"</span>&#125;,</span><br><span class="line">	&#123;ID: <span class="number">3</span>, Name: <span class="string">"account_3"</span>&#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ShowAccount</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">	id := c.Param(<span class="string">"id"</span>)</span><br><span class="line">	aid, err := strconv.Atoi(id)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// 将 errors 包装成 APIError 返回</span></span><br><span class="line">		ResponseError(c, apierr.WrapC(CodeBadRequest, err))</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	account, err := AccountOne(aid)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">switch</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> errors.Is(err, ErrAccountNotFound):</span><br><span class="line">			err = apierr.NewAPIError(CodeNotFound, err)</span><br><span class="line">		<span class="keyword">case</span> errors.Is(err, ErrDatabase):</span><br><span class="line">			err = apierr.NewAPIError(CodeUnknownError, fmt.Errorf(<span class="string">"account %d: %w"</span>, aid, err))</span><br><span class="line">		&#125;</span><br><span class="line">		ResponseError(c, err)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	ResponseOK(c, account)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	r := gin.Default()</span><br><span class="line"></span><br><span class="line">	r.GET(<span class="string">"/accounts/:id"</span>, ShowAccount)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := r.Run(<span class="string">":8080"</span>); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在这个 Web Server 中定义了一个 <code>ShowAccount</code> 函数，用来处理获取账号逻辑，在 <code>ShowAccount</code> 内部程序执行成功返回 <code>ResponseOK(c, account)</code>，失败则返回 <code>ResponseError(c, err)</code>。</p>
+<p>在处理返回失败的响应时，都会通过 <code>apierr.WrapC</code> 或 <code>apierr.NewAPIError</code> 将底层函数返回的初始错误进行一层包装，根据错误级别，包装成不同的错误码进行返回。</p>
+<p>其中 <code>ResponseOK</code> 和 <code>ResponseError</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ResponseOK</span><span class="params">(c *gin.Context, spec <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> spec == <span class="literal">nil</span> &#123;</span><br><span class="line">		c.Status(http.StatusNoContent)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	c.JSON(http.StatusOK, spec)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ResponseError</span><span class="params">(c *gin.Context, err error)</span></span> &#123;</span><br><span class="line">	log(err)</span><br><span class="line">	e := apierr.ParseCoder(err)</span><br><span class="line">	httpStatus := e.HTTPStatus()</span><br><span class="line">	<span class="keyword">if</span> httpStatus &gt;= <span class="number">500</span> &#123;</span><br><span class="line">		<span class="comment">// send error msg to email/feishu/sentry...</span></span><br><span class="line">		<span class="keyword">go</span> fakeSendErrorEmail(err)</span><br><span class="line">	&#125;</span><br><span class="line">	c.AbortWithStatusJSON(httpStatus, err)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// log 打印错误日志，输出堆栈</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">log</span><span class="params">(err error)</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"========== log start =========="</span>)</span><br><span class="line">	fmt.Printf(<span class="string">"%+v\n"</span>, err)</span><br><span class="line">	fmt.Println(<span class="string">"========== log end =========="</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// fakeSendErrorEmail 模拟将错误信息发送到邮件，JSON 格式</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">fakeSendErrorEmail</span><span class="params">(err error)</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"========== error start =========="</span>)</span><br><span class="line">	fmt.Printf(<span class="string">"%#v\n"</span>, err)</span><br><span class="line">	fmt.Println(<span class="string">"========== error end =========="</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>ResponseOK</code> 其实就是 Gin 框架的正常返回，<code>ResponseError</code> 则专门用来处理并返回 API 错误。</p>
+<p>在 <code>ResponseError</code> 中首先通过 <code>log(err)</code> 来记录错误日志，在其内部使用 <code>fmt.Printf(&quot;%+v\n&quot;, err)</code> 进行打印。</p>
+<p>之后我们还对 HTTP 状态码进行了判断，大于 500 的错误将会发送邮件通知，这里使用 <code>fmt.Printf(&quot;%#v\n&quot;, err)</code> 进行模拟。</p>
+<p>其中 <code>apierr.ParseCoder(err)</code> 能够从一个错误对象中获取到实现了 <code>APICoder</code> 的错误码对象，实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ParseCoder</span><span class="params">(err error)</span> <span class="title">APICoder</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> e, ok := err.(<span class="keyword">interface</span> &#123;</span><br><span class="line">			Coder() APICoder</span><br><span class="line">		&#125;); ok &#123;</span><br><span class="line">			<span class="keyword">return</span> e.Coder()</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> errors.Unwrap(err) == <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> CodeUnknownError</span><br><span class="line">		&#125;</span><br><span class="line">		err = errors.Unwrap(err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样，我们就能够通过一个简单的 Web Server 示例程序来演示如何使用错误码和错误包了。</p>
+<p>可以通过 <code>go run main.go</code> 启动这个 Web Server。</p>
+<p>先来看下在这个 Web Server 中一个正常的返回结果是什么样，使用 cURL 来发送一个请求：<code>curl http://localhost:8080/accounts/1</code>。</p>
+<p>客户端得到如下响应结果：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	<span class="attr">"id"</span>: <span class="number">1</span>,</span><br><span class="line">	<span class="attr">"name"</span>: <span class="string">"account_1"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>服务端打印正常的请求日志：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="web-server.png" alt="Server Log" title="">
+                </div>
+                <div class="image-caption">Server Log</div>
+            </figure>
+
+<p>再来测试下请求一个不存在的账号：<code>curl http://localhost:8080/accounts/12</code>。</p>
+<p>客户端得到如下响应结果：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	<span class="attr">"code"</span>: <span class="number">40401001</span>,</span><br><span class="line">	<span class="attr">"message"</span>: <span class="string">"资源未找到"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>返回结果中没有 <code>reference</code> 字段，是因为对于 <code>reference</code> 为空的情况，在 JSON 序列化过程中会被隐藏。</p>
+<p>服务端打印的错误日志如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; log start &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br><span class="line">[40401001] - 资源未找到 account not found</span><br><span class="line">main.ShowAccount</span><br><span class="line">        &#x2F;app&#x2F;errors&#x2F;examples&#x2F;main.go:56</span><br><span class="line">github.com&#x2F;gin-gonic&#x2F;gin.(*Context).Next</span><br><span class="line">        &#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;context.go:174</span><br><span class="line">github.com&#x2F;gin-gonic&#x2F;gin.CustomRecoveryWithWriter.func1</span><br><span class="line">        &#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;recovery.go:102</span><br><span class="line">github.com&#x2F;gin-gonic&#x2F;gin.(*Context).Next</span><br><span class="line">        &#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;context.go:174</span><br><span class="line">github.com&#x2F;gin-gonic&#x2F;gin.LoggerWithConfig.func1</span><br><span class="line">        &#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;logger.go:240</span><br><span class="line">github.com&#x2F;gin-gonic&#x2F;gin.(*Context).Next</span><br><span class="line">        &#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;context.go:174</span><br><span class="line">github.com&#x2F;gin-gonic&#x2F;gin.(*Engine).handleHTTPRequest</span><br><span class="line">        &#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;gin.go:620</span><br><span class="line">github.com&#x2F;gin-gonic&#x2F;gin.(*Engine).ServeHTTP</span><br><span class="line">        &#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;gin.go:576</span><br><span class="line">net&#x2F;http.serverHandler.ServeHTTP</span><br><span class="line">        &#x2F;usr&#x2F;local&#x2F;go&#x2F;src&#x2F;net&#x2F;http&#x2F;server.go:2947</span><br><span class="line">net&#x2F;http.(*conn).serve</span><br><span class="line">        &#x2F;usr&#x2F;local&#x2F;go&#x2F;src&#x2F;net&#x2F;http&#x2F;server.go:1991</span><br><span class="line">runtime.goexit</span><br><span class="line">        &#x2F;usr&#x2F;local&#x2F;go&#x2F;src&#x2F;runtime&#x2F;asm_arm64.s:1165</span><br><span class="line">&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; log end &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，错误日志中不仅打印了错误码（[40401001]）和错误信息（资源未找到），还打印了错误原因（account not found）以及下面的错误堆栈。</p>
+<p>如此清晰的错误日志得益于我们实现的 <code>Format</code> 函数的强大功能。</p>
+<p>现在再来触发一个 HTTP 状态码为 500 的错误响应：<code>curl http://localhost:8080/accounts/500</code>。</p>
+<p>客户端得到如下响应结果：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	<span class="attr">"code"</span>: <span class="number">50001001</span>,</span><br><span class="line">	<span class="attr">"message"</span>: <span class="string">"系统错误"</span>,</span><br><span class="line">	<span class="attr">"reference"</span>: <span class="string">"https://github.com/jianghushinian/gokit/tree/main/errors"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这次得到一个带有 <code>reference</code> 字段的完整错误响应。</p>
+<p>服务端打印的错误日志如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; log start &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br><span class="line">[50001001] - 系统错误 account 500: database error</span><br><span class="line">main.ShowAccount</span><br><span class="line">        &#x2F;app&#x2F;errors&#x2F;examples&#x2F;main.go:58</span><br><span class="line">github.com&#x2F;gin-gonic&#x2F;gin.(*Context).Next</span><br><span class="line">        &#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;context.go:174</span><br><span class="line">github.com&#x2F;gin-gonic&#x2F;gin.CustomRecoveryWithWriter.func1</span><br><span class="line">        &#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;recovery.go:102</span><br><span class="line">github.com&#x2F;gin-gonic&#x2F;gin.(*Context).Next</span><br><span class="line">        &#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;context.go:174</span><br><span class="line">github.com&#x2F;gin-gonic&#x2F;gin.LoggerWithConfig.func1</span><br><span class="line">        &#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;logger.go:240</span><br><span class="line">github.com&#x2F;gin-gonic&#x2F;gin.(*Context).Next</span><br><span class="line">        &#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;context.go:174</span><br><span class="line">github.com&#x2F;gin-gonic&#x2F;gin.(*Engine).handleHTTPRequest</span><br><span class="line">        &#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;gin.go:620</span><br><span class="line">github.com&#x2F;gin-gonic&#x2F;gin.(*Engine).ServeHTTP</span><br><span class="line">        &#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;gin.go:576</span><br><span class="line">net&#x2F;http.serverHandler.ServeHTTP</span><br><span class="line">        &#x2F;usr&#x2F;local&#x2F;go&#x2F;src&#x2F;net&#x2F;http&#x2F;server.go:2947</span><br><span class="line">net&#x2F;http.(*conn).serve</span><br><span class="line">        &#x2F;usr&#x2F;local&#x2F;go&#x2F;src&#x2F;net&#x2F;http&#x2F;server.go:1991</span><br><span class="line">runtime.goexit</span><br><span class="line">        &#x2F;usr&#x2F;local&#x2F;go&#x2F;src&#x2F;runtime&#x2F;asm_arm64.s:1165</span><br><span class="line">&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; log end &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br><span class="line">[GIN] 2023&#x2F;03&#x2F;05 - 02:02:28 | 500 |     426.292µs |       127.0.0.1 | GET      &quot;&#x2F;accounts&#x2F;500&quot;</span><br><span class="line">&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; error start &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br><span class="line">&#123;&quot;code&quot;:50001001,&quot;message&quot;:&quot;系统错误&quot;,&quot;reference&quot;:&quot;https:&#x2F;&#x2F;github.com&#x2F;jianghushinian&#x2F;gokit&#x2F;tree&#x2F;main&#x2F;errors&quot;,&quot;cause&quot;:&quot;account 500: database error&quot;,&quot;stack&quot;:&quot;\nmain.ShowAccount\n\t&#x2F;app&#x2F;errors&#x2F;examples&#x2F;main.go:58\ngithub.com&#x2F;gin-gonic&#x2F;gin.(*Context).Next\n\t&#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;context.go:174\ngithub.com&#x2F;gin-gonic&#x2F;gin.CustomRecoveryWithWriter.func1\n\t&#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;recovery.go:102\ngithub.com&#x2F;gin-gonic&#x2F;gin.(*Context).Next\n\t&#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;context.go:174\ngithub.com&#x2F;gin-gonic&#x2F;gin.LoggerWithConfig.func1\n\t&#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;logger.go:240\ngithub.com&#x2F;gin-gonic&#x2F;gin.(*Context).Next\n\t&#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;context.go:174\ngithub.com&#x2F;gin-gonic&#x2F;gin.(*Engine).handleHTTPRequest\n\t&#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;gin.go:620\ngithub.com&#x2F;gin-gonic&#x2F;gin.(*Engine).ServeHTTP\n\t&#x2F;go&#x2F;pkg&#x2F;mod&#x2F;github.com&#x2F;gin-gonic&#x2F;gin@v1.9.0&#x2F;gin.go:576\nnet&#x2F;http.serverHandler.ServeHTTP\n\t&#x2F;usr&#x2F;local&#x2F;go&#x2F;src&#x2F;net&#x2F;http&#x2F;server.go:2947\nnet&#x2F;http.(*conn).serve\n\t&#x2F;usr&#x2F;local&#x2F;go&#x2F;src&#x2F;net&#x2F;http&#x2F;server.go:1991\nruntime.goexit\n\t&#x2F;usr&#x2F;local&#x2F;go&#x2F;src&#x2F;runtime&#x2F;asm_arm64.s:1165&quot;&#125;</span><br><span class="line">&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; error end &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br></pre></td></tr></table></figure>
+
+<p>这一次除了 <code>log</code> 函数打印的日志，还能看到 <code>fakeSendErrorEmail</code> 函数打印的日志，正是一个 JSON 格式的结构化日志。</p>
+<p>以上便是我们设计的错误码及错误包在实际开发场景中的应用。</p>
+<h4 id="使用建议"><a href="#使用建议" class="headerlink" title="使用建议"></a>使用建议</h4><p>根据我的经验，总结了一些错误码及错误包的使用建议，现在将其分享给你。</p>
+<h5 id="使用尽量少的-HTTP-状态码"><a href="#使用尽量少的-HTTP-状态码" class="headerlink" title="使用尽量少的 HTTP 状态码"></a>使用尽量少的 HTTP 状态码</h5><p>HTTP 状态码大概分为 5 大类，分别是 1XX、2XX、3XX、4XX、5XX。根据我的实际工作经验，我们并不会使用全部的状态码，最常用的状态码不超过 10 个。</p>
+<p>所以即使我们设计的业务错误码支持携带 HTTP 状态码，但也不推荐使用过多的 HTTP 状态码，以免加重前端工作量。</p>
+<p>推荐在错误码中使用的 HTTP 状态码如下：</p>
+<ul>
+<li>400: 请求不合法</li>
+<li>401: 认证失败</li>
+<li>403: 授权失败</li>
+<li>404: 资源未找到</li>
+<li>500: 系统错误</li>
+</ul>
+<p>其中 4XX 代表客户端错误，而如果是服务端错误，则统一使用 500 状态码，具体错误原因可以通过业务错误码定位。</p>
+<h5 id="使用中间件来记录错误日志"><a href="#使用中间件来记录错误日志" class="headerlink" title="使用中间件来记录错误日志"></a>使用中间件来记录错误日志</h5><p>由于我们设计的错误包支持 <code>Unwrap</code> 操作，所以建议出现错误时的处理流程如下：</p>
+<ol>
+<li>最底层代码遇到错误时通过 <code>errors.New/fmt.Errorf</code> 来创建一个错误对象，然后将错误返回（可选择性的记录一条日志）。</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Query</span><span class="params">(id <span class="keyword">int</span>)</span> <span class="params">(o obj, err error)</span></span> &#123;</span><br><span class="line">    <span class="comment">// do something</span></span><br><span class="line">    err = fmt.Errorf(<span class="string">"%d not found"</span>, id)</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>中间过程中处理函数遇到下层函数返回的错误，不做任何额外处理，直接将其向上层返回。</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>在处理用户请求的 Handler 函数中（如 <code>ShowAccount</code>）通过 <code>apierr.WrapC</code> 将错误包装成一个 <code>APIError</code> 返回。</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> apierr.WrapC(CodeNotFound, err)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="4">
+<li>最上层代码通过在框架层面实现的中间件（如实现一个 after hook middleware）来统一处理错误，打印完整错误日志、发送邮件提醒等，并将安全的错误信息返回给前端。如我们实现的 <code>ResponseError</code> 函数功能。</li>
+</ol>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本篇文章讲解了如何设计一个规范的错误码以及与之配套的错误包。</p>
+<p>我参考了一些开源的 API 错误码设计方案，并结合我自己的实际工作经验，给出了我认为比较合理的错误码设计方案。</p>
+<p>同时也针对这个错误码方案，设计了一个配套的错误包，来简化使用过程，并给出了我的一些使用建议。</p>
+<p>错误包中记录错误堆栈部分的代码参考了 <a href="https://github.com/pkg/errors" target="_blank" rel="noopener">pkg/errors</a> 包实现，感兴趣的同学可以点击进去进行进一步学习。</p>
+<p>本文完整代码实现我放在了 <a href="https://github.com/jianghushinian/gokit/tree/main/errors" target="_blank" rel="noopener">Github</a> 上，供你参考使用。</p>
+<p>希望本文对你有所启发，如果你有更好的错误码设计方案，欢迎一起交流讨论。</p>
+<p><strong>参考</strong></p>
+<blockquote>
+<p>阿里云 ECS 错误码：<a href="https://next.api.aliyun.com/document/Ecs/2014-05-26/errorCode" target="_blank" rel="noopener">https://next.api.aliyun.com/document/Ecs/2014-05-26/errorCode</a><br>腾讯云服务器错误码：<a href="https://cloud.tencent.com/document/api/213/30435" target="_blank" rel="noopener">https://cloud.tencent.com/document/api/213/30435</a><br>新浪错误码：<a href="https://open.weibo.com/wiki/Error_code" target="_blank" rel="noopener">https://open.weibo.com/wiki/Error_code</a><br>pkg/errors：<a href="https://github.com/pkg/errors" target="_blank" rel="noopener">https://github.com/pkg/errors</a><br>错误包实现：<a href="https://github.com/jianghushinian/gokit/tree/main/errors" target="_blank" rel="noopener">https://github.com/jianghushinian/gokit/tree/main/errors</a></p>
+</blockquote>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2023-03-05T04:18:55.864Z" itemprop="dateUpdated">2023-03-05 12:18:55</time>
+</span><br>
+
+
+        
+        <a href="/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Golang/" rel="tag">Golang</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/&title=《如何规范 RESTful API 的业务错误处理》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/&title=《如何规范 RESTful API 的业务错误处理》 — 江湖十年&source=现如今，主流的 Web API 都采用 RESTful 设计风格，对于接口返回的 HTTP 状态码和响应内容都有统一的规范。针对接口错误响应，一般都会返回..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《如何规范 RESTful API 的业务错误处理》 — 江湖十年&url=http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/02/25/how-to-design-a-good-go-web-project-directory-structure/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">如何设计一个优秀的 Go Web 项目目录结构</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2023</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/&title=《如何规范 RESTful API 的业务错误处理》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/&title=《如何规范 RESTful API 的业务错误处理》 — 江湖十年&source=现如今，主流的 Web API 都采用 RESTful 设计风格，对于接口返回的 HTTP 状态码和响应内容都有统一的规范。针对接口错误响应，一般都会返回..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《如何规范 RESTful API 的业务错误处理》 — 江湖十年&url=http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
