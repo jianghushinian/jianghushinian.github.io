@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>深入探究 Go log 标准库 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Golang,Log">
+    <meta name="description" content="Go 语言标准库中的 log 包设计简洁明了，易于上手，可以轻松记录程序运行时的信息、调试错误以及跟踪代码执行过程中的问题等。使用 log 包无需繁琐的配置即可直接使用。本文旨在深入探究 log 包的使用和原理，帮助读者更好地了解和掌握它。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入探究 Go log 标准库">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="Go 语言标准库中的 log 包设计简洁明了，易于上手，可以轻松记录程序运行时的信息、调试错误以及跟踪代码执行过程中的问题等。使用 log 包无需繁琐的配置即可直接使用。本文旨在深入探究 log 包的使用和原理，帮助读者更好地了解和掌握它。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/flow.png">
+<meta property="article:published_time" content="2023-03-10T23:56:26.000Z">
+<meta property="article:modified_time" content="2023-03-11T14:19:00.393Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Golang">
+<meta property="article:tag" content="Log">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/flow.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">深入探究 Go log 标准库</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">深入探究 Go log 标准库</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-03-10T23:56:26.000Z" itemprop="datePublished" class="page-time">
+  2023-03-11
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Golang/">Golang</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用"><span class="post-toc-number">1.</span> <span class="post-toc-text">使用</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#源码"><span class="post-toc-number">2.</span> <span class="post-toc-text">源码</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用建议"><span class="post-toc-number">3.</span> <span class="post-toc-text">使用建议</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-dive-into-the-go-log-standard-library"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">深入探究 Go log 标准库</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-03-11 07:56:26" datetime="2023-03-10T23:56:26.000Z"  itemprop="datePublished">2023-03-11</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Golang/">Golang</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>Go 语言标准库中的 log 包设计简洁明了，易于上手，可以轻松记录程序运行时的信息、调试错误以及跟踪代码执行过程中的问题等。使用 log 包无需繁琐的配置即可直接使用。本文旨在深入探究 log 包的使用和原理，帮助读者更好地了解和掌握它。</p>
+<a id="more"></a>
+
+<h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><p>先来看一个 log 包的使用示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"log"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	log.Print(<span class="string">"Print"</span>)</span><br><span class="line">	log.Printf(<span class="string">"Printf: %s"</span>, <span class="string">"print"</span>)</span><br><span class="line">	log.Println(<span class="string">"Println"</span>)</span><br><span class="line"></span><br><span class="line">	log.Fatal(<span class="string">"Fatal"</span>)</span><br><span class="line">	log.Fatalf(<span class="string">"Fatalf: %s"</span>, <span class="string">"fatal"</span>)</span><br><span class="line">	log.Fatalln(<span class="string">"Fatalln"</span>)</span><br><span class="line"></span><br><span class="line">	log.Panic(<span class="string">"Panic"</span>)</span><br><span class="line">	log.Panicf(<span class="string">"Panicf: %s"</span>, <span class="string">"panic"</span>)</span><br><span class="line">	log.Panicln(<span class="string">"Panicln"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>假设以上代码存放在 <code>main.go</code> 中，通过 <code>go run main.go</code> 执行代码将会得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">2023/03/08 22:33:22 Print</span><br><span class="line">2023/03/08 22:33:22 Printf: <span class="built_in">print</span></span><br><span class="line">2023/03/08 22:33:22 Println</span><br><span class="line">2023/03/08 22:33:22 Fatal</span><br><span class="line"><span class="built_in">exit</span> status 1</span><br></pre></td></tr></table></figure>
+
+<p>以上示例代码中使用 log 包提供的 9 个函数分别对日志进行输出，最终得到 4 条打印日志。我们来分析下每个日志函数的作用，来看看为什么出现这样的结果。</p>
+<p>log 包提供了 3 类共计 9 种方法来输出日志内容。</p>
+<table>
+<thead>
+<tr>
+<th>函数名</th>
+<th>作用</th>
+<th>使用示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Print</td>
+<td>打印日志</td>
+<td>log.Print(“Print”)</td>
+</tr>
+<tr>
+<td>Printf</td>
+<td>打印格式化日志</td>
+<td>log.Printf(“Printf: %s”, “print”)</td>
+</tr>
+<tr>
+<td>Println</td>
+<td>打印日志并换行</td>
+<td>log.Println(“Println”)</td>
+</tr>
+<tr>
+<td>Panic</td>
+<td>打印日志后执行 panic(s)（s 为日志内容）</td>
+<td>log.Panic(“Panic”)</td>
+</tr>
+<tr>
+<td>Panicf</td>
+<td>打印格式化日志后执行 panic(s)</td>
+<td>log.Panicf(“Panicf: %s”, “panic”)</td>
+</tr>
+<tr>
+<td>Panicln</td>
+<td>打印日志并换行后执行 panic(s)</td>
+<td>log.Panicln(“Panicln”)</td>
+</tr>
+<tr>
+<td>Fatal</td>
+<td>打印日志后执行 os.Exit(1)</td>
+<td>log.Fatal(“Fatal”)</td>
+</tr>
+<tr>
+<td>Fatalf</td>
+<td>打印格式化日志后执行 os.Exit(1)</td>
+<td>log.Fatalf(“Fatalf: %s”, “fatal”)</td>
+</tr>
+<tr>
+<td>Fatalln</td>
+<td>打印日志并换行后执行 os.Exit(1)</td>
+<td>log.Panicln(“Panicln”)</td>
+</tr>
+</tbody></table>
+<p>根据以上表格说明，我们可以知道，log 包在执行 <code>log.Fatal(&quot;Fatal&quot;)</code> 时，程序打印完日志就通过 <code>os.Exit(1)</code> 退出了。这也就可以解释上面的示例程序，为什么打印了 9 次日志，却只输出了 4 条日志，并且最后程序退出码为 1 了。</p>
+<p>以上是 log 包最基本的使用方式，如果我们想对日志输出做一些定制，可以使用 <code>log.New</code> 创建一个自定义 <code>logger</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">logger := log.New(os.Stdout, <span class="string">"[Debug] - "</span>, log.Lshortfile)</span><br></pre></td></tr></table></figure>
+
+<p><code>log.New</code> 函数接收三个参数，分别用来指定：日志输出位置（一个 <code>io.Writer</code> 对象）、日志前缀（字符串，每次打印日志都会跟随输出）、日志属性（定义好的常量，稍后会详细讲解）。</p>
+<p>使用示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"log"</span></span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	logger := log.New(os.Stdout, <span class="string">"[Debug] - "</span>, log.Lshortfile)</span><br><span class="line">	logger.Println(<span class="string">"custom logger"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>示例输出：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[Debug] - main.go:10: custom logger</span><br></pre></td></tr></table></figure>
+
+<p>以上示例中，指定日志输出到 <code>os.Stdout</code>，即标准输出；日志前缀 <code>[Debug] -</code> 会自动被加入到每行日志的行首；这条日志没有打印当前时间，而是打印了文件名和行号，这是 <code>log.Lshortfile</code> 日志属性的作用。</p>
+<p>日志属性可选项如下：</p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Ldate</td>
+<td>当前时区的日期，格式：2009/01/23</td>
+</tr>
+<tr>
+<td>Ltime</td>
+<td>当前时区的时间，格式：01:23:23</td>
+</tr>
+<tr>
+<td>Lmicroseconds</td>
+<td>当前时区的时间，格式：01:23:23.123123，精确到微妙</td>
+</tr>
+<tr>
+<td>Llongfile</td>
+<td>全文件名和行号，格式：/a/b/c/d.go:23</td>
+</tr>
+<tr>
+<td>Lshortfile</td>
+<td>当前文件名和行号，格式：d.go:23，会覆盖 Llongfile</td>
+</tr>
+<tr>
+<td>LUTC</td>
+<td>使用 UTC 而非本地时区，推荐日志全部使用 UTC 时间</td>
+</tr>
+<tr>
+<td>Lmsgprefix</td>
+<td>将 <code>prefix</code> 内容从行首移动到日志内容前面</td>
+</tr>
+<tr>
+<td>LstdFlags</td>
+<td>标准 logger 对象的初始值（等于：<code>Ldate|Ltime</code>）</td>
+</tr>
+</tbody></table>
+<p>这些属性都是预定义好的常量，不能修改，可以通过 <code>|</code> 运算符组合使用（如：<code>log.Ldate|log.Ltime|log.Lshortfile</code>）。</p>
+<p>使用 <code>log.New</code> 函数创建 <code>logger</code> 对象以后，依然可以通过 <code>logger</code> 对象的方法修改其属性值：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SetOutput</td>
+<td>设置日志输出位置</td>
+</tr>
+<tr>
+<td>SetPrefix</td>
+<td>设置日志输出前缀</td>
+</tr>
+<tr>
+<td>SetFlags</td>
+<td>设置日志属性</td>
+</tr>
+</tbody></table>
+<p>现在我们来看一个更加完整的使用示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"log"</span></span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 准备日志文件</span></span><br><span class="line">	logFile, _ := os.Create(<span class="string">"demo.log"</span>)</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; _ = logFile.Close() &#125;()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 初始化日志对象</span></span><br><span class="line">	logger := log.New(logFile, <span class="string">"[Debug] - "</span>, log.Lshortfile|log.Lmsgprefix)</span><br><span class="line">	logger.Print(<span class="string">"Print"</span>)</span><br><span class="line">	logger.Println(<span class="string">"Println"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 修改日志配置</span></span><br><span class="line">	logger.SetOutput(os.Stdout)</span><br><span class="line">	logger.SetPrefix(<span class="string">"[Info] - "</span>)</span><br><span class="line">	logger.SetFlags(log.Ldate|log.Ltime|log.LUTC)</span><br><span class="line">	logger.Print(<span class="string">"Print"</span>)</span><br><span class="line">	logger.Println(<span class="string">"Println"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行以上代码，得到 <code>demo.log</code> 日志内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">main.go:15: [Debug] - Print</span><br><span class="line">main.go:16: [Debug] - Println</span><br></pre></td></tr></table></figure>
+
+<p>控制台输出内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[Info] - 2023&#x2F;03&#x2F;11 01:24:56 Print</span><br><span class="line">[Info] - 2023&#x2F;03&#x2F;11 01:24:56 Println</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，在 <code>demo.log</code> 日志内容中，因为指定了 <code>log.Lmsgprefix</code> 属性，所以日志前缀 <code>[Debug] -</code> 被移动到了日志内容前面，而非行首。</p>
+<p>因为后续通过 <code>logger.SetXXX</code> 对 <code>logger</code> 对象的属性进行了动态修改，所以最后两条日志输出到系统的标准输出。</p>
+<p>以上，基本涵盖了 log 包的所有常用功能。接下来我们就通过走读源码的方式来更深入的了解 log 包了。</p>
+<h3 id="源码"><a href="#源码" class="headerlink" title="源码"></a>源码</h3><blockquote>
+<p>注意：本文以 <a href="https://github.com/golang/go/tree/go1.19.4/src/log" target="_blank" rel="noopener">Go 1.19.4 源码</a>为例，其他版本可能存在差异。</p>
+</blockquote>
+<p>Go 标准库的 log 包代码量非常少，算上注释也才 400+ 行，非常适合初学者阅读学习。</p>
+<p>在上面介绍的第一个示例中，我们使用 log 包提供的 9 个公开函数对日志进行输出，并通过表格的形式分别介绍了函数的作用和使用示例，那么现在我们就来看看这几个函数是如何定义的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Print</span><span class="params">(v ...any)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> atomic.LoadInt32(&amp;std.isDiscard) != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	std.Output(<span class="number">2</span>, fmt.Sprint(v...))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Printf</span><span class="params">(format <span class="keyword">string</span>, v ...any)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> atomic.LoadInt32(&amp;std.isDiscard) != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	std.Output(<span class="number">2</span>, fmt.Sprintf(format, v...))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Println</span><span class="params">(v ...any)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> atomic.LoadInt32(&amp;std.isDiscard) != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	std.Output(<span class="number">2</span>, fmt.Sprintln(v...))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Fatal</span><span class="params">(v ...any)</span></span> &#123;</span><br><span class="line">	std.Output(<span class="number">2</span>, fmt.Sprint(v...))</span><br><span class="line">	os.Exit(<span class="number">1</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Fatalf</span><span class="params">(format <span class="keyword">string</span>, v ...any)</span></span> &#123;</span><br><span class="line">	std.Output(<span class="number">2</span>, fmt.Sprintf(format, v...))</span><br><span class="line">	os.Exit(<span class="number">1</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Fatalln</span><span class="params">(v ...any)</span></span> &#123;</span><br><span class="line">	std.Output(<span class="number">2</span>, fmt.Sprintln(v...))</span><br><span class="line">	os.Exit(<span class="number">1</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Panic</span><span class="params">(v ...any)</span></span> &#123;</span><br><span class="line">	s := fmt.Sprint(v...)</span><br><span class="line">	std.Output(<span class="number">2</span>, s)</span><br><span class="line">	<span class="built_in">panic</span>(s)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Panicf</span><span class="params">(format <span class="keyword">string</span>, v ...any)</span></span> &#123;</span><br><span class="line">	s := fmt.Sprintf(format, v...)</span><br><span class="line">	std.Output(<span class="number">2</span>, s)</span><br><span class="line">	<span class="built_in">panic</span>(s)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Panicln</span><span class="params">(v ...any)</span></span> &#123;</span><br><span class="line">	s := fmt.Sprintln(v...)</span><br><span class="line">	std.Output(<span class="number">2</span>, s)</span><br><span class="line">	<span class="built_in">panic</span>(s)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，这些函数代码主逻辑基本一致，都是通过 <code>std.Output</code> 输出日志。不同的是，<code>PrintX</code> 输出日志后程序就执行结束了；<code>Fatal</code> 输出日志后会执行 <code>os.Exit(1)</code>；而 <code>Panic</code> 输出日志后会执行 <code>panic(s)</code>。</p>
+<p>那么接下来就是要搞清楚这个 <code>std</code> 对象是什么，以及它的 <code>Output</code> 方法是如何定义的。</p>
+<p>我们先来看下 <code>std</code> 是什么：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> std = New(os.Stderr, <span class="string">""</span>, LstdFlags)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(out io.Writer, prefix <span class="keyword">string</span>, flag <span class="keyword">int</span>)</span> *<span class="title">Logger</span></span> &#123;</span><br><span class="line">	l := &amp;Logger&#123;out: out, prefix: prefix, flag: flag&#125;</span><br><span class="line">	<span class="keyword">if</span> out == io.Discard &#123;</span><br><span class="line">		l.isDiscard = <span class="number">1</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> l</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，<code>std</code> 其实就是使用 <code>New</code> 创建的一个 <code>Logger</code> 对象，日志输出到标准错误输出，日志前缀为空，日志属性为 <code>LstdFlags</code>。</p>
+<p>这跟我们上面讲的自定义日志对象 <code>logger := log.New(os.Stdout, &quot;[Debug] - &quot;, log.Lshortfile)</code> 方式如出一辙。也就是说，当我们通过 <code>log.Print(&quot;Print&quot;)</code> 打印日志时，其实使用的是 log 包内部已经定义好的 <code>Logger</code> 对象。</p>
+<p><code>Logger</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Logger <span class="keyword">struct</span> &#123;</span><br><span class="line">	mu        sync.Mutex <span class="comment">// 锁，保证并发情况下对其属性操作是原子性的</span></span><br><span class="line">	prefix    <span class="keyword">string</span>     <span class="comment">// 日志前缀，即 Lmsgprefix 参数值</span></span><br><span class="line">	flag      <span class="keyword">int</span>        <span class="comment">// 日志属性，用来控制日志输出格式</span></span><br><span class="line">	out       io.Writer  <span class="comment">// 日志输出位置，实现了 io.Writer 接口即可，如 文件、os.Stderr</span></span><br><span class="line">	buf       []<span class="keyword">byte</span>     <span class="comment">// 存储日志输出内容</span></span><br><span class="line">	isDiscard <span class="keyword">int32</span>      <span class="comment">// 当 out = io.Discard 是，此值为 1</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中，<code>flag</code> 和 <code>isDiscard</code> 这两个属性有必要进一步解释下。</p>
+<p>首先是 <code>flag</code> 用来记录日志属性，其合法值如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	Ldate         = <span class="number">1</span> &lt;&lt; <span class="literal">iota</span>     <span class="comment">// the date in the local time zone: 2009/01/23</span></span><br><span class="line">	Ltime                         <span class="comment">// the time in the local time zone: 01:23:23</span></span><br><span class="line">	Lmicroseconds                 <span class="comment">// microsecond resolution: 01:23:23.123123.  assumes Ltime.</span></span><br><span class="line">	Llongfile                     <span class="comment">// full file name and line number: /a/b/c/d.go:23</span></span><br><span class="line">	Lshortfile                    <span class="comment">// final file name element and line number: d.go:23. overrides Llongfile</span></span><br><span class="line">	LUTC                          <span class="comment">// if Ldate or Ltime is set, use UTC rather than the local time zone</span></span><br><span class="line">	Lmsgprefix                    <span class="comment">// move the "prefix" from the beginning of the line to before the message</span></span><br><span class="line">	LstdFlags     = Ldate | Ltime <span class="comment">// initial values for the standard logger</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>具体含义我就不再一一解释了，前文的表格已经写的很详细了。</p>
+<p>值得注意的是，这里在定义常量时，巧妙的使用了左移运算符 <code>1 &lt;&lt; iota</code>，使得常量的值呈现 1、2、4、8… 这样的递增效果。其实是为了位运算方便，通过对属性进行位运算，来决定输出内容，其本质上跟基于位运算的权限管理是一样的。所以在使用 <code>log.New</code> 新建 <code>Logger</code> 对象时可以支持 <code>log.Ldate|log.Ltime|log.Lshortfile</code> 这种形式设置多个属性。</p>
+<p><code>std</code> 对象的属性初始值 <code>LstdFlags</code> 也是在这里定义的。</p>
+<p>其次还有一个属性 <code>isDiscard</code>，是用来丢弃日志的。在上面介绍 <code>PrintX</code> 函数定义时，在输出日志前有一个 <code>if atomic.LoadInt32(&amp;std.isDiscard) != 0</code> 的判断，如果结果为真，则直接 <code>return</code> 不记录日志。</p>
+<p>在 Go 标准库的 <code>io</code> 包里，有一个 <code>io.Discard</code> 对象，<code>io.Discard</code> 实现了 <code>io.Writer</code>，它执行 Write 操作后不会产生任何实际的效果，是一个用于丢弃数据的对象。比如有时候我们不在意数据内容，但可能存在数据不读出来就无法关闭连接的情况，这时候就可以使用  <code>io.Copy(io.Discard, io.Reader)</code> 将数据写入 <code>io.Discard</code> 实现丢弃数据的效果。</p>
+<p>使用 <code>New</code> 创建 <code>Logger</code> 对象时，如果 <code>out == io.Discard</code> 则 <code>l.isDiscard</code> 的值会被置为 <code>1</code>，所以使用 <code>PrintX</code> 函数记录的日志将会被丢弃，而 <code>isDiscard</code> 属性之所以是 <code>int32</code> 类型而不是 <code>bool</code>，是因为方便原子操作。</p>
+<p>现在，我们终于可以来看 <code>std.Output</code> 的实现了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">Output</span><span class="params">(calldepth <span class="keyword">int</span>, s <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	now := time.Now() <span class="comment">// 获取当前时间</span></span><br><span class="line">	<span class="keyword">var</span> file <span class="keyword">string</span></span><br><span class="line">	<span class="keyword">var</span> line <span class="keyword">int</span></span><br><span class="line">	<span class="comment">// 加锁，保证并发安全</span></span><br><span class="line">	l.mu.Lock()</span><br><span class="line">	<span class="keyword">defer</span> l.mu.Unlock()</span><br><span class="line">	<span class="comment">// 通过位运算来判断是否需要获取文件名和行号</span></span><br><span class="line">	<span class="keyword">if</span> l.flag&amp;(Lshortfile|Llongfile) != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// 运行 runtime.Caller 获取文件名和行号比较耗时，所以先释放锁</span></span><br><span class="line">		l.mu.Unlock()</span><br><span class="line">		<span class="keyword">var</span> ok <span class="keyword">bool</span></span><br><span class="line">		_, file, line, ok = runtime.Caller(calldepth)</span><br><span class="line">		<span class="keyword">if</span> !ok &#123;</span><br><span class="line">			file = <span class="string">"???"</span></span><br><span class="line">			line = <span class="number">0</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 获取到文件行号后再次加锁，保证下面代码并发安全</span></span><br><span class="line">		l.mu.Lock()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 清空上次缓存的内容</span></span><br><span class="line">	l.buf = l.buf[:<span class="number">0</span>]</span><br><span class="line">	<span class="comment">// 格式化日志头信息（如：日期时间、文件名和行号、前缀）并写入 buf</span></span><br><span class="line">	l.formatHeader(&amp;l.buf, now, file, line)</span><br><span class="line">	<span class="comment">// 追加日志内容到 buf</span></span><br><span class="line">	l.buf = <span class="built_in">append</span>(l.buf, s...)</span><br><span class="line">	<span class="comment">// 保证输出日志以 \n 结尾</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(s) == <span class="number">0</span> || s[<span class="built_in">len</span>(s)<span class="number">-1</span>] != <span class="string">'\n'</span> &#123;</span><br><span class="line">		l.buf = <span class="built_in">append</span>(l.buf, <span class="string">'\n'</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 调用 Logger 对象的 out 属性的 Write 方法输出日志</span></span><br><span class="line">	_, err := l.out.Write(l.buf)</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Output</code> 方法代码并不多，基本逻辑也比较清晰，首先根据日志属性来决定是否需要获取文件名和行号，因为调用 <code>runtime.Caller</code> 是一个耗时操作，开销比较大，为了增加并发性，暂时将锁释放，获取到文件名和行号后再重新加锁。</p>
+<p>接下来就是准备日志输出内容了，首先清空 <code>buf</code> 中保留的上次日志信息，然后通过 <code>formatHeader</code> 方法格式化日志头信息，接着把日志内容也追加到 <code>buf</code> 中，在这之后有一个保证输出日志以 <code>\n</code> 结尾的逻辑，来保证输出的日志都是单独一行的。不知道你有没有注意到，在前文的 log 包使用示例中，我们使用 <code>Print</code> 和 <code>Println</code> 两个方法时，最终日志输出效果并无差别，使用 <code>Print</code> 打印日志也会换行，其实就是这里的逻辑决定的。</p>
+<p>最后，通过调用 <code>l.out.Write</code> 方法，将 <code>buf</code> 内容输出。</p>
+<p>我们来看下用来格式化日志头信息的 <code>formatHeader</code> 方法是如何定义：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">formatHeader</span><span class="params">(buf *[]<span class="keyword">byte</span>, t time.Time, file <span class="keyword">string</span>, line <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 如果没有设置 Lmsgprefix 属性，将日志前缀内容设置到行首</span></span><br><span class="line">	<span class="keyword">if</span> l.flag&amp;Lmsgprefix == <span class="number">0</span> &#123;</span><br><span class="line">		*buf = <span class="built_in">append</span>(*buf, l.prefix...)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 判断是否设置了日期时间相关的属性</span></span><br><span class="line">	<span class="keyword">if</span> l.flag&amp;(Ldate|Ltime|Lmicroseconds) != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// 是否设置 UTC 时间</span></span><br><span class="line">		<span class="keyword">if</span> l.flag&amp;LUTC != <span class="number">0</span> &#123;</span><br><span class="line">			t = t.UTC()</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 是否设置日期</span></span><br><span class="line">		<span class="keyword">if</span> l.flag&amp;Ldate != <span class="number">0</span> &#123;</span><br><span class="line">			year, month, day := t.Date()</span><br><span class="line">			itoa(buf, year, <span class="number">4</span>)</span><br><span class="line">			*buf = <span class="built_in">append</span>(*buf, <span class="string">'/'</span>)</span><br><span class="line">			itoa(buf, <span class="keyword">int</span>(month), <span class="number">2</span>)</span><br><span class="line">			*buf = <span class="built_in">append</span>(*buf, <span class="string">'/'</span>)</span><br><span class="line">			itoa(buf, day, <span class="number">2</span>)</span><br><span class="line">			*buf = <span class="built_in">append</span>(*buf, <span class="string">' '</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 是否设置时间</span></span><br><span class="line">		<span class="keyword">if</span> l.flag&amp;(Ltime|Lmicroseconds) != <span class="number">0</span> &#123;</span><br><span class="line">			hour, min, sec := t.Clock()</span><br><span class="line">			itoa(buf, hour, <span class="number">2</span>)</span><br><span class="line">			*buf = <span class="built_in">append</span>(*buf, <span class="string">':'</span>)</span><br><span class="line">			itoa(buf, min, <span class="number">2</span>)</span><br><span class="line">			*buf = <span class="built_in">append</span>(*buf, <span class="string">':'</span>)</span><br><span class="line">			itoa(buf, sec, <span class="number">2</span>)</span><br><span class="line">			<span class="keyword">if</span> l.flag&amp;Lmicroseconds != <span class="number">0</span> &#123;</span><br><span class="line">				*buf = <span class="built_in">append</span>(*buf, <span class="string">'.'</span>)</span><br><span class="line">				itoa(buf, t.Nanosecond()/<span class="number">1e3</span>, <span class="number">6</span>)</span><br><span class="line">			&#125;</span><br><span class="line">			*buf = <span class="built_in">append</span>(*buf, <span class="string">' '</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 是否设置文件名和行号</span></span><br><span class="line">	<span class="keyword">if</span> l.flag&amp;(Lshortfile|Llongfile) != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> l.flag&amp;Lshortfile != <span class="number">0</span> &#123;</span><br><span class="line">			short := file</span><br><span class="line">			<span class="keyword">for</span> i := <span class="built_in">len</span>(file) - <span class="number">1</span>; i &gt; <span class="number">0</span>; i-- &#123;</span><br><span class="line">				<span class="keyword">if</span> file[i] == <span class="string">'/'</span> &#123;</span><br><span class="line">					short = file[i+<span class="number">1</span>:]</span><br><span class="line">					<span class="keyword">break</span></span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			file = short</span><br><span class="line">		&#125;</span><br><span class="line">		*buf = <span class="built_in">append</span>(*buf, file...)</span><br><span class="line">		*buf = <span class="built_in">append</span>(*buf, <span class="string">':'</span>)</span><br><span class="line">		itoa(buf, line, <span class="number">-1</span>)</span><br><span class="line">		*buf = <span class="built_in">append</span>(*buf, <span class="string">": "</span>...)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 如果设置了 Lmsgprefix 属性，将日志前缀内容放到日志头信息最后，也就是紧挨着日志内容前面</span></span><br><span class="line">	<span class="keyword">if</span> l.flag&amp;Lmsgprefix != <span class="number">0</span> &#123;</span><br><span class="line">		*buf = <span class="built_in">append</span>(*buf, l.prefix...)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>formatHeader</code> 方法是 log 包里面代码量最多的一个方法，主要通过按位与（&amp;）来计算是否设置了某个日志属性，然后根据日志属性来格式化头信息。</p>
+<p>其中多次调用 <code>itoa</code> 函数，<code>itoa</code> 顾名思义，将 <code>int</code> 转换成 <code>ASCII</code> 码，<code>itoa</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">itoa</span><span class="params">(buf *[]<span class="keyword">byte</span>, i <span class="keyword">int</span>, wid <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="comment">// Assemble decimal in reverse order.</span></span><br><span class="line">	<span class="keyword">var</span> b [<span class="number">20</span>]<span class="keyword">byte</span></span><br><span class="line">	bp := <span class="built_in">len</span>(b) - <span class="number">1</span></span><br><span class="line">	<span class="keyword">for</span> i &gt;= <span class="number">10</span> || wid &gt; <span class="number">1</span> &#123;</span><br><span class="line">		wid--</span><br><span class="line">		q := i / <span class="number">10</span></span><br><span class="line">		b[bp] = <span class="keyword">byte</span>(<span class="string">'0'</span> + i - q*<span class="number">10</span>)</span><br><span class="line">		bp--</span><br><span class="line">		i = q</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// i &lt; 10</span></span><br><span class="line">	b[bp] = <span class="keyword">byte</span>(<span class="string">'0'</span> + i)</span><br><span class="line">	*buf = <span class="built_in">append</span>(*buf, b[bp:]...)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个函数短小精悍，它接收三个参数，<code>buf</code> 用来保存转换后的内容，<code>i</code> 就是带转换的值，比如 <code>year</code>、<code>month</code> 等，<code>wid</code> 表示转换后 <code>ASCII</code> 码字符串宽度，如果传进来的 <code>i</code> 宽度不够，则前面补零。比如传入 <code>itoa(&amp;b, 12, 3)</code>，最终输出字符串为 <code>012</code>。</p>
+<p>至此，我们已经理清了 <code>log.Print(&quot;Print&quot;)</code> 是如何打印一条日志的，其函数调用流程如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="flow.png" alt="调用流程" title="">
+                </div>
+                <div class="image-caption">调用流程</div>
+            </figure>
+
+<p>上面我们讲解了使用 log 包中默认的 <code>std</code> 这个 <code>Logger</code> 对象打印日志的调用流程。当我们使用自定义的 <code>Logger</code> 对象（<code>logger := log.New(os.Stdout, &quot;[Debug] - &quot;, log.Lshortfile)</code>）来打印日志时，调用的 <code>loggger.Print</code> 是一个方法，而不是 <code>log.Print</code> 这个包级别的函数，所以其实 <code>Logger</code> 结构体也实现了 9 种输出日志方法： </p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">Print</span><span class="params">(v ...any)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> atomic.LoadInt32(&amp;l.isDiscard) != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	l.Output(<span class="number">2</span>, fmt.Sprint(v...))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">Printf</span><span class="params">(format <span class="keyword">string</span>, v ...any)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> atomic.LoadInt32(&amp;l.isDiscard) != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	l.Output(<span class="number">2</span>, fmt.Sprintf(format, v...))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">Println</span><span class="params">(v ...any)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> atomic.LoadInt32(&amp;l.isDiscard) != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	l.Output(<span class="number">2</span>, fmt.Sprintln(v...))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">Fatal</span><span class="params">(v ...any)</span></span> &#123;</span><br><span class="line">	l.Output(<span class="number">2</span>, fmt.Sprint(v...))</span><br><span class="line">	os.Exit(<span class="number">1</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">Fatalf</span><span class="params">(format <span class="keyword">string</span>, v ...any)</span></span> &#123;</span><br><span class="line">	l.Output(<span class="number">2</span>, fmt.Sprintf(format, v...))</span><br><span class="line">	os.Exit(<span class="number">1</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">Fatalln</span><span class="params">(v ...any)</span></span> &#123;</span><br><span class="line">	l.Output(<span class="number">2</span>, fmt.Sprintln(v...))</span><br><span class="line">	os.Exit(<span class="number">1</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">Panic</span><span class="params">(v ...any)</span></span> &#123;</span><br><span class="line">	s := fmt.Sprint(v...)</span><br><span class="line">	l.Output(<span class="number">2</span>, s)</span><br><span class="line">	<span class="built_in">panic</span>(s)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">Panicf</span><span class="params">(format <span class="keyword">string</span>, v ...any)</span></span> &#123;</span><br><span class="line">	s := fmt.Sprintf(format, v...)</span><br><span class="line">	l.Output(<span class="number">2</span>, s)</span><br><span class="line">	<span class="built_in">panic</span>(s)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">Panicln</span><span class="params">(v ...any)</span></span> &#123;</span><br><span class="line">	s := fmt.Sprintln(v...)</span><br><span class="line">	l.Output(<span class="number">2</span>, s)</span><br><span class="line">	<span class="built_in">panic</span>(s)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这 9 个方法跟 log 包级别的函数一一对应，用于自定义 <code>Logger</code> 对象。</p>
+<p>有一个值得注意的点，在这些方法内部，调用 <code>l.Output(2, s)</code> 时，第一个参数 <code>calldepth</code> 传递的是 2，这跟 <code>runtime.Caller(calldepth)</code> 函数内部实现有关，<code>runtime.Caller</code> 函数签名如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Caller</span><span class="params">(skip <span class="keyword">int</span>)</span> <span class="params">(pc <span class="keyword">uintptr</span>, file <span class="keyword">string</span>, line <span class="keyword">int</span>, ok <span class="keyword">bool</span>)</span></span></span><br></pre></td></tr></table></figure>
+
+<p><code>runtime.Caller</code> 返回当前 Goroutine 的栈上的函数调用信息（程序计数器、文件信息、行号），其参数 <code>skip</code> 表示当前向上层的栈帧数，0 代表当前函数，也就是调用 <code>runtime.Caller</code> 的函数，1 代表上一层调用者，以此类推。</p>
+<p>因为函数调用链为 <code>main.go -&gt; log.Print -&gt; std.Output -&gt; runtime.Caller</code>，所以 <code>skip</code> 值即为 2：</p>
+<ul>
+<li>0: 表示 <code>std.Output</code> 中调用 <code>runtime.Caller</code> 所在的源码文件和行号。</li>
+<li>1: 表示 <code>log.Print</code> 中调用 <code>std.Output</code> 所在的源码文件和行号。</li>
+<li>2: 表示 <code>main.go</code> 中调用 <code>log.Print</code> 所在的源码文件和行号。</li>
+</ul>
+<p>这样当代码出现问题时，就能根据日志中记录的函数调用栈来找到报错的源码位置了。</p>
+<p>另外，前文介绍过三个设置 <code>Logger</code> 对象属性的方法，分别是 <code>SetOutput</code>、<code>SetPrefix</code>、<code>SetFlags</code>，其实这三个方法各自还有与之对应的获取相应属性的方法，定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">Flags</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	l.mu.Lock()</span><br><span class="line">	<span class="keyword">defer</span> l.mu.Unlock()</span><br><span class="line">	<span class="keyword">return</span> l.flag</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">SetFlags</span><span class="params">(flag <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	l.mu.Lock()</span><br><span class="line">	<span class="keyword">defer</span> l.mu.Unlock()</span><br><span class="line">	l.flag = flag</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">Prefix</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	l.mu.Lock()</span><br><span class="line">	<span class="keyword">defer</span> l.mu.Unlock()</span><br><span class="line">	<span class="keyword">return</span> l.prefix</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">SetPrefix</span><span class="params">(prefix <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	l.mu.Lock()</span><br><span class="line">	<span class="keyword">defer</span> l.mu.Unlock()</span><br><span class="line">	l.prefix = prefix</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">Writer</span><span class="params">()</span> <span class="title">io</span>.<span class="title">Writer</span></span> &#123;</span><br><span class="line">	l.mu.Lock()</span><br><span class="line">	<span class="keyword">defer</span> l.mu.Unlock()</span><br><span class="line">	<span class="keyword">return</span> l.out</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Logger)</span> <span class="title">SetOutput</span><span class="params">(w io.Writer)</span></span> &#123;</span><br><span class="line">	l.mu.Lock()</span><br><span class="line">	<span class="keyword">defer</span> l.mu.Unlock()</span><br><span class="line">	l.out = w</span><br><span class="line">	isDiscard := <span class="keyword">int32</span>(<span class="number">0</span>)</span><br><span class="line">	<span class="keyword">if</span> w == io.Discard &#123;</span><br><span class="line">		isDiscard = <span class="number">1</span></span><br><span class="line">	&#125;</span><br><span class="line">	atomic.StoreInt32(&amp;l.isDiscard, isDiscard)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其实就是针对每个私有属性，定义了 <code>getter</code>、<code>setter</code> 方法，并且每个方法内部为了保证并发安全，都进行了加锁操作。</p>
+<p>当然，log 包级别的函数，也少不了这几个功能：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Default</span><span class="params">()</span> *<span class="title">Logger</span></span> &#123; <span class="keyword">return</span> std &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SetOutput</span><span class="params">(w io.Writer)</span></span> &#123;</span><br><span class="line">	std.SetOutput(w)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Flags</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> std.Flags()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SetFlags</span><span class="params">(flag <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	std.SetFlags(flag)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Prefix</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> std.Prefix()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SetPrefix</span><span class="params">(prefix <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	std.SetPrefix(prefix)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Writer</span><span class="params">()</span> <span class="title">io</span>.<span class="title">Writer</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> std.Writer()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Output</span><span class="params">(calldepth <span class="keyword">int</span>, s <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> std.Output(calldepth+<span class="number">1</span>, s) <span class="comment">// +1 for this frame.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>至此，log 包的全部代码我们就一起走读完成了。</p>
+<p>总结一下：log 包主要设计了 <code>Logger</code> 对象和其方法，并且为了开箱即用，在包级别又对外提供了默认的 <code>Logger</code> 对象 <code>std</code> 和一些包级别的对外函数。<code>Logger</code> 对象的方法，和包级别的函数基本上是一一对应的，签名一样，这样就大大降低了使用难度。</p>
+<h3 id="使用建议"><a href="#使用建议" class="headerlink" title="使用建议"></a>使用建议</h3><p>关于 log 包的使用，我还有几条建议分享给你：</p>
+<ul>
+<li>log 默认不支持 <code>Debug</code>、<code>Info</code>、<code>Warn</code> 等更细粒度级别的日志输出方法，不过我们可以通过创建多个 <code>Logger</code> 对象的方式来实现，只需要给每个 <code>Logger</code> 对象指定不同的日志前缀即可：</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">loggerDebug = log.New(os.Stdout, <span class="string">"[Debug]"</span>, log.LstdFlags)</span><br><span class="line">loggerInfo = log.New(os.Stdout, <span class="string">"[Info]"</span>, log.LstdFlags)</span><br><span class="line">loggerWarn = log.New(os.Stdout, <span class="string">"[Warn]"</span>, log.LstdFlags)</span><br><span class="line">loggerError = log.New(os.Stdout, <span class="string">"[Error]"</span>, log.LstdFlags)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>仅在 <code>main.go</code> 文件中使用 <code>log.Panic</code>、<code>log.Fatal</code>，下层程序遇到错误时先记录日志，然后将错误向上一层层抛出，直到调用栈顶层才决定要不要使用 <code>log.Panic</code>、<code>log.Fatal</code>。</p>
+</li>
+<li><p>log 包作为 Go 标准库，仅支持日志的基本功能，不支持记录结构化日志、日志切割、Hook 等高级功能，所以更适合小型项目使用，比如一个单文件的脚本。对于中大型项目，则推荐使用一些主流的第三方日志库，如 <a href="https://github.com/sirupsen/logrus" target="_blank" rel="noopener">logrus</a>、<a href="https://github.com/uber-go/zap" target="_blank" rel="noopener">zap</a>、<a href="https://github.com/golang/glog" target="_blank" rel="noopener">glog</a> 等。</p>
+</li>
+<li><p>另外，如果你对 Go 标准日志库有所期待，Go 官方还打造了另一个日志库 <a href="https://github.com/golang/exp/tree/master/slog" target="_blank" rel="noopener">slog</a> 现已进入实验阶段，如果项目发展顺利，将可能成为 log 包的替代品。</p>
+</li>
+</ul>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文我与读者一起深入探究了 Go log 标准库，首先向大家介绍了 log 包如何使用，接着又带领大家一起走读了 log 包的源码，最后我也给出了一些自己对 log 包的使用建议。</p>
+<p><strong>参考</strong></p>
+<blockquote>
+<p>Go log 源码：<a href="https://github.com/golang/go/tree/go1.19.4/src/log" target="_blank" rel="noopener">https://github.com/golang/go/tree/go1.19.4/src/log</a></p>
+</blockquote>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2023-03-11T14:19:00.393Z" itemprop="dateUpdated">2023-03-11 22:19:00</time>
+</span><br>
+
+
+        
+        <a href="/2023/03/11/dive-into-the-go-log-standard-library/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Golang/" rel="tag">Golang</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Log/" rel="tag">Log</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/&title=《深入探究 Go log 标准库》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/&title=《深入探究 Go log 标准库》 — 江湖十年&source=Go 语言标准库中的 log 包设计简洁明了，易于上手，可以轻松记录程序运行时的信息、调试错误以及跟踪代码执行过程中的问题等。使用 log 包无需繁琐的配..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《深入探究 Go log 标准库》 — 江湖十年&url=http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">如何规范 RESTful API 的业务错误处理</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2023</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/&title=《深入探究 Go log 标准库》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/&title=《深入探究 Go log 标准库》 — 江湖十年&source=Go 语言标准库中的 log 包设计简洁明了，易于上手，可以轻松记录程序运行时的信息、调试错误以及跟踪代码执行过程中的问题等。使用 log 包无需繁琐的配..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《深入探究 Go log 标准库》 — 江湖十年&url=http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
