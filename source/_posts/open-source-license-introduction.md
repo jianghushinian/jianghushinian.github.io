@@ -17,6 +17,8 @@ categories:
 
 开源软件 = 开放源代码 + 开源协议，一份没有添加开源协议的开源代码，并不是真正的开源软件，也就不能随意使用。
 
+> 注意：如果你在 GitHub 上创建了一个没有开源协议的公共代码仓库，其他用户仍然有权查看并为其创建分支，这是由 GitHub 的[服务条款](https://docs.github.com/zh/site-policy/github-terms/github-terms-of-service#4-license-grant-to-us)决定的。
+
 ### 开源许可证
 
 开源协议是指开源软件所携带的一份声明协议，这份协议也叫开源许可证。开源许可证声明了开源协议的内容，规定了**原作者和使用者的权利以及义务**。
@@ -244,3 +246,4 @@ CC 许可证由 [Creative Commons 基金会](https://creativecommons.org/)提出
 > https://wenshu.court.gov.cn/
 > https://www.oschina.net/news/159435
 > https://www.taosdata.com/tdengine/open_source_time-series_database
+> https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository
