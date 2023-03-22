@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 第三方 log 库之 zap 使用 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Golang,Log">
+    <meta name="description" content="zap 是由 Uber 公司开源的一款 Go 日志库，就像它的命名一样，zap 以快著称。官方 GitHub 仓库中只用一句话来概括 zap：「在 Go 中进行快速、结构化、分级的日志记录」。这句话简单明了的概括了 zap 的核心特性，今天我们就来介绍下 zap 日志库的基本使用和高级特性，以及如何在实际应用程序中使用，来提高应用程序的可靠性。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 第三方 log 库之 zap 使用">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/03/19/use-of-zap-in-go-third-party-log-library/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="zap 是由 Uber 公司开源的一款 Go 日志库，就像它的命名一样，zap 以快著称。官方 GitHub 仓库中只用一句话来概括 zap：「在 Go 中进行快速、结构化、分级的日志记录」。这句话简单明了的概括了 zap 的核心特性，今天我们就来介绍下 zap 日志库的基本使用和高级特性，以及如何在实际应用程序中使用，来提高应用程序的可靠性。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-03-19T01:43:30.000Z">
+<meta property="article:modified_time" content="2023-03-22T04:44:25.641Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Golang">
+<meta property="article:tag" content="Log">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 第三方 log 库之 zap 使用</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 第三方 log 库之 zap 使用</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-03-19T01:43:30.000Z" itemprop="datePublished" class="page-time">
+  2023-03-19
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Golang/">Golang</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#特点"><span class="post-toc-number">1.</span> <span class="post-toc-text">特点</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用"><span class="post-toc-number">2.</span> <span class="post-toc-text">使用</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#基本使用"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">基本使用</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#给语法加点糖"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">给语法加点糖</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#定制-Logger"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">定制 Logger</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#二次开发"><span class="post-toc-number">3.</span> <span class="post-toc-text">二次开发</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#封装自己的-zap-包"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">封装自己的 zap 包</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#像-Go-log-标准库一样开箱即用"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">像 Go log 标准库一样开箱即用</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#将日志输出到多个位置"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">将日志输出到多个位置</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-use-of-zap-in-go-third-party-log-library"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 第三方 log 库之 zap 使用</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-03-19 09:43:30" datetime="2023-03-19T01:43:30.000Z"  itemprop="datePublished">2023-03-19</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Golang/">Golang</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>zap 是由 Uber 公司开源的一款 Go 日志库，就像它的命名一样，zap 以快著称。官方 GitHub 仓库中只用一句话来概括 zap：「在 Go 中进行快速、结构化、分级的日志记录」。这句话简单明了的概括了 zap 的核心特性，今天我们就来介绍下 zap 日志库的基本使用和高级特性，以及如何在实际应用程序中使用，来提高应用程序的可靠性。</p>
+<a id="more"></a>
+
+<h3 id="特点"><a href="#特点" class="headerlink" title="特点"></a>特点</h3><p>zap 具有如下特点：</p>
+<ul>
+<li><p>快，非常快，这也是 zap 最显著的特点。速度快的原因是 zap 避免使用 <code>interface{}</code> 和反射，并且使用 <code>sync.Pool</code> 减少堆内存分配。在 zap 面前 Logrus 的执行速度只有被吊打的份，你可以在官方 <a href="https://github.com/uber-go/zap#performance" target="_blank" rel="noopener">GitHub 仓库</a>中看到 zap 与不同日志库的速度对比。</p>
+</li>
+<li><p>支持结构化日志记录。这是一个优秀的日志库必备功能。</p>
+</li>
+<li><p>支持七种日志级别：<code>Debug</code>、<code>Info</code>、<code>Warn</code>、<code>Error</code>、<code>DPanic</code>、<code>Panic</code>、<code>Fatal</code>，其中 <code>DPanic</code> 是指在开发环境下（<code>development</code>）记录日志后会进行 <code>panic</code>。</p>
+</li>
+<li><p>支持输出调用堆栈。</p>
+</li>
+<li><p>支持 Hooks 机制。</p>
+</li>
+</ul>
+<h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><h4 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h4><p>zap 基本使用方式如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"go.uber.org/zap"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 生产环境</span></span><br><span class="line">	&#123;</span><br><span class="line">		logger, _ := zap.NewProduction()</span><br><span class="line">		<span class="keyword">defer</span> logger.Sync() <span class="comment">// 刷新 buffer，保证日志最终会被输出</span></span><br><span class="line"></span><br><span class="line">		url := <span class="string">"https://jianghushinian.cn/"</span></span><br><span class="line">		logger.Info(<span class="string">"production failed to fetch URL"</span>,</span><br><span class="line">			zap.String(<span class="string">"url"</span>, url), <span class="comment">// 因为没有使用 interface&#123;&#125; 和反射机制，所以需要指定具体类型</span></span><br><span class="line">			zap.Int(<span class="string">"attempt"</span>, <span class="number">3</span>),</span><br><span class="line">			zap.Duration(<span class="string">"backoff"</span>, time.Second),</span><br><span class="line">		)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 开发环境</span></span><br><span class="line">	&#123;</span><br><span class="line">		logger, _ := zap.NewDevelopment()</span><br><span class="line">		<span class="keyword">defer</span> logger.Sync()</span><br><span class="line"></span><br><span class="line">		url := <span class="string">"https://jianghushinian.cn/"</span></span><br><span class="line">		logger.Debug(<span class="string">"development failed to fetch URL"</span>,</span><br><span class="line">			zap.String(<span class="string">"url"</span>, url),</span><br><span class="line">			zap.Int(<span class="string">"attempt"</span>, <span class="number">3</span>),</span><br><span class="line">			zap.Duration(<span class="string">"backoff"</span>, time.Second),</span><br><span class="line">		)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>zap 针对生产环境和开发环境提供了不同的函数来创建 <code>Logger</code> 对象。</p>
+<p>如果想在日志后面追加 key-value，则需要根据 value 的数据类型使用 <code>zap.String</code>、<code>zap.Int</code> 等方法实现。这一点在使用上显然不如 Logrus 等其他日志库来的方便，但这也是 zap 速度快的原因之一，zap 内部尽量避免使用 <code>interface{}</code> 和反射来提高代码执行效率。</p>
+<p>记录日志的 <code>logger.Xxx</code> 方法签名如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(log *Logger)</span> <span class="title">Info</span><span class="params">(msg <span class="keyword">string</span>, fields ...Field)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>fields</code> 是 <code>zapcore.Field</code> 类型，用来存储 key-value，并记录 value 类型，不管是 <code>zap.String</code> 还是 <code>zap.Int</code> 底层都是 <code>zapcore.Field</code> 类型来记录的。zap 为每一种 Go 的内置类型都定义了对应的 <code>zap.Xxx</code> 方法，甚至还实现 <code>zap.Any()</code> 来支持 <code>interface{}</code>。</p>
+<p>执行以上代码，控制台得到如下输出：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#123;&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:1679212318.10218,&quot;caller&quot;:&quot;zap&#x2F;main.go:16&quot;,&quot;msg&quot;:&quot;production failed to fetch URL&quot;,&quot;url&quot;:&quot;https:&#x2F;&#x2F;jianghushinian.cn&#x2F;&quot;,&quot;attempt&quot;:3,&quot;backoff&quot;:1&#125;</span><br><span class="line">2023-03-19T15:51:58.102+0800    DEBUG   zap&#x2F;main.go:29        development failed to fetch URL &#123;&quot;url&quot;: &quot;https:&#x2F;&#x2F;jianghushinian.cn&#x2F;&quot;, &quot;attempt&quot;: 3, &quot;backoff&quot;: &quot;1s&quot;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，通过 <code>zap.NewProduction()</code> 创建的日志对象输出格式为 JSON，而通过 <code>zap.NewDevelopment()</code> 创建的日志对象输出格式为 Text，日志后面追加的 key-value 会被转换成 JSON。并且，两者输出的字段内容也略有差异，如生产环境日志输出的时间格式为 <code>Unix epoch</code> 利于程序解析，而开发环境日志输出的时间格式为 <code>ISO8601</code> 更利于人类阅读。</p>
+<p>导致以上这些差异的原因是配置不同，我们来看下 <code>zap.NewProduction</code> 和 <code>zap.NewDevelopment</code> 的代码实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewProduction</span><span class="params">(options ...Option)</span> <span class="params">(*Logger, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> NewProductionConfig().Build(options...)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewProductionConfig</span><span class="params">()</span> <span class="title">Config</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Config&#123;</span><br><span class="line">		Level:       NewAtomicLevelAt(InfoLevel),</span><br><span class="line">		Development: <span class="literal">false</span>,</span><br><span class="line">		Sampling: &amp;SamplingConfig&#123;</span><br><span class="line">			Initial:    <span class="number">100</span>,</span><br><span class="line">			Thereafter: <span class="number">100</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">		Encoding:         <span class="string">"json"</span>,</span><br><span class="line">		EncoderConfig:    NewProductionEncoderConfig(),</span><br><span class="line">		OutputPaths:      []<span class="keyword">string</span>&#123;<span class="string">"stderr"</span>&#125;,</span><br><span class="line">		ErrorOutputPaths: []<span class="keyword">string</span>&#123;<span class="string">"stderr"</span>&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewDevelopment</span><span class="params">(options ...Option)</span> <span class="params">(*Logger, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> NewDevelopmentConfig().Build(options...)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewDevelopmentConfig</span><span class="params">()</span> <span class="title">Config</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Config&#123;</span><br><span class="line">		Level:            NewAtomicLevelAt(DebugLevel),</span><br><span class="line">		Development:      <span class="literal">true</span>,</span><br><span class="line">		Encoding:         <span class="string">"console"</span>,</span><br><span class="line">		EncoderConfig:    NewDevelopmentEncoderConfig(),</span><br><span class="line">		OutputPaths:      []<span class="keyword">string</span>&#123;<span class="string">"stderr"</span>&#125;,</span><br><span class="line">		ErrorOutputPaths: []<span class="keyword">string</span>&#123;<span class="string">"stderr"</span>&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，两者在实现思路上是一样的，都是先创建一个配置对象 <code>zap.Config</code>，然后再调用配置对象的 <code>Build</code> 方法来构建 <code>Logger</code>。</p>
+<p><code>zap.Config</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Config <span class="keyword">struct</span> &#123;</span><br><span class="line">	Level AtomicLevel <span class="string">`json:"level" yaml:"level"`</span></span><br><span class="line">	Development <span class="keyword">bool</span> <span class="string">`json:"development" yaml:"development"`</span></span><br><span class="line">	DisableCaller <span class="keyword">bool</span> <span class="string">`json:"disableCaller" yaml:"disableCaller"`</span></span><br><span class="line">	DisableStacktrace <span class="keyword">bool</span> <span class="string">`json:"disableStacktrace" yaml:"disableStacktrace"`</span></span><br><span class="line">	Sampling *SamplingConfig <span class="string">`json:"sampling" yaml:"sampling"`</span></span><br><span class="line">	Encoding <span class="keyword">string</span> <span class="string">`json:"encoding" yaml:"encoding"`</span></span><br><span class="line">	EncoderConfig zapcore.EncoderConfig <span class="string">`json:"encoderConfig" yaml:"encoderConfig"`</span></span><br><span class="line">	OutputPaths []<span class="keyword">string</span> <span class="string">`json:"outputPaths" yaml:"outputPaths"`</span></span><br><span class="line">	ErrorOutputPaths []<span class="keyword">string</span> <span class="string">`json:"errorOutputPaths" yaml:"errorOutputPaths"`</span></span><br><span class="line">	InitialFields <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125; <span class="string">`json:"initialFields" yaml:"initialFields"`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>每个配置项说明如下：</p>
+<ul>
+<li><p><code>Level</code>: 日志级别。</p>
+</li>
+<li><p><code>Development</code>: 是否为开发模式。</p>
+</li>
+<li><p><code>DisableCaller</code>: 禁用调用信息，值为 <code>true</code> 时，日志中将不再显示记录日志时所在的函数调用文件名和行号。</p>
+</li>
+<li><p><code>DisableStacktrace</code>: 禁用堆栈跟踪捕获。</p>
+</li>
+<li><p><code>Sampling</code>: 采样策略配置，单位为每秒，作用是限制日志在每秒内的输出数量，以此来防止全局的 CPU 和 I/O 负载过高。</p>
+</li>
+<li><p><code>Encoding</code>: 指定日志编码器，目前支持 <code>json</code> 和 <code>console</code>。</p>
+</li>
+<li><p><code>EncoderConfig</code>: 编码配置，决定了日志字段格式。</p>
+</li>
+<li><p><code>OutputPaths</code>: 配置日志输出位置，URLs 或文件路径，可配置多个。</p>
+</li>
+<li><p><code>ErrorOutputPaths</code>: zap 包内部出现错误的日志输出位置，URLs 或文件路径，可配置多个，默认 <code>os.Stderr</code>。</p>
+</li>
+<li><p><code>InitialFields</code>: 初始化字段配置，该配置的字段会以结构化的形式打印在每条日志输出中。</p>
+</li>
+</ul>
+<p>我们再来对比下 <code>NewProductionEncoderConfig()</code> 和 <code>NewDevelopmentEncoderConfig()</code> 这两个配置的不同：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewProductionEncoderConfig</span><span class="params">()</span> <span class="title">zapcore</span>.<span class="title">EncoderConfig</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> zapcore.EncoderConfig&#123;</span><br><span class="line">		TimeKey:        <span class="string">"ts"</span>,</span><br><span class="line">		LevelKey:       <span class="string">"level"</span>,</span><br><span class="line">		NameKey:        <span class="string">"logger"</span>,</span><br><span class="line">		CallerKey:      <span class="string">"caller"</span>,</span><br><span class="line">		FunctionKey:    zapcore.OmitKey,</span><br><span class="line">		MessageKey:     <span class="string">"msg"</span>,</span><br><span class="line">		StacktraceKey:  <span class="string">"stacktrace"</span>,</span><br><span class="line">		LineEnding:     zapcore.DefaultLineEnding,</span><br><span class="line">		EncodeLevel:    zapcore.LowercaseLevelEncoder,</span><br><span class="line">		EncodeTime:     zapcore.EpochTimeEncoder,</span><br><span class="line">		EncodeDuration: zapcore.SecondsDurationEncoder,</span><br><span class="line">		EncodeCaller:   zapcore.ShortCallerEncoder,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewDevelopmentEncoderConfig</span><span class="params">()</span> <span class="title">zapcore</span>.<span class="title">EncoderConfig</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> zapcore.EncoderConfig&#123;</span><br><span class="line">		<span class="comment">// Keys can be anything except the empty string.</span></span><br><span class="line">		TimeKey:        <span class="string">"T"</span>,</span><br><span class="line">		LevelKey:       <span class="string">"L"</span>,</span><br><span class="line">		NameKey:        <span class="string">"N"</span>,</span><br><span class="line">		CallerKey:      <span class="string">"C"</span>,</span><br><span class="line">		FunctionKey:    zapcore.OmitKey,</span><br><span class="line">		MessageKey:     <span class="string">"M"</span>,</span><br><span class="line">		StacktraceKey:  <span class="string">"S"</span>,</span><br><span class="line">		LineEnding:     zapcore.DefaultLineEnding,</span><br><span class="line">		EncodeLevel:    zapcore.CapitalLevelEncoder,</span><br><span class="line">		EncodeTime:     zapcore.ISO8601TimeEncoder,</span><br><span class="line">		EncodeDuration: zapcore.StringDurationEncoder,</span><br><span class="line">		EncodeCaller:   zapcore.ShortCallerEncoder,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对比来看，两者有很多不同的配置，比如生产环境下 <code>EncodeTime</code> 值为 <code>zapcore.EpochTimeEncoder</code>，开发环境下 <code>EncodeTime</code> 值为 <code>zapcore.ISO8601TimeEncoder</code>。这就是生产环境日志输出的时间格式为 <code>Unix epoch</code> 而开发环境日志输出的时间格式为 <code>ISO8601</code> 的原因。</p>
+<p><code>zapcore.EncoderConfig</code> 其他几个常用的配置项说明如下：</p>
+<ul>
+<li><p><code>MessageKey</code>: 日志信息的键名，默认 <code>msg</code>。</p>
+</li>
+<li><p><code>LevelKey</code>: 日志级别的键名，默认 <code>level</code>。</p>
+</li>
+<li><p><code>TimeKey</code>: 日志时间的键名。</p>
+</li>
+<li><p><code>EncodeLevel</code>: 日志级别的格式，默认为小写，如 <code>info</code>。</p>
+</li>
+</ul>
+<p>除了提供 <code>zap.NewProduction()</code> 和 <code>zap.NewDevelopment()</code> 两个构造函数外，zap 还提供了 <code>zap.NewExample()</code> 来创建一个 <code>Logger</code> 对象，这个方法主要用于测试，这里就不多介绍了。</p>
+<h4 id="给语法加点糖"><a href="#给语法加点糖" class="headerlink" title="给语法加点糖"></a>给语法加点糖</h4><p>zap 虽然速度足够快，但是多数情况下，我们并不需要极致的性能，而是想让代码写起来更爽一些。zap 为我们提供了解决方案 —— <code>SugaredLogger</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"go.uber.org/zap"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	logger, _ := zap.NewProduction()</span><br><span class="line">	<span class="keyword">defer</span> logger.Sync()</span><br><span class="line"></span><br><span class="line">	url := <span class="string">"https://jianghushinian.cn/"</span></span><br><span class="line">	sugar := logger.Sugar()</span><br><span class="line">	sugar.Infow(<span class="string">"production failed to fetch URL"</span>,</span><br><span class="line">		<span class="string">"url"</span>, url,</span><br><span class="line">		<span class="string">"attempt"</span>, <span class="number">3</span>,</span><br><span class="line">		<span class="string">"backoff"</span>, time.Second,</span><br><span class="line">	)</span><br><span class="line">	sugar.Info(<span class="string">"Info"</span>)</span><br><span class="line">	sugar.Infof(<span class="string">"Infof: %s"</span>, url)</span><br><span class="line">	sugar.Infoln(<span class="string">"Infoln"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过 <code>logger.Sugar()</code> 方法可以将一个 <code>Logger</code> 对象转换成一个 <code>SugaredLogger</code> 对象。</p>
+<p><code>SugaredLogger</code> 提供了更人性化的接口，日志中追加 key-value 时不在需要 <code>zap.String(&quot;url&quot;, url)</code> 这种显式指明类型的写法，只需要保证 key 为 <code>string</code> 类型，value 则可以为任意类型，能够减少我们编写的代码量。</p>
+<p>此外，为了满足不同需求，<code>SugaredLogger</code> 提供了四种方式输出日志：<code>sugar.Xxx</code>、<code>sugar.Xxxw</code>、<code>sugar.Xxxf</code>、<code>sugar.Xxxln</code>。</p>
+<p>执行以上代码，控制台得到如下输出：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&#123;&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:1679217743.5967638,&quot;caller&quot;:&quot;zap&#x2F;sugar.go:15&quot;,&quot;msg&quot;:&quot;production failed to fetch URL&quot;,&quot;url&quot;:&quot;https:&#x2F;&#x2F;jianghushinian.cn&#x2F;&quot;,&quot;attempt&quot;:3,&quot;backoff&quot;:1&#125;</span><br><span class="line">&#123;&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:1679217743.5969589,&quot;caller&quot;:&quot;zap&#x2F;sugar.go:20&quot;,&quot;msg&quot;:&quot;Info&quot;&#125;</span><br><span class="line">&#123;&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:1679217743.5969741,&quot;caller&quot;:&quot;zap&#x2F;sugar.go:21&quot;,&quot;msg&quot;:&quot;Infof: https:&#x2F;&#x2F;jianghushinian.cn&#x2F;&quot;&#125;</span><br><span class="line">&#123;&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:1679217743.5969841,&quot;caller&quot;:&quot;zap&#x2F;sugar.go:22&quot;,&quot;msg&quot;:&quot;Infoln&quot;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们知道，这种方便的写法是有一定代价的，所以开发中是否需要使用 <code>SugaredLogger</code> 来记录日志，需要根据程序的特点来决定。<code>SugaredLogger</code> 与 <code>Logger</code> 的性能对比同样可以在官方 <a href="https://github.com/uber-go/zap#performance" target="_blank" rel="noopener">GitHub 仓库</a>中看到。</p>
+<h4 id="定制-Logger"><a href="#定制-Logger" class="headerlink" title="定制 Logger"></a>定制 Logger</h4><p>通过查看 <code>zap.NewProduction()</code> 和 <code>zap.NewDevelopment()</code> 两个构造函数源码，我们知道可以使用 <code>zap.Config</code> 对象的 <code>Build</code> 方法创建 <code>Logger</code> 对象。那么我们很容易能够想到，如果要定制 <code>Logger</code>，只需要创建一个定制的 <code>zap.Config</code> 即可。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"go.uber.org/zap"</span></span><br><span class="line">	<span class="string">"go.uber.org/zap/zapcore"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newCustomLogger</span><span class="params">()</span> <span class="params">(*zap.Logger, error)</span></span> &#123;</span><br><span class="line">	cfg := zap.Config&#123;</span><br><span class="line">		Level:       zap.NewAtomicLevelAt(zap.DebugLevel),</span><br><span class="line">		Development: <span class="literal">false</span>,</span><br><span class="line">		Encoding:    <span class="string">"json"</span>,</span><br><span class="line">		EncoderConfig: zapcore.EncoderConfig&#123;</span><br><span class="line">			TimeKey:        <span class="string">"time"</span>,</span><br><span class="line">			LevelKey:       <span class="string">"level"</span>,</span><br><span class="line">			NameKey:        <span class="string">"logger"</span>,</span><br><span class="line">			CallerKey:      <span class="string">""</span>, <span class="comment">// 不记录日志调用位置</span></span><br><span class="line">			FunctionKey:    zapcore.OmitKey,</span><br><span class="line">			MessageKey:     <span class="string">"message"</span>,</span><br><span class="line">			LineEnding:     zapcore.DefaultLineEnding,</span><br><span class="line">			EncodeLevel:    zapcore.LowercaseLevelEncoder,</span><br><span class="line">			EncodeTime:     zapcore.RFC3339TimeEncoder,</span><br><span class="line">			EncodeDuration: zapcore.SecondsDurationEncoder,</span><br><span class="line">			EncodeCaller:   zapcore.ShortCallerEncoder,</span><br><span class="line">		&#125;,</span><br><span class="line">		OutputPaths:      []<span class="keyword">string</span>&#123;<span class="string">"stdout"</span>, <span class="string">"test.log"</span>&#125;,</span><br><span class="line">		ErrorOutputPaths: []<span class="keyword">string</span>&#123;<span class="string">"error.log"</span>&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> cfg.Build()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	logger, _ := newCustomLogger()</span><br><span class="line">	<span class="keyword">defer</span> logger.Sync()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 增加一个 skip 选项，触发 zap 内部 error，将错误输出到 error.log</span></span><br><span class="line">	logger = logger.WithOptions(zap.AddCallerSkip(<span class="number">100</span>))</span><br><span class="line"></span><br><span class="line">	logger.Info(<span class="string">"Info msg"</span>)</span><br><span class="line">	logger.Error(<span class="string">"Error msg"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上代码通过 <code>newCustomLogger</code> 函数创建了一个自定义的 <code>Logger</code>，同样通过先定义一个 <code>zap.Config</code> 然后再调用其 <code>Build</code> 方法来实现。</p>
+<p>配置日志分别输出到标准输出和 <code>test.log</code> 文件，执行以上代码，控制台和 <code>test.log</code> 都会得到如下输出：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#123;&quot;level&quot;:&quot;info&quot;,&quot;time&quot;:&quot;2023-03-19T19:19:18+08:00&quot;,&quot;message&quot;:&quot;Info msg&quot;&#125;</span><br><span class="line">&#123;&quot;level&quot;:&quot;error&quot;,&quot;time&quot;:&quot;2023-03-19T19:19:18+08:00&quot;,&quot;message&quot;:&quot;Error msg&quot;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>另外，我们还通过 <code>logger.WithOptions()</code> 为 <code>Logger</code> 对象增加了一个选项 <code>zap.AddCallerSkip(100)</code>，这个选项的作用是指定在通过调用栈获得行号时跳过的调用深度，因为我们的函数调用栈并不是 100 层，所以会触发 zap 内部错误，zap 会将错误日志输出到 <code>ErrorOutputPaths</code> 配置指定的位置中，即 <code>error.log</code>。</p>
+<p><code>error.log</code> 得到的错误日志如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">2023-03-19 11:19:18.438824 +0000 UTC Logger.check error: failed to get caller</span><br><span class="line">2023-03-19 11:19:18.44921 +0000 UTC Logger.check error: failed to get caller</span><br></pre></td></tr></table></figure>
+
+<p><code>logger.WithOptions()</code> 支持的选项如下：</p>
+<ul>
+<li><p><code>WrapCore(f func(zapcore.Core) zapcore.Core)</code>: 使用一个新的 <code>zapcore.Core</code> 替换掉 <code>Logger</code> 内部原有的的 <code>zapcore.Core</code> 属性。</p>
+</li>
+<li><p><code>Hooks(hooks ...func(zapcore.Entry) error)</code>: 注册钩子函数，用来在日志打印时同时调用注册的钩子函数。</p>
+</li>
+<li><p><code>Fields(fs ...Field)</code>: 添加公共字段。</p>
+</li>
+<li><p><code>ErrorOutput(w zapcore.WriteSyncer)</code>: 指定日志组件内部出现异常时的输出位置。</p>
+</li>
+<li><p><code>Development()</code>: 将日志记录器设为开发模式，这将使 <code>DPanic</code> 级别日志记录错误后执行 <code>panic()</code>。</p>
+</li>
+<li><p><code>AddCaller()</code>: 与 <code>WithCaller(true)</code> 等价。</p>
+</li>
+<li><p><code>WithCaller(enabled bool)</code>: 指定是否在日志输出内容中增加调用信息，即文件名和行号。</p>
+</li>
+<li><p><code>AddCallerSkip(skip int)</code>: 指定在通过调用栈获取文件名和行号时跳过的调用深度。</p>
+</li>
+<li><p><code>AddStacktrace(lvl zapcore.LevelEnabler)</code>: 用来指定某个日志级别及以上级别输出调用堆栈。</p>
+</li>
+<li><p><code>IncreaseLevel(lvl zapcore.LevelEnabler)</code>: 提高日志级别，如果传入的 <code>lvl</code> 比现有级别低，则不会改变日志级别。</p>
+</li>
+<li><p><code>WithFatalHook(hook zapcore.CheckWriteHook)</code>: 当出现 <code>Fatal</code> 级别日志时调用的钩子函数。</p>
+</li>
+<li><p><code>WithClock(clock zapcore.Clock)</code>: 指定日志记录器用来确定当前时间的 <code>zapcore.Clock</code> 对象，默认为 <code>time.Now</code> 的系统时钟。</p>
+</li>
+</ul>
+<p>创建自定义的配置对象，除了在代码中指定配置参数，也可以将这些配置项写入到 JSON 文件中，然后通过 <code>json.Unmarshal</code> 的方式将配置绑定到 <code>zap.Config</code>，可以参考<a href="https://pkg.go.dev/go.uber.org/zap#example-package-BasicConfiguration" target="_blank" rel="noopener">官方示例</a>。</p>
+<h3 id="二次开发"><a href="#二次开发" class="headerlink" title="二次开发"></a>二次开发</h3><h4 id="封装自己的-zap-包"><a href="#封装自己的-zap-包" class="headerlink" title="封装自己的 zap 包"></a>封装自己的 zap 包</h4><p>通过前文对 zap 的介绍，相信你对 zap 的特点和用法都已了然于心。如果你用惯了 Go log 标准库，或者是 Logrus 第三方库，那么对于 zap 所提供的 API 一定不会感到满意。因此，我基于 zap 包定制开发了自己的日志包，项目地址在<a href="https://github.com/jianghushinian/gokit/tree/main/log" target="_blank" rel="noopener">这里</a>，你可以点进去查看源码。</p>
+<p>基于 zap 定制的日志包并没有太多的逻辑，只在 zap/zapcore （zapcore 故名思义，是 zap 的核心，zap 是对 zapcore 的封装）基础上进行了很薄的一层封装，所以性能上无需担心。</p>
+<blockquote>
+<p>提示：关于定制开发的日志包设计思路这里就不讲解了，之后我会单独写一篇文章来进行解读，敬请期待（先挖个坑）。</p>
+</blockquote>
+<p>日志包对外提供了类似 Go log 标准库风格的 API，几种常见使用方式如下：</p>
+<h4 id="像-Go-log-标准库一样开箱即用"><a href="#像-Go-log-标准库一样开箱即用" class="headerlink" title="像 Go log 标准库一样开箱即用"></a>像 Go log 标准库一样开箱即用</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">	log <span class="string">"github.com/jianghushinian/gokit/log/zap"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> log.Sync()</span><br><span class="line">	log.Info(<span class="string">"failed to fetch URL"</span>, log.String(<span class="string">"url"</span>, <span class="string">"https://jianghushinian.cn/"</span>))</span><br><span class="line">	log.Warn(<span class="string">"Warn msg"</span>, log.Int(<span class="string">"attempt"</span>, <span class="number">3</span>))</span><br><span class="line">	log.Error(<span class="string">"Error msg"</span>, log.Duration(<span class="string">"backoff"</span>, time.Second))</span><br><span class="line"></span><br><span class="line">	log.SetLevel(log.ErrorLevel)</span><br><span class="line">	log.Info(<span class="string">"Info msg"</span>)</span><br><span class="line">	log.Warn(<span class="string">"Warn msg"</span>)</span><br><span class="line">	log.Error(<span class="string">"Error msg"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 替换默认 Logger</span></span><br><span class="line">	file, _ := os.OpenFile(<span class="string">"custom.log"</span>, os.O_CREATE|os.O_APPEND|os.O_WRONLY, <span class="number">0644</span>)</span><br><span class="line">	logger := log.New(file, log.InfoLevel)</span><br><span class="line">	log.ReplaceDefault(logger)</span><br><span class="line">	log.Info(<span class="string">"Info msg in replace default logger after"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>自定义日志包提供了默认的 <code>std</code> <code>Logger</code> 对象和 <code>Info</code>、<code>Warn</code> 等包级别的开放函数，以此实现开箱即用的效果。日志包还提供了 <code>SetLevel</code> 函数来支持运行时修改日志级别。</p>
+<p>另外，如果你对默认的 <code>Logger</code> 不满意，可以使用 <code>log.New</code> 来创建新的 <code>Logger</code>，接下来只需要通过 <code>log.ReplaceDefault(logger)</code> 一行代码，就可以将默认的 <code>Logger</code> 替换成新创建的 <code>Logger</code> 对象。之后通过 <code>log.Info</code> 来输出日志底层使用的已经是替换后的 <code>Logger</code> 对象了。</p>
+<p>执行以上代码，控制台输出:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&#123;&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-03-19T21:57:59+08:00&quot;,&quot;msg&quot;:&quot;failed to fetch URL&quot;,&quot;url&quot;:&quot;https:&#x2F;&#x2F;jianghushinian.cn&#x2F;&quot;&#125;</span><br><span class="line">&#123;&quot;level&quot;:&quot;warn&quot;,&quot;ts&quot;:&quot;2023-03-19T21:57:59+08:00&quot;,&quot;msg&quot;:&quot;Warn msg&quot;,&quot;attempt&quot;:3&#125;</span><br><span class="line">&#123;&quot;level&quot;:&quot;error&quot;,&quot;ts&quot;:&quot;2023-03-19T21:57:59+08:00&quot;,&quot;msg&quot;:&quot;Error msg&quot;,&quot;backoff&quot;:1&#125;</span><br><span class="line">&#123;&quot;level&quot;:&quot;error&quot;,&quot;ts&quot;:&quot;2023-03-19T21:57:59+08:00&quot;,&quot;msg&quot;:&quot;Error msg&quot;&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>custom.log</code> 输出:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-03-19T21:57:59+08:00&quot;,&quot;msg&quot;:&quot;Info msg in replace default logger after&quot;&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="将日志输出到多个位置"><a href="#将日志输出到多个位置" class="headerlink" title="将日志输出到多个位置"></a>将日志输出到多个位置</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line"></span><br><span class="line">	log <span class="string">"github.com/jianghushinian/gokit/log/zap"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	file, _ := os.OpenFile(<span class="string">"test-warn.log"</span>, os.O_CREATE|os.O_APPEND|os.O_WRONLY, <span class="number">0644</span>)</span><br><span class="line">	tees := []log.TeeOption&#123;</span><br><span class="line">		&#123;</span><br><span class="line">			Out: os.Stdout,</span><br><span class="line">			LevelEnablerFunc: <span class="function"><span class="keyword">func</span><span class="params">(level log.Level)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">				<span class="keyword">return</span> level == log.InfoLevel</span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line">		&#123;</span><br><span class="line">			Out: file,</span><br><span class="line">			LevelEnablerFunc: <span class="function"><span class="keyword">func</span><span class="params">(level log.Level)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">				<span class="keyword">return</span> level == log.WarnLevel</span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">	logger := log.NewTee(tees)</span><br><span class="line">	<span class="keyword">defer</span> logger.Sync()</span><br><span class="line"></span><br><span class="line">	logger.Info(<span class="string">"Info tee msg"</span>)</span><br><span class="line">	logger.Warn(<span class="string">"Warn tee msg"</span>)</span><br><span class="line">	logger.Error(<span class="string">"Error tee msg"</span>) <span class="comment">// 不会输出</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>自定义日志包通过 <code>log.NewTee</code> 构造函数提供了将日志输出到多个位置的能力，<code>log.NewTee</code> 接收一个 <code>log.TeeOption</code> 列表，用来定义不同级别的日志输出方式，其本质上是定义了多个 <code>zap.Core</code> 对象。</p>
+<p>其中 <code>Out</code> 字段为日志输出目标地址，<code>LevelEnablerFunc</code> 用来指定日志级别。这有别于使用 <code>log.InfoLevel</code> 这种常量日志级别的设定，使用 <code>LevelEnablerFunc</code> 只需要定义一个接收 <code>log.Level</code> 作为参数并返回 <code>bool</code> 类型值的函数即可。</p>
+<p>这样如果函数内部写为 <code>return level == log.InfoLevel</code> 表示 <code>Info</code> 级别使用此配置日志对象输出，日过函数内部实现为 <code>return level &gt;= log.WarnLevel</code> 则表示 <code>Warn</code> 及以上级别即 <code>Warn</code>、<code>Error</code>、<code>DPanic</code>、<code>Panic</code>、<code>Fatal</code> 级别都使用此配置对应的日志对象作为输出，更为灵活。</p>
+<p>执行以上代码，控制台输出:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-03-19T22:06:25+08:00&quot;,&quot;msg&quot;:&quot;Info tee msg&quot;&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>test-warn.log</code> 输出:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;&quot;level&quot;:&quot;warn&quot;,&quot;ts&quot;:&quot;2023-03-19T22:06:25+08:00&quot;,&quot;msg&quot;:&quot;Warn tee msg&quot;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>选项模式、Hooks、日志轮转等更多使用场景可以参考项目的<a href="https://github.com/jianghushinian/gokit/tree/main/log/zap#%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B" target="_blank" rel="noopener">使用示例</a>。在 Gin 框架中的使用示例，可以参考<a href="https://github.com/jianghushinian/gokit/tree/main/log/zap/examples/gin" target="_blank" rel="noopener">这里</a>。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文讲解了 Go 第三方日志库 zap 的特点及使用。</p>
+<p>zap 作为以快著称的日志库，在使用上不如 Logrus 来的方便，于是我基于 zap 定制开发了自己的日志包，并简单介绍了如何使用。</p>
+<p>关于 zap 的更多使用方式可以参考<a href="https://pkg.go.dev/go.uber.org/zap" target="_blank" rel="noopener">官方文档</a>，如果你对我封装日志包感兴趣，可以查看<a href="https://github.com/jianghushinian/gokit/tree/main/log" target="_blank" rel="noopener">源码</a>。</p>
+<p><strong>参考</strong></p>
+<blockquote>
+<p>zap 源码: <a href="https://github.com/uber-go/zap" target="_blank" rel="noopener">https://github.com/uber-go/zap</a><br>zap 文档: <a href="https://pkg.go.dev/go.uber.org/zap" target="_blank" rel="noopener">https://pkg.go.dev/go.uber.org/zap</a><br>基于 zap 开发的日志包: <a href="https://github.com/jianghushinian/gokit/tree/main/log" target="_blank" rel="noopener">https://github.com/jianghushinian/gokit/tree/main/log</a></p>
+</blockquote>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2023-03-22T04:44:25.641Z" itemprop="dateUpdated">2023-03-22 12:44:25</time>
+</span><br>
+
+
+        
+        <a href="/2023/03/19/use-of-zap-in-go-third-party-log-library/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/03/19/use-of-zap-in-go-third-party-log-library/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Golang/" rel="tag">Golang</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Log/" rel="tag">Log</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/03/19/use-of-zap-in-go-third-party-log-library/&title=《Go 第三方 log 库之 zap 使用》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/03/19/use-of-zap-in-go-third-party-log-library/&title=《Go 第三方 log 库之 zap 使用》 — 江湖十年&source=zap 是由 Uber 公司开源的一款 Go 日志库，就像它的命名一样，zap 以快著称。官方 GitHub 仓库中只用一句话来概括 zap：「在 Go ..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/03/19/use-of-zap-in-go-third-party-log-library/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 第三方 log 库之 zap 使用》 — 江湖十年&url=http://www.jianghushinian.cn/2023/03/19/use-of-zap-in-go-third-party-log-library/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/03/19/use-of-zap-in-go-third-party-log-library/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/03/15/use-of-logrus-in-go-third-party-log-library/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 第三方 log 库之 logrus 使用</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2023</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/03/19/use-of-zap-in-go-third-party-log-library/&title=《Go 第三方 log 库之 zap 使用》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/03/19/use-of-zap-in-go-third-party-log-library/&title=《Go 第三方 log 库之 zap 使用》 — 江湖十年&source=zap 是由 Uber 公司开源的一款 Go 日志库，就像它的命名一样，zap 以快著称。官方 GitHub 仓库中只用一句话来概括 zap：「在 Go ..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/03/19/use-of-zap-in-go-third-party-log-library/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 第三方 log 库之 zap 使用》 — 江湖十年&url=http://www.jianghushinian.cn/2023/03/19/use-of-zap-in-go-third-party-log-library/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/03/19/use-of-zap-in-go-third-party-log-library/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/03/19/use-of-zap-in-go-third-party-log-library/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
