@@ -29,7 +29,7 @@
 <meta property="og:description" content="在使用 Go 进行开发的过程中，命令行参数解析是我们经常遇到的需求。而 flag 包正是一个用于实现命令行参数解析的 Go 标准库。在本文中，我们将深入探讨 flag 标准库的实现原理和使用技巧，以帮助读者更好地理解和掌握该库的使用方法。">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2023-03-26T03:01:06.000Z">
-<meta property="article:modified_time" content="2023-03-27T06:09:06.306Z">
+<meta property="article:modified_time" content="2023-03-27T13:32:10.275Z">
 <meta property="article:author" content="江湖十年">
 <meta property="article:tag" content="Golang">
 <meta property="article:tag" content="命令行">
@@ -196,7 +196,6 @@
         <div class="post-content" id="post-content" itemprop="postContent">
             <p>在使用 Go 进行开发的过程中，命令行参数解析是我们经常遇到的需求。而 flag 包正是一个用于实现命令行参数解析的 Go 标准库。在本文中，我们将深入探讨 flag 标准库的实现原理和使用技巧，以帮助读者更好地理解和掌握该库的使用方法。</p>
 <a id="more"></a>
-
 
 <h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><h4 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h4><p>flag 基本使用示例代码如下：</p>
 <figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"flag"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> flagVal <span class="keyword">struct</span> &#123;</span><br><span class="line">	val <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(v *flagVal)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> v.val</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(v *flagVal)</span> <span class="title">Set</span><span class="params">(s <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	v.val = s</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 1. 使用 flag.Type() 返回  *int 类型命令行参数</span></span><br><span class="line">	<span class="keyword">var</span> nFlag = flag.Int(<span class="string">"n"</span>, <span class="number">1234</span>, <span class="string">"help message for flag n"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 2. 使用 flag.TypeVar() 绑定命令行参数到 int 类型变量</span></span><br><span class="line">	<span class="keyword">var</span> flagvar <span class="keyword">int</span></span><br><span class="line">	flag.IntVar(&amp;flagvar, <span class="string">"flagvar"</span>, <span class="number">1234</span>, <span class="string">"help message for flagvar"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 3. 使用 flag.Var() 绑定命令行参数到实现了 flag.Value 接口的自定义类型变量</span></span><br><span class="line">	val := flagVal&#123;&#125;</span><br><span class="line">	flag.Var(&amp;val, <span class="string">"val"</span>, <span class="string">"help message for val"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 解析命令行参数</span></span><br><span class="line">	flag.Parse()</span><br><span class="line"></span><br><span class="line">	fmt.Printf(<span class="string">"nFlag: %d\n"</span>, *nFlag)</span><br><span class="line">	fmt.Printf(<span class="string">"flagvar: %d\n"</span>, flagvar)</span><br><span class="line">	fmt.Printf(<span class="string">"val: %+v\n"</span>, val)</span><br><span class="line"></span><br><span class="line">	fmt.Printf(<span class="string">"NFlag: %v\n"</span>, flag.NFlag()) <span class="comment">// 返回已设置的命令行标志个数</span></span><br><span class="line">	fmt.Printf(<span class="string">"NArg: %v\n"</span>, flag.NArg())   <span class="comment">// 返回处理完标志后剩余的参数个数</span></span><br><span class="line">	fmt.Printf(<span class="string">"Args: %v\n"</span>, flag.Args())   <span class="comment">// 返回处理完标志后剩余的参数列表</span></span><br><span class="line">	fmt.Printf(<span class="string">"Arg(1): %v\n"</span>, flag.Arg(<span class="number">1</span>)) <span class="comment">// 返回处理完标志后剩余的参数列表中第 i 项</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -430,7 +429,7 @@
     <div class="content">
         
 <span class="post-time">
-    最后更新时间：<time datetime="2023-03-27T06:09:06.306Z" itemprop="dateUpdated">2023-03-27 14:09:06</time>
+    最后更新时间：<time datetime="2023-03-27T13:32:10.275Z" itemprop="dateUpdated">2023-03-27 21:32:10</time>
 </span><br>
 
 
@@ -507,7 +506,14 @@
     </div>
 
     
-<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2023/03/27/use-of-go-command-line-parameter-parsing-tool-pflag/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Go 命令行参数解析工具 pflag 使用</h4>
+      </a>
+    </div>
   
 
   
