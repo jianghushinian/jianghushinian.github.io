@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>如何用 Go 实现一个配置包 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Golang,Web">
+    <meta name="description" content="在现代软件开发中，配置文件是不可或缺的一部分。在编写 Go 项目时，不管是一个简单的单文件脚本还是一个庞大的微服务项目，程序的灵活性和可扩展性都需要依赖于配置文件的加载。配置文件可以包含程序的各种设置，如端口号、数据库连接信息、认证密钥等，这些设置可能需要根据不同的环境和部署情况进行调整。因此，一个可靠的配置文件加载机制对于项目的成功实现至关重要。本文就来探究下在 Go 项目中如何更加方便的加载和">
+<meta property="og:type" content="article">
+<meta property="og:title" content="如何用 Go 实现一个配置包">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/03/31/how-to-implement-a-config-package-with-go/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在现代软件开发中，配置文件是不可或缺的一部分。在编写 Go 项目时，不管是一个简单的单文件脚本还是一个庞大的微服务项目，程序的灵活性和可扩展性都需要依赖于配置文件的加载。配置文件可以包含程序的各种设置，如端口号、数据库连接信息、认证密钥等，这些设置可能需要根据不同的环境和部署情况进行调整。因此，一个可靠的配置文件加载机制对于项目的成功实现至关重要。本文就来探究下在 Go 项目中如何更加方便的加载和">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-03-31T04:52:34.000Z">
+<meta property="article:modified_time" content="2023-03-31T14:57:32.991Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Golang">
+<meta property="article:tag" content="Web">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">如何用 Go 实现一个配置包</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">如何用 Go 实现一个配置包</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-03-31T04:52:34.000Z" itemprop="datePublished" class="page-time">
+  2023-03-31
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Golang/">Golang</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#需求"><span class="post-toc-number">1.</span> <span class="post-toc-text">需求</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#config-包实现"><span class="post-toc-number">2.</span> <span class="post-toc-text">config 包实现</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#反序列化"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">反序列化</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#序列化"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">序列化</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#通过环境变量-命令行参数指定配置文件"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">通过环境变量&#x2F;命令行参数指定配置文件</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#封装"><span class="post-toc-number">2.4.</span> <span class="post-toc-text">封装</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#反序列化-1"><span class="post-toc-number">2.4.1.</span> <span class="post-toc-text">反序列化</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#序列化-1"><span class="post-toc-number">2.4.2.</span> <span class="post-toc-text">序列化</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#统一出口函数"><span class="post-toc-number">2.5.</span> <span class="post-toc-text">统一出口函数</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#config-包使用"><span class="post-toc-number">3.</span> <span class="post-toc-text">config 包使用</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-how-to-implement-a-config-package-with-go"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">如何用 Go 实现一个配置包</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-03-31 12:52:34" datetime="2023-03-31T04:52:34.000Z"  itemprop="datePublished">2023-03-31</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Golang/">Golang</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在现代软件开发中，配置文件是不可或缺的一部分。在编写 Go 项目时，不管是一个简单的单文件脚本还是一个庞大的微服务项目，程序的灵活性和可扩展性都需要依赖于配置文件的加载。配置文件可以包含程序的各种设置，如端口号、数据库连接信息、认证密钥等，这些设置可能需要根据不同的环境和部署情况进行调整。因此，一个可靠的配置文件加载机制对于项目的成功实现至关重要。本文就来探究下在 Go 项目中如何更加方便的加载和管理配置。</p>
+<a id="more"></a>
+
+<p>在 Go 中，有很多方法可以加载和管理配置，例如使用命令行标志、环境变量或者读取特定格式的文件。选择哪种方法取决于项目的具体需求和开发人员的偏好。</p>
+<h3 id="需求"><a href="#需求" class="headerlink" title="需求"></a>需求</h3><p>根据我的开发经验，一个配置包通常需要支持如下功能：</p>
+<ul>
+<li><p>支持从环境变量、命令行标志加载配置文件，然后将配置文件内容映射到 Go 结构体中，这个过程叫作反序列化。</p>
+</li>
+<li><p>支持将 Go 结构体中的配置信息写入配置文件，这个过程叫作序列化。</p>
+</li>
+<li><p>起码要支持 YAML、JSON 这两种最常见的配置文件格式。</p>
+</li>
+</ul>
+<h3 id="config-包实现"><a href="#config-包实现" class="headerlink" title="config 包实现"></a>config 包实现</h3><h4 id="反序列化"><a href="#反序列化" class="headerlink" title="反序列化"></a>反序列化</h4><p>反序列化操作是配置包最常用的功能，通过反序列化我们可以将配置文件内容映射到 Go 结构体中。所以我们先来实现如何进行配置文件的反序列化操作。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> FileType <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	FileTypeYAML = <span class="literal">iota</span></span><br><span class="line">	FileTypeJSON</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">LoadConfig</span><span class="params">(filename <span class="keyword">string</span>, cfg <span class="keyword">interface</span>&#123;&#125;, typ FileType)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	data, err := os.ReadFile(filename)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"ReadFile: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">switch</span> typ &#123;</span><br><span class="line">	<span class="keyword">case</span> FileTypeYAML:</span><br><span class="line">		<span class="keyword">return</span> yaml.Unmarshal(data, cfg)</span><br><span class="line">	<span class="keyword">case</span> FileTypeJSON:</span><br><span class="line">		<span class="keyword">return</span> json.Unmarshal(data, cfg)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> errors.New(<span class="string">"unsupported file type"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先定义一个 <code>FileType</code> 类型，用来区分不同的配置文件格式，我们要实现的日志包能够支持 YAML 和 JSON 两种格式。</p>
+<p>接下来实现了 <code>LoadConfig</code> 函数，用来加载配置，它接收三个参数：配置文件名称、配置结构体、文件类型。</p>
+<p>在函数内部，首先使用 <code>os.ReadFile(filename)</code> 读取配置文件内容，然后根据文件类型，使用不同的方法来反序列化，最终将配置信息映射到 <code>cfg</code> 结构体中。</p>
+<h4 id="序列化"><a href="#序列化" class="headerlink" title="序列化"></a>序列化</h4><p>配置包还要支持序列化操作，也就是将配置信息从内存中写入文件。有时候我们想保存一个 <code>example-config.yaml</code> 供项目使用者参考，这个功能就很实用。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DumpConfig</span><span class="params">(filename <span class="keyword">string</span>, cfg <span class="keyword">interface</span>&#123;&#125;, typ FileType)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		data []<span class="keyword">byte</span></span><br><span class="line">		err  error</span><br><span class="line">	)</span><br><span class="line">	<span class="keyword">switch</span> typ &#123;</span><br><span class="line">	<span class="keyword">case</span> FileTypeYAML:</span><br><span class="line">		data, err = yaml.Marshal(cfg)</span><br><span class="line">	<span class="keyword">case</span> FileTypeJSON:</span><br><span class="line">		data, err = json.Marshal(cfg)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	f, err := os.Create(filename)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	_, err = f.Write(data)</span><br><span class="line">	_ = f.Close()</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们实现了 <code>DumpConfig</code> 函数用来进行序列化操作，该函数同样接收三个参数：配置文件名、配置结构体、文件类型。</p>
+<p>在函数中，首先根据文件类型对配置对象 <code>cfg</code> 进行序列化操作得到 <code>data</code>，然后通过 <code>os.Create(filename)</code> 创建配置文件文件，最后使用 <code>f.Write(data)</code> 将序列化后的内容写入文件。</p>
+<p>现在配置包的核心功能已经实现了，并且两个函数都被允许导出，如果其他项目想使用，其实是可以拿过去直接使用的。不过目前的配置包在易用性上还有可优化的空间。</p>
+<h4 id="通过环境变量-命令行参数指定配置文件"><a href="#通过环境变量-命令行参数指定配置文件" class="headerlink" title="通过环境变量/命令行参数指定配置文件"></a>通过环境变量/命令行参数指定配置文件</h4><p>以上序列化/反序列化函数的实现，配置文件名都是需要通过参数传递进来的，我们还可以通过环境变量或者命令行参数的形式来指定配置文件名。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	cfgPath = flag.String(<span class="string">"c"</span>, <span class="string">"config.yaml"</span>, <span class="string">"path to config file"</span>)</span><br><span class="line">	dump    = flag.Bool(<span class="string">"d"</span>, <span class="literal">false</span>, <span class="string">"dump config to file"</span>)</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	_ = flag.Set(<span class="string">"c"</span>, os.Getenv(<span class="string">"CONFIG_PATH"</span>))</span><br><span class="line">	_ = flag.Set(<span class="string">"d"</span>, os.Getenv(<span class="string">"DUMP_CONFIG"</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>命令行参数解析可以使用 Go 内置的 flag 包来实现，我们在这里声明了两个标志，<code>-c</code> 用来传递配置文件名，<code>-d</code> 用来决定要进行序列化还是反序列化操作。</p>
+<p>此外，在 <code>init</code> 函数中，我们实现了从环境变量中加载配置文件名和需要执行的操作。当配置包被导入时，会优先执行 <code>init</code> 函数，所以这些信息会优先从环境变量读取。</p>
+<h4 id="封装"><a href="#封装" class="headerlink" title="封装"></a>封装</h4><p>现在我们可以通过环境变量或命令行参数的形式拿到配置文件名和需要执行的操作两个参数，并且分别赋值给 <code>cfgPath</code>、<code>dump</code> 两个变量，接下来我们将对之前实现的序列化/反序列化函数进行封装，让其使用起来更加便捷。</p>
+<h5 id="反序列化-1"><a href="#反序列化-1" class="headerlink" title="反序列化"></a>反序列化</h5><p>首先，我们可以将反序列化操作函数 <code>LoadConfig</code> 进一步封装，将其包装成两个函数分别加载 YAML 配置和 JSON 配置，这样调用方在使用时能够少传递一个参数。实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">LoadYAMLConfig</span><span class="params">(filename <span class="keyword">string</span>, cfg <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> LoadConfig(filename, cfg, FileTypeYAML)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">LoadJSONConfig</span><span class="params">(filename <span class="keyword">string</span>, cfg <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> LoadConfig(filename, cfg, FileTypeJSON)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其次，我们拿到的 <code>cfgPath</code> 参数也能派上用场了，可以对 <code>LoadYAMLConfig</code>、<code>LoadJSONConfig</code> 进一步封装：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">LoadYAMLConfigFromFlag</span><span class="params">(cfg <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> !flag.Parsed() &#123;</span><br><span class="line">		flag.Parse()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> LoadYAMLConfig(*cfgPath, cfg)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">LoadJSONConfigFromFlag</span><span class="params">(cfg <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> !flag.Parsed() &#123;</span><br><span class="line">		flag.Parse()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> LoadJSONConfig(*cfgPath, cfg)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为 <code>cfgPath</code> 是通过环境变量或命令行参数形式传入，所以调用反序列化函数的时候也就没必要手动传入了。</p>
+<p>不过在使用 <code>cfgPath</code> 变量之前，我们调用了 <code>flag.Parsed()</code> 并对其返回值进行了判断，如果 <code>flag.Parsed()</code> 返回 <code>false</code> 则调用 <code>flag.Parse()</code>。</p>
+<p>这一步操作是因为，配置包的调用方可能也使用了 flag 包，那么如果调用方已经调用过 <code>flag.Parse()</code> 解析了命令行参数，调用 <code>flag.Parsed()</code> 就会返回 <code>true</code>，此时配置包内部没必要再解析一遍命令行参数，可以直接使用。</p>
+<blockquote>
+<p>提示：如果你不熟悉 flag 包的用法，可以参考我之前写的文章<a href="https://jianghushinian.cn/2023/03/26/dive-into-the-go-flag-standard-library/" target="_blank" rel="noopener">《深入探究 Go flag 标准库》</a>。</p>
+</blockquote>
+<h5 id="序列化-1"><a href="#序列化-1" class="headerlink" title="序列化"></a>序列化</h5><p>封装好了反序列化操作，对应的，也要封装序列化操作。代码实现上与反序列化操作如出一辙，我将代码贴在这里，就不再进行讲解了。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DumpYAMLConfig</span><span class="params">(filename <span class="keyword">string</span>, cfg <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> DumpConfig(filename, cfg, FileTypeYAML)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DumpJSONConfig</span><span class="params">(filename <span class="keyword">string</span>, cfg <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> DumpConfig(filename, cfg, FileTypeJSON)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DumpYAMLConfigFromFlag</span><span class="params">(cfg <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> !flag.Parsed() &#123;</span><br><span class="line">		flag.Parse()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> DumpYAMLConfig(*cfgPath, cfg)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DumpJSONConfigFromFlag</span><span class="params">(cfg <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> !flag.Parsed() &#123;</span><br><span class="line">		flag.Parse()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> DumpJSONConfig(*cfgPath, cfg)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="统一出口函数"><a href="#统一出口函数" class="headerlink" title="统一出口函数"></a>统一出口函数</h4><p>我们通过环境变量或命令行参数拿到的另外一个用户指定的变量 <code>dump</code> 还没有使用，<code>dump</code> 是一个 <code>bool</code> 值，代表用户是否想要序列化配置，如果为 <code>true</code> 则进行序列化操作，否则进行反序列化操作。</p>
+<p>由此，我们可以将序列化/反序列化操作封装成一个函数，内部通过 <code>dump</code> 的值来决定执行哪种操作。实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">LoadOrDumpYAMLConfigFromFlag</span><span class="params">(cfg <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> !flag.Parsed() &#123;</span><br><span class="line">		flag.Parse()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> *dump &#123;</span><br><span class="line">		<span class="keyword">if</span> err := DumpYAMLConfig(*cfgPath, cfg); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		os.Exit(<span class="number">0</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> LoadYAMLConfig(*cfgPath, cfg)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">LoadOrDumpJSONConfigFromFlag</span><span class="params">(cfg <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> *dump &#123;</span><br><span class="line">		<span class="keyword">if</span> err := DumpJSONConfigFromFlag(cfg); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		os.Exit(<span class="number">0</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> LoadJSONConfigFromFlag(cfg)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们对 YAML 和 JSON 格式的配置分别实现了 <code>LoadOrDumpYAMLConfigFromFlag</code> 和 <code>LoadOrDumpJSONConfigFromFlag</code> 函数。顾名思义，这个函数既能加载（<code>Load</code>）配置，也能将配置写入（<code>Dump</code>）文件。</p>
+<p>两个函数内部思路相同，如果 <code>dump</code> 为 <code>true</code>，就序列化配置信息到文件中，并且使用 <code>os.Exit(0)</code> 退出程序。此时，控制台不会有任何输出，这遵循了 Linux/Unix 系统的设计哲学，没有消息就是最好的消息；如果 <code>dump</code> 为 <code>false</code>，则进行反序列化操作。</p>
+<p>以上我们就实现了自定义配置包的全部功能，完整代码可以<a href="https://github.com/jianghushinian/gokit/tree/main/config/config" target="_blank" rel="noopener">点击这里</a>查看。</p>
+<h3 id="config-包使用"><a href="#config-包使用" class="headerlink" title="config 包使用"></a>config 包使用</h3><p>配置包的完整使用示例我写在了项目 GitHub 仓库的 <a href="https://github.com/jianghushinian/gokit/tree/main/config/config" target="_blank" rel="noopener">README.md</a> 文件中，你可以点进去查看。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文带大家一起使用 Go 语言实现了一个简洁的日志包，虽然功能不多，但足够中小型项目使用。如果对加载配置文件有更要的要求，如更多格式的日志文件支持、热加载等，则可以考虑使用更强大的 Go 第三方库 Viper，或者使用 Nacos、Disconf 等配置中心。</p>
+<p>在这个云原生的时代，其实多数情况下，配置包不需要实现多么复杂的功能，尽量保持简洁。配置文件可以使用 K8s <code>ConfigMap</code> 来实现，配置包的高级特性也可以考虑通过 <code>Sidecar</code> 的形式来实现。</p>
+<p><strong>参考</strong></p>
+<blockquote>
+<p>config 源码: <a href="https://github.com/jianghushinian/gokit/tree/main/config/config" target="_blank" rel="noopener">https://github.com/jianghushinian/gokit/tree/main/config/config</a></p>
+</blockquote>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2023-03-31T14:57:32.991Z" itemprop="dateUpdated">2023-03-31 22:57:32</time>
+</span><br>
+
+
+        
+        <a href="/2023/03/31/how-to-implement-a-config-package-with-go/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/03/31/how-to-implement-a-config-package-with-go/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Golang/" rel="tag">Golang</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/03/31/how-to-implement-a-config-package-with-go/&title=《如何用 Go 实现一个配置包》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/03/31/how-to-implement-a-config-package-with-go/&title=《如何用 Go 实现一个配置包》 — 江湖十年&source=在现代软件开发中，配置文件是不可或缺的一部分。在编写 Go 项目时，不管是一个简单的单文件脚本还是一个庞大的微服务项目，程序的灵活性和可扩展性都需要依赖于..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/03/31/how-to-implement-a-config-package-with-go/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《如何用 Go 实现一个配置包》 — 江湖十年&url=http://www.jianghushinian.cn/2023/03/31/how-to-implement-a-config-package-with-go/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/03/31/how-to-implement-a-config-package-with-go/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/03/27/use-of-go-command-line-parameter-parsing-tool-pflag/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 命令行参数解析工具 pflag 使用</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2023</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/03/31/how-to-implement-a-config-package-with-go/&title=《如何用 Go 实现一个配置包》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/03/31/how-to-implement-a-config-package-with-go/&title=《如何用 Go 实现一个配置包》 — 江湖十年&source=在现代软件开发中，配置文件是不可或缺的一部分。在编写 Go 项目时，不管是一个简单的单文件脚本还是一个庞大的微服务项目，程序的灵活性和可扩展性都需要依赖于..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/03/31/how-to-implement-a-config-package-with-go/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《如何用 Go 实现一个配置包》 — 江湖十年&url=http://www.jianghushinian.cn/2023/03/31/how-to-implement-a-config-package-with-go/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/03/31/how-to-implement-a-config-package-with-go/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/03/31/how-to-implement-a-config-package-with-go/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
