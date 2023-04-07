@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>使用 docker manifest 构建跨平台镜像 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Docker">
+    <meta name="description" content="在当今的软件开发领域中，构建跨平台应用程序已经成为了一个普遍存在的需求。不同的操作系统、硬件架构需要不同的镜像环境来支持它们。Docker 作为一个广泛应用的容器化技术，必然需要能够支持构建跨平台镜像，本文将介绍如何使用 docker manifest 来实现构建跨平台镜像。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用 docker manifest 构建跨平台镜像">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在当今的软件开发领域中，构建跨平台应用程序已经成为了一个普遍存在的需求。不同的操作系统、硬件架构需要不同的镜像环境来支持它们。Docker 作为一个广泛应用的容器化技术，必然需要能够支持构建跨平台镜像，本文将介绍如何使用 docker manifest 来实现构建跨平台镜像。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/arm64.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/arm64-amd64.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/platform.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/multi-arch.png">
+<meta property="article:published_time" content="2023-04-07T00:35:35.000Z">
+<meta property="article:modified_time" content="2023-04-07T00:58:53.050Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Docker">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/arm64.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">使用 docker manifest 构建跨平台镜像</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">使用 docker manifest 构建跨平台镜像</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-04-07T00:35:35.000Z" itemprop="datePublished" class="page-time">
+  2023-04-07
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Docker/">Docker</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#简介"><span class="post-toc-number">1.</span> <span class="post-toc-text">简介</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#准备工作"><span class="post-toc-number">2.</span> <span class="post-toc-text">准备工作</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#为不同平台构建镜像"><span class="post-toc-number">3.</span> <span class="post-toc-text">为不同平台构建镜像</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#准备-Dockerfile"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">准备 Dockerfile</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#构建-arm64-平台镜像"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">构建 arm64 平台镜像</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#构建-amd64-平台镜像"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">构建 amd64 平台镜像</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用-manifest-合并多平台镜像"><span class="post-toc-number">4.</span> <span class="post-toc-text">使用 manifest 合并多平台镜像</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#manifest-功能清单"><span class="post-toc-number">5.</span> <span class="post-toc-text">manifest 功能清单</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#create"><span class="post-toc-number">5.1.</span> <span class="post-toc-text">create</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#push"><span class="post-toc-number">5.2.</span> <span class="post-toc-text">push</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#inspect"><span class="post-toc-number">5.3.</span> <span class="post-toc-text">inspect</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#annotate"><span class="post-toc-number">5.4.</span> <span class="post-toc-text">annotate</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#rm"><span class="post-toc-number">5.5.</span> <span class="post-toc-text">rm</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">6.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-build-cross-platform-images-using-docker-manifest"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">使用 docker manifest 构建跨平台镜像</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-04-07 08:35:35" datetime="2023-04-07T00:35:35.000Z"  itemprop="datePublished">2023-04-07</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Docker/">Docker</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在当今的软件开发领域中，构建跨平台应用程序已经成为了一个普遍存在的需求。不同的操作系统、硬件架构需要不同的镜像环境来支持它们。Docker 作为一个广泛应用的容器化技术，必然需要能够支持构建跨平台镜像，本文将介绍如何使用 <code>docker manifest</code> 来实现构建跨平台镜像。</p>
+<a id="more"></a>
+
+<h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p><code>docker manifest</code> 是 Docker 的一个命令，它提供了一种方便的方式来管理不同操作系统和硬件架构的 Docker 镜像。通过 <code>docker manifest</code>，用户可以创建一个虚拟的 Docker 镜像，其中包含了多个实际的 Docker 镜像，每个实际的 Docker 镜像对应一个不同的操作系统和硬件架构。</p>
+<p><code>docker manifest</code> 命令本身并不执行任何操作。为了操作一个 <code>manifest</code> 或 <code>manifest list</code>，必须使用其中一个子命令。</p>
+<p><code>manifest</code> 可以理解为是一个 JSON 文件，单个 <code>manifest</code> 包含有关镜像的信息，例如层（layers）、大小（size）和摘要（digest）等。</p>
+<p><code>manifest list</code> 是通过指定一个或多个（理想情况下是多个）镜像名称创建的镜像列表（即上面所说的虚拟 Docker 镜像）。可以像普通镜像一样使用 <code>docker pull</code> 和 <code>docker run</code> 等命令来操作它。<code>manifest list</code> 通常被称为「多架构镜像」。</p>
+<blockquote>
+<p>注意：<code>docker manifest</code> 命令是实验性的，还未转正。旨在用于测试和反馈，因此其功能和用法可能会在不同版本之间发生变化。</p>
+</blockquote>
+<h3 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h3><p>工欲善其事，必先利其器，如果想使用 <code>docker manifest</code> 构建多架构镜像，需要具备以下条件。</p>
+<ul>
+<li><p>机器上安装了 Docker。</p>
+</li>
+<li><p>需要注册一个 <a href="https://hub.docker.com/" target="_blank" rel="noopener">Docker Hub</a> 账号。</p>
+</li>
+<li><p>最少有两个不同平台的主机，用来验证 <code>docker manifest</code> 锁构建出来的多架构镜像正确性（可选）。</p>
+</li>
+<li><p>联网，<code>docker manifest</code> 命令是需要联网使用的。</p>
+</li>
+</ul>
+<h3 id="为不同平台构建镜像"><a href="#为不同平台构建镜像" class="headerlink" title="为不同平台构建镜像"></a>为不同平台构建镜像</h3><p>本文中演示程序所使用的环境是 Apple M2 芯片平台。本地的 Docker 版本如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">$ docker version</span><br><span class="line">Client:</span><br><span class="line"> Cloud integration: v1.0.29</span><br><span class="line"> Version:           20.10.21</span><br><span class="line"> API version:       1.41</span><br><span class="line"> Go version:        go1.18.7</span><br><span class="line"> Git commit:        baeda1f</span><br><span class="line"> Built:             Tue Oct 25 18:01:18 2022</span><br><span class="line"> OS/Arch:           darwin/arm64</span><br><span class="line"> Context:           default</span><br><span class="line"> Experimental:      <span class="literal">true</span></span><br><span class="line"></span><br><span class="line">Server: Docker Desktop 4.15.0 (93002)</span><br><span class="line"> Engine:</span><br><span class="line">  Version:          20.10.21</span><br><span class="line">  API version:      1.41 (minimum version 1.12)</span><br><span class="line">  Go version:       go1.18.7</span><br><span class="line">  Git commit:       3056208</span><br><span class="line">  Built:            Tue Oct 25 17:59:41 2022</span><br><span class="line">  OS/Arch:          linux/arm64</span><br><span class="line">  Experimental:     <span class="literal">false</span></span><br><span class="line"> containerd:</span><br><span class="line">  Version:          1.6.10</span><br><span class="line">  GitCommit:        770bd0108c32f3fb5c73ae1264f7e503fe7b2661</span><br><span class="line"> runc:</span><br><span class="line">  Version:          1.1.4</span><br><span class="line">  GitCommit:        v1.1.4-0-g5fd4c4d</span><br><span class="line"> docker-init:</span><br><span class="line">  Version:          0.19.0</span><br><span class="line">  GitCommit:        de40ad0</span><br></pre></td></tr></table></figure>
+
+<h4 id="准备-Dockerfile"><a href="#准备-Dockerfile" class="headerlink" title="准备 Dockerfile"></a>准备 Dockerfile</h4><p>首先准备如下 Dockerfile 文件，用来构建镜像。</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> alpine</span><br><span class="line"></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> uname -a &gt; /os.txt</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">CMD</span><span class="bash"> cat /os.txt</span></span><br></pre></td></tr></table></figure>
+
+<p>这个镜像非常简单，构建时将 <code>uname -a</code> 命令输出信息（即当前操作系统的相关信息）写入 <code>/os.txt</code>，运行时将 <code>/os.txt</code> 内容输出。</p>
+<h4 id="构建-arm64-平台镜像"><a href="#构建-arm64-平台镜像" class="headerlink" title="构建 arm64 平台镜像"></a>构建 arm64 平台镜像</h4><p>因为本机为 Apple M2 芯片，所以使用 <code>docker build</code> 命令构建镜像默认为 <code>arm64</code> 平台镜像。构建命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">$ docker build -t jianghushinian/<span class="built_in">echo</span>-platform-arm64 .</span><br><span class="line">[+] Building 15.6s (6/6) FINISHED</span><br><span class="line"> =&gt; [internal] load build definition from Dockerfile                                             0.0s</span><br><span class="line"> =&gt; =&gt; transferring dockerfile: 94B                                                              0.0s</span><br><span class="line"> =&gt; [internal] load .dockerignore                                                                0.0s</span><br><span class="line"> =&gt; =&gt; transferring context: 2B                                                                  0.0s</span><br><span class="line"> =&gt; [internal] load metadata <span class="keyword">for</span> docker.io/library/alpine:latest                                15.5s</span><br><span class="line"> =&gt; [1/2] FROM docker.io/library/alpine@sha256:21a3deaa0d32a8057914f36584b5288d2e5ecc984380bc01  0.0s</span><br><span class="line"> =&gt; CACHED [2/2] RUN uname -a &gt; /os.txt                                                          0.0s</span><br><span class="line"> =&gt; exporting to image                                                                           0.0s</span><br><span class="line"> =&gt; =&gt; exporting layers                                                                          0.0s</span><br><span class="line"> =&gt; =&gt; writing image sha256:f017783a39920aa4646f87d7e5a2d67ab51aab479147d60e5372f8749c3742bb     0.0s</span><br><span class="line"> =&gt; =&gt; naming to docker.io/jianghushinian/<span class="built_in">echo</span>-platform-arm64                                    0.0s</span><br><span class="line"></span><br><span class="line">Use <span class="string">'docker scan'</span> to run Snyk tests against images to find vulnerabilities and learn how to fix them</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注意：<code>jianghushinian</code> 是我的 Docker Hub 用户名，你在构建镜像时应该使用自己的 Docker Hub 用户名。</p>
+</blockquote>
+<p>如果得到如上类似输出，表明构建成功。</p>
+<p>使用 <code>docker run</code> 运行容器进行测试：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ docker run --rm jianghushinian/<span class="built_in">echo</span>-platform-arm64</span><br><span class="line">Linux buildkitsandbox 5.15.49-linuxkit <span class="comment">#1 SMP PREEMPT Tue Sep 13 07:51:32 UTC 2022 aarch64 Linux</span></span><br></pre></td></tr></table></figure>
+
+<p>输出内容中的 <code>aarch64</code> 就表示 <code>ARMv8</code> 架构。</p>
+<p>现在我们需要将镜像推送到 Docker Hub，确保在命令行中已经使用 <code>docker login</code> 登录过 Docker Hub 的情况下，使用 <code>docker push</code> 命令推送镜像：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ docker push jianghushinian/<span class="built_in">echo</span>-platform-arm64</span><br><span class="line">Using default tag: latest</span><br><span class="line">The push refers to repository [docker.io/jianghushinian/<span class="built_in">echo</span>-platform-arm64]</span><br><span class="line">dd0468cb6cb1: Pushed</span><br><span class="line">07d3c46c9599: Mounted from jianghushinian/demo-arm64</span><br><span class="line">latest: digest: sha256:8eb172234961bf54a01e83d510697f09646c43c297a24f839be846414dfaf583 size: 735</span><br></pre></td></tr></table></figure>
+
+<p>浏览器中登录 <a href="https://hub.docker.com/" target="_blank" rel="noopener">Docker Hub</a> 查看推送成功的镜像：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="arm64.png" alt="echo-platform-arm64" title="">
+                </div>
+                <div class="image-caption">echo-platform-arm64</div>
+            </figure>
+
+<h4 id="构建-amd64-平台镜像"><a href="#构建-amd64-平台镜像" class="headerlink" title="构建 amd64 平台镜像"></a>构建 amd64 平台镜像</h4><p>无需切换设备，在 Apple M2 芯片的机器上我们可以直接构建 <code>amd64</code> 也就是 Linux 平台镜像，<code>docker build</code> 命令提供了 <code>--platform</code> 参数可以构建跨平台镜像。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">$ docker build --platform=linux/amd64 -t jianghushinian/<span class="built_in">echo</span>-platform-amd64 .</span><br><span class="line">[+] Building 15.7s (6/6) FINISHED</span><br><span class="line"> =&gt; [internal] load build definition from Dockerfile                                                                                                                      0.0s</span><br><span class="line"> =&gt; =&gt; transferring dockerfile: 36B                                                                                                                                       0.0s</span><br><span class="line"> =&gt; [internal] load .dockerignore                                                                                                                                         0.0s</span><br><span class="line"> =&gt; =&gt; transferring context: 2B                                                                                                                                           0.0s</span><br><span class="line"> =&gt; [internal] load metadata <span class="keyword">for</span> docker.io/library/alpine:latest                                                                                                         15.3s</span><br><span class="line"> =&gt; CACHED [1/2] FROM docker.io/library/alpine@sha256:21a3deaa0d32a8057914f36584b5288d2e5ecc984380bc0118285c70fa8c9300                                                    0.0s</span><br><span class="line"> =&gt; [2/2] RUN uname -a &gt; /os.txt                                                                                                                                          0.2s</span><br><span class="line"> =&gt; exporting to image                                                                                                                                                    0.0s</span><br><span class="line"> =&gt; =&gt; exporting layers                                                                                                                                                   0.0s</span><br><span class="line"> =&gt; =&gt; writing image sha256:5c48af5176402727627cc18136d78f87f0793ccf61e3e3fb4df98391a69e9f70                                                                              0.0s</span><br><span class="line"> =&gt; =&gt; naming to docker.io/jianghushinian/<span class="built_in">echo</span>-platform-amd64                                                                                                             0.0s</span><br><span class="line"></span><br><span class="line">Use <span class="string">'docker scan'</span> to run Snyk tests against images to find vulnerabilities and learn how to fix them</span><br></pre></td></tr></table></figure>
+
+<p>镜像构建成功后，同样使用 <code>docker push</code> 命令推送镜像到 Docker Hub：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ docker push jianghushinian/<span class="built_in">echo</span>-platform-amd64</span><br><span class="line">Using default tag: latest</span><br><span class="line">The push refers to repository [docker.io/jianghushinian/<span class="built_in">echo</span>-platform-amd64]</span><br><span class="line">9499dee27c9f: Pushed</span><br><span class="line">8d3ac3489996: Mounted from jianghushinian/demo-amd64</span><br><span class="line">latest: digest: sha256:13cbf21fc8078fb54444992faae9aafca0706a842dfb0ab4f3447a6f14fb1359 size: 735</span><br></pre></td></tr></table></figure>
+
+<p>浏览器中登录 <a href="https://hub.docker.com/" target="_blank" rel="noopener">Docker Hub</a> 查看推送成功的镜像：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="arm64-amd64.png" alt="echo-platform-amd64" title="">
+                </div>
+                <div class="image-caption">echo-platform-amd64</div>
+            </figure>
+
+<p>你也许会好奇，在 Apple M2 芯片的主机设备上运行 <code>amd64</code> 平台镜像会怎样。目前咱们构建的这个简单镜像其实是能够运行的，只不过会得到一条警告信息：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ docker run --rm jianghushinian/<span class="built_in">echo</span>-platform-amd64</span><br><span class="line">WARNING: The requested image<span class="string">'s platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested</span></span><br><span class="line"><span class="string">Linux buildkitsandbox 5.15.49-linuxkit #1 SMP PREEMPT Tue Sep 13 07:51:32 UTC 2022 x86_64 Linux</span></span><br></pre></td></tr></table></figure>
+
+<p>输出内容中的 <code>x86_64</code> 就表示 <code>AMD64</code> 架构。</p>
+<p>同样的，如果我们登录到一台 <code>amd64</code> 架构的设备上运行 <code>arm64</code> 平台镜像，也会得到一条警告信息：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># docker run --rm jianghushinian/echo-platform-arm64</span></span><br><span class="line">WARNING: The requested image<span class="string">'s platform (linux/arm64/v8) does not match the detected host platform (linux/amd64) and no specific platform was requested</span></span><br><span class="line"><span class="string">Linux buildkitsandbox 5.15.49-linuxkit #1 SMP PREEMPT Tue Sep 13 07:51:32 UTC 2022 aarch64 Linux</span></span><br></pre></td></tr></table></figure>
+
+<p>在 <code>amd64</code> 架构的设备上运行 <code>amd64</code> 平台镜像则不会遇到警告问题：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># docker run --rm jianghushinian/echo-platform-amd64</span></span><br><span class="line">Linux buildkitsandbox 5.15.49-linuxkit <span class="comment">#1 SMP PREEMPT Tue Sep 13 07:51:32 UTC 2022 x86_64 Linux</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="使用-manifest-合并多平台镜像"><a href="#使用-manifest-合并多平台镜像" class="headerlink" title="使用 manifest 合并多平台镜像"></a>使用 manifest 合并多平台镜像</h3><p>我们可以使用 <code>docker manifest</code> 的子命令 <code>create</code> 创建一个 <code>manifest list</code>，即将多个平台的镜像合并为一个镜像。</p>
+<p><code>create</code> 命令用法很简单，后面跟的第一个参数 <code>jianghushinian/echo-platform</code> 即为合并后的镜像，从第二个参数开始可以指定一个或多个不同平台的镜像。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ docker manifest create jianghushinian/<span class="built_in">echo</span>-platform jianghushinian/<span class="built_in">echo</span>-platform-arm64 jianghushinian/<span class="built_in">echo</span>-platform-amd64</span><br><span class="line">Created manifest list docker.io/jianghushinian/<span class="built_in">echo</span>-platform:latest</span><br></pre></td></tr></table></figure>
+
+<p>如上输出，表明多架构镜像构建成功。</p>
+<blockquote>
+<p>注意：在使用 <code>docker manifest create</code> 命令时，确保待合并镜像都已经被推送到 Docker Hub 镜像仓库，不然报错 <code>no such manifest</code>。这也是为什么前文在构建镜像时，都会将镜像推送到 Docker Hub。</p>
+</blockquote>
+<p>此时在 Apple M2 芯片设备上使用 <code>docker run</code> 启动构建好的跨平台镜像 <code>jianghushinian/echo-platform</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ docker run --rm jianghushinian/<span class="built_in">echo</span>-platform</span><br><span class="line">Linux buildkitsandbox 5.4.0-80-generic <span class="comment">#90-Ubuntu SMP Fri Jul 9 22:49:44 UTC 2021 aarch64 Linux</span></span><br></pre></td></tr></table></figure>
+
+<p>没有任何问题，就像在启动 <code>jianghushinian/echo-platform-arm64</code> 镜像一样。</p>
+<p>现在我们可以将这个跨平台镜像推送到 Docker Hub，不过，这回我们需要使用的命令不再是 <code>docker push</code> 而是 <code>manifest</code> 的子命令 <code>docker manifest push</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ docker manifest push jianghushinian/<span class="built_in">echo</span>-platform</span><br><span class="line">Pushed ref docker.io/jianghushinian/<span class="built_in">echo</span>-platform@sha256:13cbf21fc8078fb54444992faae9aafca0706a842dfb0ab4f3447a6f14fb1359 with digest: sha256:13cbf21fc8078fb54444992faae9aafca0706a842dfb0ab4f3447a6f14fb1359</span><br><span class="line">Pushed ref docker.io/jianghushinian/<span class="built_in">echo</span>-platform@sha256:8eb172234961bf54a01e83d510697f09646c43c297a24f839be846414dfaf583 with digest: sha256:8eb172234961bf54a01e83d510697f09646c43c297a24f839be846414dfaf583</span><br><span class="line">sha256:87b51c1835f13bb722bbb4279fcf50a6da0ecb852433a8f1c04e2f5fe93ac055</span><br></pre></td></tr></table></figure>
+
+<p>浏览器中登录 <a href="https://hub.docker.com/" target="_blank" rel="noopener">Docker Hub</a> 查看推送成功的镜像：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="platform.png" alt="echo-platform" title="">
+                </div>
+                <div class="image-caption">echo-platform</div>
+            </figure>
+
+<p>进入镜像信息详情页面的 <code>Tags</code> 标签，能够看到镜像支持 <code>amd64</code>、<code>arm64/v8</code> 这两个平台。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="multi-arch.png" alt="multi-arch" title="">
+                </div>
+                <div class="image-caption">multi-arch</div>
+            </figure>
+
+<p>现在，我们可以在 <code>amd64</code> 架构的设备上同样使用 <code>docker run</code> 命令启动构建好的跨平台镜像 <code>jianghushinian/echo-platform</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># docker run --rm jianghushinian/echo-platform</span></span><br><span class="line">Linux buildkitsandbox 5.4.0-80-generic <span class="comment">#90-Ubuntu SMP Fri Jul 9 22:49:44 UTC 2021 x86_64 Linux</span></span><br></pre></td></tr></table></figure>
+
+<p>输出结果没有任何问题。可以发现，无论是 <code>arm64</code> 设备还是 <code>amd64</code> 设备，虽然同样使用 <code>docker run --rm jianghushinian/echo-platform</code> 命令启动镜像，但它们的输出结果都表明启动的是当前平台的镜像，没有再次出现警告。</p>
+<h3 id="manifest-功能清单"><a href="#manifest-功能清单" class="headerlink" title="manifest 功能清单"></a>manifest 功能清单</h3><p><code>docker manifest</code> 不止有 <code>create</code> 一个子命令，可以通过 <code>--help/-h</code> 参数查看使用帮助：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">$ docker manifest --<span class="built_in">help</span></span><br><span class="line"></span><br><span class="line">Usage:  docker manifest COMMAND</span><br><span class="line"></span><br><span class="line">The **docker manifest** <span class="built_in">command</span> has subcommands <span class="keyword">for</span> managing image manifests and</span><br><span class="line">manifest lists. A manifest list allows you to use one name to refer to the same image</span><br><span class="line">built <span class="keyword">for</span> multiple architectures.</span><br><span class="line"></span><br><span class="line">To see <span class="built_in">help</span> <span class="keyword">for</span> a subcommand, use:</span><br><span class="line"></span><br><span class="line">    docker manifest CMD --<span class="built_in">help</span></span><br><span class="line"></span><br><span class="line">For full details on using docker manifest lists, see the registry v2 specification.</span><br><span class="line"></span><br><span class="line">EXPERIMENTAL:</span><br><span class="line">  docker manifest is an experimental feature.</span><br><span class="line">  Experimental features provide early access to product functionality. These</span><br><span class="line">  features may change between releases without warning, or can be removed from a</span><br><span class="line">  future release. Learn more about experimental features <span class="keyword">in</span> our documentation:</span><br><span class="line">  https://docs.docker.com/go/experimental/</span><br><span class="line"></span><br><span class="line">Commands:</span><br><span class="line">  annotate    Add additional information to a <span class="built_in">local</span> image manifest</span><br><span class="line">  create      Create a <span class="built_in">local</span> manifest list <span class="keyword">for</span> annotating and pushing to a registry</span><br><span class="line">  inspect     Display an image manifest, or manifest list</span><br><span class="line">  push        Push a manifest list to a repository</span><br><span class="line">  rm          Delete one or more manifest lists from <span class="built_in">local</span> storage</span><br><span class="line"></span><br><span class="line">Run <span class="string">'docker manifest COMMAND --help'</span> <span class="keyword">for</span> more information on a <span class="built_in">command</span>.</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>docker manifest</code> 共提供了 <code>annotate</code>、<code>create</code>、<code>inspect</code>、<code>push</code>、<code>rm</code> 这 5 个子命。</p>
+<p>接下来我们分别看下这几个子命令的功能。</p>
+<h4 id="create"><a href="#create" class="headerlink" title="create"></a>create</h4><p>先从最熟悉的 <code>create</code> 子命令看起，来看下它都支持哪些功能。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">$ docker manifest create -h</span><br><span class="line">Flag shorthand -h has been deprecated, please use --<span class="built_in">help</span></span><br><span class="line"></span><br><span class="line">Usage:  docker manifest create MANIFEST_LIST MANIFEST [MANIFEST...]</span><br><span class="line"></span><br><span class="line">Create a <span class="built_in">local</span> manifest list <span class="keyword">for</span> annotating and pushing to a registry</span><br><span class="line"></span><br><span class="line">EXPERIMENTAL:</span><br><span class="line">  docker manifest create is an experimental feature.</span><br><span class="line">  Experimental features provide early access to product functionality. These</span><br><span class="line">  features may change between releases without warning, or can be removed from a</span><br><span class="line">  future release. Learn more about experimental features <span class="keyword">in</span> our documentation:</span><br><span class="line">  https://docs.docker.com/go/experimental/</span><br><span class="line"></span><br><span class="line">Options:</span><br><span class="line">  -a, --amend      Amend an existing manifest list</span><br><span class="line">      --insecure   Allow communication with an insecure registry</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>笔记：可以看到输出结果第一行的提示，短标志 <code>-h</code> 已经被弃用，推荐使用 <code>--help</code> 查看子命令帮助信息。</p>
+</blockquote>
+<p>可以发现，<code>create</code> 子命令支持两个可选参数 <code>-a/--amend</code> 用来修订已存在的多架构镜像。</p>
+<p>指定 <code>--insecure</code> 参数则允许使用不安全的（非 https）镜像仓库。</p>
+<h4 id="push"><a href="#push" class="headerlink" title="push"></a>push</h4><p><code>push</code> 子命令我们也见过了，使用 <code>push</code> 可以将多架构镜像推送到镜像仓库。</p>
+<p>来看下 <code>push</code> 还支持设置哪些可选参数。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">$ docker manifest push -h</span><br><span class="line">Flag shorthand -h has been deprecated, please use --<span class="built_in">help</span></span><br><span class="line"></span><br><span class="line">Usage:  docker manifest push [OPTIONS] MANIFEST_LIST</span><br><span class="line"></span><br><span class="line">Push a manifest list to a repository</span><br><span class="line"></span><br><span class="line">EXPERIMENTAL:</span><br><span class="line">  docker manifest push is an experimental feature.</span><br><span class="line">  Experimental features provide early access to product functionality. These</span><br><span class="line">  features may change between releases without warning, or can be removed from a</span><br><span class="line">  future release. Learn more about experimental features <span class="keyword">in</span> our documentation:</span><br><span class="line">  https://docs.docker.com/go/experimental/</span><br><span class="line"></span><br><span class="line">Options:</span><br><span class="line">      --insecure   Allow push to an insecure registry</span><br><span class="line">  -p, --purge      Remove the <span class="built_in">local</span> manifest list after push</span><br></pre></td></tr></table></figure>
+
+<p>同样的，<code>push</code> 也有一个 <code>--insecure</code> 参数允许使用不安全的（非 https）镜像仓库。</p>
+<p><code>-p/--purge</code> 选项的作用是推送本地镜像到远程仓库后，删除本地 <code>manifest list</code>。</p>
+<h4 id="inspect"><a href="#inspect" class="headerlink" title="inspect"></a>inspect</h4><p><code>inspect</code> 用来查看 <code>manifest</code>/<code>manifest list</code> 所包含的镜像信息。</p>
+<p>其使用帮助如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">$ docker manifest inspect -h</span><br><span class="line">Flag shorthand -h has been deprecated, please use --<span class="built_in">help</span></span><br><span class="line"></span><br><span class="line">Usage:  docker manifest inspect [OPTIONS] [MANIFEST_LIST] MANIFEST</span><br><span class="line"></span><br><span class="line">Display an image manifest, or manifest list</span><br><span class="line"></span><br><span class="line">EXPERIMENTAL:</span><br><span class="line">  docker manifest inspect is an experimental feature.</span><br><span class="line">  Experimental features provide early access to product functionality. These</span><br><span class="line">  features may change between releases without warning, or can be removed from a</span><br><span class="line">  future release. Learn more about experimental features <span class="keyword">in</span> our documentation:</span><br><span class="line">  https://docs.docker.com/go/experimental/</span><br><span class="line"></span><br><span class="line">Options:</span><br><span class="line">      --insecure   Allow communication with an insecure registry</span><br><span class="line">  -v, --verbose    Output additional info including layers and platform</span><br></pre></td></tr></table></figure>
+
+<p><code>--insecure</code> 参数允许使用不安全的（非 https）镜像仓库。这已经是我们第三次看见这个参数了，这也验证了 <code>docker manifest</code> 命令需要联网才能使用的说法，因为这些子命令基本都涉及到和远程镜像仓库的交互。</p>
+<p>指定 <code>-v/--verbose</code> 参数可以输出更多信息，包括镜像的 <code>layers</code> 和 <code>platform</code> 信息。</p>
+<p>使用示例如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">$ docker manifest inspect jianghushinian/<span class="built_in">echo</span>-platform</span><br><span class="line">&#123;</span><br><span class="line">   <span class="string">"schemaVersion"</span>: 2,</span><br><span class="line">   <span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.distribution.manifest.list.v2+json"</span>,</span><br><span class="line">   <span class="string">"manifests"</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">         <span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.distribution.manifest.v2+json"</span>,</span><br><span class="line">         <span class="string">"size"</span>: 735,</span><br><span class="line">         <span class="string">"digest"</span>: <span class="string">"sha256:13cbf21fc8078fb54444992faae9aafca0706a842dfb0ab4f3447a6f14fb1359"</span>,</span><br><span class="line">         <span class="string">"platform"</span>: &#123;</span><br><span class="line">            <span class="string">"architecture"</span>: <span class="string">"amd64"</span>,</span><br><span class="line">            <span class="string">"os"</span>: <span class="string">"linux"</span></span><br><span class="line">         &#125;</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">         <span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.distribution.manifest.v2+json"</span>,</span><br><span class="line">         <span class="string">"size"</span>: 735,</span><br><span class="line">         <span class="string">"digest"</span>: <span class="string">"sha256:8eb172234961bf54a01e83d510697f09646c43c297a24f839be846414dfaf583"</span>,</span><br><span class="line">         <span class="string">"platform"</span>: &#123;</span><br><span class="line">            <span class="string">"architecture"</span>: <span class="string">"arm64"</span>,</span><br><span class="line">            <span class="string">"os"</span>: <span class="string">"linux"</span>,</span><br><span class="line">            <span class="string">"variant"</span>: <span class="string">"v8"</span></span><br><span class="line">         &#125;</span><br><span class="line">      &#125;</span><br><span class="line">   ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从输出信息中可以发现，我们构建的多架构镜像 <code>jianghushinian/echo-platform</code> 包含两个 <code>manifest</code>，可以支持 <code>amd64</code>/<code>arm64</code> 架构，并且都为 <code>linux</code> 系统下的镜像。</p>
+<p>指定 <code>-v</code> 参数输出更详细信息：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line">$ docker manifest inspect -v jianghushinian/<span class="built_in">echo</span>-platform</span><br><span class="line">[</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="string">"Ref"</span>: <span class="string">"docker.io/jianghushinian/echo-platform:latest@sha256:13cbf21fc8078fb54444992faae9aafca0706a842dfb0ab4f3447a6f14fb1359"</span>,</span><br><span class="line">		<span class="string">"Descriptor"</span>: &#123;</span><br><span class="line">			<span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.distribution.manifest.v2+json"</span>,</span><br><span class="line">			<span class="string">"digest"</span>: <span class="string">"sha256:13cbf21fc8078fb54444992faae9aafca0706a842dfb0ab4f3447a6f14fb1359"</span>,</span><br><span class="line">			<span class="string">"size"</span>: 735,</span><br><span class="line">			<span class="string">"platform"</span>: &#123;</span><br><span class="line">				<span class="string">"architecture"</span>: <span class="string">"amd64"</span>,</span><br><span class="line">				<span class="string">"os"</span>: <span class="string">"linux"</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;,</span><br><span class="line">		<span class="string">"SchemaV2Manifest"</span>: &#123;</span><br><span class="line">			<span class="string">"schemaVersion"</span>: 2,</span><br><span class="line">			<span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.distribution.manifest.v2+json"</span>,</span><br><span class="line">			<span class="string">"config"</span>: &#123;</span><br><span class="line">				<span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.container.image.v1+json"</span>,</span><br><span class="line">				<span class="string">"size"</span>: 1012,</span><br><span class="line">				<span class="string">"digest"</span>: <span class="string">"sha256:5c48af5176402727627cc18136d78f87f0793ccf61e3e3fb4df98391a69e9f70"</span></span><br><span class="line">			&#125;,</span><br><span class="line">			<span class="string">"layers"</span>: [</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.image.rootfs.diff.tar.gzip"</span>,</span><br><span class="line">					<span class="string">"size"</span>: 2818413,</span><br><span class="line">					<span class="string">"digest"</span>: <span class="string">"sha256:59bf1c3509f33515622619af21ed55bbe26d24913cedbca106468a5fb37a50c3"</span></span><br><span class="line">				&#125;,</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.image.rootfs.diff.tar.gzip"</span>,</span><br><span class="line">					<span class="string">"size"</span>: 211,</span><br><span class="line">					<span class="string">"digest"</span>: <span class="string">"sha256:1e5897976ad1d3969268a18f4f0356a05875baf0225e39768a9066f43e950ebd"</span></span><br><span class="line">				&#125;</span><br><span class="line">			]</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;,</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="string">"Ref"</span>: <span class="string">"docker.io/jianghushinian/echo-platform:latest@sha256:8eb172234961bf54a01e83d510697f09646c43c297a24f839be846414dfaf583"</span>,</span><br><span class="line">		<span class="string">"Descriptor"</span>: &#123;</span><br><span class="line">			<span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.distribution.manifest.v2+json"</span>,</span><br><span class="line">			<span class="string">"digest"</span>: <span class="string">"sha256:8eb172234961bf54a01e83d510697f09646c43c297a24f839be846414dfaf583"</span>,</span><br><span class="line">			<span class="string">"size"</span>: 735,</span><br><span class="line">			<span class="string">"platform"</span>: &#123;</span><br><span class="line">				<span class="string">"architecture"</span>: <span class="string">"arm64"</span>,</span><br><span class="line">				<span class="string">"os"</span>: <span class="string">"linux"</span>,</span><br><span class="line">				<span class="string">"variant"</span>: <span class="string">"v8"</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;,</span><br><span class="line">		<span class="string">"SchemaV2Manifest"</span>: &#123;</span><br><span class="line">			<span class="string">"schemaVersion"</span>: 2,</span><br><span class="line">			<span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.distribution.manifest.v2+json"</span>,</span><br><span class="line">			<span class="string">"config"</span>: &#123;</span><br><span class="line">				<span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.container.image.v1+json"</span>,</span><br><span class="line">				<span class="string">"size"</span>: 1027,</span><br><span class="line">				<span class="string">"digest"</span>: <span class="string">"sha256:f017783a39920aa4646f87d7e5a2d67ab51aab479147d60e5372f8749c3742bb"</span></span><br><span class="line">			&#125;,</span><br><span class="line">			<span class="string">"layers"</span>: [</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.image.rootfs.diff.tar.gzip"</span>,</span><br><span class="line">					<span class="string">"size"</span>: 2715434,</span><br><span class="line">					<span class="string">"digest"</span>: <span class="string">"sha256:9b3977197b4f2147bdd31e1271f811319dcd5c2fc595f14e81f5351ab6275b99"</span></span><br><span class="line">				&#125;,</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.image.rootfs.diff.tar.gzip"</span>,</span><br><span class="line">					<span class="string">"size"</span>: 212,</span><br><span class="line">					<span class="string">"digest"</span>: <span class="string">"sha256:edf2b8e1db64e4f46a2190a3dfcb74ae131ae13ad43fcfedde4c3f304c451f7d"</span></span><br><span class="line">				&#125;</span><br><span class="line">			]</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+
+<h4 id="annotate"><a href="#annotate" class="headerlink" title="annotate"></a>annotate</h4><p><code>annotate</code> 子命令可以给一个本地镜像 <code>manifest</code> 添加附加的信息。这有点像 K8s Annotations 的意思。</p>
+<p>其使用帮助如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">$ docker manifest annotate -h</span><br><span class="line">Flag shorthand -h has been deprecated, please use --<span class="built_in">help</span></span><br><span class="line"></span><br><span class="line">Usage:  docker manifest annotate [OPTIONS] MANIFEST_LIST MANIFEST</span><br><span class="line"></span><br><span class="line">Add additional information to a <span class="built_in">local</span> image manifest</span><br><span class="line"></span><br><span class="line">EXPERIMENTAL:</span><br><span class="line">  docker manifest annotate is an experimental feature.</span><br><span class="line">  Experimental features provide early access to product functionality. These</span><br><span class="line">  features may change between releases without warning, or can be removed from a</span><br><span class="line">  future release. Learn more about experimental features <span class="keyword">in</span> our documentation:</span><br><span class="line">  https://docs.docker.com/go/experimental/</span><br><span class="line"></span><br><span class="line">Options:</span><br><span class="line">      --arch string           Set architecture</span><br><span class="line">      --os string             Set operating system</span><br><span class="line">      --os-features strings   Set operating system feature</span><br><span class="line">      --os-version string     Set operating system version</span><br><span class="line">      --variant string        Set architecture variant</span><br></pre></td></tr></table></figure>
+
+<p>可选参数列表如下：</p>
+<table>
+<thead>
+<tr>
+<th>选项<div style="min-width: 90px"></th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>–arch</td>
+<td>设置 CPU 架构信息。</td>
+</tr>
+<tr>
+<td>–os</td>
+<td>设置操作系统信息。</td>
+</tr>
+<tr>
+<td>–os-features</td>
+<td>设置操作系统功能信息。</td>
+</tr>
+<tr>
+<td>–os-version</td>
+<td>设置操作系统版本信息。</td>
+</tr>
+<tr>
+<td>–variant</td>
+<td>设置 CPU 架构的 variant 信息（翻译过来是“变种”的意思），如 ARM 架构的 v7、v8 等。</td>
+</tr>
+</tbody></table>
+<p>例如设置操作系统版本信息，可以使用如下命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ docker manifest annotate --os-version macOS jianghushinian/<span class="built_in">echo</span>-platform jianghushinian/<span class="built_in">echo</span>-platform-arm64</span><br></pre></td></tr></table></figure>
+
+<p>现在使用 <code>inspect</code> 查看镜像信息已经发生变化：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">   <span class="string">"schemaVersion"</span>: 2,</span><br><span class="line">   <span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.distribution.manifest.list.v2+json"</span>,</span><br><span class="line">   <span class="string">"manifests"</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">         <span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.distribution.manifest.v2+json"</span>,</span><br><span class="line">         <span class="string">"size"</span>: 735,</span><br><span class="line">         <span class="string">"digest"</span>: <span class="string">"sha256:13cbf21fc8078fb54444992faae9aafca0706a842dfb0ab4f3447a6f14fb1359"</span>,</span><br><span class="line">         <span class="string">"platform"</span>: &#123;</span><br><span class="line">            <span class="string">"architecture"</span>: <span class="string">"amd64"</span>,</span><br><span class="line">            <span class="string">"os"</span>: <span class="string">"linux"</span></span><br><span class="line">         &#125;</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">         <span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.distribution.manifest.v2+json"</span>,</span><br><span class="line">         <span class="string">"size"</span>: 735,</span><br><span class="line">         <span class="string">"digest"</span>: <span class="string">"sha256:8eb172234961bf54a01e83d510697f09646c43c297a24f839be846414dfaf583"</span>,</span><br><span class="line">         <span class="string">"platform"</span>: &#123;</span><br><span class="line">            <span class="string">"architecture"</span>: <span class="string">"arm64"</span>,</span><br><span class="line">            <span class="string">"os"</span>: <span class="string">"linux"</span>,</span><br><span class="line">            <span class="string">"os.version"</span>: <span class="string">"macOS"</span>,</span><br><span class="line">            <span class="string">"variant"</span>: <span class="string">"v8"</span></span><br><span class="line">         &#125;</span><br><span class="line">      &#125;</span><br><span class="line">   ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="rm"><a href="#rm" class="headerlink" title="rm"></a>rm</h4><p>最后要介绍的子命令是 <code>rm</code>，使用 <code>rm</code> 可以删除本地一个或多个多架构镜像（<code>manifest lists</code>）。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ docker manifest rm -h</span><br><span class="line">Flag shorthand -h has been deprecated, please use --<span class="built_in">help</span></span><br><span class="line"></span><br><span class="line">Usage:  docker manifest rm MANIFEST_LIST [MANIFEST_LIST...]</span><br><span class="line"></span><br><span class="line">Delete one or more manifest lists from <span class="built_in">local</span> storage</span><br><span class="line"></span><br><span class="line">EXPERIMENTAL:</span><br><span class="line">  docker manifest rm is an experimental feature.</span><br><span class="line">  Experimental features provide early access to product functionality. These</span><br><span class="line">  features may change between releases without warning, or can be removed from a</span><br><span class="line">  future release. Learn more about experimental features <span class="keyword">in</span> our documentation:</span><br><span class="line">  https://docs.docker.com/go/experimental/</span><br></pre></td></tr></table></figure>
+
+<p>使用示例如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ docker manifest rm jianghushinian/<span class="built_in">echo</span>-platform</span><br></pre></td></tr></table></figure>
+
+<p>现在使用 <code>inspect</code> 查看镜像信息已经不在有 <code>os.version</code> 信息了，因为本地镜像 <code>manifest lists</code> 信息已经被删除，重新从远程镜像仓库拉下来的多架构镜像信息并不包含 <code>os.version</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">$ docker manifest inspect jianghushinian/<span class="built_in">echo</span>-platform</span><br><span class="line">&#123;</span><br><span class="line">   <span class="string">"schemaVersion"</span>: 2,</span><br><span class="line">   <span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.distribution.manifest.list.v2+json"</span>,</span><br><span class="line">   <span class="string">"manifests"</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">         <span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.distribution.manifest.v2+json"</span>,</span><br><span class="line">         <span class="string">"size"</span>: 735,</span><br><span class="line">         <span class="string">"digest"</span>: <span class="string">"sha256:13cbf21fc8078fb54444992faae9aafca0706a842dfb0ab4f3447a6f14fb1359"</span>,</span><br><span class="line">         <span class="string">"platform"</span>: &#123;</span><br><span class="line">            <span class="string">"architecture"</span>: <span class="string">"amd64"</span>,</span><br><span class="line">            <span class="string">"os"</span>: <span class="string">"linux"</span></span><br><span class="line">         &#125;</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">         <span class="string">"mediaType"</span>: <span class="string">"application/vnd.docker.distribution.manifest.v2+json"</span>,</span><br><span class="line">         <span class="string">"size"</span>: 735,</span><br><span class="line">         <span class="string">"digest"</span>: <span class="string">"sha256:8eb172234961bf54a01e83d510697f09646c43c297a24f839be846414dfaf583"</span>,</span><br><span class="line">         <span class="string">"platform"</span>: &#123;</span><br><span class="line">            <span class="string">"architecture"</span>: <span class="string">"arm64"</span>,</span><br><span class="line">            <span class="string">"os"</span>: <span class="string">"linux"</span>,</span><br><span class="line">            <span class="string">"variant"</span>: <span class="string">"v8"</span></span><br><span class="line">         &#125;</span><br><span class="line">      &#125;</span><br><span class="line">   ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文主要介绍了如何使用 <code>docker manifest</code> 来实现构建跨平台镜像。</p>
+<p>首先对 <code>docker manifest</code> 进行了简单介绍，它是 Docker 的一个子命令，本身并不执行任何操作，为了操作一个 <code>manifest</code> 或 <code>manifest list</code>，必须使用它包含的子命令。</p>
+<p>接着我们又在 Apple M2 芯片设备上构建了不同平台的镜像，然后使用 <code>manifest list</code> 的能力将其合并成跨平台镜像。</p>
+<p>最后对 <code>docker manifest</code> 支持的所有子命令都进行了讲解。</p>
+<p><strong>参考</strong></p>
+<blockquote>
+<p>docker manifest 官方文档：<a href="https://docs.docker.com/engine/reference/commandline/manifest/" target="_blank" rel="noopener">https://docs.docker.com/engine/reference/commandline/manifest/</a></p>
+</blockquote>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2023-04-07T00:58:53.050Z" itemprop="dateUpdated">2023-04-07 08:58:53</time>
+</span><br>
+
+
+        
+        <a href="/2023/04/07/build-cross-platform-images-using-docker-manifest/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Docker/" rel="tag">Docker</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/&title=《使用 docker manifest 构建跨平台镜像》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/&title=《使用 docker manifest 构建跨平台镜像》 — 江湖十年&source=在当今的软件开发领域中，构建跨平台应用程序已经成为了一个普遍存在的需求。不同的操作系统、硬件架构需要不同的镜像环境来支持它们。Docker 作为一个广泛应..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用 docker manifest 构建跨平台镜像》 — 江湖十年&url=http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/03/31/how-to-implement-a-config-package-with-go/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">如何用 Go 实现一个配置包</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2023</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/&title=《使用 docker manifest 构建跨平台镜像》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/&title=《使用 docker manifest 构建跨平台镜像》 — 江湖十年&source=在当今的软件开发领域中，构建跨平台应用程序已经成为了一个普遍存在的需求。不同的操作系统、硬件架构需要不同的镜像环境来支持它们。Docker 作为一个广泛应..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用 docker manifest 构建跨平台镜像》 — 江湖十年&url=http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
