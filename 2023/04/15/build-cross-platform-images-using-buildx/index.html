@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>使用 buildx 构建跨平台镜像 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Docker">
+    <meta name="description" content="构建跨平台镜像是 Docker 生态系统中的一个重要话题，因为跨平台镜像可以在多种平台上运行，极具灵活性。为了实现这个目标，Docker 社区提供了多种方式来构建跨平台镜像，其中之一是使用 docker manifest，我在《使用 docker manifest 构建跨平台镜像》一文中详细介绍了这种方法。然而，目前最流行的方式是使用 Docker 的 buildx 工具，这种方式不仅可以轻松构建">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用 buildx 构建跨平台镜像">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="构建跨平台镜像是 Docker 生态系统中的一个重要话题，因为跨平台镜像可以在多种平台上运行，极具灵活性。为了实现这个目标，Docker 社区提供了多种方式来构建跨平台镜像，其中之一是使用 docker manifest，我在《使用 docker manifest 构建跨平台镜像》一文中详细介绍了这种方法。然而，目前最流行的方式是使用 Docker 的 buildx 工具，这种方式不仅可以轻松构建">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/hello-go.png">
+<meta property="article:published_time" content="2023-04-15T14:03:40.000Z">
+<meta property="article:modified_time" content="2023-04-15T14:04:14.460Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Docker">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/hello-go.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">使用 buildx 构建跨平台镜像</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">使用 buildx 构建跨平台镜像</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-04-15T14:03:40.000Z" itemprop="datePublished" class="page-time">
+  2023-04-15
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Docker/">Docker</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#简介"><span class="post-toc-number">1.</span> <span class="post-toc-text">简介</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#安装"><span class="post-toc-number">2.</span> <span class="post-toc-text">安装</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#构建跨平台镜像"><span class="post-toc-number">3.</span> <span class="post-toc-text">构建跨平台镜像</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#跨平台镜像构建策略"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">跨平台镜像构建策略</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#创建-builder"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">创建 builder</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#启动-builder"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">启动 builder</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用-builder-构建跨平台镜像"><span class="post-toc-number">3.4.</span> <span class="post-toc-text">使用 builder 构建跨平台镜像</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用交叉编译"><span class="post-toc-number">3.5.</span> <span class="post-toc-text">使用交叉编译</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#平台相关的全局变量"><span class="post-toc-number">3.6.</span> <span class="post-toc-text">平台相关的全局变量</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#删除-builder"><span class="post-toc-number">3.7.</span> <span class="post-toc-text">删除 builder</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#功能清单"><span class="post-toc-number">4.</span> <span class="post-toc-text">功能清单</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">5.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-build-cross-platform-images-using-buildx"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">使用 buildx 构建跨平台镜像</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-04-15 22:03:40" datetime="2023-04-15T14:03:40.000Z"  itemprop="datePublished">2023-04-15</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Docker/">Docker</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>构建跨平台镜像是 Docker 生态系统中的一个重要话题，因为跨平台镜像可以在多种平台上运行，极具灵活性。为了实现这个目标，Docker 社区提供了多种方式来构建跨平台镜像，其中之一是使用 <code>docker manifest</code>，我在<a href="https://jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/" target="_blank" rel="noopener">《使用 docker manifest 构建跨平台镜像》</a>一文中详细介绍了这种方法。然而，目前最流行的方式是使用 Docker 的 <code>buildx</code> 工具，这种方式不仅可以轻松构建跨平台镜像，还可以自动化整个构建过程，大大提高了效率。在本文中，我们将重点介绍使用 <code>buildx</code> 构建跨平台镜像的方法和技巧。</p>
+<a id="more"></a>
+
+<h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p><code>buildx</code> 是 Docker 官方提供的一个构建工具，它可以帮助用户快速、高效地构建 Docker 镜像，并支持多种平台的构建。使用 <code>buildx</code>，用户可以在单个命令中构建多种架构的镜像，例如 x86 和 ARM 架构，而无需手动操作多个构建命令。此外，<code>buildx</code> 还支持 Dockerfile 的多阶段构建和缓存，这可以大大提高镜像构建的效率和速度。</p>
+<h3 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h3><p><code>buildx</code> 是一个管理 Docker 构建的 CLI 插件，底层使用 <a href="https://docs.docker.com/build/buildkit/" target="_blank" rel="noopener">BuildKit</a> 扩展了 Docker 构建功能。</p>
+<blockquote>
+<p>笔记：<code>BuildKit</code> 是 Docker 官方提供的一个高性能构建引擎，可以用来替代 Docker 原有的构建引擎。相比于原有引擎，<code>BuildKit</code> 具有更快的构建速度、更高的并行性、更少的资源占用和更好的安全性。</p>
+</blockquote>
+<p>要安装并使用 <code>buildx</code>，需要 Docker Engine 版本号大于等于 19.03。</p>
+<p>如果你使用的是 Docker Desktop，则默认安装了 <code>buildx</code>。可以使用 <code>docker buildx version</code> 命令查看安装版本，得到以下类似输出，证明已经安装过了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx version</span><br><span class="line">github.com/docker/buildx v0.9.1 ed00243a0ce2a0aee75311b06e32d33b44729689</span><br></pre></td></tr></table></figure>
+
+<p>如果需要手动安装，可以从 GitHub 发布页面<a href="https://github.com/docker/buildx/releases/tag/v0.10.4" target="_blank" rel="noopener">下载</a>对应平台的最新二进制文件，重命名为 <code>docker-buildx</code>，然后将其放到 Docker 插件目录下（Linux/Mac 系统为 <code>$HOME/.docker/cli-plugins</code>，Windows 系统为 <code>%USERPROFILE%\.docker\cli-plugins</code>）。</p>
+<p>Linux/Mac 系统还需要给插件增加可执行权限 <code>chmod +x ~/.docker/cli-plugins/docker-buildx</code>，之后就可以使用 <code>buildx</code> 了。</p>
+<p>更详细的安装过程可以参考<a href="https://docs.docker.com/build/install-buildx/" target="_blank" rel="noopener">官方文档</a>。</p>
+<h3 id="构建跨平台镜像"><a href="#构建跨平台镜像" class="headerlink" title="构建跨平台镜像"></a>构建跨平台镜像</h3><p>首先，需要澄清的是，本文中所提到的「跨平台镜像」这一说法并不十分准确。实际上，Docker 官方术语叫 <code>Multi-platform images</code> 即「多平台镜像」，意思是支持多种不同 CPU 架构的镜像。之所以使用「跨平台镜像」这一术语，是因为从使用者的角度来看，在使用如 <code>docker pull</code>、<code>docker run</code> 等命令来拉取和启动容器时，并不会感知到这个镜像是一个虚拟的 <code>manifest list</code> 镜像还是针对当前平台的镜像。 </p>
+<blockquote>
+<p>笔记：<code>manifest list</code> 是通过指定多个镜像名称创建的镜像列表，是一个虚拟镜像，它包含了多个不同平台的镜像信息。可以像普通镜像一样使用 <code>docker pull</code> 和 <code>docker run</code> 等命令来操作它。如果你想了解关于 <code>manifest list</code> 的更多信息，可参考<a href="https://jianghushinian.cn/2023/04/07/build-cross-platform-images-using-docker-manifest/" target="_blank" rel="noopener">《使用 docker manifest 构建跨平台镜像》</a>一文。</p>
+</blockquote>
+<h4 id="跨平台镜像构建策略"><a href="#跨平台镜像构建策略" class="headerlink" title="跨平台镜像构建策略"></a>跨平台镜像构建策略</h4><p><code>builder</code> 支持三种不同策略构建跨平台镜像：</p>
+<ol>
+<li>在内核中使用 <a href="https://zh.wikipedia.org/wiki/QEMU" target="_blank" rel="noopener">QEMU</a> 仿真支持。</li>
+</ol>
+<p>如果你正在使用 Docker Desktop，则已经支持了 QEMU，QEMU 是最简单的构建跨平台镜像策略。它不需要对原有的 <code>Dockerfile</code> 进行任何更改，<code>BuildKit</code> 会通过 <a href="https://zh.wikipedia.org/wiki/Binfmt_misc" target="_blank" rel="noopener">binfmt_misc</a> 这一 Linux 内核功能实现跨平台程序的执行。</p>
+<p>工作原理：</p>
+<p>QEMU 是一个处理器模拟器，可以模拟不同的 CPU 架构，我们可以把它理解为是另一种形式的虚拟机。在 <code>buildx</code> 中，QEMU 用于在构建过程中执行非本地架构的二进制文件。例如，在 x86 主机上构建一个 ARM 镜像时，QEMU 可以模拟 ARM 环境并运行 ARM 二进制文件。</p>
+<p>binfmt_misc 是 Linux 内核的一个模块，它允许用户注册可执行文件格式和相应的解释器。当内核遇到未知格式的可执行文件时，会使用 binfmt_misc 查找与该文件格式关联的解释器（在这种情况下是 QEMU）并运行文件。</p>
+<p>QEMU 和 binfmt_misc 的结合使得通过 <code>buildx</code> 跨平台构建成为可能。这样我们就可以在一个架构的主机上构建针对其他架构的 Docker 镜像，而无需拥有实际的目标硬件。</p>
+<p>虽然 Docker Desktop 预配置了 binfmt_misc 对其他平台的支持，但对于其他版本 Docker，你可能需要使用 <code>tonistiigi/binfmt</code> 镜像启动一个特权容器来进行支持：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ docker run --privileged --rm tonistiigi/binfmt --install all</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>使用相同的构建器实例在多个本机节点上构建。</li>
+</ol>
+<p>此方法直接在对应平台的硬件上构建镜像，所以需要准备各个平台的主机。因为此方法门槛比较高，所以并不常使用。</p>
+<ol start="3">
+<li>使用 Dockerfile 中的多阶段构建，交叉编译到不同的平台架构中。</li>
+</ol>
+<p>交叉编译的复杂度不在于 Docker，而是取决于程序本身。比如 Go 程序就很容易实现交叉编译，只需要在使用 <code>go build</code> 构建程序时指定 <code>GOOS</code>、<code>GOARCH</code> 两个环境变量即可实现。</p>
+<h4 id="创建-builder"><a href="#创建-builder" class="headerlink" title="创建 builder"></a>创建 <code>builder</code></h4><p>要使用 <code>buildx</code> 构建跨平台镜像，我们需要先创建一个 <code>builder</code>，可以翻译为「构建器」。</p>
+<p>使用 <code>docker buildx ls</code> 命令可以查看 <code>builder</code> 列表：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx ls</span><br><span class="line">NAME/NODE       DRIVER/ENDPOINT STATUS  BUILDKIT PLATFORMS</span><br><span class="line">default *       docker</span><br><span class="line">  default       default         running 20.10.21 linux/arm64, linux/amd64, linux/riscv64, linux/ppc64le, linux/s390x, linux/386, linux/arm/v7, linux/arm/v6</span><br><span class="line">desktop-linux   docker</span><br><span class="line">  desktop-linux desktop-linux   running 20.10.21 linux/arm64, linux/amd64, linux/riscv64, linux/ppc64le, linux/s390x, linux/386, linux/arm/v7, linux/arm/v6</span><br></pre></td></tr></table></figure>
+
+<p>这两个是默认 <code>builder</code>，<code>default *</code> 中的 <code>*</code> 表示当前正在使用的 <code>builder</code>，当我们运行 <code>docker build</code> 命令时就是在使用此 <code>builder</code> 构建镜像。</p>
+<p>可以发现，这两个默认的 <code>builder</code> 第二列 <code>DRIVER/ENDPOINT</code> 项的值都是 <code>docker</code>，表示它们都使用 <code>docker</code> 驱动程序。</p>
+<p><code>buildx</code> 支持以下几种驱动程序：</p>
+<table>
+<thead>
+<tr>
+<th>驱动</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>docker</td>
+<td>使用捆绑到 Docker 守护进程中的 BuildKit 库，就是安装 Docker 后默认的 BuildKit。</td>
+</tr>
+<tr>
+<td>docker-container</td>
+<td>使用 Docker 新创建一个专用的 BuildKit 容器。</td>
+</tr>
+<tr>
+<td>kubernetes</td>
+<td>在 Kubernetes 集群中创建一个 BuildKit Pod。</td>
+</tr>
+<tr>
+<td>remote</td>
+<td>直接连接到手动管理的 BuildKit 守护进程。</td>
+</tr>
+</tbody></table>
+<p>默认的 <code>docker</code> 驱动程序优先考虑简单性和易用性，所以它对缓存和输出格式等高级功能的支持有限，并且不可配置。其他驱动程序则提供了更大的灵活性，并且更擅长处理高级场景。</p>
+<p>具体差异你可以到<a href="https://docs.docker.com/build/drivers/" target="_blank" rel="noopener">官方文档</a>中查看。</p>
+<p>因为使用 <code>docker</code> 驱动程序的默认 <code>builder</code> 不支持使用单条命令（默认 <code>builder</code> 的 <code>--platform</code> 参数只接受单个值）构建跨平台镜像，所以我们需要使用 <code>docker-container</code> 驱动创建一个新的 <code>builder</code>。</p>
+<p>命令语法如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx create --name=&lt;builder-name&gt; --driver=&lt;driver&gt; --driver-opt=&lt;driver-options&gt;</span><br></pre></td></tr></table></figure>
+
+<p>参数含义如下：</p>
+<ul>
+<li><p><code>--name</code>：构建器名称，必填。</p>
+</li>
+<li><p><code>--driver</code>：构建器驱动程序，默认为 <code>docker-container</code>。</p>
+</li>
+<li><p><code>--driver-opt</code>：驱动程序选项，如选项 <code>--driver-opt=image=moby/buildkit:v0.11.3</code> 可以安装指定版本的 <code>BuildKit</code>，默认值是 <a href="https://hub.docker.com/r/moby/buildkit" target="_blank" rel="noopener">moby/buildkit</a>。</p>
+</li>
+</ul>
+<p>更多可选参数可以参考<a href="https://docs.docker.com/engine/reference/commandline/buildx_create/#options" target="_blank" rel="noopener">官方文档</a>。</p>
+<p>我们可以使用如下命令创建一个新的 <code>builder</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx create --name mybuilder</span><br><span class="line">mybuilder</span><br></pre></td></tr></table></figure>
+
+<p>再次查看 <code>builder</code> 列表：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx ls</span><br><span class="line">NAME/NODE       DRIVER/ENDPOINT             STATUS   BUILDKIT PLATFORMS</span><br><span class="line">mybuilder *     docker-container</span><br><span class="line">  mybuilder0    unix:///var/run/docker.sock inactive</span><br><span class="line">default         docker</span><br><span class="line">  default       default                     running  20.10.21 linux/arm64, linux/amd64, linux/riscv64, linux/ppc64le, linux/s390x, linux/386, linux/arm/v7, linux/arm/v6</span><br><span class="line">desktop-linux   docker</span><br><span class="line">  desktop-linux desktop-linux               running  20.10.21 linux/arm64, linux/amd64, linux/riscv64, linux/ppc64le, linux/s390x, linux/386, linux/arm/v7, linux/arm/v6</span><br></pre></td></tr></table></figure>
+
+<p>可以发现选中的构建器已经切换到了 <code>mybuilder</code>，如果没有选中，你需要手动使用 <code>docker buildx use mybuilder</code> 命令切换构建器。</p>
+<h4 id="启动-builder"><a href="#启动-builder" class="headerlink" title="启动 builder"></a>启动 <code>builder</code></h4><p>我们新创建的 <code>mybuilder</code> 当前状态为 <code>inactive</code>，需要启动才能使用。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx inspect --bootstrap mybuilder</span><br><span class="line">[+] Building 16.8s (1/1) FINISHED</span><br><span class="line"> =&gt; [internal] booting buildkit                                                                                                                                  16.8s</span><br><span class="line"> =&gt; =&gt; pulling image moby/buildkit:buildx-stable-1                                                                                                               16.1s</span><br><span class="line"> =&gt; =&gt; creating container buildx_buildkit_mybuilder0                                                                                                              0.7s</span><br><span class="line">Name:   mybuilder</span><br><span class="line">Driver: docker-container</span><br><span class="line"></span><br><span class="line">Nodes:</span><br><span class="line">Name:      mybuilder0</span><br><span class="line">Endpoint:  unix:///var/run/docker.sock</span><br><span class="line">Status:    running</span><br><span class="line">Buildkit:  v0.9.3</span><br><span class="line">Platforms: linux/arm64, linux/amd64, linux/riscv64, linux/ppc64le, linux/s390x, linux/386, linux/mips64le, linux/mips64, linux/arm/v7, linux/arm/v6</span><br></pre></td></tr></table></figure>
+
+<p><code>inspect</code> 子命令用来检查构建器状态，使用 <code>--bootstrap</code> 参数则可以启动 <code>mybuilder</code> 构建器。</p>
+<p>再次查看 <code>builder</code> 列表，<code>mybuilder</code> 状态已经变成了 <code>running</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx ls</span><br><span class="line">NAME/NODE       DRIVER/ENDPOINT             STATUS  BUILDKIT PLATFORMS</span><br><span class="line">mybuilder *     docker-container</span><br><span class="line">  mybuilder0    unix:///var/run/docker.sock running v0.9.3   linux/arm64, linux/amd64, linux/riscv64, linux/ppc64le, linux/s390x, linux/386, linux/mips64le, linux/mips64, linux/arm/v7, linux/arm/v6</span><br><span class="line">default         docker</span><br><span class="line">  default       default                     running 20.10.21 linux/arm64, linux/amd64, linux/riscv64, linux/ppc64le, linux/s390x, linux/386, linux/arm/v7, linux/arm/v6</span><br><span class="line">desktop-linux   docker</span><br><span class="line">  desktop-linux desktop-linux               running 20.10.21 linux/arm64, linux/amd64, linux/riscv64, linux/ppc64le, linux/s390x, linux/386, linux/arm/v7, linux/arm/v6</span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>PLATFORMS</code> 一列所展示的值 <code>linux/arm64, linux/amd64, linux/riscv64, linux/ppc64le, linux/s390x, linux/386, linux/mips64le, linux/mips64, linux/arm/v7, linux/arm/v6</code> 就是当前构建器所支持的所有平台了。</p>
+<p>现在使用 <code>docker ps</code> 命令可以看到 <code>mybuilder</code> 构建器所对应的 <code>BuildKit</code> 容器已经启动。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ docker ps</span><br><span class="line">CONTAINER ID   IMAGE                           COMMAND                  CREATED         STATUS         PORTS                                NAMES</span><br><span class="line">b8887f253d41   moby/buildkit:buildx-stable-1   <span class="string">"buildkitd"</span>              4 minutes ago   Up 4 minutes                                        buildx_buildkit_mybuilder0</span><br></pre></td></tr></table></figure>
+
+<p>这个容器就是辅助我们构建跨平台镜像用的，不要手动删除它。</p>
+<h4 id="使用-builder-构建跨平台镜像"><a href="#使用-builder-构建跨平台镜像" class="headerlink" title="使用 builder 构建跨平台镜像"></a>使用 <code>builder</code> 构建跨平台镜像</h4><p>现在一些准备工作已经就绪，我们终于可以使用 <code>builder</code> 构建跨平台镜像了。</p>
+<p>这里以一个 Go 程序为例，来演示如何构建跨平台镜像。</p>
+<p><code>hello.go</code> 程序如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"runtime"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Printf(<span class="string">"Hello, %s/%s!\n"</span>, runtime.GOOS, runtime.GOARCH)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个程序非常简单，执行后打印 <code>Hello, 操作系统/CPU 架构</code>。</p>
+<p>Go 程序还需要一个 <code>go.mod</code> 文件：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">module hello</span><br><span class="line"></span><br><span class="line">go 1.20</span><br></pre></td></tr></table></figure>
+
+<p>编写 <code>Dockerfile</code> 内容如下：</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> golang:<span class="number">1.20</span>-alpine AS builder</span><br><span class="line"><span class="keyword">WORKDIR</span><span class="bash"> /app</span></span><br><span class="line"><span class="keyword">ADD</span><span class="bash"> . .</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> go build -o hello .</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">FROM</span> alpine:latest</span><br><span class="line"><span class="keyword">WORKDIR</span><span class="bash"> /app</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> --from=builder /app/hello .</span></span><br><span class="line"><span class="keyword">CMD</span><span class="bash"> [<span class="string">"./hello"</span>]</span></span><br></pre></td></tr></table></figure>
+
+<p>这是一个普通的 <code>Dockerfile</code> 文件，为了减小镜像大小，使用了多阶段构建。它跟构建仅支持当前平台的镜像所使用的 <code>Dockerfile</code> 没什么两样。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ buildx ls</span><br><span class="line">Dockerfile go.mod     hello.go</span><br></pre></td></tr></table></figure>
+
+<p>以上三个文件需要放在同一个目录下，然后就可以在这个目录下使用 <code>docker buildx</code> 来构建跨平台镜像了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx build --platform linux/arm64,linux/amd64 -t jianghushinian/hello-go .</span><br></pre></td></tr></table></figure>
+
+<p><code>docker buildx build</code> 语法跟 <code>docker build</code> 一样，<code>--platform</code> 参数表示构建镜像的目标平台，<code>-t</code> 表示镜像的 Tag，<code>.</code> 表示上下文为当前目录。</p>
+<p>唯一不同的是对 <code>--platform</code> 参数的支持，<code>docker build</code> 的 <code>--platform</code> 参数只支持传递一个平台信息，如 <code>--platform linux/arm64</code>，也就是一次只能构建单个平台的镜像。</p>
+<p>而使用 <code>docker buildx build</code> 构建镜像则支持同时传递多个平台信息，中间使用英文逗号分隔，这样就实现了只用一条命令便可以构建跨平台镜像的功能。</p>
+<p>执行以上命令后，我们将会得到一条警告：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">WARNING: No output specified with docker-container driver. Build result will only remain in the build cache. To push result image into registry use --push or to load image into docker use --load</span><br></pre></td></tr></table></figure>
+
+<p>这条警告提示我们没有为 <code>docker-container</code> 驱动程序指定输出，生成结果将只会保留在构建缓存中，使用 <code>--push</code> 可以将镜像推送到 Docker Hub 远程仓库，使用 <code>--load</code> 可以将镜像保存在本地。</p>
+<p>这是因为我们新创建的 <code>mybuilder</code> 是启动了一个容器来运行 <code>BuildKit</code>，它并不能直接将构建好的跨平台镜像输出到本机或推送到远程，必须要用户来手动指定输出位置。</p>
+<p>我们可以尝试指定 <code>--load</code> 将镜像保存的本地主机。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx build --platform linux/arm64,linux/amd64 -t jianghushinian/hello-go . --load</span><br><span class="line">[+] Building 0.0s (0/0)</span><br><span class="line">ERROR: docker exporter does not currently support exporting manifest lists</span><br></pre></td></tr></table></figure>
+
+<p>结果会得到一条错误日志。看来它并不支持直接将跨平台镜像输出到本机，这其实是因为传递了多个 <code>--platform</code> 的关系，如果 <code>--platform</code> 只传递了一个平台，则可以使用 <code>--load</code> 将构建好的镜像输出到本机。</p>
+<p>那么我们就只能通过 <code>--push</code> 参数将跨平台镜像推送到远程仓库了。不过在此之前需要确保使用 <code>docker login</code> 完成登录。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx build --platform linux/arm64,linux/amd64 -t jianghushinian/hello-go . --push</span><br></pre></td></tr></table></figure>
+
+<p>现在登录 Docker Hub 就可以看见推送上来的跨平台镜像了。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="hello-go.png" alt="jianghushinian/hello-go" title="">
+                </div>
+                <div class="image-caption">jianghushinian/hello-go</div>
+            </figure>
+
+<p>我们也可以使用 <code>imagetools</code> 来检查跨平台镜像的 <code>manifest</code> 信息。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx imagetools inspect jianghushinian/hello-go</span><br><span class="line">Name:      docker.io/jianghushinian/hello-go:latest</span><br><span class="line">MediaType: application/vnd.docker.distribution.manifest.list.v2+json</span><br><span class="line">Digest:    sha256:51199dadfc55b23d6ab5cfd2d67e38edd513a707273b1b8b554985ff562104db</span><br><span class="line"></span><br><span class="line">Manifests:</span><br><span class="line">  Name:      docker.io/jianghushinian/hello-go:latest@sha256:8032a6f23f3bd3050852e77b6e4a4d0a705dfd710fb63bc4c3dc9d5e01c8e9a6</span><br><span class="line">  MediaType: application/vnd.docker.distribution.manifest.v2+json</span><br><span class="line">  Platform:  linux/arm64</span><br><span class="line"></span><br><span class="line">  Name:      docker.io/jianghushinian/hello-go:latest@sha256:fd46fd7e93c7deef5ad8496c2cf08c266bac42ac77f1e444e83d4f79d58441ba</span><br><span class="line">  MediaType: application/vnd.docker.distribution.manifest.v2+json</span><br><span class="line">  Platform:  linux/amd64</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，这个跨平台镜像包含了两个目标平台的镜像，分别是 <code>linux/arm64</code> 和 <code>linux/amd64</code>。</p>
+<p>我们分别在 Apple M2 芯片平台和 Linux x86 平台来启动这个 Docker 镜像看下输出结果。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ docker run --rm jianghushinian/hello-go</span><br><span class="line">Hello, linux/arm64!</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ docker run --rm jianghushinian/hello-go</span><br><span class="line">Hello, linux/amd64!</span><br></pre></td></tr></table></figure>
+
+<p>至此，我们使用 <code>builder</code> 完成了跨平台镜像的构建。</p>
+<h4 id="使用交叉编译"><a href="#使用交叉编译" class="headerlink" title="使用交叉编译"></a>使用交叉编译</h4><p>以上演示的构建跨平台镜像过程就是利用 QEMU 的能力，因为 Go 语言的交叉编译非常简单，所以我们再来演示一下如何使用交叉编译来构建跨平台镜像。</p>
+<p>我们只需要对 <code>Dockerfile</code> 文件进行修改：</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> --platform=$BUILDPLATFORM golang:<span class="number">1.20</span>-alpine AS builder</span><br><span class="line"><span class="keyword">ARG</span> TARGETOS</span><br><span class="line"><span class="keyword">ARG</span> TARGETARCH</span><br><span class="line"><span class="keyword">WORKDIR</span><span class="bash"> /app</span></span><br><span class="line"><span class="keyword">ADD</span><span class="bash"> . .</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> GOOS=<span class="variable">$TARGETOS</span> GOARCH=<span class="variable">$TARGETARCH</span> go build -o hello .</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">FROM</span> --platform=$TARGETPLATFORM alpine:latest</span><br><span class="line"><span class="keyword">WORKDIR</span><span class="bash"> /app</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> --from=builder /app/hello .</span></span><br><span class="line"><span class="keyword">CMD</span><span class="bash"> [<span class="string">"./hello"</span>]</span></span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>BUILDPLATFORM</code>、<code>TARGETOS</code>、<code>TARGETARCH</code>、<code>TARGETPLATFORM</code> 四个变量是 <code>BuildKit</code> 提供的全局变量，分别表示构建镜像所在平台、操作系统、架构、构建镜像的目标平台。</p>
+<p>在构建镜像时，<code>BuildKit</code> 会将当前所在平台信息传递给 <code>Dockerfile</code> 中的 <code>BUILDPLATFORM</code> 参数（如 <code>linux/arm64</code>）。</p>
+<p>通过 <code>--platform</code> 参数传递的 <code>linux/arm64,linux/amd64</code> 镜像目标平台列表会依次传递给 <code>TARGETPLATFORM</code> 变量。</p>
+<p>而 <code>TARGETOS</code>、<code>TARGETARCH</code> 两个变量在使用时则需要先通过 <code>ARG</code> 进行声明，<code>BuildKit</code> 会自动为其赋值。</p>
+<p>在 Go 程序进行编译时，可以通过 <code>GOOS</code> 环境变量指定目标操作系统，通过 <code>GOARCH</code> 环境变量指定目标架构。</p>
+<p>所以这个 <code>Dockerfile</code> 所表示的含义是：首先拉取当前构建镜像所在平台的 <code>golang</code> 镜像，然后使用交叉编译构建目标平台的 Go 程序，最后将构建好的 Go 程序复制到目标平台的 <code>alpine</code> 镜像。</p>
+<p>最终我们会通过交叉编译得到一个跨平台镜像。</p>
+<blockquote>
+<p>笔记：通过 <code>FROM --platform=$BUILDPLATFORM image</code> 可以拉取指定平台的镜像，由此我们可以知道，其实 <a href="https://hub.docker.com/_/golang/tags" target="_blank" rel="noopener">golang</a> 和 <a href="https://hub.docker.com/_/alpine/tags" target="_blank" rel="noopener">alpine</a> 镜像都是支持跨平台的。</p>
+</blockquote>
+<p>构建镜像命令不变：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx build --platform linux/arm64,linux/amd64 -t jianghushinian/hello-cross-go . --push</span><br></pre></td></tr></table></figure>
+
+<p>启动镜像后输出结果不变：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ docker run --rm jianghushinian/hello-cross-go</span><br><span class="line">Hello, linux/arm64!</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ docker run --rm jianghushinian/hello-cross-go</span><br><span class="line">Hello, linux/amd64!</span><br></pre></td></tr></table></figure>
+
+<p>至此，我们利用 Go 语言的交叉编译完成了跨平台镜像的构建。</p>
+<h4 id="平台相关的全局变量"><a href="#平台相关的全局变量" class="headerlink" title="平台相关的全局变量"></a>平台相关的全局变量</h4><p>关于上面提到的几个全局变量，<code>BuildKit</code> 后端预定义了一组 ARG 全局变量（共 8 个）可供使用，其定义和说明如下：</p>
+<table>
+<thead>
+<tr>
+<th>变量</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>TARGETPLATFORM</td>
+<td>构建镜像的目标平台，如：<code>linux/amd64</code>，<code>linux/arm/v7</code>，<code>windows/amd64</code>。</td>
+</tr>
+<tr>
+<td>TARGETOS</td>
+<td>TARGETPLATFORM 的操作系统，如：<code>linux</code>、<code>windows</code>。</td>
+</tr>
+<tr>
+<td>TARGETARCH</td>
+<td>TARGETPLATFORM 的架构类型，如：<code>amd64</code>、<code>arm</code>。</td>
+</tr>
+<tr>
+<td>TARGETVARIANT</td>
+<td>TARGETPLATFORM 的变体，如：<code>v7</code>。</td>
+</tr>
+<tr>
+<td>BUILDPLATFORM</td>
+<td>执行构建所在的节点平台。</td>
+</tr>
+<tr>
+<td>BUILDOS</td>
+<td>BUILDPLATFORM 的操作系统。</td>
+</tr>
+<tr>
+<td>BUILDARCH</td>
+<td>BUILDPLATFORM 的架构类型。</td>
+</tr>
+<tr>
+<td>BUILDVARIANT</td>
+<td>BUILDPLATFORM 的变体。</td>
+</tr>
+</tbody></table>
+<p>使用示例如下：</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 这里可以直接使用 TARGETPLATFORM 变量</span></span><br><span class="line"><span class="keyword">FROM</span> --platform=$TARGETPLATFORM alpine</span><br><span class="line"></span><br><span class="line"><span class="comment"># 稍后的 RUN 命令想要使用变量必须提前用 ARG 进行声明</span></span><br><span class="line"><span class="keyword">ARG</span> TARGETPLATFORM</span><br><span class="line"></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> <span class="built_in">echo</span> <span class="string">"I'm building for <span class="variable">$TARGETPLATFORM</span>"</span></span></span><br></pre></td></tr></table></figure>
+
+<h4 id="删除-builder"><a href="#删除-builder" class="headerlink" title="删除 builder"></a>删除 <code>builder</code></h4><p>我们已经实现了使用 <code>builder</code> 构建跨平台镜像。如果现在你想要恢复环境，删除新建的 <code>builder</code>。则可以使用 <code>docker buildx rm mybuilder</code> 命令来完成。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx rm mybuilder</span><br><span class="line">mybuilder removed</span><br></pre></td></tr></table></figure>
+
+<p>跟随 <code>mybuilder</code> 启动的 <code>buildx_buildkit_mybuilder0</code> 容器也会随之被删除。</p>
+<p>现在再使用 <code>docker buildx ls</code> 命令查看构建器列表，已经恢复成原来的样子了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx ls</span><br><span class="line">NAME/NODE       DRIVER/ENDPOINT STATUS  BUILDKIT PLATFORMS</span><br><span class="line">default *       docker</span><br><span class="line">  default       default         running 20.10.21 linux/arm64, linux/amd64, linux/riscv64, linux/ppc64le, linux/s390x, linux/386, linux/arm/v7, linux/arm/v6</span><br><span class="line">desktop-linux   docker</span><br><span class="line">  desktop-linux desktop-linux   running 20.10.21 linux/arm64, linux/amd64, linux/riscv64, linux/ppc64le, linux/s390x, linux/386, linux/arm/v7, linux/arm/v6</span><br></pre></td></tr></table></figure>
+
+<h3 id="功能清单"><a href="#功能清单" class="headerlink" title="功能清单"></a>功能清单</h3><p>除了前文介绍的几个 <code>buildx</code> 常用命令，更多功能可以通过 <code>--help</code> 参数进行查看。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx --<span class="built_in">help</span></span><br><span class="line"></span><br><span class="line">Usage:  docker buildx [OPTIONS] COMMAND</span><br><span class="line"></span><br><span class="line">Extended build capabilities with BuildKit</span><br><span class="line"></span><br><span class="line">Options:</span><br><span class="line">      --builder string   Override the configured builder instance</span><br><span class="line"></span><br><span class="line">Management Commands:</span><br><span class="line">  imagetools  Commands to work on images <span class="keyword">in</span> registry</span><br><span class="line"></span><br><span class="line">Commands:</span><br><span class="line">  bake        Build from a file</span><br><span class="line">  build       Start a build</span><br><span class="line">  create      Create a new builder instance</span><br><span class="line">  du          Disk usage</span><br><span class="line">  inspect     Inspect current builder instance</span><br><span class="line">  ls          List builder instances</span><br><span class="line">  prune       Remove build cache</span><br><span class="line">  rm          Remove a builder instance</span><br><span class="line">  stop        Stop builder instance</span><br><span class="line">  use         Set the current builder instance</span><br><span class="line">  version     Show buildx version information</span><br><span class="line"></span><br><span class="line">Run <span class="string">'docker buildx COMMAND --help'</span> <span class="keyword">for</span> more information on a <span class="built_in">command</span>.</span><br></pre></td></tr></table></figure>
+
+<p>如 <code>stop</code>、<code>rm</code> 可以管理 <code>builder</code> 的生命周期。每条子命令又可以使用 <code>docker buildx COMMAND --help</code> 方式查看使用帮助，感兴趣的同学可以自行学习。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文讲解了如何使用 <code>buildx</code> 构建跨平台镜像，这也是在 Docker 生态中目前最优的构建方式。</p>
+<p>首先介绍了 <code>buildx</code> 是什么，以及如何安装。接下来就进入了构建跨平台镜像的讲解，我们分析了三种跨平台镜像构建策略，并且分别对 QEMU 和 交叉编译两种策略进行了演示。QEMU 策略无需对 <code>Dockerfile</code> 做任何更改，而使用交叉编译方式则需要根据程序的支持来编写 <code>Dockerfile</code> 构建跨平台应用。</p>
+<p>最后我们还讲解了如何管理 <code>buildx</code> 的生命周期，以及罗列了 <code>buildx</code> 的功能清单帮助你进一步深入学习。</p>
+<p><strong>参考</strong></p>
+<ul>
+<li>buildx 仓库地址：<a href="https://github.com/docker/buildx" target="_blank" rel="noopener">https://github.com/docker/buildx</a></li>
+<li>buildx 安装文档：<a href="https://docs.docker.com/build/install-buildx/" target="_blank" rel="noopener">https://docs.docker.com/build/install-buildx/</a></li>
+<li>buildx 文档：<a href="https://docs.docker.com/engine/reference/commandline/buildx/" target="_blank" rel="noopener">https://docs.docker.com/engine/reference/commandline/buildx/</a></li>
+<li>buildx 驱动程序：<a href="https://docs.docker.com/build/drivers/" target="_blank" rel="noopener">https://docs.docker.com/build/drivers/</a></li>
+<li>多平台镜像：<a href="https://docs.docker.com/build/building/multi-platform/" target="_blank" rel="noopener">https://docs.docker.com/build/building/multi-platform/</a></li>
+<li>多阶段构建：<a href="https://docs.docker.com/build/building/multi-stage/" target="_blank" rel="noopener">https://docs.docker.com/build/building/multi-stage/</a></li>
+<li>buildkit 文档：<a href="https://docs.docker.com/build/buildkit/" target="_blank" rel="noopener">https://docs.docker.com/build/buildkit/</a></li>
+<li>buildkit 支持的全局可用变量：<a href="https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope" target="_blank" rel="noopener">https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2023-04-15T14:04:14.460Z" itemprop="dateUpdated">2023-04-15 22:04:14</time>
+</span><br>
+
+
+        
+        <a href="/2023/04/15/build-cross-platform-images-using-buildx/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Docker/" rel="tag">Docker</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/&title=《使用 buildx 构建跨平台镜像》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/&title=《使用 buildx 构建跨平台镜像》 — 江湖十年&source=构建跨平台镜像是 Docker 生态系统中的一个重要话题，因为跨平台镜像可以在多种平台上运行，极具灵活性。为了实现这个目标，Docker 社区提供了多种方..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用 buildx 构建跨平台镜像》 — 江湖十年&url=http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/04/07/build-cross-platform-images-using-docker-manifest/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">使用 docker manifest 构建跨平台镜像</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2023</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/&title=《使用 buildx 构建跨平台镜像》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/&title=《使用 buildx 构建跨平台镜像》 — 江湖十年&source=构建跨平台镜像是 Docker 生态系统中的一个重要话题，因为跨平台镜像可以在多种平台上运行，极具灵活性。为了实现这个目标，Docker 社区提供了多种方..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用 buildx 构建跨平台镜像》 — 江湖十年&url=http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/04/15/build-cross-platform-images-using-buildx/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
