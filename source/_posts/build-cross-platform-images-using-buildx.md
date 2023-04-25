@@ -240,7 +240,7 @@ CMD ["./hello"]
 这是一个普通的 `Dockerfile` 文件，为了减小镜像大小，使用了多阶段构建。它跟构建仅支持当前平台的镜像所使用的 `Dockerfile` 没什么两样。
 
 ```bash
-$ buildx ls
+$ ls
 Dockerfile go.mod     hello.go
 ```
 
