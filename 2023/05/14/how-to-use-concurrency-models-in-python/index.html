@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Python 中如何使用并发模型编程 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Python,Pythonic">
+    <meta name="description" content="关于什么是并发模型，我在这里引用 Go 语言联合创造者 Rob Pike 的一段话：  并发是指一次处理多件事。并行是指一次做多件事。二者不同，但是有联系。一个关于结构，一个关于执行。并发用于制定方案，用来解决可能（但未必）并行的问题。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Python 中如何使用并发模型编程">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="关于什么是并发模型，我在这里引用 Go 语言联合创造者 Rob Pike 的一段话：  并发是指一次处理多件事。并行是指一次做多件事。二者不同，但是有联系。一个关于结构，一个关于执行。并发用于制定方案，用来解决可能（但未必）并行的问题。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/spinner-thread.gif">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/spinner-thread.gif">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/spinner-process.gif">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/spinner-async.gif">
+<meta property="article:published_time" content="2023-05-14T10:00:18.000Z">
+<meta property="article:modified_time" content="2023-05-14T10:54:25.517Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="Pythonic">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/spinner-thread.gif">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Python 中如何使用并发模型编程</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Python 中如何使用并发模型编程</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-05-14T10:00:18.000Z" itemprop="datePublished" class="page-time">
+  2023-05-14
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#目标"><span class="post-toc-number">1.</span> <span class="post-toc-text">目标</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#多线程版"><span class="post-toc-number">2.</span> <span class="post-toc-text">多线程版</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#多进程版"><span class="post-toc-number">3.</span> <span class="post-toc-text">多进程版</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#协程版"><span class="post-toc-number">4.</span> <span class="post-toc-text">协程版</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">5.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-how-to-use-concurrency-models-in-python"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Python 中如何使用并发模型编程</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-05-14 18:00:18" datetime="2023-05-14T10:00:18.000Z"  itemprop="datePublished">2023-05-14</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>关于什么是并发模型，我在这里引用 Go 语言联合创造者 Rob Pike 的一段话：</p>
+<blockquote>
+<p>并发是指一次处理多件事。并行是指一次做多件事。二者不同，但是有联系。一个关于结构，一个关于执行。并发用于制定方案，用来解决可能（但未必）并行的问题。</p>
+</blockquote>
+<a id="more"></a>
+
+<p>在不涉及并发概念的情况下，一个单进程单线程的程序执行情况可能是这样的：调用一个函数，发出调用的代码开始等待函数执行完成，直到函数返回结果，如果函数抛出异常，则可以把调用函数的代码放到 <code>try/except</code> 语句块中，来捕获和处理异常。</p>
+<p>但是，当涉及到并发时，情况就没这么简单了。在启用多线程（或多进程）后，你无法在一个线程（或进程）中知道另一个线程（或进程）被调用的函数何时执行完成，也无法轻松得知函数调用结果或捕获异常。只能采用某种通知的方式，来进行线程（或进程）间通信，这可能是一个信号，也可能是一个消息队列等。</p>
+<p>本文主要讲解如何让 Python 能够同时处理多个任务，即如何使用并发模型编程。</p>
+<h3 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h3><p>我们将要实现一个旋转指针程序，启动一个程序，阻塞 3 秒钟（模拟耗时任务），在这期间，终端展示字符动画，让用户知道程序仍在执行，并没有停止，3 秒后程序打印耗时任务的计算结果并退出。</p>
+<p>实现好的程序效果如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="spinner-thread.gif" alt="效果展示" title="">
+                </div>
+                <div class="image-caption">效果展示</div>
+            </figure>
+
+<p>这有点像下载进度条，因为打印旋转指针和耗时任务是“同时”进行的，这种场景只能通过并发模型来实现。</p>
+<p>我们将分别使用多线程、多进程以及协程来实现这个程序，以此来演示 Python 的的并发模型用法。</p>
+<h3 id="多线程版"><a href="#多线程版" class="headerlink" title="多线程版"></a>多线程版</h3><p>第一版旋转指针程序使用 Python 多线程来编写，首先，我们需要定义两个函数 <code>spin</code>、<code>slow</code> 分别用来实现旋转指针和模拟耗时任务（比如从网上下载一个文件）。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> itertools</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> threading <span class="keyword">import</span> Thread, Event</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">spin</span><span class="params">(msg: str, done: Event)</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    <span class="keyword">for</span> char <span class="keyword">in</span> itertools.cycle(<span class="string">r'\|/-'</span>):</span><br><span class="line">        status = <span class="string">f'\r<span class="subst">&#123;char&#125;</span> <span class="subst">&#123;msg&#125;</span>'</span></span><br><span class="line">        print(status, end=<span class="string">''</span>, flush=<span class="literal">True</span>)</span><br><span class="line">        <span class="keyword">if</span> done.wait(<span class="number">0.1</span>):</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">    blanks = <span class="string">' '</span> * len(status)</span><br><span class="line">    print(<span class="string">f'\r<span class="subst">&#123;blanks&#125;</span>\r'</span>, end=<span class="string">''</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">slow</span><span class="params">()</span> -&gt; int:</span></span><br><span class="line">    time.sleep(<span class="number">3</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">42</span></span><br></pre></td></tr></table></figure>
+
+<p><code>threading</code> 模块提供多线程支持，<code>Thread</code> 实例用来管理一个新的线程，<code>Event</code> 可以用来进行线程间通信。</p>
+<p><code>spin</code> 函数将作为一个任务在单独的线程中执行，它接收两个参数 <code>msg</code>、<code>done</code>，传递进来的 <code>msg</code> 将会跟随旋转指针一起被打印，<code>done</code> 参数类型为 <code>threading.Event</code>，用来实现多个线程间的通信，以此来同步任务状态。</p>
+<p><code>itertools.cycle(r&#39;\|/-&#39;)</code> 是一个无限迭代器，一次产出一个字符，不停的迭代。比如用 <code>for</code> 遍历 <code>itertools.cycle(&#39;123&#39;)</code>，将得到无限迭代的数据 <code>123123123...</code>。这里 <code>\|/-</code> 字符不停迭代并被打印，就会产生旋转指针的效果。</p>
+<p>打印的 <code>status</code> 字符串第一个字符为 <code>\r</code>，可以实现将光标移动到行首，这是一个使用文本在控制台实现动画的小技巧。</p>
+<p>接下来的 <code>done.wait(0.1)</code> 是这个函数的关键代码，它是主线程与执行当前函数的子线程之间通信的桥梁。<code>done.wait</code> 方法签名为 <code>Event.wait(self, timeout=None)</code>，该方法等待 <code>timeout</code> 指定的时间后返回 <code>False</code>，我们在这里指定为 0.1 秒。如果在其他线程中使用 <code>Event.set()</code> 设置了这个事件，则当前线程该方法将立即返回 <code>True</code>，此时 <code>for</code> 循环就会被 <code>break</code> 掉。</p>
+<p><code>spin</code> 函数在退出前，还会打印几个空格来实现清空当前行打印内容的效果，并且最终还将光标移动到行首。</p>
+<p><code>slow</code> 函数使用 <code>time.sleep(3)</code> 暂停 3 秒，模拟耗时操作，这个函数将像我们往常编写的单线程代码一样在主线程中执行。</p>
+<p>接下来我们要编写多线程代码来分别调用 <code>spin</code> 和 <code>slow</code> 两个函数，完成这个旋转指针程序。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">supervisor</span><span class="params">()</span> -&gt; int:</span></span><br><span class="line">    done = Event()</span><br><span class="line">    spinner = Thread(target=spin, args=(<span class="string">'thinking!'</span>, done))</span><br><span class="line">    print(<span class="string">f'spinner object: <span class="subst">&#123;spinner&#125;</span>'</span>)</span><br><span class="line">    spinner.start()</span><br><span class="line">    result = slow()</span><br><span class="line">    done.set()</span><br><span class="line">    spinner.join()</span><br><span class="line">    <span class="keyword">return</span> result</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">()</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    result = supervisor()</span><br><span class="line">    print(<span class="string">f'Answer: <span class="subst">&#123;result&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    main()</span><br></pre></td></tr></table></figure>
+
+<p><code>supervisor</code> 函数中，首先实例化了一个 <code>Event</code> 对象，用于多线程通信。</p>
+<p>接着，又实例化了一个 <code>Thread</code> 对象，用来管理子线程，<code>target</code> 参数接收一个函数 <code>spin</code>，这个函数将在一个独立的子线程中执行，<code>args</code> 参数接收一个元组，在子线程中调用 <code>spin</code> 函数时，元组的各个参数将被原样传递给 <code>spin</code> 函数。</p>
+<p><code>Thread</code> 对象必须要显式的调用 <code>start</code> 方法才能启动，所以代码执行到 <code>spinner.start()</code> 时，子线程才会真正开始执行。子线程只会执行 <code>spin</code> 函数，至于下方的代码与子线程无关，都是主线程要执行的代码。</p>
+<p>子线程的执行对主线程执行不会产生影响，主线程代码会继续往下运行，主线程调用 <code>slow()</code> 时会被耗时任务所阻塞。此时，子线程内部代码执行不受影响，所以子线程会不停的打印旋转指针。</p>
+<p>等待 3 秒结束后，主线程中 <code>slow()</code> 函数返回结果，主线程调用 <code>done.set()</code> 将 <code>Event</code> 对象设置为 <code>True</code>。此时，子线程 <code>spin</code> 函数内部 <code>done.wait(0.1)</code> 会立即返回 <code>True</code>，随即 <code>for</code>循环终止，<code>spin</code> 执行完成后子线程也就退出了。</p>
+<p>主线程不受子线程退出影响，会接着往下执行，调用 <code>spinner.join()</code> 是为了等待子线程结束，主线程会阻塞在这里，保证子线程结束后才会往下执行。显然，子线程在执行完 <code>spin</code> 函数就结束了，所以主线程代码会继续往下执行。</p>
+<p><code>supervisor</code> 函数最终返回 <code>slow</code> 方法的返回值 <code>result</code>。</p>
+<p>入口函数 <code>main</code> 打印 <code>result</code> 值后，主线程也退出了，程序终止。</p>
+<p>以上，就是多线程版旋转指针程序的全部逻辑了。</p>
+<p>我们来测试下这个程序执行效果：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="spinner-thread.gif" alt="spinner-thread" title="">
+                </div>
+                <div class="image-caption">spinner-thread</div>
+            </figure>
+
+<p>多线程对象 <code>spinner</code> 输出结果为 <code>&lt;Thread(Thread-1, initial)&gt;</code>，其中 <code>Thread-1</code> 是线程名称，<code>initial</code> 是线程状态，表示当前线程刚初始化完成，尚未启动。</p>
+<h3 id="多进程版"><a href="#多进程版" class="headerlink" title="多进程版"></a>多进程版</h3><p>Python 提供了 <code>multiprocessing</code> 来支持多进程，这个模块的 API 基本模仿了多线程的 <code>threading</code> 模块，所以有了前文的基础，多进程代码也非常容易看懂。</p>
+<p>同多线程一样，<code>multiprocessing</code> 包也为多进程通信提供了 <code>Event</code> 对象。不同的是，<code>threading.Event</code> 是一个类，<code>multiprocessing.Event</code> 是一个函数，它返回一个 <code>synchronize.Event</code> 类实例。所以 <code>spin</code> 函数签名需要进行如下修改：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> multiprocessing <span class="keyword">import</span> Process, Event</span><br><span class="line"><span class="keyword">from</span> multiprocessing <span class="keyword">import</span> synchronize</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">spin</span><span class="params">(msg: str, done: synchronize.Event)</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    ...</span><br></pre></td></tr></table></figure>
+
+<p><code>spin</code> 函数内部代码无需调整，只需要修改参数 <code>done</code> 的类型注解即可。所以不难发现 <code>synchronize.Event</code> 同样支持 <code>Event.wait(self, timeout=None)</code> 方法。</p>
+<p>多进程版本的 <code>supervisor</code> 函数也要稍作修改：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">supervisor</span><span class="params">()</span> -&gt; int:</span></span><br><span class="line">    done = Event()</span><br><span class="line">    spinner = Process(target=spin, args=(<span class="string">'thinking!'</span>, done))</span><br><span class="line">    print(<span class="string">f'spinner object: <span class="subst">&#123;spinner&#125;</span>'</span>)</span><br><span class="line">    spinner.start()</span><br><span class="line">    result = slow()</span><br><span class="line">    done.set()</span><br><span class="line">    spinner.join()</span><br><span class="line">    <span class="keyword">return</span> result</span><br></pre></td></tr></table></figure>
+
+<p>虽然 <code>multiprocessing.Event</code> 和 <code>threading.Event</code> 类型不同，但二者用法和作用则完全相同。</p>
+<p>这里使用 <code>Process</code> 实例化一个进程对象，<code>Process</code> 用法和 <code>Thread</code> 用法同样如出一辙。</p>
+<p>只需要对代码做少量的改动，我们就将程序从多线程迁移到了多进程。这一点，Python 做的非常友好，掌握了多线程编程，基本上就掌握了多进程编程，我们只需要在适当的时候，使用不同的模块即可。</p>
+<p>下面是多进程版本旋转指针程序测试效果：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="spinner-process.gif" alt="spinner-process" title="">
+                </div>
+                <div class="image-caption">spinner-process</div>
+            </figure>
+
+<p>多进程对象 <code>spinner</code> 输出结果为 <code>&lt;Process name=&#39;Process-1&#39; parent=94367 initial&gt;</code>，进程名称为 <code>Process-1</code>，<code>parent</code> 代表父进程 ID 为 <code>94367</code>（即主进程 ID），<code>initial</code> 是进程状态，表示当前进程刚初始化完成，尚未启动。</p>
+<h3 id="协程版"><a href="#协程版" class="headerlink" title="协程版"></a>协程版</h3><p>最后我们将使用协程实现旋转指针程序，这一版本代码改动会比较大。</p>
+<p>Python 在 3.5 版本提供了 <code>async</code>、<code>await</code> 关键字（可以参考 <a href="https://peps.python.org/pep-0492/" target="_blank" rel="noopener">PEP 492</a>），开始原生支持了协程，我们不再需要编写难懂的 <code>yeild from</code> 来使用生成器实现协程功能了。</p>
+<p>Python 协程通常在单线程的事件循环中运行。协程是一个可以挂起自身并在以后恢复的“函数”，<code>async</code> 用来定义协程，一个协程必须显式的使用 <code>await</code> 关键字主动让出控制权，另一个协程才有机会在主事件循环的调度下并发的执行。</p>
+<p>协程版本旋转指针程序需要对 <code>spin</code> 和 <code>slow</code> 两个函数做如下修改：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> asyncio</span><br><span class="line"><span class="keyword">import</span> itertools</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">def</span> <span class="title">spin</span><span class="params">(msg: str)</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    <span class="keyword">for</span> char <span class="keyword">in</span> itertools.cycle(<span class="string">r'\|/-'</span>):</span><br><span class="line">        status = <span class="string">f'\r<span class="subst">&#123;char&#125;</span> <span class="subst">&#123;msg&#125;</span>'</span></span><br><span class="line">        print(status, end=<span class="string">''</span>, flush=<span class="literal">True</span>)</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="keyword">await</span> asyncio.sleep(<span class="number">0.1</span>)</span><br><span class="line">        <span class="keyword">except</span> asyncio.CancelledError:</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">    blanks = <span class="string">' '</span> * len(status)</span><br><span class="line">    print(<span class="string">f'\r<span class="subst">&#123;blanks&#125;</span>\r'</span>, end=<span class="string">''</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">def</span> <span class="title">slow</span><span class="params">()</span> -&gt; int:</span></span><br><span class="line">    <span class="keyword">await</span> asyncio.sleep(<span class="number">3</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">42</span></span><br></pre></td></tr></table></figure>
+
+<p>首先我们使用 <code>async def</code> 将 <code>spin</code> 定义为一个协程，让其不再是一个常规的函数。</p>
+<p><code>spin</code> 协程取消了第二个参数，因为 Python 没有为协程提供 <code>Event</code> 对象来进行通信，我们需要采用其他招式。</p>
+<p>在原来使用 <code>Event</code> 通信的地方替换成了由 <code>try/except</code> 包裹的 <code>await asyncio.sleep(0.1)</code> 语句块代码。这段代码块有如下三个作用：</p>
+<ol>
+<li><p><code>await asyncio.sleep(0.1)</code> 的作用类似 <code>time.sleep</code>，可以让程序暂停 0.1 秒。不同的是，使用 <code>await asyncio.sleep</code> 暂停时不阻塞其他协程。</p>
+</li>
+<li><p>因为这里加入了 <code>await</code> 关键字，代码执行到这里时，当前协程会主动让出控制权，不再继续往下执行，由事件循环来调度其他协程执行。</p>
+</li>
+<li><p>如果在控制当前协程的 <code>Task</code> 实例中调用 <code>cancel</code> 方法（有关 <code>Task</code> 的内容稍后会进行讲解），<code>await asyncio.sleep(0.1)</code> 会抛出 <code>CancelledError</code> 异常，这里使用 <code>try/except</code> 捕获异常后退出循环。这样，我们就在多个协程间利用异常机制完成了通信，而不必借助于额外的 <code>Event</code> 对象。</p>
+</li>
+</ol>
+<p><code>slow</code> 函数也被改造为一个协程，其内部原来编写的阻塞代码 <code>time.sleep(3)</code> 被替换为了 <code>await asyncio.sleep(3)</code>。</p>
+<p>可以发现，其实协程与普通的函数在定义上差别不大，只不过多了两个关键字 <code>async</code> 和 <code>await</code>。但二者在执行方式上大有不同，普通函数在使用 <code>()</code> 运算符调用时（即 <code>spin()</code>）会立刻执行，而协程在使用 <code>spin()</code> 时只会创建一个协程对象，不会执行。</p>
+<p>要执行上面两个协程对象，我们还要对 <code>supervisor</code> 和 <code>main</code> 函数进行改造：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">def</span> <span class="title">supervisor</span><span class="params">()</span> -&gt; int:</span></span><br><span class="line">    spinner = asyncio.create_task(spin(<span class="string">'thinking!'</span>))</span><br><span class="line">    print(<span class="string">f'spinner object: <span class="subst">&#123;spinner&#125;</span>'</span>)</span><br><span class="line">    result = <span class="keyword">await</span> slow()</span><br><span class="line">    spinner.cancel()</span><br><span class="line">    <span class="keyword">return</span> result</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">()</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    result = asyncio.run(supervisor())</span><br><span class="line">    print(<span class="string">f'Answer: <span class="subst">&#123;result&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    main()</span><br></pre></td></tr></table></figure>
+
+<p><code>supervisor</code> 函数同样被修改为协程，<code>spin(&#39;thinking!&#39;)</code> 并不会像函数一样立即执行，只会创建一个协程对象，将它传递给 <code>asyncio.create_task</code>，我们可以得到一个 <code>asyncio.Task</code> 对象，这个 <code>Task</code> 对象包装了协程对象并调度其执行，它还提供控制和查询协程对象运行状态的方法。</p>
+<p>使用 <code>await</code> 关键字来调用 <code>slow</code> 协程，这将阻塞 <code>supervisor</code> 程序（但会让出控制权，使其他协程得以执行），直到 <code>slow</code> 返回，返回结果赋值给 <code>result</code> 变量。</p>
+<p>接着调用了 <code>spinner.cancel()</code>，<code>Task.cancel</code> 方法调用后，将立即在 <code>Task</code> 所包装的协程对象即 <code>spin</code> 协程中抛出 <code>CancelledError</code> 异常，<code>spin</code> 中需要使用 <code>try/except</code> 捕获 <code>await asyncio.sleep(0.1)</code> 抛出的异常，这样，就实现了不同协程之间通过异常进行通信。</p>
+<p><code>main</code> 是唯一的普通函数，没有被改造为协程。<code>main</code> 函数中的 <code>asyncio.run</code> 是整个协程的启动入口，<code>asyncio.run</code> 函数启动事件循环，驱动 <code>supervisor()</code> 协程运行，最终也将启动其他协程。</p>
+<p>在以上示例代码中，我们可以总结出运行协程的 3 种方式：</p>
+<ul>
+<li><p><code>asyncio.run(coroutine())</code>：在一个常规函数中调用，是协程启动入口，将开启协程的事件循环，调用后保持阻塞，直至拿到 <code>coroutine()</code> 的返回结果。</p>
+</li>
+<li><p><code>asyncio.create_task(coroutine())</code>：在协程中调用，接收另一个协程对象并调度其最终执行，返回的 <code>Task</code> 对象是对协程对象的包装，并且提供控制和查询协程对象运行状态的方法。</p>
+</li>
+<li><p><code>await coroutine()</code>：在协程中调用，<code>await</code> 关键字主动让出执行控制权，终止当前协程执行，直至拿到 <code>coroutine()</code> 的返回结果。同时这也是一个表达式，返回结果即为 <code>coroutine()</code> 返回值。</p>
+</li>
+</ul>
+<p>下面是协程版本旋转指针程序测试效果：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="spinner-async.gif" alt="spinner-async" title="">
+                </div>
+                <div class="image-caption">spinner-async</div>
+            </figure>
+
+<p>在协程版本中，<code>spinner</code> 是一个 <code>Task</code> 对象，其字符串表示形式为 <code>&lt;Task pending name=&#39;Task-2&#39; coro=&lt;spin() running at /Users/jianghushinian/spin/spinner_async.py:8&gt;&gt;</code>。</p>
+<p>根据以上示例代码，我们可以总结出 Python 协程的最大特点：一处异步，处处异步。在协程中任何耗时操作都会减慢事件循环，由于事件循环是单线程管理的，所以这会影响其他所有协程。在编写协程代码，要格外小心，不要写出同步阻塞的代码。好在如今 Python 已经从语法层面原生支持协程，比使用生成器实现协程的年代要好多了。</p>
+<p>给你留个小作业：尝试将 <code>slow</code> 协程中 <code>await asyncio.sleep(3)</code> 替换成普通的 <code>time.sleep(3)</code> 观察下效果并思考为什么。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文我们分别使用了多线程、多进程以及协程这三种不同的并发模型实现了旋转指针程序。三者比较起来，多线程、多进程在语法上差别不大，协程则大为不同，理解起来也更加困难。</p>
+<p>由 <code>supervisor</code> 中打印的 <code>spinner</code> 对象结果可以看出，线程对象使用 <code>Thread</code> 来表示，进程对象使用 <code>Process</code> 来表示，协程对象则使用 <code>Task</code> 来表示。协程的定位是用户态线程，相比传统意义上的线程更加轻量，所以叫作 <code>Task</code> 也合理，代表同一个线程下的不同任务。</p>
+<p>线程和进程无法在外部终止，即主线程和主进程无法终止由子线程或子进程来执行的 <code>spin</code> 函数，只能通过 <code>Event</code> 来进行通信，然后由 <code>spin</code> 函数内部自己终止。协程则可以通过任务实例方法 <code>Task.cancel()</code> 进行通信，<code>spin</code> 协程中捕获 <code>CancelledError</code> 异常后终止自身代码。</p>
+<p>记住，使用协程的代码只有一个执行流，就如同单线程代码，同样只有一个执行流，只不过单线程代码执行流永远是从上到下，而协程的执行流则由事件循环来控制。</p>
+<p>多线程和多进程模型是抢占式的，由操作系统进行调度执行。用户通常需要控制的是不要让多个线程（进程）同时操作同一个数据，常使用互斥锁来解决这一问题。而协程只有一个控制循环，协程的控制权在我们自己手里，我们决定什么时候切换其他任务来执行。所以在编写协程代码时，要时刻注意不要写出同步阻塞代码。</p>
+<p>本文示例全部出自《流畅的Python（第2版）》一书，这本书的每一小节都值得拿出来单独探讨，我之所以挑选这一主题进行分享，是因为刚好这个主题内容在《流畅的Python（第2版）》中有所升级，如果你阅读过第一版，本文能够很好的展示第二版更新了什么。并发模型是一个宏大的话题，本文只作为入门指引，想要更深入学习，推荐阅读《流畅的Python（第2版）》。</p>
+<p>本文完整代码示例我放在了 <a href="https://github.com/jianghushinian/blog-python-example/tree/main/spin" target="_blank" rel="noopener">GitHub</a> 上，欢迎点击查看。</p>
+<p>希望此文能对你有所帮助。</p>
+<p><strong>联系我</strong></p>
+<ul>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客地址：<a href="https://jianghushinian.cn/" target="_blank" rel="noopener">https://jianghushinian.cn/</a></li>
+</ul>
+<p><strong>参考</strong></p>
+<ul>
+<li>《流畅的Python（第2版）》</li>
+<li>本文示例代码：<a href="https://github.com/jianghushinian/blog-python-example/tree/main/spin" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-python-example/tree/main/spin</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2023-05-14T10:54:25.517Z" itemprop="dateUpdated">2023-05-14 18:54:25</time>
+</span><br>
+
+
+        
+        <a href="/2023/05/14/how-to-use-concurrency-models-in-python/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Pythonic/" rel="tag">Pythonic</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/&title=《在 Python 中如何使用并发模型编程》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/&title=《在 Python 中如何使用并发模型编程》 — 江湖十年&source=关于什么是并发模型，我在这里引用 Go 语言联合创造者 Rob Pike 的一段话：
+
+并发是指一次处理多件事。并行是指一次做多件事。二者不同，但是有联系..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Python 中如何使用并发模型编程》 — 江湖十年&url=http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/05/08/go-modern-command-line-framework-cobra-details/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 语言现代命令行框架 Cobra 详解</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2023</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/&title=《在 Python 中如何使用并发模型编程》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/&title=《在 Python 中如何使用并发模型编程》 — 江湖十年&source=关于什么是并发模型，我在这里引用 Go 语言联合创造者 Rob Pike 的一段话：
+
+并发是指一次处理多件事。并行是指一次做多件事。二者不同，但是有联系..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Python 中如何使用并发模型编程》 — 江湖十年&url=http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/05/14/how-to-use-concurrency-models-in-python/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
