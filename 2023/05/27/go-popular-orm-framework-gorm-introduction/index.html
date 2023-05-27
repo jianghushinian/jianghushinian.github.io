@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 语言流行 ORM 框架 GORM 使用介绍 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Golang,ORM">
+    <meta name="description" content="GORM 是 Go 语言中最受欢迎的 ORM 库之一，它提供了强大的功能和简洁的 API，让数据库操作变得更加简单和易维护。本文将详细介绍 GORM 的常见用法，包括数据库连接、模型定义、CRUD、事务管理等方面，帮助大家快速上手使用 GORM 进行 Web 后端开发。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 语言流行 ORM 框架 GORM 使用介绍">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="GORM 是 Go 语言中最受欢迎的 ORM 库之一，它提供了强大的功能和简洁的 API，让数据库操作变得更加简单和易维护。本文将详细介绍 GORM 的常见用法，包括数据库连接、模型定义、CRUD、事务管理等方面，帮助大家快速上手使用 GORM 进行 Web 后端开发。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/sqlite.png">
+<meta property="article:published_time" content="2023-05-27T00:44:19.000Z">
+<meta property="article:modified_time" content="2023-05-27T03:30:22.857Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Golang">
+<meta property="article:tag" content="ORM">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/sqlite.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 语言流行 ORM 框架 GORM 使用介绍</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 语言流行 ORM 框架 GORM 使用介绍</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-05-27T00:44:19.000Z" itemprop="datePublished" class="page-time">
+  2023-05-27
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Golang/">Golang</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#安装"><span class="post-toc-number">1.</span> <span class="post-toc-text">安装</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#快速开始"><span class="post-toc-number">2.</span> <span class="post-toc-text">快速开始</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#声明模型"><span class="post-toc-number">3.</span> <span class="post-toc-text">声明模型</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#连接数据库"><span class="post-toc-number">4.</span> <span class="post-toc-text">连接数据库</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#创建"><span class="post-toc-number">5.</span> <span class="post-toc-text">创建</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#查询"><span class="post-toc-number">6.</span> <span class="post-toc-text">查询</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#更新"><span class="post-toc-number">7.</span> <span class="post-toc-text">更新</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#删除"><span class="post-toc-number">8.</span> <span class="post-toc-text">删除</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#关联"><span class="post-toc-number">9.</span> <span class="post-toc-text">关联</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#创建-1"><span class="post-toc-number">9.1.</span> <span class="post-toc-text">创建</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#查询-1"><span class="post-toc-number">9.2.</span> <span class="post-toc-text">查询</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#更新-1"><span class="post-toc-number">9.3.</span> <span class="post-toc-text">更新</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#删除-1"><span class="post-toc-number">9.4.</span> <span class="post-toc-text">删除</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#事务"><span class="post-toc-number">10.</span> <span class="post-toc-text">事务</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#钩子"><span class="post-toc-number">11.</span> <span class="post-toc-text">钩子</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#原生-SQL"><span class="post-toc-number">12.</span> <span class="post-toc-text">原生 SQL</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#调试"><span class="post-toc-number">13.</span> <span class="post-toc-text">调试</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">14.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go-popular-orm-framework-gorm-introduction"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 语言流行 ORM 框架 GORM 使用介绍</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-05-27 08:44:19" datetime="2023-05-27T00:44:19.000Z"  itemprop="datePublished">2023-05-27</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Golang/">Golang</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>GORM 是 Go 语言中最受欢迎的 ORM 库之一，它提供了强大的功能和简洁的 API，让数据库操作变得更加简单和易维护。本文将详细介绍 GORM 的常见用法，包括数据库连接、模型定义、CRUD、事务管理等方面，帮助大家快速上手使用 GORM 进行 Web 后端开发。</p>
+<a id="more"></a>
+
+<h3 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h3><p>通过如下命令安装 GORM：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go get -u gorm.io/gorm</span><br></pre></td></tr></table></figure>
+
+<p>你也许见过使用 <code>go get -u github.com/jinzhu/gorm</code> 命令来安装 GORM，这个是老版本 v1，现已过时，不建议使用。新版本 v2 已经迁移至 <code>github.com/go-gorm/gorm</code> 仓库下。</p>
+<h3 id="快速开始"><a href="#快速开始" class="headerlink" title="快速开始"></a>快速开始</h3><p>如下示例代码带你快速上手 GORM 的使用：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"gorm.io/driver/sqlite"</span></span><br><span class="line">	<span class="string">"gorm.io/gorm"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Product 定义结构体用来映射数据库表</span></span><br><span class="line"><span class="keyword">type</span> Product <span class="keyword">struct</span> &#123;</span><br><span class="line">	gorm.Model</span><br><span class="line">	Code  <span class="keyword">string</span></span><br><span class="line">	Price <span class="keyword">uint</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 建立数据库连接</span></span><br><span class="line">	db, err := gorm.Open(sqlite.Open(<span class="string">"test.db"</span>), &amp;gorm.Config&#123;&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"failed to connect database"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 迁移表结构</span></span><br><span class="line">	db.AutoMigrate(&amp;Product&#123;&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 增加数据</span></span><br><span class="line">	db.Create(&amp;Product&#123;Code: <span class="string">"D42"</span>, Price: <span class="number">100</span>&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 查找数据</span></span><br><span class="line">	<span class="keyword">var</span> product Product</span><br><span class="line">	db.First(&amp;product, <span class="number">1</span>)                 <span class="comment">// find product with integer primary key</span></span><br><span class="line">	db.First(&amp;product, <span class="string">"code = ?"</span>, <span class="string">"D42"</span>) <span class="comment">// find product with code D42</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 更新数据 - update product's price to 200</span></span><br><span class="line">	db.Model(&amp;product).Update(<span class="string">"Price"</span>, <span class="number">200</span>)</span><br><span class="line">	<span class="comment">// 更新数据 - update multiple fields</span></span><br><span class="line">	db.Model(&amp;product).Updates(Product&#123;Price: <span class="number">200</span>, Code: <span class="string">"F42"</span>&#125;) <span class="comment">// non-zero fields</span></span><br><span class="line">	db.Model(&amp;product).Updates(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;<span class="string">"Price"</span>: <span class="number">200</span>, <span class="string">"Code"</span>: <span class="string">"F42"</span>&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 删除数据 - delete product</span></span><br><span class="line">	db.Delete(&amp;product, <span class="number">1</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>提示：这里使用了 <code>SQLite</code> 数据库驱动，需要通过 <code>go get -u gorm.io/driver/sqlite</code> 命令安装。</p>
+</blockquote>
+<p>将以上代码保存在 <code>main.go</code> 中并执行。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br></pre></td></tr></table></figure>
+
+<p>执行完成后，我们将在当前目录下得到 <code>test.db</code> SQLite 数据库文件。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="sqlite.png" alt="SQLite" title="">
+                </div>
+                <div class="image-caption">SQLite</div>
+            </figure>
+
+<p>① 进入 SQLite 命令行。</p>
+<p>② 查看已存在的数据库表。</p>
+<p>③ 设置稍后查询表数据时的输出模式为按列左对齐。</p>
+<p>④ 查询表中存在的数据。</p>
+<p>有过使用 ORM 框架经验的同学，以上代码即使我不进行讲解也能看懂个大概。</p>
+<p>这段示例代码基本能够概括 GORM 框架使用套路：</p>
+<ol>
+<li><p>定义结构体映射表结构：<code>Product</code> 结构体在 GORM 中称作「模型」，一个模型对应一张数据库表，一个结构体实例对象对应一条数据库表记录。</p>
+</li>
+<li><p>连接数据库：GORM 使用 <code>gorm.Open</code> 方法与数据库建立连接，连接建立好后，才能对数据库进行 CRUD 操作。</p>
+</li>
+<li><p>自动迁移表结构：调用 <code>db.AutoMigrate</code> 方法能够自动完成在数据库中创建 <code>Product</code> 结构体所映射的数据库表，并且，当 <code>Product</code> 结构体字段有变更，再次执行迁移代码，GORM 会自动对表结构进行调整，非常方便。不过，我不推荐在生产环境项目中使用此功能。因为数据库表操作都是高风险操作，一定要经过多人 Review 并审核通过，才能执行操作。GORM 自动迁移功能虽然理论上不会出现问题，但线上操作谨慎为妙，个人认为只有在小项目或数据不那么重要的项目中使用比较合适。</p>
+</li>
+<li><p>CRUD 操作：迁移好数据库后，就有了数据库表，可以进行 CRUD 操作了。</p>
+</li>
+</ol>
+<p>有些同学可能有个疑问，以上示例代码中并没有类似 <code>defer db.Close()</code> 主动关闭连接的操作，那么何时关闭数据库连接？</p>
+<p>其实 GORM 维护了一个数据库连接池，初始化 <code>db</code> 后所有的连接都由底层库来管理，无需程序员手动干预，GORM 会在合适的时机自动关闭连接。GORM 框架作者 <code>jinzhu</code> 也有在源码仓库 <a href="https://github.com/go-gorm/gorm/issues/3834" target="_blank" rel="noopener">Issue</a> 中回复过网友的提问，感兴趣的同学可以点击进入查看。</p>
+<p>接下来我将对 GORM 的使用进行详细讲解。</p>
+<h3 id="声明模型"><a href="#声明模型" class="headerlink" title="声明模型"></a>声明模型</h3><p>GORM 使用模型（Model）来映射一张数据库表，模型是标准的 Go <code>struct</code>，由 Go 的基本数据类型、实现了 <code>Scanner</code> 和 <code>Valuer</code> 接口的自定义类型及其指针或别名组成。</p>
+<p>例如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	ID           <span class="keyword">uint</span></span><br><span class="line">	Name         <span class="keyword">string</span></span><br><span class="line">	Email        *<span class="keyword">string</span></span><br><span class="line">	Age          <span class="keyword">uint8</span></span><br><span class="line">	Birthday     *time.Time</span><br><span class="line">	MemberNumber sql.NullString</span><br><span class="line">	ActivatedAt  sql.NullTime</span><br><span class="line">	CreatedAt    time.Time</span><br><span class="line">	UpdatedAt    time.Time</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以使用 <code>gorm</code> 字段标签来控制数据库表字段的类型、列大小、默认值等属性，比如使用 <code>column</code> 字段标签来映射数据库中字段名称。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	gorm.Model</span><br><span class="line">	Name         <span class="keyword">string</span>         <span class="string">`gorm:"column:name"`</span></span><br><span class="line">	Email        *<span class="keyword">string</span>        <span class="string">`gorm:"column:email"`</span></span><br><span class="line">	Age          <span class="keyword">uint8</span>          <span class="string">`gorm:"column:age"`</span></span><br><span class="line">	Birthday     *time.Time     <span class="string">`gorm:"column:birthday"`</span></span><br><span class="line">	MemberNumber sql.NullString <span class="string">`gorm:"column:member_number"`</span></span><br><span class="line">	ActivatedAt  sql.NullTime   <span class="string">`gorm:"column:activated_at"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *User)</span> <span class="title">TableName</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="string">"user"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在不指定 <code>column</code> 字段标签情况下，GORM 默认使用字段名的 <code>snake_case</code> 作为列名。</p>
+<p>GORM 默认使用结构体名的 <code>snake_cases</code> 作为表名，为结构体实现 <code>TableName</code> 方法可以自定义表名。</p>
+<p>我更喜欢「显式胜于隐式」的做法，所以数据库名和表名都会显示写出来。</p>
+<p>因为我们不使用自动迁移的功能，所以其他字段标签都用不到，就不在此一一介绍了，感兴趣的同学可以查看<a href="https://gorm.io/zh_CN/docs/models.html#%E5%AD%97%E6%AE%B5%E6%A0%87%E7%AD%BE" target="_blank" rel="noopener">官方文档</a>进行学习。</p>
+<p><code>User</code> 结构体中有一个嵌套的结构体 <code>gorm.Model</code>，它是 GORM 默认提供的一个模型 <code>struct</code>，用来简化用户模型定义。</p>
+<p>GORM 倾向于约定优于配置，默认情况下，使用 <code>ID</code> 作为主键，使用 <code>CreatedAt</code>、<code>UpdatedAt</code>、<code>DeletedAt</code> 字段追踪记录的创建、更新、删除时间。而这几个字段就定义在 <code>gorm.Model</code> 中：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Model <span class="keyword">struct</span> &#123;</span><br><span class="line">	ID        <span class="keyword">uint</span> <span class="string">`gorm:"primarykey"`</span></span><br><span class="line">	CreatedAt time.Time</span><br><span class="line">	UpdatedAt time.Time</span><br><span class="line">	DeletedAt DeletedAt <span class="string">`gorm:"index"`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由于我们不使用自动迁移功能，所以需要手动编写 SQL 语句来创建 <code>user</code> 数据库表结构：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`user`</span> (</span><br><span class="line">  <span class="string">`id`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">  <span class="string">`name`</span> <span class="built_in">varchar</span>(<span class="number">50</span>) <span class="keyword">DEFAULT</span> <span class="string">''</span> <span class="keyword">COMMENT</span> <span class="string">'用户名'</span>,</span><br><span class="line">  <span class="string">`email`</span> <span class="built_in">varchar</span>(<span class="number">255</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">''</span> <span class="keyword">COMMENT</span> <span class="string">'邮箱'</span>,</span><br><span class="line">  <span class="string">`age`</span> <span class="built_in">tinyint</span>(<span class="number">4</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">'0'</span> <span class="keyword">COMMENT</span> <span class="string">'年龄'</span>,</span><br><span class="line">  <span class="string">`birthday`</span> datetime <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">CURRENT_TIMESTAMP</span> <span class="keyword">COMMENT</span> <span class="string">'生日'</span>,</span><br><span class="line">  <span class="string">`member_number`</span> <span class="built_in">varchar</span>(<span class="number">50</span>) <span class="keyword">COMMENT</span> <span class="string">'成员编号'</span>,</span><br><span class="line">  <span class="string">`activated_at`</span> datetime <span class="keyword">COMMENT</span> <span class="string">'激活时间'</span>,</span><br><span class="line">  <span class="string">`created_at`</span> datetime <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  <span class="string">`updated_at`</span> datetime <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">CURRENT_TIMESTAMP</span> <span class="keyword">ON</span> <span class="keyword">UPDATE</span> <span class="keyword">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  <span class="string">`deleted_at`</span> datetime,</span><br><span class="line">  PRIMARY <span class="keyword">KEY</span> (<span class="string">`id`</span>),</span><br><span class="line">  <span class="keyword">UNIQUE</span> <span class="keyword">KEY</span> <span class="string">`u_email`</span> (<span class="string">`email`</span>),</span><br><span class="line">  <span class="keyword">INDEX</span> <span class="string">`idx_deleted_at`</span>(<span class="string">`deleted_at`</span>)</span><br><span class="line">) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span> <span class="keyword">DEFAULT</span> <span class="keyword">CHARSET</span>=utf8 <span class="keyword">COMMENT</span>=<span class="string">'用户表'</span>;</span><br></pre></td></tr></table></figure>
+
+<p>数据库中字段类型要跟 Go 中模型的字段类型相对应，不兼容的类型可能导致错误。</p>
+<h3 id="连接数据库"><a href="#连接数据库" class="headerlink" title="连接数据库"></a>连接数据库</h3><p>GORM 官方支持的数据库类型有：MySQL、PostgreSQL、SQLite、SQL Server 和 TiDB。</p>
+<p>这里使用最常见的 MySQL 作为示例，来讲解 GORM 如何连接到数据库。</p>
+<p>在前文<a href="#快速开始">快速开始</a>的示例代码中，我们使用 SQLite 数据库时，安装了 <code>sqlite</code> 驱动程序。要连接 MySQL 则需要使用 <code>mysql</code> 驱动。</p>
+<p>在 GORM 中定义了 <code>gorm.Dialector</code> 接口来规范数据库连接操作，实现了此接口的程序我们将其称为「驱动」。针对每种数据库，都有对应的驱动，驱动是独立于 GORM 库的，需要单独引入。</p>
+<p>连接 MySQL 数据库的代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"gorm.io/driver/mysql"</span></span><br><span class="line">	<span class="string">"gorm.io/gorm"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ConnectMySQL</span><span class="params">(host, port, user, pass, dbname <span class="keyword">string</span>)</span> <span class="params">(*gorm.DB, error)</span></span> &#123;</span><br><span class="line">	dsn := fmt.Sprintf(<span class="string">"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&amp;parseTime=True&amp;loc=Local"</span>,</span><br><span class="line">		user, pass, host, port, dbname)</span><br><span class="line">	<span class="keyword">return</span> gorm.Open(mysql.Open(dsn), &amp;gorm.Config&#123;&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，这段代码与连接 SQLite 数据库的代码如出一辙，这就是面向接口编程的好处。</p>
+<p>首先，<code>mysql.Open</code> 接收一个字符串 <code>dsn</code>，DSN 全称 <code>Data Source Name</code>，翻译过来叫数据库源名称。DSN 定义了一个数据库的连接信息，包含用户名、密码、数据库 IP、数据库端口、数据库字符集、数据库时区等信息。DSN 遵循特定格式：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">username:password@protocol(address)&#x2F;dbname?param&#x3D;value</span><br></pre></td></tr></table></figure>
+
+<p>通过 DSN 所包含的信息，<code>mysql</code> 驱动就能够知道以什么方式连接到 MySQL 数据库了。</p>
+<p><code>mysql.Open</code> 返回的正是一个 <code>gorm.Dialector</code> 对象，将其传递给 <code>gorm.Open</code> 方法后，我们将得到 <code>*gorm.DB</code> 对象，这个对象可以用来操作数据库。</p>
+<p>GORM 使用 <code>database/sql</code> 来维护数据库连接池，对于连接池我们可以设置如下几个参数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SetConnect</span><span class="params">(db *gorm.DB)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	sqlDB, err := db.DB()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	sqlDB.SetMaxOpenConns(<span class="number">100</span>)                 <span class="comment">// 设置数据库的最大打开连接数</span></span><br><span class="line">	sqlDB.SetMaxIdleConns(<span class="number">100</span>)                 <span class="comment">// 设置最大空闲连接数</span></span><br><span class="line">	sqlDB.SetConnMaxLifetime(<span class="number">10</span> * time.Second) <span class="comment">// 设置空闲连接最大存活时间</span></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在，数据库连接已经建立，我们可以对数据库进行操作了。</p>
+<h3 id="创建"><a href="#创建" class="headerlink" title="创建"></a>创建</h3><p>可以使用 <code>Create</code> 方法创建一条数据库记录：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">now := time.Now()</span><br><span class="line">email := <span class="string">"u1@jianghushinian.com"</span></span><br><span class="line">user := User&#123;Name: <span class="string">"user1"</span>, Email: &amp;email, Age: <span class="number">18</span>, Birthday: &amp;now&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// INSERT INTO `user` (`created_at`,`updated_at`,`deleted_at`,`name`,`email`,`age`,`birthday`,`member_number`,`activated_at`) VALUES ('2023-05-22 22:14:47.814','2023-05-22 22:14:47.814',NULL,'user1','u1@jianghushinian.com',18,'2023-05-22 22:14:47.812',NULL,NULL)</span></span><br><span class="line">result := db.Create(&amp;user) <span class="comment">// 通过数据的指针来创建</span></span><br><span class="line"></span><br><span class="line">fmt.Printf(<span class="string">"user: %+v\n"</span>, user) <span class="comment">// user.ID 自动填充</span></span><br><span class="line">fmt.Printf(<span class="string">"affected rows: %d\n"</span>, result.RowsAffected)</span><br><span class="line">fmt.Printf(<span class="string">"error: %v\n"</span>, result.Error)</span><br></pre></td></tr></table></figure>
+
+<p>要创建记录，我们需要先实例化 <code>User</code> 对象，然后将其指针传递给 <code>db.Create</code> 方法。</p>
+<p><code>db.Create</code> 方法执行完成后，依然返回一个 <code>*gorm.DB</code> 对象。</p>
+<p><code>user.ID</code> 会被自动填充为创建数据库记录后返回的真实值。</p>
+<p><code>result.RowsAffected</code> 可以拿到此次操作影响行数。</p>
+<p><code>result.Error</code> 可以知道执行 SQL 是否出错。</p>
+<p>在这里，我将 <code>db.Create(&amp;user)</code> 这句 <code>ORM</code> 代码所生成的原生 SQL 语句放在了注释中，方便你对比学习。并且，之后的示例中我也会这样做。</p>
+<p><code>Create</code> 方法不仅支持创建单条记录，它同样支持批量操作，一次创建多条记录：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">now = time.Now()</span><br><span class="line">email2 := <span class="string">"u2@jianghushinian.com"</span></span><br><span class="line">email3 := <span class="string">"u3@jianghushinian.com"</span></span><br><span class="line">users := []User&#123;</span><br><span class="line">	&#123;Name: <span class="string">"user2"</span>, Email: &amp;email2, Age: <span class="number">19</span>, Birthday: &amp;now&#125;,</span><br><span class="line">	&#123;Name: <span class="string">"user3"</span>, Email: &amp;email3, Age: <span class="number">20</span>, Birthday: &amp;now&#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// INSERT INTO `user` (`created_at`,`updated_at`,`deleted_at`,`name`,`email`,`age`,`birthday`,`member_number`,`activated_at`) VALUES ('2023-05-22 22:14:47.834','2023-05-22 22:14:47.834',NULL,'user2','u2@jianghushinian.com',19,'2023-05-22 22:14:47.833',NULL,NULL),('2023-05-22 22:14:47.834','2023-05-22 22:14:47.834',NULL,'user3','u3@jianghushinian.com',20,'2023-05-22 22:14:47.833',NULL,NULL)</span></span><br><span class="line">result = db.Create(&amp;users)</span><br></pre></td></tr></table></figure>
+
+<p>代码主要逻辑不变，只需要将单个的 <code>User</code> 实例换成 <code>User</code> 切片即可。GORM 会使用一条 SQL 语句完成批量创建记录。</p>
+<h3 id="查询"><a href="#查询" class="headerlink" title="查询"></a>查询</h3><p>查询记录是我们在日常开发中使用最多的场景了，GORM 提供了多种方法来支持 SQL 查询操作。</p>
+<p>使用 <code>First</code> 方法可以查询第一条记录：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> user User</span><br><span class="line"><span class="comment">// SELECT * FROM `user` WHERE `user`.`deleted_at` IS NULL ORDER BY `user`.`id` LIMIT 1</span></span><br><span class="line">result := db.First(&amp;user)</span><br></pre></td></tr></table></figure>
+
+<p><code>First</code> 方法接收一个模型指针，通过模型的 <code>TableName</code> 方法则可以拿到数据库表名，然后使用 <code>SELECT *</code> 语句从数据库中查询记录。</p>
+<p>根据生成的 SQL 可以发现 <code>First</code> 方法查询数据默认根据主键 <code>ID</code> 升序排序，并且只会过滤删除时间为 <code>NULL</code> 的数据，使用 <code>LIMIT</code> 关键字来限制数据条数。</p>
+<p>使用 <code>Last</code> 方法可以查询最后一条数据，排序规则为主键 <code>ID</code> 降序：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> lastUser User</span><br><span class="line"><span class="comment">// SELECT * FROM `user` WHERE `user`.`deleted_at` IS NULL ORDER BY `user`.`id` DESC LIMIT 1</span></span><br><span class="line">result = db.Last(&amp;lastUser)</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>Where</code> 方法可以增加查询条件：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> users []User</span><br><span class="line"><span class="comment">// SELECT * FROM `user` WHERE name != 'unknown' AND `user`.`deleted_at` IS NULL</span></span><br><span class="line">result = db.Where(<span class="string">"name != ?"</span>, <span class="string">"unknown"</span>).Find(&amp;users)</span><br></pre></td></tr></table></figure>
+
+<p>这里不再查询单条数据，所以改用 <code>Find</code> 方法来查询所有符合条件的记录。</p>
+<p>以上介绍的几种查询方法，都是通过 <code>SELECT *</code> 查询数据库表中的全部字段，我们可以使用 <code>Select</code> 方法指定需要查询的字段：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> user2 User</span><br><span class="line"><span class="comment">// SELECT `name`,`age` FROM `user` WHERE `user`.`deleted_at` IS NULL ORDER BY `user`.`id` LIMIT 1</span></span><br><span class="line">result = db.Select(<span class="string">"name"</span>, <span class="string">"age"</span>).First(&amp;user2)</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>Order</code> 方法可以自定义排序规则：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> users2 []User</span><br><span class="line"><span class="comment">// SELECT * FROM `user` WHERE `user`.`deleted_at` IS NULL ORDER BY id desc</span></span><br><span class="line">result = db.Order(<span class="string">"id desc"</span>).Find(&amp;users2)</span><br></pre></td></tr></table></figure>
+
+<p>GORM 也提供了对 <code>Limit &amp; Offset</code> 的支持：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> users3 []User</span><br><span class="line"><span class="comment">// SELECT * FROM `user` WHERE `user`.`deleted_at` IS NULL LIMIT 2 OFFSET 1</span></span><br><span class="line">result = db.Limit(<span class="number">2</span>).Offset(<span class="number">1</span>).Find(&amp;users3)</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>-1</code> 可以取消 <code>Limit &amp; Offset</code> 的限制条件：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> users4 []User</span><br><span class="line"><span class="keyword">var</span> users5 []User</span><br><span class="line"><span class="comment">// SELECT * FROM `user` WHERE `user`.`deleted_at` IS NULL LIMIT 2 OFFSET 1; (users4)</span></span><br><span class="line"><span class="comment">// SELECT * FROM `user` WHERE `user`.`deleted_at` IS NULL; (users5)</span></span><br><span class="line">result = db.Limit(<span class="number">2</span>).Offset(<span class="number">1</span>).Find(&amp;users4).Limit(<span class="number">-1</span>).Offset(<span class="number">-1</span>).Find(&amp;users5)</span><br></pre></td></tr></table></figure>
+
+<p>这段代码会执行两条查询语句，之所以能够采用这种「链式调用」的方式执行多条 SQL，是因为每个方法返回的都是 <code>*gorm.DB</code> 对象，这也是一种编程技巧。</p>
+<p>使用 <code>Count</code> 方法可以统计记录条数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> count <span class="keyword">int64</span></span><br><span class="line"><span class="comment">// SELECT count(*) FROM `user` WHERE `user`.`deleted_at` IS NULL</span></span><br><span class="line">result = db.Model(&amp;User&#123;&#125;).Count(&amp;count)</span><br></pre></td></tr></table></figure>
+
+<p>有时候遇到比较复杂的业务，我们可能需要使用 SQL 子查询，子查询可以嵌套在另一个查询中，GORM 允许将 <code>*gorm.DB</code> 对象作为参数时生成子查询：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> avgages []<span class="keyword">float64</span></span><br><span class="line"><span class="comment">// SELECT AVG(age) as avgage FROM `user` WHERE `user`.`deleted_at` IS NULL GROUP BY `name` HAVING AVG(age) &gt; (SELECT AVG(age) FROM `user` WHERE name LIKE 'user%')</span></span><br><span class="line">subQuery := db.Select(<span class="string">"AVG(age)"</span>).Where(<span class="string">"name LIKE ?"</span>, <span class="string">"user%"</span>).Table(<span class="string">"user"</span>)</span><br><span class="line">result = db.Model(&amp;User&#123;&#125;).Select(<span class="string">"AVG(age) as avgage"</span>).Group(<span class="string">"name"</span>).Having(<span class="string">"AVG(age) &gt; (?)"</span>, subQuery).Find(&amp;avgages)</span><br></pre></td></tr></table></figure>
+
+<p><code>Having</code> 方法签名如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">Having</span><span class="params">(query <span class="keyword">interface</span>&#123;&#125;, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(tx *DB)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>第二个参数是一个范型 <code>interface{}</code>，所以不仅可以接收字符串，GORM 在判断其类型为 <code>*gorm.DB</code> 时，就会构造一个子查询。</p>
+<h3 id="更新"><a href="#更新" class="headerlink" title="更新"></a>更新</h3><p>为了讲解更新操作，我们需要先查询一条记录，之后的更新操作都是基于这条被查询出来的 <code>User</code> 对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> user User</span><br><span class="line"><span class="comment">// SELECT * FROM `user` WHERE `user`.`deleted_at` IS NULL ORDER BY `user`.`id` LIMIT 1</span></span><br><span class="line">result := db.First(&amp;user)</span><br></pre></td></tr></table></figure>
+
+<p>更新操作只要修改 <code>User</code> 对象的属性，然后调用 <code>db.Save(&amp;user)</code> 方法即可完成：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">user.Name = <span class="string">"John"</span></span><br><span class="line">user.Age = <span class="number">20</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// UPDATE `user` SET `created_at`='2023-05-22 22:14:47.814',`updated_at`='2023-05-22 22:24:34.201',`deleted_at`=NULL,`name`='John',`email`='u1@jianghushinian.com',`age`=20,`birthday`='2023-05-22 22:14:47.813',`member_number`=NULL,`activated_at`=NULL WHERE `user`.`deleted_at` IS NULL AND `id` = 1</span></span><br><span class="line">result = db.Save(&amp;user)</span><br></pre></td></tr></table></figure>
+
+<p>在更新操作时，<code>User</code> 对象要保证 <code>ID</code> 属性存在值，不然就变成了创建操作。</p>
+<p><code>Save</code> 方法会保存所有的字段，即使字段是对应类型的零值。</p>
+<p>除了使用 <code>Save</code> 方法更新所有字段，我们还可以使用 <code>Update</code> 方法更新指定字段：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// UPDATE `user` SET `name`='Jianghushinian',`updated_at`='2023-05-22 22:24:34.215' WHERE `user`.`deleted_at` IS NULL AND `id` = 1</span></span><br><span class="line">result = db.Model(&amp;user).Update(<span class="string">"name"</span>, <span class="string">"Jianghushinian"</span>)</span><br></pre></td></tr></table></figure>
+
+<p><code>Update</code> 只能支持更新单个字段，要想更新多个字段，可以使用 <code>Updates</code> 方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// UPDATE `user` SET `updated_at`='2023-05-22 22:29:35.19',`name`='JiangHu' WHERE `user`.`deleted_at` IS NULL AND `id` = 1</span></span><br><span class="line">result = db.Model(&amp;user).Updates(User&#123;Name: <span class="string">"JiangHu"</span>, Age: <span class="number">0</span>&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>注意，<code>Updates</code> 方法与 <code>Save</code> 方法有一个很大的不同之处，它只会更新非零值字段。<code>Age</code> 字段为零值，所以不会被更新。</p>
+<p>如果一定要更新零值字段，除了可以使用上面的 <code>Save</code> 方法，还可以将 <code>User</code> 结构体换成 <code>map[string]interface{}</code> 类型的 <code>map</code> 对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// UPDATE `user` SET `age`=0,`name`='JiangHu',`updated_at`='2023-05-22 22:29:35.623' WHERE `user`.`deleted_at` IS NULL AND `id` = 1</span></span><br><span class="line">result = db.Model(&amp;user).Updates(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;<span class="string">"name"</span>: <span class="string">"JiangHu"</span>, <span class="string">"age"</span>: <span class="number">0</span>&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>此外，更新数据时，还可以使用 <code>gorm.Expr</code> 来实现 SQL 表达式：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// UPDATE `user` SET `age`=age + 1,`updated_at`='2023-05-22 22:24:34.219' WHERE `user`.`deleted_at` IS NULL AND `id` = 1</span></span><br><span class="line">result = db.Model(&amp;user).Update(<span class="string">"age"</span>, gorm.Expr(<span class="string">"age + ?"</span>, <span class="number">1</span>))</span><br></pre></td></tr></table></figure>
+
+<p><code>gorm.Expr(&quot;age + ?&quot;, 1)</code> 方法调用会被转换成 <code>age=age + 1</code> SQL 表达式。</p>
+<h3 id="删除"><a href="#删除" class="headerlink" title="删除"></a>删除</h3><p>可以使用 <code>Delete</code> 方法删除数记录：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> user User</span><br><span class="line"><span class="comment">// UPDATE `user` SET `deleted_at`='2023-05-22 22:46:45.086' WHERE name = 'JiangHu' AND `user`.`deleted_at` IS NULL</span></span><br><span class="line">result := db.Where(<span class="string">"name = ?"</span>, <span class="string">"JiangHu"</span>).Delete(&amp;user)</span><br></pre></td></tr></table></figure>
+
+<p>对于删除操作，GORM 默认使用逻辑删除策略，不会对记录进行物理删除。</p>
+<p>所以 <code>Delete</code> 方法在对数据进行删除时，实际上执行的是 SQL <code>UPDATE</code> 操作，而非 <code>DELETE</code> 操作。</p>
+<p>将 <code>deleted_at</code> 字段更新为当前时间，表示当前数据已删除。这也是为什么前文在讲解查询和更新的时候，生成的 SQL 语句都自动附加了 <code>deleted_at IS NULL</code> Where 条件的原因。</p>
+<p>这样就实现了逻辑层面的删除，数据在数据库中仍然存在，但查询和更新的时候会将其过滤掉。</p>
+<p>记录被删除后，我们无法通过如下代码直接查询到被逻辑删除的记录：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// SELECT * FROM `user` WHERE name = 'JiangHu' AND `user`.`deleted_at` IS NULL ORDER BY `user`.`id` LIMIT 1</span></span><br><span class="line">result = db.Where(<span class="string">"name = ?"</span>, <span class="string">"JiangHu"</span>).First(&amp;user)</span><br><span class="line"><span class="keyword">if</span> err := result.Error; err != <span class="literal">nil</span> &#123;</span><br><span class="line">	fmt.Println(err) <span class="comment">// record not found</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这将得到一个错误 <code>record not found</code>。</p>
+<p>不过，GORM 提供了 <code>Unscoped</code> 方法，可以绕过逻辑删除：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// SELECT * FROM `user` WHERE name = 'JiangHu' ORDER BY `user`.`id` LIMIT 1</span></span><br><span class="line">result = db.Unscoped().Where(<span class="string">"name = ?"</span>, <span class="string">"JiangHu"</span>).First(&amp;user)</span><br></pre></td></tr></table></figure>
+
+<p>以上代码能够查询出被逻辑删除的记录，生成的 SQL 语句中没有包含 <code>deleted_at IS NULL</code> Where 条件。</p>
+<p>对于比较重要的数据，建议使用逻辑删除，这样可以在需要的时候恢复数据，也便于故障追踪。</p>
+<p>不过，如果明确想要物理删除一条记录，同理可以使用 <code>Unscoped</code> 方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// DELETE FROM `user` WHERE name = 'JiangHu' AND `user`.`id` = 1</span></span><br><span class="line">result = db.Unscoped().Where(<span class="string">"name = ?"</span>, <span class="string">"JiangHu"</span>).Delete(&amp;user)</span><br></pre></td></tr></table></figure>
+
+<h3 id="关联"><a href="#关联" class="headerlink" title="关联"></a>关联</h3><p>日常开发中，多数情况下不只是对单表进行操作，还要对存在关联关系的多表进行操作。</p>
+<p>这里以一个博客系统最常见的三张表「文章表、评论表、标签表」为例，对 GORM 如何操作关联表进行讲解。</p>
+<p>这里涉及最常见的关联关系：一对多和多对多。一篇文章可以有多条评论，所以文章和评论是一对多关系；一篇文章可以存在多个标签，每个标签也可以包含多篇文章，所以文章和标签是多对多关系。</p>
+<p>模型定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">type</span> Post <span class="keyword">struct</span> &#123;</span><br><span class="line">	gorm.Model</span><br><span class="line">	Title    <span class="keyword">string</span>     <span class="string">`gorm:"column:title"`</span></span><br><span class="line">	Content  <span class="keyword">string</span>     <span class="string">`gorm:"column:content"`</span></span><br><span class="line">	Comments []*Comment <span class="string">`gorm:"foreignKey:PostID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;references:ID"`</span></span><br><span class="line">	Tags     []*Tag     <span class="string">`gorm:"many2many:post_tags"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Post)</span> <span class="title">TableName</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="string">"post"</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Comment <span class="keyword">struct</span> &#123;</span><br><span class="line">	gorm.Model</span><br><span class="line">	Content <span class="keyword">string</span> <span class="string">`gorm:"column:content"`</span></span><br><span class="line">	PostID  <span class="keyword">uint</span>   <span class="string">`gorm:"column:post_id"`</span></span><br><span class="line">	Post    *Post</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Comment)</span> <span class="title">TableName</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="string">"comment"</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Tag <span class="keyword">struct</span> &#123;</span><br><span class="line">	gorm.Model</span><br><span class="line">	Name <span class="keyword">string</span>  <span class="string">`gorm:"column:name"`</span></span><br><span class="line">	Post []*Post <span class="string">`gorm:"many2many:post_tags"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Tag)</span> <span class="title">TableName</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="string">"tag"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我准备了对应的建表 SQL，可以点击链接进行查看：<a href="https://github.com/jianghushinian/blog-go-example/blob/main/gorm/crud/schema.sql" target="_blank" rel="noopener">GitHub</a> 地址。</p>
+<p>在模型定义中，<code>Post</code> 文章模型使用 <code>Comments</code> 和 <code>Tags</code> 分别保存关联的评论和标签，这两个字段不会保存在数据库表中。</p>
+<p><code>Comments</code> 字段标签使用 <code>foreignKey</code> 来指明 <code>Comments</code> 表中的外键，并使用 <code>constraint</code> 指明了约束条件，<code>references</code> 指明 <code>Comments</code> 表外键引用 <code>Post</code> 表的 <code>ID</code> 字段。</p>
+<p>其实现在生产环境中都不再推荐使用外键，各个表之间不再有数据库层面的外键约束，在做 CRUD 操作时全部通过代码层面来进行业务约束。这里为了演示 GORM 的外键和级联操作功能，所以定义了这些结构体标签。</p>
+<p><code>Tags</code> 字段标签使用 <code>many2many</code> 来指明多对多关联表名。</p>
+<p>对于 <code>Comment</code> 模型，<code>PostID</code> 字段就是外键，用来保存 <code>Post.ID</code>。<code>Post</code> 字段同样不会保存在数据库中，这种做法在 ORM 框架中非常常见。</p>
+<p>接下来，我将同样对关联表的 CRUD 操作进行一一讲解。</p>
+<h4 id="创建-1"><a href="#创建-1" class="headerlink" title="创建"></a>创建</h4><p>创建 <code>Post</code> 时会自动创建与之关联的 <code>Comments</code> 和 <code>Tags</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> post Post</span><br><span class="line">post = Post&#123;</span><br><span class="line">	Title:   <span class="string">"post1"</span>,</span><br><span class="line">	Content: <span class="string">"content1"</span>,</span><br><span class="line">	Comments: []*Comment&#123;</span><br><span class="line">		&#123;Content: <span class="string">"comment1"</span>, Post: &amp;post&#125;,</span><br><span class="line">		&#123;Content: <span class="string">"comment2"</span>, Post: &amp;post&#125;,</span><br><span class="line">	&#125;,</span><br><span class="line">	Tags: []*Tag&#123;</span><br><span class="line">		&#123;Name: <span class="string">"tag1"</span>&#125;,</span><br><span class="line">		&#123;Name: <span class="string">"tag2"</span>&#125;,</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;</span><br><span class="line">result := db.Create(&amp;post)</span><br></pre></td></tr></table></figure>
+
+<p>这里定义了一个文章对象 <code>post</code>，并且包含两条评论和两个标签。</p>
+<p>注意 <code>Comment</code> 的 <code>Post</code> 字段引用了 <code>&amp;post</code>，并没有指定 <code>PostID</code> 外键字段，GORM 能够正确处理它。</p>
+<p>以上代码将生成并依次执行如下 SQL 语句：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">BEGIN</span> <span class="keyword">TRANSACTION</span>;</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`tag`</span> (<span class="string">`created_at`</span>,<span class="string">`updated_at`</span>,<span class="string">`deleted_at`</span>,<span class="string">`name`</span>) <span class="keyword">VALUES</span> (<span class="string">'2023-05-22 22:56:52.923'</span>,<span class="string">'2023-05-22 22:56:52.923'</span>,<span class="literal">NULL</span>,<span class="string">'tag1'</span>),(<span class="string">'2023-05-22 22:56:52.923'</span>,<span class="string">'2023-05-22 22:56:52.923'</span>,<span class="literal">NULL</span>,<span class="string">'tag2'</span>) <span class="keyword">ON</span> <span class="keyword">DUPLICATE</span> <span class="keyword">KEY</span> <span class="keyword">UPDATE</span> <span class="string">`id`</span>=<span class="string">`id`</span></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`post`</span> (<span class="string">`created_at`</span>,<span class="string">`updated_at`</span>,<span class="string">`deleted_at`</span>,<span class="string">`title`</span>,<span class="string">`content`</span>) <span class="keyword">VALUES</span> (<span class="string">'2023-05-22 22:56:52.898'</span>,<span class="string">'2023-05-22 22:56:52.898'</span>,<span class="literal">NULL</span>,<span class="string">'post1'</span>,<span class="string">'content1'</span>) <span class="keyword">ON</span> <span class="keyword">DUPLICATE</span> <span class="keyword">KEY</span> <span class="keyword">UPDATE</span> <span class="string">`id`</span>=<span class="string">`id`</span></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`comment`</span> (<span class="string">`created_at`</span>,<span class="string">`updated_at`</span>,<span class="string">`deleted_at`</span>,<span class="string">`content`</span>,<span class="string">`post_id`</span>) <span class="keyword">VALUES</span> (<span class="string">'2023-05-22 22:56:52.942'</span>,<span class="string">'2023-05-22 22:56:52.942'</span>,<span class="literal">NULL</span>,<span class="string">'comment1'</span>,<span class="number">1</span>),(<span class="string">'2023-05-22 22:56:52.942'</span>,<span class="string">'2023-05-22 22:56:52.942'</span>,<span class="literal">NULL</span>,<span class="string">'comment2'</span>,<span class="number">1</span>) <span class="keyword">ON</span> <span class="keyword">DUPLICATE</span> <span class="keyword">KEY</span> <span class="keyword">UPDATE</span> <span class="string">`post_id`</span>=<span class="keyword">VALUES</span>(<span class="string">`post_id`</span>)</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`post_tags`</span> (<span class="string">`post_id`</span>,<span class="string">`tag_id`</span>) <span class="keyword">VALUES</span> (<span class="number">1</span>,<span class="number">1</span>),(<span class="number">1</span>,<span class="number">2</span>) <span class="keyword">ON</span> <span class="keyword">DUPLICATE</span> <span class="keyword">KEY</span> <span class="keyword">UPDATE</span> <span class="string">`post_id`</span>=<span class="string">`post_id`</span></span><br><span class="line"><span class="keyword">COMMIT</span>;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，与文章形成一对多关系的评论以及与文章形成多对多关系的标签，都会被创建，并且 GORM 会维护其关联关系，而且这些操作全部在一个事务下完成。</p>
+<p>此外，前文介绍的 <code>Save</code> 方法不仅能够更新记录，实际上它还支持创建记录，当 <code>Post</code> 对象不存在主键 <code>ID</code> 时，<code>Save</code> 方法将会创建一条新的记录：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> post3 Post</span><br><span class="line">post3 = Post&#123;</span><br><span class="line">	Title:   <span class="string">"post3"</span>,</span><br><span class="line">	Content: <span class="string">"content3"</span>,</span><br><span class="line">	Comments: []*Comment&#123;</span><br><span class="line">		&#123;Content: <span class="string">"comment33"</span>, Post: &amp;post3&#125;,</span><br><span class="line">	&#125;,</span><br><span class="line">	Tags: []*Tag&#123;</span><br><span class="line">		&#123;Name: <span class="string">"tag3"</span>&#125;,</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;</span><br><span class="line">result = db.Save(&amp;post3)</span><br></pre></td></tr></table></figure>
+
+<p>以上代码生成的 SQL 如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">BEGIN</span> <span class="keyword">TRANSACTION</span>;</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`tag`</span> (<span class="string">`created_at`</span>,<span class="string">`updated_at`</span>,<span class="string">`deleted_at`</span>,<span class="string">`name`</span>) <span class="keyword">VALUES</span> (<span class="string">'2023-05-22 23:17:53.189'</span>,<span class="string">'2023-05-22 23:17:53.189'</span>,<span class="literal">NULL</span>,<span class="string">'tag3'</span>) <span class="keyword">ON</span> <span class="keyword">DUPLICATE</span> <span class="keyword">KEY</span> <span class="keyword">UPDATE</span> <span class="string">`id`</span>=<span class="string">`id`</span></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`post`</span> (<span class="string">`created_at`</span>,<span class="string">`updated_at`</span>,<span class="string">`deleted_at`</span>,<span class="string">`title`</span>,<span class="string">`content`</span>) <span class="keyword">VALUES</span> (<span class="string">'2023-05-22 23:17:53.189'</span>,<span class="string">'2023-05-22 23:17:53.189'</span>,<span class="literal">NULL</span>,<span class="string">'post3'</span>,<span class="string">'content3'</span>) <span class="keyword">ON</span> <span class="keyword">DUPLICATE</span> <span class="keyword">KEY</span> <span class="keyword">UPDATE</span> <span class="string">`id`</span>=<span class="string">`id`</span></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`comment`</span> (<span class="string">`created_at`</span>,<span class="string">`updated_at`</span>,<span class="string">`deleted_at`</span>,<span class="string">`content`</span>,<span class="string">`post_id`</span>) <span class="keyword">VALUES</span> (<span class="string">'2023-05-22 23:17:53.19'</span>,<span class="string">'2023-05-22 23:17:53.19'</span>,<span class="literal">NULL</span>,<span class="string">'comment33'</span>,<span class="number">0</span>) <span class="keyword">ON</span> <span class="keyword">DUPLICATE</span> <span class="keyword">KEY</span> <span class="keyword">UPDATE</span> <span class="string">`post_id`</span>=<span class="keyword">VALUES</span>(<span class="string">`post_id`</span>)</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`post_tags`</span> (<span class="string">`post_id`</span>,<span class="string">`tag_id`</span>) <span class="keyword">VALUES</span> (<span class="number">0</span>,<span class="number">0</span>) <span class="keyword">ON</span> <span class="keyword">DUPLICATE</span> <span class="keyword">KEY</span> <span class="keyword">UPDATE</span> <span class="string">`post_id`</span>=<span class="string">`post_id`</span></span><br><span class="line"><span class="keyword">COMMIT</span>;</span><br></pre></td></tr></table></figure>
+
+<h4 id="查询-1"><a href="#查询-1" class="headerlink" title="查询"></a>查询</h4><p>可以使用如下方式，根据 <code>Post</code> 的 <code>ID</code> 查询与之关联的 <code>Comments</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	post     Post</span><br><span class="line">	comments []*Comment</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">post.ID = <span class="number">1</span></span><br><span class="line"><span class="comment">// SELECT * FROM `comment` WHERE `comment`.`post_id` = 1 AND `comment`.`deleted_at` IS NULL</span></span><br><span class="line">err := db.Model(&amp;post).Association(<span class="string">"Comments"</span>).Find(&amp;comments)</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注意⚠️：传递给 <code>Association</code> 方法的参数是 <code>Comments</code>，即在 <code>Post</code> 模型中定义的字段，而非评论的模型名 <code>Comment</code>。这点一定不要搞错了，不然执行 SQL 时会报错。</p>
+</blockquote>
+<p><code>Post</code> 是源模型，主键 <code>ID</code> 不能为空。<code>Association</code> 方法指定关联字段名，在 <code>Post</code> 模型中关联的评论使用 <code>Comments</code> 表示。最后使用 <code>Find</code> 方法来查询关联的评论。</p>
+<p>在查询 <code>Post</code> 时，我们可以预加载与之关联的 <code>Comments</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">post2 := Post&#123;&#125;</span><br><span class="line">result := db.Preload(<span class="string">"Comments"</span>).Preload(<span class="string">"Tags"</span>).First(&amp;post2)</span><br><span class="line">fmt.Println(post2)</span><br><span class="line"><span class="keyword">for</span> i, comment := <span class="keyword">range</span> post2.Comments &#123;</span><br><span class="line">	fmt.Println(i, comment)</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">for</span> i, tag := <span class="keyword">range</span> post2.Tags &#123;</span><br><span class="line">	fmt.Println(i, tag)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以像往常一样使用 <code>First</code> 方法查询一条 <code>Post</code> 记录，同时搭配使用 <code>Preload</code> 方法来指定预加载的关联字段名，这样在查询 <code>Post</code> 记录时，会将关联字段表的记录全部查询出来，并赋值给关联字段。</p>
+<p>以上代码将执行如下 SQL：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">BEGIN</span> <span class="keyword">TRANSACTION</span>;</span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="string">`post`</span> <span class="keyword">WHERE</span> <span class="string">`post`</span>.<span class="string">`deleted_at`</span> <span class="keyword">IS</span> <span class="literal">NULL</span> <span class="keyword">ORDER</span> <span class="keyword">BY</span> <span class="string">`post`</span>.<span class="string">`id`</span> <span class="keyword">LIMIT</span> <span class="number">1</span></span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="string">`comment`</span> <span class="keyword">WHERE</span> <span class="string">`comment`</span>.<span class="string">`post_id`</span> = <span class="number">1</span> <span class="keyword">AND</span> <span class="string">`comment`</span>.<span class="string">`deleted_at`</span> <span class="keyword">IS</span> <span class="literal">NULL</span></span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="string">`post_tags`</span> <span class="keyword">WHERE</span> <span class="string">`post_tags`</span>.<span class="string">`post_id`</span> = <span class="number">1</span></span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="string">`tag`</span> <span class="keyword">WHERE</span> <span class="string">`tag`</span>.<span class="string">`id`</span> <span class="keyword">IN</span> (<span class="number">1</span>,<span class="number">2</span>) <span class="keyword">AND</span> <span class="string">`tag`</span>.<span class="string">`deleted_at`</span> <span class="keyword">IS</span> <span class="literal">NULL</span></span><br><span class="line"><span class="keyword">COMMIT</span>;</span><br></pre></td></tr></table></figure>
+
+<p>GORM 通过多条 SQL 语句查询出所有关联记录，并且将关联 <code>Comments</code> 和 <code>Tags</code> 分别赋值给 <code>Post</code> 模型对应字段。</p>
+<p>当遇到多表查询时，我们通常还会使用 <code>JOIN</code> 来连接多张表：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> PostComment <span class="keyword">struct</span> &#123;</span><br><span class="line">	Title   <span class="keyword">string</span></span><br><span class="line">	Comment <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line">postComment := PostComment&#123;&#125;</span><br><span class="line">post3 := Post&#123;&#125;</span><br><span class="line">post3.ID = <span class="number">3</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// SELECT post.title, comment.Content AS comment FROM `post` LEFT JOIN comment ON comment.post_id = post.id WHERE `post`.`deleted_at` IS NULL AND `post`.`id` = 3</span></span><br><span class="line">result := db.Model(&amp;post3).Select(<span class="string">"post.title, comment.Content AS comment"</span>).Joins(<span class="string">"LEFT JOIN comment ON comment.post_id = post.id"</span>).Scan(&amp;postComment)</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>Select</code> 方法来指定需要查询的字段，使用 <code>Joins</code> 方法来实现 <code>JOIN</code> 功能，最终使用 <code>Scan</code> 方法可以将查询结果扫描到 <code>postComment</code> 对象中。</p>
+<p>针对一对多关联关系，<code>Joins</code> 方法同样支持预加载：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> comments2 []*Comment</span><br><span class="line"></span><br><span class="line"><span class="comment">// SELECT `comment`.`id`,`comment`.`created_at`,`comment`.`updated_at`,`comment`.`deleted_at`,`comment`.`content`,`comment`.`post_id`,`Post`.`id` AS `Post__id`,`Post`.`created_at` AS `Post__created_at`,`Post`.`updated_at` AS `Post__updated_at`,`Post`.`deleted_at` AS `Post__deleted_at`,`Post`.`title` AS `Post__title`,`Post`.`content` AS `Post__content` FROM `comment` LEFT JOIN `post` `Post` ON `comment`.`post_id` = `Post`.`id` AND `Post`.`deleted_at` IS NULL WHERE `comment`.`deleted_at` IS NULL</span></span><br><span class="line">result = db.Joins(<span class="string">"Post"</span>).Find(&amp;comments2)</span><br><span class="line"><span class="keyword">for</span> i, comment := <span class="keyword">range</span> comments2 &#123;</span><br><span class="line">	fmt.Println(i, comment)</span><br><span class="line">	fmt.Println(i, comment.Post)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>JOIN</code> 功能的预加载无需显式使用 <code>Preload</code> 来指明，只需要在 <code>Joins</code> 方法中指明一对多关系中一这一端模型 <code>Post</code> 即可，使用 <code>Find</code> 查询 <code>Comment</code> 记录。</p>
+<p>根据生成的 SQL 可以发现查询主表为 <code>comment</code>，副表为 <code>post</code>。并且副表的字段都被重命名为 <code>模型名__字段名</code> 的格式，如 <code>Post__title</code>（题外话：如果你使用过 Python 的 Django ORM 框架，那么对这个双下划线命名字段的做法应该有种似曾相识的感觉）。</p>
+<h4 id="更新-1"><a href="#更新-1" class="headerlink" title="更新"></a>更新</h4><p>同讲解单表更新时一样，我们需要先查询出一条记录，用来演示更新操作：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> post Post</span><br><span class="line"><span class="comment">// SELECT * FROM `post` WHERE `post`.`deleted_at` IS NULL ORDER BY `post`.`id` LIMIT 1</span></span><br><span class="line">result := db.First(&amp;post)</span><br></pre></td></tr></table></figure>
+
+<p>可以使用如下方法替换 <code>Post</code> 关联的 <code>Comments</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">comment := Comment&#123;</span><br><span class="line">	Content: <span class="string">"comment3"</span>,</span><br><span class="line">&#125;</span><br><span class="line">err := db.Model(&amp;post).Association(<span class="string">"Comments"</span>).Replace([]*Comment&#123;&amp;comment&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>仍然使用 <code>Association</code> 方法指定 <code>Post</code> 关联的 <code>Comments</code>，<code>Replace</code> 方法用来完成替换操作。</p>
+<p>这里要注意，<code>Replace</code> 方法返回结果不再是 <code>*gorm.DB</code> 对象，而是直接返回 <code>error</code>。</p>
+<p>生成 SQL 如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">BEGIN</span> <span class="keyword">TRANSACTION</span>;</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`comment`</span> (<span class="string">`created_at`</span>,<span class="string">`updated_at`</span>,<span class="string">`deleted_at`</span>,<span class="string">`content`</span>,<span class="string">`post_id`</span>) <span class="keyword">VALUES</span> (<span class="string">'2023-05-23 09:07:42.852'</span>,<span class="string">'2023-05-23 09:07:42.852'</span>,<span class="literal">NULL</span>,<span class="string">'comment3'</span>,<span class="number">1</span>) <span class="keyword">ON</span> <span class="keyword">DUPLICATE</span> <span class="keyword">KEY</span> <span class="keyword">UPDATE</span> <span class="string">`post_id`</span>=<span class="keyword">VALUES</span>(<span class="string">`post_id`</span>)</span><br><span class="line"><span class="keyword">UPDATE</span> <span class="string">`post`</span> <span class="keyword">SET</span> <span class="string">`updated_at`</span>=<span class="string">'2023-05-23 09:07:42.846'</span> <span class="keyword">WHERE</span> <span class="string">`post`</span>.<span class="string">`deleted_at`</span> <span class="keyword">IS</span> <span class="literal">NULL</span> <span class="keyword">AND</span> <span class="string">`id`</span> = <span class="number">1</span></span><br><span class="line"><span class="keyword">UPDATE</span> <span class="string">`comment`</span> <span class="keyword">SET</span> <span class="string">`post_id`</span>=<span class="literal">NULL</span> <span class="keyword">WHERE</span> <span class="string">`comment`</span>.<span class="string">`id`</span> &lt;&gt; <span class="number">8</span> <span class="keyword">AND</span> <span class="string">`comment`</span>.<span class="string">`post_id`</span> = <span class="number">1</span> <span class="keyword">AND</span> <span class="string">`comment`</span>.<span class="string">`deleted_at`</span> <span class="keyword">IS</span> <span class="literal">NULL</span></span><br><span class="line"><span class="keyword">COMMIT</span>;</span><br></pre></td></tr></table></figure>
+
+<h4 id="删除-1"><a href="#删除-1" class="headerlink" title="删除"></a>删除</h4><p>使用 <code>Delete</code> 删除文章表时，不会删除关联表的数据：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> post Post</span><br><span class="line"><span class="comment">// UPDATE `post` SET `deleted_at`='2023-05-23 09:09:58.534' WHERE id = 1 AND `post`.`deleted_at` IS NULL</span></span><br><span class="line">result := db.Where(<span class="string">"id = ?"</span>, <span class="number">1</span>).Delete(&amp;post)</span><br></pre></td></tr></table></figure>
+
+<p>对于存在关联关系的记录，删除时默认同样采用 <code>UPDATE</code> 操作，且不影响关联数据。</p>
+<p>如果想要在删除评论时，顺便删除与文章的关联关系，可以使用 <code>Association</code> 方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// UPDATE `comment` SET `post_id`=NULL WHERE `comment`.`post_id` = 6 AND `comment`.`id` IN (NULL) AND `comment`.`deleted_at` IS NULL</span></span><br><span class="line">err := db.Model(&amp;post2).Association(<span class="string">"Comments"</span>).Delete(post2.Comments)</span><br></pre></td></tr></table></figure>
+
+<h3 id="事务"><a href="#事务" class="headerlink" title="事务"></a>事务</h3><p>GORM 提供了对事务的支持，这在复杂的业务逻辑中是必要的。</p>
+<p>要在事务中执行一系列操作，可以使用 <code>Transaction</code> 方法实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TransactionPost</span><span class="params">(db *gorm.DB)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> db.Transaction(<span class="function"><span class="keyword">func</span><span class="params">(tx *gorm.DB)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">		post := Post&#123;</span><br><span class="line">			Title: <span class="string">"Hello World"</span>,</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> err := tx.Create(&amp;post).Error; err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		comment := Comment&#123;</span><br><span class="line">			Content: <span class="string">"Hello World"</span>,</span><br><span class="line">			PostID:  post.ID,</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> err := tx.Create(&amp;comment).Error; err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>Transaction</code> 方法内部的代码，都将在一个事务中被处理。<code>Transaction</code> 方法接收一个函数，其参数为 <code>tx *gorm.DB</code>，事务中所有数据库的操作，都应该使用这个 <code>tx</code> 而非 <code>db</code>。</p>
+<p>在执行事务的函数中，返回任何错误，整个事务都将被回滚，返回 <code>nil</code> 则事务被提交。</p>
+<p>除了使用 <code>Transaction</code> 自动管理事务，我们还可以手动管理事务：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TransactionPostWithManually</span><span class="params">(db *gorm.DB)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	tx := db.Begin()</span><br><span class="line"></span><br><span class="line">	post := Post&#123;</span><br><span class="line">		Title: <span class="string">"Hello World Manually"</span>,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err := tx.Create(&amp;post).Error; err != <span class="literal">nil</span> &#123;</span><br><span class="line">		tx.Rollback()</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	comment := Comment&#123;</span><br><span class="line">		Content: <span class="string">"Hello World Manually"</span>,</span><br><span class="line">		PostID:  post.ID,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err := tx.Create(&amp;comment).Error; err != <span class="literal">nil</span> &#123;</span><br><span class="line">		tx.Rollback()</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> tx.Commit().Error</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>db.Begin()</code> 用于开启事务，并返回 <code>tx</code>，稍后的事务操作都应使用这个 <code>tx</code> 对象。如果在处理事务的过程中遇到错误，可以使用 <code>tx.Rollback()</code> 回滚事务，如果没有问题，最终可以使用 <code>tx.Commit()</code> 提交事务。</p>
+<blockquote>
+<p>注意：手动事务，事务一旦开始，你就应该使用 <code>tx</code> 处理数据库操作。</p>
+</blockquote>
+<h3 id="钩子"><a href="#钩子" class="headerlink" title="钩子"></a>钩子</h3><p>GORM 还支持 Hook 功能，Hook 是在创建、查询、更新、删除等操作之前、之后调用的函数，用来管理对象的生命周期。</p>
+<p>钩子方法的函数签名为 <code>func(*gorm.DB) error</code>，比如以下钩子函数在创建操作之前触发：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *User)</span> <span class="title">BeforeCreate</span><span class="params">(tx *gorm.DB)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	u.UUID = uuid.New()</span><br><span class="line">	<span class="keyword">if</span> u.Name == <span class="string">"admin"</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">"invalid name"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>比如我们为 <code>User</code> 模型定义 <code>BeforeCreate</code> 钩子，这样在创建 <code>User</code> 对象前，GORM 会自动调用此函数，完成为 <code>User</code> 对象创建 <code>UUID</code> 以及用户名合法性验证功能。</p>
+<p>GORM 支持的钩子函数以及执行时机如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">钩子函数</th>
+<th align="center">执行时机</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">BeforeSave</td>
+<td align="center">调用    Save 前</td>
+</tr>
+<tr>
+<td align="center">AfterSave</td>
+<td align="center">调用 Save 后</td>
+</tr>
+<tr>
+<td align="center">BeforeCreate</td>
+<td align="center">插入记录前</td>
+</tr>
+<tr>
+<td align="center">AfterCreate</td>
+<td align="center">插入记录后</td>
+</tr>
+<tr>
+<td align="center">BeforeUpdate</td>
+<td align="center">更新记录前</td>
+</tr>
+<tr>
+<td align="center">AfterUpdate</td>
+<td align="center">更新记录后</td>
+</tr>
+<tr>
+<td align="center">BeforeDelete</td>
+<td align="center">删除记录前</td>
+</tr>
+<tr>
+<td align="center">AfterDelete</td>
+<td align="center">删除记录后</td>
+</tr>
+<tr>
+<td align="center">AfterFind</td>
+<td align="center">查询记录后</td>
+</tr>
+</tbody></table>
+<h3 id="原生-SQL"><a href="#原生-SQL" class="headerlink" title="原生 SQL"></a>原生 SQL</h3><p>虽然我们使用 ORM 框架往往是为了将原生 SQL 的编写转为面向对象编程，不过对原生 SQL 的支持是一款 ORM 框架必备的功能。</p>
+<p>可以使用 <code>Raw</code> 方法执行原生查询 SQL，并将结果 <code>Scan</code> 到模型中：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> userRes UserResult</span><br><span class="line">db.Raw(<span class="string">`SELECT id, name, age FROM user WHERE id = ?`</span>, <span class="number">3</span>).Scan(&amp;userRes)</span><br><span class="line">fmt.Printf(<span class="string">"affected rows: %d\n"</span>, db.RowsAffected)</span><br><span class="line">fmt.Println(db.Error)</span><br><span class="line">fmt.Println(userRes)</span><br></pre></td></tr></table></figure>
+
+<p>原生 SQL 同样支持使用表达式：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> sumage <span class="keyword">int</span></span><br><span class="line">db.Raw(<span class="string">`SELECT SUM(age) as sumage FROM user WHERE member_number ?`</span>, gorm.Expr(<span class="string">"IS NULL"</span>)).Scan(&amp;sumage)</span><br></pre></td></tr></table></figure>
+
+<p>此外，我们还可以使用 <code>Exec</code> 执行任意原生 SQL：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">db.Exec(<span class="string">"UPDATE user SET age = ? WHERE id IN ?"</span>, <span class="number">18</span>, []<span class="keyword">int64</span>&#123;<span class="number">1</span>, <span class="number">2</span>&#125;)</span><br><span class="line"><span class="comment">// 使用表达式</span></span><br><span class="line">db.Exec(<span class="string">`UPDATE user SET age = ? WHERE name = ?`</span>, gorm.Expr(<span class="string">"age * ? + ?"</span>, <span class="number">1</span>, <span class="number">2</span>), <span class="string">"Jianghu"</span>)</span><br><span class="line"><span class="comment">// 删除表</span></span><br><span class="line">db.Exec(<span class="string">"DROP TABLE user"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>Exec</code> 无法拿到执行结果，可以用来对表进行操作，比如增加、删除表等。</p>
+<p>编写 SQL 时支持使用 <code>@name</code> 语法命名参数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> post Post</span><br><span class="line">db.Where(<span class="string">"title LIKE @name OR content LiKE @name"</span>, sql.Named(<span class="string">"name"</span>, <span class="string">"%Hello%"</span>)).Find(&amp;post)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> user User</span><br><span class="line"><span class="comment">// SELECT * FROM user WHERE name1 = "Jianghu" OR name2 = "shinian" OR name3 = "Jianghu"</span></span><br><span class="line">db.Raw(<span class="string">"SELECT * FROM user WHERE name1 = @name OR name2 = @name2 OR name3 = @name"</span>,</span><br><span class="line">   sql.Named(<span class="string">"name"</span>, <span class="string">"Jianghu"</span>), sql.Named(<span class="string">"name2"</span>, <span class="string">"shinian"</span>)).Find(&amp;user)</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>DryRun</code> 模式可以直接拿到由 GORM 生成的原生 SQL，而不执行，方便后续使用：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> user User</span><br><span class="line">stmt := db.Session(&amp;gorm.Session&#123;DryRun: <span class="literal">true</span>&#125;).First(&amp;user, <span class="number">1</span>).Statement</span><br><span class="line">fmt.Println(stmt.SQL.String()) <span class="comment">// SQL: SELECT * FROM `user` WHERE `user`.`id` = ? AND `user`.`deleted_at` IS NULL ORDER BY `user`.`id` LIMIT 1</span></span><br><span class="line">fmt.Println(stmt.Vars)         <span class="comment">// 参数: [1]</span></span><br></pre></td></tr></table></figure>
+
+<p><code>DryRun</code> 模式可以翻译为空跑，意思是不执行真正的 SQL，这在调试时非常有用。</p>
+<h3 id="调试"><a href="#调试" class="headerlink" title="调试"></a>调试</h3><p>GORM 常用功能我们已经基本讲解完成了，最后再来介绍下在日常开发中，遇到问题如何进行调试。</p>
+<p>GORM 调试方法我总结了如下 5 点：</p>
+<ol>
+<li>全局开启日志</li>
+</ol>
+<p>还记得在连接数据库时 <code>gorm.Open</code> 方法的第二个参数吗，我们当时传递了一个空配置 <code>&amp;gorm.Config{}</code>，这个可选的参数可以改变 GORM 的一些默认功能配置，比如我们可以设置日志级别为 <code>Info</code>，这样就能够在控制台打印所有执行的 SQL 语句：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">db, err := gorm.Open(mysql.Open(dsn), &amp;gorm.Config&#123;</span><br><span class="line">	Logger:logger.Default.LogMode(logger.Info),</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>打印慢查询 SQL</li>
+</ol>
+<p>有时候某段 ORM 代码执行很慢，我们可以通过开启慢查询日志，来检测 SQL 中的慢查询语句：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ConnectMySQL</span><span class="params">(host, port, user, pass, dbname <span class="keyword">string</span>)</span> <span class="params">(*gorm.DB, error)</span></span> &#123;</span><br><span class="line">	slowLogger := logger.New(</span><br><span class="line">		log.New(os.Stdout, <span class="string">"\r\n"</span>, log.LstdFlags),</span><br><span class="line">		logger.Config&#123;</span><br><span class="line">			<span class="comment">// 设定慢查询时间阈值为 3ms（默认值：200 * time.Millisecond）</span></span><br><span class="line">			SlowThreshold: <span class="number">3</span> * time.Millisecond,</span><br><span class="line">			<span class="comment">// 设置日志级别</span></span><br><span class="line">			LogLevel: logger.Warn,</span><br><span class="line">		&#125;,</span><br><span class="line">	)</span><br><span class="line">	dsn := fmt.Sprintf(<span class="string">"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&amp;parseTime=True&amp;loc=Local"</span>,</span><br><span class="line">		user, pass, host, port, dbname)</span><br><span class="line">	<span class="keyword">return</span> gorm.Open(mysql.Open(dsn), &amp;gorm.Config&#123;</span><br><span class="line">		Logger: slowLogger,</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>打印指定 SQL</li>
+</ol>
+<p>使用 <code>Debug</code> 能够打印当前 ORM 语句执行的 SQL：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.Debug().First(&amp;User&#123;&#125;)</span><br></pre></td></tr></table></figure>
+
+<ol start="4">
+<li>全局开启 DryRun 模型</li>
+</ol>
+<p>在连接数据库时，我们可以全局开启「空跑」模式：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">db, err := gorm.Open(mysql.Open(dsn), &amp;gorm.Config&#123;</span><br><span class="line">	DryRun: <span class="literal">true</span>,</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>开启 DryRun 模型后，任何 SQL 语句都不会真正执行，方便测试。</p>
+<ol start="5">
+<li>局部开启 DryRun 模型</li>
+</ol>
+<p>在当前 <code>Session</code> 中局部开启「空跑」模型，可以在不执行操作的情况下生成 SQL 及其参数，用于准备或测试生成的 SQL：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> user User</span><br><span class="line">stmt := db.Session(&amp;gorm.Session&#123;DryRun: <span class="literal">true</span>&#125;).First(&amp;user, <span class="number">1</span>).Statement</span><br><span class="line">fmt.Println(stmt.SQL.String()) <span class="comment">// =&gt; SELECT * FROM `users` WHERE `id` = $1 ORDER BY `id`</span></span><br><span class="line">fmt.Println(stmt.Vars)         <span class="comment">// =&gt; []interface&#123;&#125;&#123;1&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文对 Go 语言中最流行的 ORM 框架 GORM 进行了讲解，介绍了如何编写模型，如何连接数据库，以及最常使用的 CRUD 操作。并且还对关联表中的一对多、多对多两种关联关系操作进行了讲解。我们还介绍了必不可少的功能「事务」，GORM 还提供了钩子函数方便我们在 CRUD 操作前后插入一些自定义逻辑。最后对如何使用原生 SQL 以及如何调试也进行了介绍。</p>
+<p>只要你原生 SQL 基础扎实，ORM 框架学习起来并不会太费力，并且我们还有各种调试方式来打印 GORM 所生成的 SQL，方便排查问题。</p>
+<p>由于文章篇幅所限，这里只介绍了 GORM 常用功能，不过也基本能够覆盖日常开发中多数场景。更多高级功能如自定义 Logger、读写分离、从数据库表反向生成模型等操作，可以参考<a href="https://gorm.io/zh_CN/docs/index.html#%E7%89%B9%E6%80%A7" target="_blank" rel="noopener">官方文档</a>进行学习。</p>
+<p>本文完整代码示例我放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/gorm" target="_blank" rel="noopener">GitHub</a> 上，欢迎点击查看。</p>
+<p>希望此文能对你有所帮助。</p>
+<p><strong>联系我</strong></p>
+<ul>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客地址：<a href="https://jianghushinian.cn/" target="_blank" rel="noopener">https://jianghushinian.cn/</a></li>
+</ul>
+<p><strong>参考</strong></p>
+<ul>
+<li>GORM 源码：<a href="https://github.com/go-gorm/gorm" target="_blank" rel="noopener">https://github.com/go-gorm/gorm</a></li>
+<li>GORM 文档：<a href="https://gorm.io/zh_CN/" target="_blank" rel="noopener">https://gorm.io/zh_CN/</a></li>
+<li>本文示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/gorm" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/gorm</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2023-05-27T03:30:22.857Z" itemprop="dateUpdated">2023-05-27 11:30:22</time>
+</span><br>
+
+
+        
+        <a href="/2023/05/27/go-popular-orm-framework-gorm-introduction/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Golang/" rel="tag">Golang</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/ORM/" rel="tag">ORM</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/&title=《Go 语言流行 ORM 框架 GORM 使用介绍》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/&title=《Go 语言流行 ORM 框架 GORM 使用介绍》 — 江湖十年&source=GORM 是 Go 语言中最受欢迎的 ORM 库之一，它提供了强大的功能和简洁的 API，让数据库操作变得更加简单和易维护。本文将详细介绍 GORM 的常..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 语言流行 ORM 框架 GORM 使用介绍》 — 江湖十年&url=http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/05/14/how-to-use-concurrency-models-in-python/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">在 Python 中如何使用并发模型编程</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2023</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/&title=《Go 语言流行 ORM 框架 GORM 使用介绍》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/&title=《Go 语言流行 ORM 框架 GORM 使用介绍》 — 江湖十年&source=GORM 是 Go 语言中最受欢迎的 ORM 库之一，它提供了强大的功能和简洁的 API，让数据库操作变得更加简单和易维护。本文将详细介绍 GORM 的常..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 语言流行 ORM 框架 GORM 使用介绍》 — 江湖十年&url=http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
