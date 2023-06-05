@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Go 中如何使用 database/sql 来操作数据库 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Golang,SQL">
+    <meta name="description" content="在现代软件开发中，数据库扮演着至关重要的角色，用于存储和管理应用程序的数据。针对不同的数据库系统，开发人员通常需要使用特定的数据库驱动来操作数据库，这往往需要开发人员掌握不同的驱动编程接口。在 Go 语言中，好在有一个名为 database&#x2F;sql 的标准库，提供了统一的编程接口，使开发人员能够以一种通用的方式与各种关系型数据库进行交互。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Go 中如何使用 database&#x2F;sql 来操作数据库">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在现代软件开发中，数据库扮演着至关重要的角色，用于存储和管理应用程序的数据。针对不同的数据库系统，开发人员通常需要使用特定的数据库驱动来操作数据库，这往往需要开发人员掌握不同的驱动编程接口。在 Go 语言中，好在有一个名为 database&#x2F;sql 的标准库，提供了统一的编程接口，使开发人员能够以一种通用的方式与各种关系型数据库进行交互。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-06-05T04:11:15.000Z">
+<meta property="article:modified_time" content="2023-06-05T04:19:06.253Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Golang">
+<meta property="article:tag" content="SQL">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Go 中如何使用 database/sql 来操作数据库</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Go 中如何使用 database/sql 来操作数据库</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-06-05T04:11:15.000Z" itemprop="datePublished" class="page-time">
+  2023-06-05
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Golang/">Golang</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#概念"><span class="post-toc-number">1.</span> <span class="post-toc-text">概念</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#特点"><span class="post-toc-number">2.</span> <span class="post-toc-text">特点</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#准备"><span class="post-toc-number">3.</span> <span class="post-toc-text">准备</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#连接数据库"><span class="post-toc-number">4.</span> <span class="post-toc-text">连接数据库</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#声明模型"><span class="post-toc-number">5.</span> <span class="post-toc-text">声明模型</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#创建"><span class="post-toc-number">6.</span> <span class="post-toc-text">创建</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#查询"><span class="post-toc-number">7.</span> <span class="post-toc-text">查询</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#更新"><span class="post-toc-number">8.</span> <span class="post-toc-text">更新</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#删除"><span class="post-toc-number">9.</span> <span class="post-toc-text">删除</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#事务"><span class="post-toc-number">10.</span> <span class="post-toc-text">事务</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#处理-NULL"><span class="post-toc-number">11.</span> <span class="post-toc-text">处理 NULL</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#自定义字段类型"><span class="post-toc-number">12.</span> <span class="post-toc-text">自定义字段类型</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#未知列"><span class="post-toc-number">13.</span> <span class="post-toc-text">未知列</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">14.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-how-to-use-database-sql-to-operate-database-in-go"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Go 中如何使用 database/sql 来操作数据库</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-06-05 12:11:15" datetime="2023-06-05T04:11:15.000Z"  itemprop="datePublished">2023-06-05</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Golang/">Golang</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在现代软件开发中，数据库扮演着至关重要的角色，用于存储和管理应用程序的数据。针对不同的数据库系统，开发人员通常需要使用特定的数据库驱动来操作数据库，这往往需要开发人员掌握不同的驱动编程接口。在 Go 语言中，好在有一个名为 <code>database/sql</code> 的标准库，提供了统一的编程接口，使开发人员能够以一种通用的方式与各种关系型数据库进行交互。</p>
+<a id="more"></a>
+
+<h3 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h3><p><code>database/sql</code> 包通过提供统一的编程接口，实现了对不同数据库驱动的抽象。</p>
+<p>它的大致原理如下：</p>
+<ol>
+<li><p><code>Driver</code> 接口定义：<code>database/sql/driver</code> 包中定义了一个 <code>Driver</code> 接口，该接口用于表示一个数据库驱动。驱动开发者需要实现该接口来提供与特定数据库的交互能力。</p>
+</li>
+<li><p><code>Driver</code> 注册：驱动开发者需要在程序初始化阶段，通过调用 <code>database/sql</code> 包提供的 <code>sql.Register()</code> 方法将自己的驱动注册到 <code>database/sql</code> 中。这样，<code>database/sql</code> 就能够识别和使用该驱动。</p>
+</li>
+<li><p>数据库连接池管理：<code>database/sql</code> 维护了一个数据库连接池，用于管理数据库连接。当通过 <code>sql.Open()</code> 打开一个数据库连接时，<code>database/sql</code> 会在合适的时机调用注册的驱动来创建一个具体的连接，并将其添加到连接池中。连接池会负责连接的复用、管理和维护工作，并且这是并发安全的。</p>
+</li>
+<li><p>统一的编程接口：<code>database/sql</code> 定义了一组统一的编程接口供用户使用，如 <code>Prepare()</code>、<code>Exec()</code> 和 <code>Query()</code> 等方法，用于准备 SQL 语句、执行 SQL 语句和执行查询等操作。这些方法会接收参数并调用底层驱动的相应方法来执行实际的数据库操作。</p>
+</li>
+<li><p>接口方法的实现：驱动开发者需要实现 <code>database/sql/driver</code> 中定义的一些接口方法，以此来支持上层 <code>database/sql</code> 包提供的 <code>Prepare()</code>、<code>Exec()</code> 和 <code>Query()</code> 等方法，以提供底层数据库的具体实现。当 <code>database/sql</code> 调用这些方法时，实际上会调用注册的驱动的相应方法来执行具体的数据库操作。</p>
+</li>
+</ol>
+<p>通过以上的机制，<code>database/sql</code> 包能够实现对不同数据库驱动的统一封装和调用。用户可以使用相同的编程接口来进行数据库操作，无需关心底层驱动的具体细节。这种设计使得代码更具可移植性和灵活性，方便切换和适配不同的数据库。</p>
+<h3 id="特点"><a href="#特点" class="headerlink" title="特点"></a>特点</h3><p><code>database/sql</code> 具有如下特点：</p>
+<ul>
+<li><p>统一的编程接口：<code>database/sql</code> 库提供了一组统一的接口，使得开发人员可以使用相同的方式操作不同的数据库，而不需要学习特定数据库的 API。</p>
+</li>
+<li><p>驱动支持：通过导入第三方数据库驱动程序，<code>database/sql</code> 可以与多种常见的关系型数据库系统进行交互，如 MySQL、PostgreSQL、SQLite 等。</p>
+</li>
+<li><p>预防 SQL 注入：<code>database/sql</code> 库通过使用预编译语句和参数化查询等技术，有效预防了 SQL 注入攻击。</p>
+</li>
+<li><p>支持事务：事务是一个优秀的 SQL 包必备功能。</p>
+</li>
+</ul>
+<h3 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h3><p>为了演示 <code>database/sql</code> 用法，我准备了如下 MySQL 数据库表：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DROP</span> <span class="keyword">TABLE</span> <span class="keyword">IF</span> <span class="keyword">EXISTS</span> <span class="string">`user`</span>;</span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`user`</span> (</span><br><span class="line">  <span class="string">`id`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">  <span class="string">`name`</span> <span class="built_in">varchar</span>(<span class="number">50</span>) <span class="keyword">DEFAULT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'用户名'</span>,</span><br><span class="line">  <span class="string">`email`</span> <span class="built_in">varchar</span>(<span class="number">255</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">''</span> <span class="keyword">COMMENT</span> <span class="string">'邮箱'</span>,</span><br><span class="line">  <span class="string">`age`</span> <span class="built_in">tinyint</span>(<span class="number">4</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">'0'</span> <span class="keyword">COMMENT</span> <span class="string">'年龄'</span>,</span><br><span class="line">  <span class="string">`birthday`</span> datetime <span class="keyword">DEFAULT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'生日'</span>,</span><br><span class="line">  <span class="string">`salary`</span> <span class="built_in">varchar</span>(<span class="number">128</span>) <span class="keyword">DEFAULT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'薪水'</span>,</span><br><span class="line">  <span class="string">`created_at`</span> datetime <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  <span class="string">`updated_at`</span> datetime <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">CURRENT_TIMESTAMP</span> <span class="keyword">ON</span> <span class="keyword">UPDATE</span> <span class="keyword">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  PRIMARY <span class="keyword">KEY</span> (<span class="string">`id`</span>),</span><br><span class="line">  <span class="keyword">UNIQUE</span> <span class="keyword">KEY</span> <span class="string">`u_email`</span> (<span class="string">`email`</span>)</span><br><span class="line">) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span> <span class="keyword">DEFAULT</span> <span class="keyword">CHARSET</span>=utf8 <span class="keyword">COMMENT</span>=<span class="string">'用户表'</span>;</span><br></pre></td></tr></table></figure>
+
+<p>你可以使用 MySQL 命令行或图形化工具创建这张表。</p>
+<h3 id="连接数据库"><a href="#连接数据库" class="headerlink" title="连接数据库"></a>连接数据库</h3><p>要使用 <code>database/sql</code> 操作数据库，首先要建立与数据库的连接：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"database/sql"</span></span><br><span class="line">	<span class="string">"log"</span></span><br><span class="line"></span><br><span class="line">	_ <span class="string">"github.com/go-sql-driver/mysql"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	db, err := sql.Open(<span class="string">"mysql"</span>,</span><br><span class="line">		<span class="string">"user:password@tcp(127.0.0.1:3306)/demo?charset=utf8mb4&amp;parseTime=true&amp;loc=Local"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> db.Close()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为我们要连接 MySQL 数据库，所以需要导入 MySQL 数据库驱动 <code>github.com/go-sql-driver/mysql</code>。<code>database/sql</code> 由 Go 语言官方团队设计，而数据库驱动程序则由社区维护，其他关系型数据库驱动列表可在<a href="https://github.com/golang/go/wiki/SQLDrivers" target="_blank" rel="noopener">这里</a>查看。</p>
+<p>与数据库建立连接的代码非常简单，只需调用 <code>sql.Open()</code> 函数即可。它接收两个参数，驱动名称和 DSN。</p>
+<p>这里驱动名称为 <code>mysql</code>，<code>database/sql</code> 之所以能够识别这个驱动名称，是因为在匿名导入 <code>github.com/go-sql-driver/mysql</code> 时，这个库内部调用了 <code>sql.Register</code> 将其注册给了 <code>database/sql</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	sql.Register(<span class="string">"mysql"</span>, &amp;MySQLDriver&#123;&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在 Go 语言中，一个包的 <code>init</code> 方法会在导入时会被自动调用，这里完成了驱动程序的注册。这样在调用 <code>sql.Open()</code> 时才能找到 <code>mysql</code> 驱动。</p>
+<p>第二个参数 DSN 全称 <code>Data Source Name</code>，数据库的源名称，其格式如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">username:password@protocol(address)&#x2F;dbname?param&#x3D;value</span><br></pre></td></tr></table></figure>
+
+<p>下面是我们提供的 DSN 各部分解释：</p>
+<ul>
+<li><p><code>user:password</code>：数据库的用户名和密码。根据实际情况，你需要使用你自己的用户名和密码。</p>
+</li>
+<li><p><code>tcp(127.0.0.1:3306)</code>：连接数据库服务器的协议、数据库服务器的地址和端口号。在这个例子中，使用的是本地主机 <code>127.0.0.1</code> 和 MySQL 默认端口号 <code>3306</code>。你可以根据实际情况修改为你自己的数据库服务器地址和端口号。</p>
+</li>
+<li><p><code>/demo</code>：数据库的名称。在这个例子中，数据库名称是 <code>demo</code>。你可以根据实际情况修改为你自己的数据库名称。</p>
+</li>
+<li><p><code>charset=utf8mb4</code>：指定数据库的字符集为 <code>UTF-8</code>。这里使用的是 <code>UTF-8</code> 的变体 <code>UTF-8mb4</code>，支持更广泛的字符范围。</p>
+</li>
+<li><p><code>parseTime=true</code>：启用时间解析。这个参数使得数据库驱动程序能够将数据库中的时间类型字段（<code>datetime</code>）解析为 Go 语言的 <code>time.Time</code> 类型。</p>
+</li>
+<li><p><code>loc=Local</code>：设置时区为本地时区。这个参数指定数据库驱动程序使用本地的时区。</p>
+</li>
+</ul>
+<p><code>sql.Open()</code> 调用后将返回一个 <code>*sql.DB</code> 类型，可以用来操作数据库。</p>
+<p>另外，我们调用 <code>defer db.Close()</code> 来释放数据库连接。其实这一步操作也可以不做，<code>database/sql</code> 底层连接池会帮我们处理。一旦关闭了连接，就不可以再继续使用这个 <code>db</code> 对象了。</p>
+<p><code>*sql.DB</code> 的设计是用来作为长连接使用的，所以不需要频繁的进行 <code>Open</code> 和 <code>Close</code> 操作。如果我们需要连接多个数据库，则可以为每个不同的数据库创建一个 <code>*sql.DB</code> 对象，保持这些对象为 <code>Open</code> 状态，不必频繁使用 <code>Close</code> 来切换连接。</p>
+<p>值得注意的是，其实 <code>sql.Open()</code> 并没有真正建立数据库连接，它只是准备好了一切，以备后续使用，连接将在第一次被使用时延迟建立。</p>
+<p>这样的设计虽然合理，可也有些违反直觉，<code>sql.Open()</code> 甚至不会校验 DSN 参数的合法性。不过我们可以使用 <code>db.Ping()</code> 方法来主动检查连接是否能被正确建立。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> err := db.Ping(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    log.Fatal(err)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>sql.Open()</code> 并不会建立一个唯一的数据库连接，事实上，<code>database/sql</code> 会维护一个连接池。</p>
+<p>我们可以通过如下方法，控制连接池的一些参数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">db.SetMaxOpenConns(<span class="number">25</span>)                 <span class="comment">// 设置最大的并发连接数（in-use + idle）</span></span><br><span class="line">db.SetMaxIdleConns(<span class="number">25</span>)                 <span class="comment">// 设置最大的空闲连接数（idle）</span></span><br><span class="line">db.SetConnMaxLifetime(<span class="number">5</span> * time.Minute) <span class="comment">// 设置连接的最大生命周期</span></span><br></pre></td></tr></table></figure>
+
+<p>这些参数设置可以根据经验来修改，以上参数能够满足一些中小项目的使用，如果是大型项目，则可以适当调高参数。</p>
+<h3 id="声明模型"><a href="#声明模型" class="headerlink" title="声明模型"></a>声明模型</h3><p>连接建立好后，理论上我们就可以操作数据库进行 CRUD 了。不过为了写出的代码更具可维护性，我们往往需要定义<code>模型</code>来映射数据库表。</p>
+<p><code>user</code> 表映射后的模型如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	ID        <span class="keyword">int</span></span><br><span class="line">	Name      sql.NullString</span><br><span class="line">	Email     <span class="keyword">string</span></span><br><span class="line">	Age       <span class="keyword">int</span></span><br><span class="line">	Birthday  *time.Time</span><br><span class="line">	Salary    Salary</span><br><span class="line">	CreatedAt time.Time</span><br><span class="line">	UpdatedAt <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>模型在 Go 中使用 <code>struct</code> 表示，结构体字段同数据库表中的字段一一对应。</p>
+<p>其中 <code>Salary</code> 类型定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Salary <span class="keyword">struct</span> &#123;</span><br><span class="line">	Month <span class="keyword">int</span> <span class="string">`json:"month"`</span></span><br><span class="line">	Year  <span class="keyword">int</span> <span class="string">`json:"year"`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>关于 <code>Name</code>、<code>Salary</code> 两个字段的特殊性，我将分别在 <a href="#处理-NULL">处理 NULL</a> 和 <a href="#自定义字段类型">自定义字段类型</a> 部分讲解。</p>
+<h3 id="创建"><a href="#创建" class="headerlink" title="创建"></a>创建</h3><p><code>*sql.DB</code> 提供了 <code>Exec</code> 方法来执行一条 SQL 命令，可以用来创建、更新、删除表数据等。</p>
+<p>这里使用 <code>Exec</code> 方法来实现创建一个用户：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateUser</span><span class="params">(db *sql.DB)</span> <span class="params">(<span class="keyword">int64</span>, error)</span></span> &#123;</span><br><span class="line">	birthday := time.Date(<span class="number">2000</span>, <span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, time.Local)</span><br><span class="line">	user := User&#123;</span><br><span class="line">		Name:     sql.NullString&#123;String: <span class="string">"jianghushinian007"</span>, Valid: <span class="literal">true</span>&#125;,</span><br><span class="line">		Email:    <span class="string">"jianghushinian007@outlook.com"</span>,</span><br><span class="line">		Age:      <span class="number">10</span>,</span><br><span class="line">		Birthday: &amp;birthday,</span><br><span class="line">		Salary: Salary&#123;</span><br><span class="line">			Month: <span class="number">100000</span>,</span><br><span class="line">			Year:  <span class="number">10000000</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">	res, err := db.Exec(<span class="string">`INSERT INTO user(name, email, age, birthday, salary) VALUES(?, ?, ?, ?, ?)`</span>,</span><br><span class="line">		user.Name, user.Email, user.Age, user.Birthday, user.Salary)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> res.LastInsertId()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先我们实例化了一个 <code>User</code> 对象 <code>user</code>，并对相应字段进行赋值。</p>
+<p>接着使用 <code>db.Exec</code> 方法来执行 SQL 语句：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="keyword">user</span>(<span class="keyword">name</span>, email, age, birthday, salary) <span class="keyword">VALUES</span>(?, ?, ?, ?, ?)</span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>?</code> 作为参数占位符，不同数据库驱动程序的占位符可能不同，可以参考数据库驱动的文档。</p>
+<p>我们将这 5 个参数顺序传递给 <code>db.Exec</code> 方法，即可完成用户的创建。</p>
+<p><code>db.Exec</code> 方法调用后将返回 <code>sql.Result</code> 保存结果以及一个 <code>error</code> 来标记错误。</p>
+<p><code>sql.Result</code> 是一个接口，它包含两个方法：</p>
+<ul>
+<li><p><code>LastInsertId() (int64, error)</code>：返回新插入的用户 ID。</p>
+</li>
+<li><p><code>RowsAffected() (int64, error)</code>：返回当前操作受影响的行数。</p>
+</li>
+</ul>
+<p>接口具体实现有数据库驱动程序来完成。</p>
+<p>调用 <code>CreateUser</code> 函数即可创建一个新的用户：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> id, err := CreateUser(db); err != <span class="literal">nil</span> &#123;</span><br><span class="line">	log.Fatal(err)</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">	log.Println(<span class="string">"id:"</span>, id)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此外，<code>database/sql</code> 还提供了预处理方法 <code>*sql.DB.Prepare</code> 创建一个准备好的 SQL 语句，在循环中使用预处理，则可以减少与数据库的交互次数。</p>
+<p>比如我们需要创建两个用户，则可以先使用 <code>db.Prepare</code> 创建一个 <code>*sql.Stmt</code> 对象，然后多次调用 <code>*sql.Stmt.Exec</code> 方法来插入数据：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateUsers</span><span class="params">(db *sql.DB)</span> <span class="params">([]<span class="keyword">int64</span>, error)</span></span> &#123;</span><br><span class="line">	stmt, err := db.Prepare(<span class="string">"INSERT INTO user(name, email, age, birthday, salary) VALUES(?, ?, ?, ?, ?)"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 注意：预处理对象是需要关闭的</span></span><br><span class="line">	<span class="keyword">defer</span> stmt.Close()</span><br><span class="line"></span><br><span class="line">	birthday := time.Date(<span class="number">2000</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, time.Local)</span><br><span class="line">	users := []User&#123;</span><br><span class="line">		&#123;</span><br><span class="line">			Name:     sql.NullString&#123;String: <span class="string">""</span>, Valid: <span class="literal">true</span>&#125;,</span><br><span class="line">			Email:    <span class="string">"jianghushinian007@gmail.com"</span>,</span><br><span class="line">			Age:      <span class="number">20</span>,</span><br><span class="line">			Birthday: &amp;birthday,</span><br><span class="line">			Salary: Salary&#123;</span><br><span class="line">				Month: <span class="number">200000</span>,</span><br><span class="line">				Year:  <span class="number">20000000</span>,</span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line">		&#123;</span><br><span class="line">			Name:  sql.NullString&#123;String: <span class="string">""</span>, Valid: <span class="literal">false</span>&#125;,</span><br><span class="line">			Email: <span class="string">"jianghushinian007@163.com"</span>,</span><br><span class="line">			Age:   <span class="number">30</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> ids []<span class="keyword">int64</span></span><br><span class="line">	<span class="keyword">for</span> _, user := <span class="keyword">range</span> users &#123;</span><br><span class="line">		res, err := stmt.Exec(user.Name, user.Email, user.Age, user.Birthday, user.Salary)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line">		id, err := res.LastInsertId()</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line">		ids = <span class="built_in">append</span>(ids, id)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> ids, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>db.Prepare</code> 是预先将一个数据库连接和一个条 SQL 语句绑定并返回 <code>*sql.Stmt</code> 结构体，它代表了这个绑定后的连接对象，是并发安全的。</p>
+<p>通过使用预处理，可以避免在循环中执行多次完整的 SQL 语句，从而显著减少了数据库交互次数，这可以提高应用程序的性能和效率。</p>
+<p>使用预处理，会在 <code>db.Prepare</code> 时从连接池获取一个连接，之后循环执行 <code>stmt.Exec</code>，最终释放连接。</p>
+<p>如果使用 <code>db.Exec</code>，则每次循环时都需要：获取连接-执行 SQL-释放连接，这几个步骤，大大增加了与数据库的交互次数。</p>
+<p>不要忘记调用 <code>stmt.Close()</code> 关闭连接，这个方法是密等的，可以多次调用。</p>
+<h3 id="查询"><a href="#查询" class="headerlink" title="查询"></a>查询</h3><p>现在数据库里已经有了数据，我们就可以查询数据了。</p>
+<p>因为 <code>Exec</code> 方法只会执行 SQL，不会返回结果，所以不适用于查询数据。</p>
+<p><code>*sql.DB</code> 提供了 <code>Query</code> 方法执行查询操作：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetUsers</span><span class="params">(db *sql.DB)</span> <span class="params">([]User, error)</span></span> &#123;</span><br><span class="line">	rows, err := db.Query(<span class="string">"SELECT * FROM user;"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; _ = rows.Close() &#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> users []User</span><br><span class="line">	<span class="keyword">for</span> rows.Next() &#123;</span><br><span class="line">		<span class="keyword">var</span> user User</span><br><span class="line">		<span class="keyword">if</span> err := rows.Scan(&amp;user.ID, &amp;user.Name, &amp;user.Email, &amp;user.Age,</span><br><span class="line">			&amp;user.Birthday, &amp;user.Salary, &amp;user.CreatedAt, &amp;user.UpdatedAt); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(err.Error())</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		users = <span class="built_in">append</span>(users, user)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 处理错误</span></span><br><span class="line">	<span class="keyword">if</span> err := rows.Err(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> users, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>db.Query</code> 返回查询结果集 <code>*sql.Rows</code>，这是一个结构体。</p>
+<p><code>rows.Next()</code> 方法用来判断是否还有下一条结果，可以用于 <code>for</code> 循环（题外话：这有点像 Python 的迭代器，只不过下一个值不是直接返回，而是通过 <code>Scan</code> 方法获取）。</p>
+<p>如果存在下一条结果，<code>rows.Next()</code> 将返回 <code>true</code>。</p>
+<p><code>rows.Scan()</code> 方法可以将结果扫描到传递进来的指针对象。因为我们使用了 <code>SELECT *</code> 来查询，所以会返回全部字段的数据，按顺序将 <code>user</code> 对象相应的字段指针传递进来即可。</p>
+<p><code>rows.Scan()</code> 会将一行记录分别填入指定的变量中，并且会自动根据目标变量的类型处理类型转换的问题，比如数据库中是 <code>varchar</code> 类型，会映射成 Go 中的 <code>string</code>，但如果与之对应的目标变量是 <code>int</code>，那么转换失败就会返回 <code>error</code>。</p>
+<p><code>CreatedAt</code> 字段是 <code>time.Time</code> 类型，之所以能够被正确处理，是因为在调用 <code>sql.Open()</code> 时传递的 DSN 包含 <code>parseTime=true</code> 参数。</p>
+<p>当 <code>rows.Next()</code> 返回为 <code>false</code> 时，即不再有下一条记录。我们也就将全部查询出来的用户都存储到 <code>users</code> 切片中了。</p>
+<p>循环结束后，切记一定要调用 <code>rows.Err()</code> 来处理错误。</p>
+<p>以上，我们查询了多条用户，<code>*sql.DB</code> 还提供了 <code>QueryRow</code> 方法可以查询单条记录：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetUser</span><span class="params">(db *sql.DB, id <span class="keyword">int64</span>)</span> <span class="params">(User, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> user User</span><br><span class="line">	row := db.QueryRow(<span class="string">"SELECT * FROM user WHERE id = ?"</span>, id)</span><br><span class="line">	err := row.Scan(&amp;user.ID, &amp;user.Name, &amp;user.Email, &amp;user.Age,</span><br><span class="line">		&amp;user.Birthday, &amp;user.Salary, &amp;user.CreatedAt, &amp;user.UpdatedAt)</span><br><span class="line">	<span class="keyword">switch</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> err == sql.ErrNoRows:</span><br><span class="line">		<span class="keyword">return</span> user, fmt.Errorf(<span class="string">"no user with id %d"</span>, id)</span><br><span class="line">	<span class="keyword">case</span> err != <span class="literal">nil</span>:</span><br><span class="line">		<span class="keyword">return</span> user, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 处理错误</span></span><br><span class="line">	<span class="keyword">if</span> err := row.Err(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> user, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> user, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>查询单条记录会返回 <code>*sql.Row</code> 结构体，它实际上是对 <code>*sql.Rows</code> 的一层包装：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Row <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// One of these two will be non-nil:</span></span><br><span class="line">	err  error <span class="comment">// deferred error for easy chaining</span></span><br><span class="line">	rows *Rows</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们不再需要调用 <code>rows.Next()</code> 判断是否有下一条结果，调用 <code>row.Sca()</code> 时 <code>*sql.Row</code> 会自动帮我们处理好，返回查询结果集中的第一条数据。</p>
+<p>如果 <code>row.Sca()</code> 返回的错误类型为 <code>sql.ErrNoRows</code> 说明没有查询到符合条件的数据，这对于判断错误类型特别有用。</p>
+<p>但 <code>database/sql</code> 显然不能枚举出所有数据库的错误类型，有些针对不同数据库的指定错误类型，通常由数据库驱动程序来定义。</p>
+<p>可以按照如下方式判断特定的 MySQL 错误类型：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> driverErr, ok := err.(*mysql.MySQLError); ok &#123;</span><br><span class="line">    <span class="keyword">if</span> driverErr.Number == <span class="number">1045</span> &#123;</span><br><span class="line">        <span class="comment">// 处理被拒绝的错误</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>不过像 <code>1045</code> 这种魔法数字最好不要出现在代码中，<a href="https://github.com/VividCortex/mysqlerr" target="_blank" rel="noopener">mysqlerr</a> 包提供了 MySQL 错误类型的枚举。</p>
+<p>以上代码可以改为：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> driverErr, ok := err.(*mysql.MySQLError); ok  &#123;</span><br><span class="line">    <span class="keyword">if</span> driverErr.Number == mysqlerr.ER_ACCESS_DENIED_ERROR &#123;</span><br><span class="line">        <span class="comment">// 处理被拒绝的错误</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后，同样不要忘记调用 <code>row.Err()</code> 处理错误。</p>
+<h3 id="更新"><a href="#更新" class="headerlink" title="更新"></a>更新</h3><p>更新操作同创建一样可以使用 <code>*sql.DB.Exec</code> 方法来实现，不过这里我们将使用 <code>*sql.DB.ExecContext</code> 方法来实现。</p>
+<p><code>ExecContext</code> 方法与 <code>Exec</code> 方法在使用上没什么两样，只不过第一个参数需要接收一个 <code>context.Context</code>，它允许你控制和取消执行 SQL 语句的操作。使用上下文可以在需要的情况下设置超时时间、处理请求取消等操作。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">UpdateUserName</span><span class="params">(db *sql.DB, id <span class="keyword">int64</span>, name <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	ctx := context.Background()</span><br><span class="line">	res, err := db.ExecContext(ctx, <span class="string">"UPDATE user SET name = ? WHERE id = ?"</span>, name, id)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	affected, err := res.RowsAffected()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> affected == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// 如果新的 name 等于原 name，也会执行到这里</span></span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"no user with id %d"</span>, id)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里使用 <code>res.RowsAffected()</code> 获取了当前操作影响的行数。</p>
+<p>注意，如果更新后的字段结果没有变化，<code>res.RowsAffected()</code> 返回 0。</p>
+<h3 id="删除"><a href="#删除" class="headerlink" title="删除"></a>删除</h3><p>使用 <code>*sql.DB.ExecContext</code> 方法实现删除用户：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DeleteUser</span><span class="params">(db *sql.DB, id <span class="keyword">int64</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	ctx := context.Background()</span><br><span class="line">	res, err := db.ExecContext(ctx, <span class="string">"DELETE FROM user WHERE id = ?"</span>, id)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	affected, err := res.RowsAffected()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> affected == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"no user with id %d"</span>, id)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="事务"><a href="#事务" class="headerlink" title="事务"></a>事务</h3><p>事务基本是开发 Web 项目时比不可少的数据库功能，<code>database/sql</code> 提供了对事务的支持。</p>
+<p>如下示例使用事务来更新用户：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Transaction</span><span class="params">(db *sql.DB, id <span class="keyword">int64</span>, name <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	ctx := context.Background()</span><br><span class="line">	tx, err := db.BeginTx(ctx, &amp;sql.TxOptions&#123;Isolation: sql.LevelSerializable&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	_, execErr := tx.ExecContext(ctx, <span class="string">"UPDATE user SET name = ? WHERE id = ?"</span>, name, id)</span><br><span class="line">	<span class="keyword">if</span> execErr != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> rollbackErr := tx.Rollback(); rollbackErr != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Fatalf(<span class="string">"update failed: %v, unable to rollback: %v\n"</span>, execErr, rollbackErr)</span><br><span class="line">		&#125;</span><br><span class="line">		log.Fatalf(<span class="string">"update failed: %v"</span>, execErr)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> tx.Commit()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>*sql.DB.BeginTx</code> 用于开启一个事务，第一个参数为 <code>context.Context</code>，第二个参数为 <code>*sql.TxOptions</code> 对象，用来配置事务选项，<code>Isolation</code> 字段用来设置数据库隔离级别，关于隔离级别含义可以参考<a href="https://en.wikipedia.org/wiki/Isolation_%28database_systems%29#Isolation_levels" target="_blank" rel="noopener">这里</a>。</p>
+<p>事务中执行的 SQL 语句需要放在 <code>tx</code> 对象的 <code>ExecContext</code> 方法中执行，而不是 <code>db.ExecContext</code>。</p>
+<p>如果执行 SQL 过程中出现错误，可以使用 <code>tx.Rollback()</code> 进行事务回滚。</p>
+<p>如果没有错误，则可以使用 <code>tx.Commit()</code> 提交事务。</p>
+<p><code>tx</code> 同样支持 <code>Prepare</code> 方法，可以点击<a href="https://pkg.go.dev/database/sql@go1.20.4#example-Tx.Prepare" target="_blank" rel="noopener">这里</a>查看使用示例。</p>
+<h3 id="处理-NULL"><a href="#处理-NULL" class="headerlink" title="处理 NULL"></a>处理 NULL</h3><p>在创建 <code>User</code> 模型时，我们定义 <code>Name</code> 字段类型为 <code>sql.NullString</code>，而非普通的 <code>string</code> 类型，这是为了支持数据库中的 <code>NULL</code> 类型。</p>
+<p>数据库中 <code>name</code> 字段定义如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">`name` varchar(50) DEFAULT NULL <span class="keyword">COMMENT</span> <span class="string">'用户名'</span></span><br></pre></td></tr></table></figure>
+
+<p>那么 <code>name</code> 在数据库中可能的值将有三种情况：<code>NULL</code>、空字符串 <code>&#39;&#39;</code> 以及有值的字符串 <code>&#39;n1&#39;</code>。</p>
+<p>我们知道，Go 语言中 <code>string</code> 类型的默认值即为空字符串 <code>&#39;&#39;</code>，但是 <code>string</code> 无法表示 <code>NULL</code> 值。</p>
+<p>这个时候，我们有两种方法解决此问题：</p>
+<ol>
+<li><p>使用指针类型。</p>
+</li>
+<li><p>使用 <code>sql.NullString</code> 类型。</p>
+</li>
+</ol>
+<p>因为指针类型可能为 <code>nil</code>，所以可以使用 <code>nil</code> 来对应 <code>NULL</code> 值。这就是 <code>User</code> 模型中 <code>Birthday</code> 字段类型定义为 <code>*time.Time</code> 的缘故。</p>
+<p><code>sql.NullString</code> 类型定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> NullString <span class="keyword">struct</span> &#123;</span><br><span class="line">	String <span class="keyword">string</span></span><br><span class="line">	Valid  <span class="keyword">bool</span> <span class="comment">// Valid is true if String is not NULL</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>String</code> 用来记录值，<code>Valid</code> 用来标记是否为 <code>NULL</code>。</p>
+<p><code>NullString</code> 结构体的值和数据库中实际存储的值，有如下映射关系：</p>
+<table>
+<thead>
+<tr>
+<th align="center">value</th>
+<th align="center">value for MySQL</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><code>{String:n1 Valid:true}</code></td>
+<td align="center"><code>&#39;n1&#39;</code></td>
+</tr>
+<tr>
+<td align="center"><code>{String: Valid:true}</code></td>
+<td align="center"><code>&#39;&#39;</code></td>
+</tr>
+<tr>
+<td align="center"><code>{String: Valid:false}</code></td>
+<td align="center"><code>NULL</code></td>
+</tr>
+</tbody></table>
+<p>此外，<code>sql.NullString</code> 类型还实现了 <code>sql.Scanner</code> 和 <code>driver.Valuer</code> 两个接口：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Scan implements the Scanner interface.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ns *NullString)</span> <span class="title">Scan</span><span class="params">(value any)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> value == <span class="literal">nil</span> &#123;</span><br><span class="line">		ns.String, ns.Valid = <span class="string">""</span>, <span class="literal">false</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	ns.Valid = <span class="literal">true</span></span><br><span class="line">	<span class="keyword">return</span> convertAssign(&amp;ns.String, value)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Value implements the driver Valuer interface.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ns NullString)</span> <span class="title">Value</span><span class="params">()</span> <span class="params">(driver.Value, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> !ns.Valid &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> ns.String, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这两个接口分别用在 <code>*sql.Row.Scan</code> 方法和 <code>*sql.DB.Exec</code> 方法。</p>
+<p>即在使用 <code>*sql.DB.Exec</code> 方法执行 SQL 时，我们可能需要将 <code>Name</code> 字段的值存入 MySQL，此时 <code>database/sql</code> 会调用 <code>sql.NullString</code> 类型的 <code>Value()</code> 方法，获取其将要存储于数据库中的值。</p>
+<p>在使用 <code>*sql.Row.Scan</code> 方法时，我们可能需要将从数据库获取到的 <code>name</code> 字段值映射到 <code>User</code> 结构体字段 <code>Name</code> 上，此时 <code>database/sql</code> 会调用 <code>sql.NullString</code> 类型的 <code>Scan()</code> 方法，把从数据库中查询的值赋值给 <code>Name</code> 字段。</p>
+<p>如果你使用的字段不是 <code>string</code> 类型，<code>database/sql</code> 还提供了 <code>sql.NullBool</code>、<code>sql.NullFloat64</code> 等类型供用户使用。</p>
+<p>但是，这并不能枚举出所有 MySQL 数据库支持的字段类型，所以如果能够尽量避免，还是不建议数据库字段允许 <code>NULL</code> 值。</p>
+<h3 id="自定义字段类型"><a href="#自定义字段类型" class="headerlink" title="自定义字段类型"></a>自定义字段类型</h3><p>有些时候，我们保存在数据库中的数据有着特定的格式，比如 <code>salary</code> 字段在数据库中存储的值为 <code>{&quot;month&quot;:100000,&quot;year&quot;:10000000}</code>。</p>
+<p>数据库中 <code>salary</code> 字段定义如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">`salary` varchar(128) DEFAULT NULL <span class="keyword">COMMENT</span> <span class="string">'薪水'</span></span><br></pre></td></tr></table></figure>
+
+<p>如果只是将其映射为 Go 中的 <code>string</code>，则操作时要格外小心，如果忘记写一个 <code>&quot;</code> 或 <code>,</code> 等，程序将可能报错。</p>
+<p>因为 <code>salary</code> 值明显是一个 JSON 格式，我们可以定义一个 <code>struct</code> 来映射其内容：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Salary <span class="keyword">struct</span> &#123;</span><br><span class="line">	Month <span class="keyword">int</span> <span class="string">`json:"month"`</span></span><br><span class="line">	Year  <span class="keyword">int</span> <span class="string">`json:"year"`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这还不够，自定义类型无法支持 <code>*sql.Row.Scan</code> 方法和 <code>*sql.DB.Exec</code> 方法。</p>
+<p>不过，我想你已经猜到了，我们可以参考 <code>sql.NullString</code> 类型让 <code>Salary</code> 同样实现 <code>sql.Scanner</code> 和 <code>driver.Valuer</code> 两个接口：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Scan implements sql.Scanner</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Salary)</span> <span class="title">Scan</span><span class="params">(src any)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> src == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> buf []<span class="keyword">byte</span></span><br><span class="line">	<span class="keyword">switch</span> v := src.(<span class="keyword">type</span>) &#123;</span><br><span class="line">	<span class="keyword">case</span> []<span class="keyword">byte</span>:</span><br><span class="line">		buf = v</span><br><span class="line">	<span class="keyword">case</span> <span class="keyword">string</span>:</span><br><span class="line">		buf = []<span class="keyword">byte</span>(v)</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"invalid type: %T"</span>, src)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err := json.Unmarshal(buf, s)</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Value implements driver.Valuer</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s Salary)</span> <span class="title">Value</span><span class="params">()</span> <span class="params">(driver.Value, error)</span></span> &#123;</span><br><span class="line">	v, err := json.Marshal(s)</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">string</span>(v), err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样，存储和查询数据的操作，<code>Salary</code> 类型都能够支持。</p>
+<h3 id="未知列"><a href="#未知列" class="headerlink" title="未知列"></a>未知列</h3><p>极端情况下，我们可能不知道使用 <code>*sql.DB.Query</code> 方法查询的结果集中数据的列名以及字段个数。</p>
+<p>此时，我们可以使用 <code>*sql.Rows.Columns</code> 方法获取所有列名，这将返回一个切片，这个切片长度，即为字段个数。</p>
+<p>示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">HandleUnknownColumns</span><span class="params">(db *sql.DB, id <span class="keyword">int64</span>)</span> <span class="params">([]<span class="keyword">interface</span>&#123;&#125;, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> res []<span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">	rows, err := db.Query(<span class="string">"SELECT * FROM user WHERE id = ?"</span>, id)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> res, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; _ = rows.Close() &#125;()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 如果不知道列名称，可以使用 rows.Columns() 查找列名称列表</span></span><br><span class="line">	cols, err := rows.Columns()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> res, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Printf(<span class="string">"columns: %v\n"</span>, cols) <span class="comment">// [id name email age birthday salary created_at updated_at]</span></span><br><span class="line">	fmt.Printf(<span class="string">"columns length: %d\n"</span>, <span class="built_in">len</span>(cols))</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 获取列类型信息</span></span><br><span class="line">	types, err := rows.ColumnTypes()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> _, typ := <span class="keyword">range</span> types &#123;</span><br><span class="line">		<span class="comment">// id: &amp;&#123;name:id hasNullable:true hasLength:false hasPrecisionScale:false nullable:false length:0 databaseType:INT precision:0 scale:0 scanType:0x1045d68a0&#125;</span></span><br><span class="line">		fmt.Printf(<span class="string">"%s: %+v\n"</span>, typ.Name(), typ)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	res = []<span class="keyword">interface</span>&#123;&#125;&#123;</span><br><span class="line">		<span class="built_in">new</span>(<span class="keyword">int</span>),            <span class="comment">// id</span></span><br><span class="line">		<span class="built_in">new</span>(sql.NullString), <span class="comment">// name</span></span><br><span class="line">		<span class="built_in">new</span>(<span class="keyword">string</span>),         <span class="comment">// email</span></span><br><span class="line">		<span class="built_in">new</span>(<span class="keyword">int</span>),            <span class="comment">// age</span></span><br><span class="line">		<span class="built_in">new</span>(time.Time),      <span class="comment">// birthday</span></span><br><span class="line">		<span class="built_in">new</span>(Salary),         <span class="comment">// salary</span></span><br><span class="line">		<span class="built_in">new</span>(time.Time),      <span class="comment">// created_at</span></span><br><span class="line">		<span class="comment">// 如果不知道列类型，可以使用 sql.RawBytes，它实际上是 []byte 的别名</span></span><br><span class="line">		<span class="built_in">new</span>(sql.RawBytes), <span class="comment">// updated_at</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> rows.Next() &#123;</span><br><span class="line">		<span class="keyword">if</span> err := rows.Scan(res...); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> res, err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> res, rows.Err()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>除了获取列名和字段个数，我们还可以使用 <code>*sql.Rows.ColumnTypes</code> 方法获取每个 <code>column</code> 的详细信息。</p>
+<p>如果我们不知道某个字段在数据库中的类型，则可以将其映射为 <code>sql.RawBytes</code> 类型，它实际上是 <code>[]byte</code> 的别名。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><code>database/sql</code> 包统一了 Go 语言操作数据库的编程接口，避免了操作不同数据库需要学习多套 API 的窘境。</p>
+<p>使用 <code>sql.Open()</code> 建立数据库连接并不会立刻生效，连接会在合适的时候延迟建立。</p>
+<p>我们可以使用 <code>*sql.DB.Exec</code> / <code>*sql.DB.ExecContext</code> 来执行 SQL 命令。其实除了 <code>Exec</code> 有方法对应的 <code>ExecContext</code> 版本，文中提到的 <code>*sql.DB.Ping</code>、<code>*sql.DB.Query</code>、<code>*sql.DB.QueryRow</code>、<code>*sql.DB.Prepare</code> 方法也都有对应的 <code>XxxContext</code> 版本，你可以自行测试。</p>
+<p>如果被执行的 SQL 语句中包含 MySQL 关键字，则需要使用反引号（`）将关键字进行包裹，否则你将得到 <code>Error 1064 (42000): You have an error in your SQL syntax;</code> 错误。</p>
+<p><code>*sql.DB.BeginTx</code> 可以开启一个事务，事务需要显式的 <code>Commit</code> 或 <code>Rollback</code>，MySQL 驱动还支持使用 <code>*sql.TxOptions</code> 设置事务隔离级别。</p>
+<p>对于 <code>NULL</code> 类型，<code>database/sql</code> 提供了 <code>sql.NullString</code> 等类型的支持。我们也可以为自定义类型实现 <code>sql.Scanner</code> 和 <code>driver.Valuer</code> 两个接口，来实现特定逻辑。</p>
+<p>对于未知列和字段类型，我们可以使用 <code>*sql.Rows.Columns</code>、<code>sql.RawBytes</code> 等来解决，虽然这极大的增加了灵活性，不过不到万不得已不建议使用，使用更加明确的代码可以减少 BUG 的数量和提高可维护性。</p>
+<p>本文完整代码示例我放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/database/sql" target="_blank" rel="noopener">GitHub</a> 上，欢迎点击查看。</p>
+<p>希望此文能对你有所帮助。</p>
+<p><strong>联系我</strong></p>
+<ul>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客地址：<a href="https://jianghushinian.cn/" target="_blank" rel="noopener">https://jianghushinian.cn/</a></li>
+</ul>
+<p><strong>参考</strong></p>
+<ul>
+<li>database/sql 文档：<a href="https://pkg.go.dev/database/sql@go1.20.4" target="_blank" rel="noopener">https://pkg.go.dev/database/sql@go1.20.4</a></li>
+<li>SQLDrivers 驱动列表：<a href="https://github.com/golang/go/wiki/SQLDrivers" target="_blank" rel="noopener">https://github.com/golang/go/wiki/SQLDrivers</a></li>
+<li>MySQL Driver：<a href="https://github.com/go-sql-driver/mysql/" target="_blank" rel="noopener">https://github.com/go-sql-driver/mysql/</a></li>
+<li>Go database/sql tutorial：<a href="http://go-database-sql.org/index.html" target="_blank" rel="noopener">http://go-database-sql.org/index.html</a></li>
+<li>Configuring sql.DB for Better Performance：<a href="https://www.alexedwards.net/blog/configuring-sqldb" target="_blank" rel="noopener">https://www.alexedwards.net/blog/configuring-sqldb</a></li>
+<li>本文示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/database/sql" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/database/sql</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2023-06-05T04:19:06.253Z" itemprop="dateUpdated">2023-06-05 12:19:06</time>
+</span><br>
+
+
+        
+        <a href="/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Golang/" rel="tag">Golang</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/SQL/" rel="tag">SQL</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/&title=《在 Go 中如何使用 database/sql 来操作数据库》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/&title=《在 Go 中如何使用 database/sql 来操作数据库》 — 江湖十年&source=在现代软件开发中，数据库扮演着至关重要的角色，用于存储和管理应用程序的数据。针对不同的数据库系统，开发人员通常需要使用特定的数据库驱动来操作数据库，这往往..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中如何使用 database/sql 来操作数据库》 — 江湖十年&url=http://www.jianghushinian.cn/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/05/27/go-popular-orm-framework-gorm-introduction/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 语言流行 ORM 框架 GORM 使用介绍</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2023</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/&title=《在 Go 中如何使用 database/sql 来操作数据库》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/&title=《在 Go 中如何使用 database/sql 来操作数据库》 — 江湖十年&source=在现代软件开发中，数据库扮演着至关重要的角色，用于存储和管理应用程序的数据。针对不同的数据库系统，开发人员通常需要使用特定的数据库驱动来操作数据库，这往往..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中如何使用 database/sql 来操作数据库》 — 江湖十年&url=http://www.jianghushinian.cn/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
