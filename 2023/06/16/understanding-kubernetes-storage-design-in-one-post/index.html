@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>一文读懂 Kubernetes 存储设计 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Kubernetes,存储">
+    <meta name="description" content="在 docker 的设计中，容器内的文件是临时存放的，当容器被删除后，容器内部的数据将会一同被清空。不过，我们可以通过在 docker run 启动容器时，使用 --volume&#x2F;-v 参数来指定挂载卷，这样就能够将容器内部的路径挂载到主机，当我们在容器内部存放数据时会被同步到被挂载的主机路径中，容器删除后，保存到主机路径中的数据仍然存在。 docker 通过挂载卷的方式解决了持久化存储的问题，但">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一文读懂 Kubernetes 存储设计">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在 docker 的设计中，容器内的文件是临时存放的，当容器被删除后，容器内部的数据将会一同被清空。不过，我们可以通过在 docker run 启动容器时，使用 --volume&#x2F;-v 参数来指定挂载卷，这样就能够将容器内部的路径挂载到主机，当我们在容器内部存放数据时会被同步到被挂载的主机路径中，容器删除后，保存到主机路径中的数据仍然存在。 docker 通过挂载卷的方式解决了持久化存储的问题，但">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/k8s-storage.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/storage-cluster.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/nfs-index.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/curl-pod.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/volume.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/static-storage.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/hello-nginx1.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/get-pvc.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/get-pv.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/nfs-volume.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/get-pvc-status.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/get-pv-status.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/dynamic-storage.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/get-storageclass.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/pv-pvc-bound.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/hello-nfs.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/curl-nfs.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/ls-nfs.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/nfs-arch.png">
+<meta property="article:published_time" content="2023-06-16T02:36:33.000Z">
+<meta property="article:modified_time" content="2023-06-16T05:42:09.037Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Kubernetes">
+<meta property="article:tag" content="存储">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/k8s-storage.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">一文读懂 Kubernetes 存储设计</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">一文读懂 Kubernetes 存储设计</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-06-16T02:36:33.000Z" itemprop="datePublished" class="page-time">
+  2023-06-16
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Kubernetes/">Kubernetes</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Kubernetes-支持的卷类型"><span class="post-toc-number">1.</span> <span class="post-toc-text">Kubernetes 支持的卷类型</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#配置信息"><span class="post-toc-number">2.</span> <span class="post-toc-text">配置信息</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#ConfigMap"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">ConfigMap</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#创建示例"><span class="post-toc-number">2.1.1.</span> <span class="post-toc-text">创建示例</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#使用示例"><span class="post-toc-number">2.1.2.</span> <span class="post-toc-text">使用示例</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Secret"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">Secret</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#创建示例-1"><span class="post-toc-number">2.2.1.</span> <span class="post-toc-text">创建示例</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#使用示例-1"><span class="post-toc-number">2.2.2.</span> <span class="post-toc-text">使用示例</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#DownwardAPI"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">DownwardAPI</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#使用示例-2"><span class="post-toc-number">2.3.1.</span> <span class="post-toc-text">使用示例</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#小结"><span class="post-toc-number">2.4.</span> <span class="post-toc-text">小结</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#临时卷"><span class="post-toc-number">3.</span> <span class="post-toc-text">临时卷</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#EmptyDir"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">EmptyDir</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#使用示例-3"><span class="post-toc-number">3.1.1.</span> <span class="post-toc-text">使用示例</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#HostPath"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">HostPath</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#使用示例-4"><span class="post-toc-number">3.2.1.</span> <span class="post-toc-text">使用示例</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#小结-1"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">小结</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#持久卷"><span class="post-toc-number">4.</span> <span class="post-toc-text">持久卷</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#存储集群"><span class="post-toc-number">4.1.</span> <span class="post-toc-text">存储集群</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用-NFS"><span class="post-toc-number">4.2.</span> <span class="post-toc-text">使用 NFS</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#持久卷使用痛点"><span class="post-toc-number">4.3.</span> <span class="post-toc-text">持久卷使用痛点</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#PV（PersistentVolume）、PVC（PersistentVolumeClaim）、StorageClass"><span class="post-toc-number">4.4.</span> <span class="post-toc-text">PV（PersistentVolume）、PVC（PersistentVolumeClaim）、StorageClass</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#静态供应"><span class="post-toc-number">4.5.</span> <span class="post-toc-text">静态供应</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#使用示例-5"><span class="post-toc-number">4.5.1.</span> <span class="post-toc-text">使用示例</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#静态供应的不足"><span class="post-toc-number">4.5.2.</span> <span class="post-toc-text">静态供应的不足</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#动态供应"><span class="post-toc-number">4.6.</span> <span class="post-toc-text">动态供应</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#使用示例-6"><span class="post-toc-number">4.6.1.</span> <span class="post-toc-text">使用示例</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#小结-2"><span class="post-toc-number">4.7.</span> <span class="post-toc-text">小结</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#附录"><span class="post-toc-number">5.</span> <span class="post-toc-text">附录</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#NFS-实验环境搭建"><span class="post-toc-number">5.1.</span> <span class="post-toc-text">NFS 实验环境搭建</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#架构图"><span class="post-toc-number">5.1.1.</span> <span class="post-toc-text">架构图</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#NFS-在-Centos-系统中的搭建过程："><span class="post-toc-number">5.1.2.</span> <span class="post-toc-text">NFS 在 Centos 系统中的搭建过程：</span></a></li></ol></li></ol></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-understanding-kubernetes-storage-design-in-one-post"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">一文读懂 Kubernetes 存储设计</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-06-16 10:36:33" datetime="2023-06-16T02:36:33.000Z"  itemprop="datePublished">2023-06-16</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Kubernetes/">Kubernetes</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在 docker 的设计中，容器内的文件是临时存放的，当容器被删除后，容器内部的数据将会一同被清空。不过，我们可以通过在 <code>docker run</code> 启动容器时，使用 <code>--volume/-v</code> 参数来指定挂载卷，这样就能够将容器内部的路径挂载到主机，当我们在容器内部存放数据时会被同步到被挂载的主机路径中，容器删除后，保存到主机路径中的数据仍然存在。</p>
+<p>docker 通过挂载卷的方式解决了持久化存储的问题，但 K8s 存储要面临的问题比这要复杂的多，K8s 通常会在多个主机部署节点，如果由 K8s 编排的 docker 容器崩溃，K8s 可能会在其他节点上重新拉起容器，原来节点主机上挂载的容器目录就无法使用了。K8s 为了解决容器存储的诸多限制，对存储资源做了一层抽象，叫作卷（Volume）。</p>
+<h3 id="Kubernetes-支持的卷类型"><a href="#Kubernetes-支持的卷类型" class="headerlink" title="Kubernetes 支持的卷类型"></a>Kubernetes 支持的卷类型</h3><p>K8s 支持的卷基本上可以分为三类：配置信息、临时存储、持久存储。接下来我将一一介绍。</p>
+<h3 id="配置信息"><a href="#配置信息" class="headerlink" title="配置信息"></a>配置信息</h3><p>首先我们来关注下配置信息，我们常见的应用不管是哪种类型，一般都会用到配置文件或启动参数，K8s 将配置信息进行了抽象，定义成了几种资源，常用的配置信息主要包含以下三种：</p>
+<ul>
+<li>ConfigMap</li>
+<li>Secret</li>
+<li>DownwardAPI</li>
+</ul>
+<h4 id="ConfigMap"><a href="#ConfigMap" class="headerlink" title="ConfigMap"></a>ConfigMap</h4><p>ConfigMap 卷主要用来保存应用的配置数据，以一个或多个 <code>key: value</code> 形式存在，其中 <code>value</code> 可以是字面量或配置文件。</p>
+<p>ConfigMap 在设计上不是用来保存大量数据的，在 ConfigMap 中保存的数据不可超过 <code>1MiB</code>（兆字节）。</p>
+<h5 id="创建示例"><a href="#创建示例" class="headerlink" title="创建示例"></a>创建示例</h5><ul>
+<li>通过命令行创建</li>
+</ul>
+<p>在创建 ConfigMap 的时候可以通过 <code>--from-literal</code> 参数来指定 <code>key: value</code>，以下示例中 <code>foo=bar</code> 即为字面量形式，<code>bar=bar.txt</code> 为配置文件形式。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl create configmap c1 --from-literal=foo=bar --from-literal=bar=bar.txt</span><br></pre></td></tr></table></figure>
+
+<p><code>bar.txt</code> 内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">baz</span><br></pre></td></tr></table></figure>
+
+<p>通过 <code>kubectl describe</code> 命令查看新创建的名称为 <code>c1</code> 的这个 <code>ConfigMap</code> 资源内容。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl describe configmap c1</span><br><span class="line">Name:         c1</span><br><span class="line">Namespace:    default</span><br><span class="line">Labels:       &lt;none&gt;</span><br><span class="line">Annotations:  &lt;none&gt;</span><br><span class="line"></span><br><span class="line">Data</span><br><span class="line">====</span><br><span class="line">bar:</span><br><span class="line">----</span><br><span class="line">baz</span><br><span class="line">foo:</span><br><span class="line">----</span><br><span class="line">bar</span><br><span class="line">Events:  &lt;none&gt;</span><br></pre></td></tr></table></figure>
+
+<p>根据输出结果可以看到数据被保存到 <code>Data</code> 属性中，每个 <code>key: value</code> 之间通过 <code>----</code> 进行分隔。</p>
+<ul>
+<li>通过 Yaml 文件创建</li>
+</ul>
+<p>创建 <code>configmap-demo.yaml</code> 内容如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">kind:</span> <span class="string">ConfigMap</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">c2</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">data:</span></span><br><span class="line">  <span class="attr">foo:</span> <span class="string">bar</span></span><br><span class="line">  <span class="attr">bar:</span> <span class="string">baz</span></span><br></pre></td></tr></table></figure>
+
+<p>通过 <code>kubectl apply</code> 命令应用这个文件。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl apply -f configmap-demo.yaml</span><br><span class="line"></span><br><span class="line">$ kubectl get configmap c2</span><br><span class="line">NAME   DATA   AGE</span><br><span class="line">c2     2      11s</span><br><span class="line"></span><br><span class="line">$ kubectl describe configmap c2</span><br><span class="line">Name:         c2</span><br><span class="line">Namespace:    default</span><br><span class="line">Labels:       &lt;none&gt;</span><br><span class="line">Annotations:  &lt;none&gt;</span><br><span class="line"></span><br><span class="line">Data</span><br><span class="line">====</span><br><span class="line">foo:</span><br><span class="line">----</span><br><span class="line">bar</span><br><span class="line">bar:</span><br><span class="line">----</span><br><span class="line">baz</span><br><span class="line">Events:  &lt;none&gt;</span><br></pre></td></tr></table></figure>
+
+<p>得到的结果跟通过命令行方式创建的 ConfigMap 没什么两样。</p>
+<h5 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h5><p>知道了如何创建 ConfigMap ，我们再来看下如何使用。</p>
+<p>有两种方式可以使用创建好的 ConfigMap ，一种是通过环境变量将 ConfigMap 注入到容器内部，另一种是通过卷挂载的方式直接将 ConfigMap 以文件形式挂载到容器。</p>
+<ul>
+<li>通过环境变量方式引用</li>
+</ul>
+<p>创建 <code>use-configmap-env-demo.yaml</code> 内容如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">"use-configmap-env"</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">use-configmap-env</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">"alpine"</span></span><br><span class="line">      <span class="comment"># 一次引用单个值</span></span><br><span class="line">      <span class="attr">env:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">FOO</span></span><br><span class="line">          <span class="attr">valueFrom:</span></span><br><span class="line">            <span class="attr">configMapKeyRef:</span></span><br><span class="line">              <span class="attr">name:</span> <span class="string">c2</span></span><br><span class="line">              <span class="attr">key:</span> <span class="string">foo</span></span><br><span class="line">      <span class="comment"># 一次引用所有值</span></span><br><span class="line">      <span class="attr">envFrom:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">prefix:</span> <span class="string">CONFIG_</span>  <span class="comment"># 配置引用前缀</span></span><br><span class="line">          <span class="attr">configMapRef:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">c2</span></span><br><span class="line">      <span class="attr">command:</span> <span class="string">["echo",</span> <span class="string">"$(FOO)"</span><span class="string">,</span> <span class="string">"$(CONFIG_bar)"</span><span class="string">]</span></span><br></pre></td></tr></table></figure>
+
+<p>这里创建一个名为 <code>use-configmap-env</code> 的 Pod，Pod 的容器分别用两种方式引用 ConfigMap 的内容。</p>
+<p>指定 <code>spec.containers.env</code> 可以为容器引用一个 ConfigMap 的 <code>key: value</code> 对，<code>valueFrom.configMapKeyRef</code> 表明我们要引用 ConfigMap ，ConfigMap 的名称为 <code>c2</code>，引用的 <code>key</code> 为 <code>foo</code>。</p>
+<p>指定 <code>spec.containers.envFrom</code> 则可以一次将 ConfigMap 中的所有 <code>key: value</code> 传递给容器，只需要通过 <code>configMapRef.name</code> 指定 ConfigMap 的名称即可。<code>prefix</code> 可以给引用的 <code>key</code> 前面增加统一前缀。</p>
+<p>容器启动命令为 <code>echo $(FOO) $(CONFIG_bar)</code>，可以分别打印通过 <code>env</code> 和 <code>envFrom</code> 两种方式引用的 ConfigMap 的内容。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建 Pod</span></span><br><span class="line"></span><br><span class="line">$ kubectl apply -f use-configmap-env-demo.yaml</span><br><span class="line"><span class="comment"># 通过查看 Pod 日志来观察容器内部引用 ConfigMap 结果</span></span><br><span class="line">$ kubectl logs use-configmap-env</span><br><span class="line">bar baz</span><br></pre></td></tr></table></figure>
+
+<p>实验结果表明，容器内部可以通过环境变量的方式引用到 ConfigMap 的内容。</p>
+<ul>
+<li>通过卷挂载方式引用</li>
+</ul>
+<p>创建 <code>use-configmap-volume-demo.yaml</code> 内容如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">"use-configmap-volume"</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">use-configmap-volume</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">"alpine"</span></span><br><span class="line">      <span class="attr">command:</span> <span class="string">["sleep",</span> <span class="string">"3600"</span><span class="string">]</span></span><br><span class="line">      <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">configmap-volume</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/usr/share/tmp</span>  <span class="comment"># 容器挂载目录</span></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">configmap-volume</span></span><br><span class="line">      <span class="attr">configMap:</span></span><br><span class="line">        <span class="attr">name:</span> <span class="string">c2</span></span><br></pre></td></tr></table></figure>
+
+<p>这里创建一个名为 <code>use-configmap-volume</code> 的 Pod，通过 <code>spec.containers.volumeMounts</code> 指定容器挂载，<code>name</code> 指定挂载的卷名，<code>mountPath</code> 指定容器内部挂载路径（也就是将 ConfigMap 挂载到容器内部的指定目录下），<code>spec.volumes</code> 声明一个卷，<code>configMap.name</code> 表明了这个卷要引用的 ConfigMap 名称。</p>
+<p>可以通过如下命令创建 Pod 并验证容器内部能否引用到 ConfigMap。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建 Pod</span></span><br><span class="line">$ kubectl apply -f use-configmap-volume-demo.yaml</span><br><span class="line"><span class="comment"># 进入 Pod 容器内部</span></span><br><span class="line">$ kubectl <span class="built_in">exec</span> -it use-configmap-volume -- sh</span><br><span class="line"><span class="comment"># 进入容器挂载目录</span></span><br><span class="line">/ <span class="comment"># cd /usr/share/tmp/</span></span><br><span class="line"><span class="comment"># 查看挂载目录下的文件</span></span><br><span class="line">/usr/share/tmp <span class="comment"># ls</span></span><br><span class="line">bar  foo</span><br><span class="line"><span class="comment"># 查看文件内容</span></span><br><span class="line">/usr/share/tmp <span class="comment"># cat foo</span></span><br><span class="line">bar</span><br><span class="line">/usr/share/tmp <span class="comment"># cat bar</span></span><br><span class="line">baz</span><br></pre></td></tr></table></figure>
+
+<p>创建 Pod 后，可以通过 <code>kubectl exec</code> 命令进入容器内部，查看容器 <code>/usr/share/tmp/</code> 目录，会有两个以 ConfigMap 中 <code>key</code> 为名称的文本文件（<code>foo</code>、<code>bar</code>），文件内容则为 <code>key</code> 所对应的 <code>value</code> 内容。</p>
+<p>以上我们演示了两种方式将 ConfigMap 的内容注入到容器内部，容器内部的应用可以分别通过读取环境变量、文件内容的方式使用配置信息。</p>
+<h4 id="Secret"><a href="#Secret" class="headerlink" title="Secret"></a>Secret</h4><p>熟悉了 ConfigMap 的用法，接下来看下 Secret 的使用。</p>
+<p>其实 Secret 同 ConfigMap 非常类似，只不过它会对存储的数据进行 base64 编码，Secret 卷用来给 Pod 传递敏感信息，例如密码、SSH 密钥等。</p>
+<h5 id="创建示例-1"><a href="#创建示例-1" class="headerlink" title="创建示例"></a>创建示例</h5><ul>
+<li>通过命令行创建</li>
+</ul>
+<p>Secret 同样可以通过 <code>--from-literal</code> 参数来指定 <code>key: value</code>，不过这里演示另一种方式，通过 <code>--form-file</code> 参数直接从文件加载配置，文件名即为 <code>key</code>，文件内容作为 <code>value</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># generic 参数对应 Opaque 类型，既用户定义的任意数据</span></span><br><span class="line">$ kubectl create secret generic s1 --from-file=foo.txt</span><br></pre></td></tr></table></figure>
+
+<p><code>foo.txt</code> 内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">foo&#x3D;bar</span><br><span class="line">bar&#x3D;baz</span><br></pre></td></tr></table></figure>
+
+<p>查看创建出来的 Secret，与 ConfigMap 不同的是，创建 Secret 需要指明类型，以上命令通过指定 <code>generic</code> 参数来创建类型为 <code>Opaque</code> 的 Secret ，这也是 Secret 默认类型（Secret 支持的类型可以在官方文档查看，不过初期学习阶段你完全可以不必关心，只使用默认类型即可，因为只通过默认类型也能够实现其他几种类型的功能）。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl describe secret s1</span><br><span class="line">Name:         s1</span><br><span class="line">Namespace:    default</span><br><span class="line">Labels:       &lt;none&gt;</span><br><span class="line">Annotations:  &lt;none&gt;</span><br><span class="line"></span><br><span class="line">Type:  Opaque</span><br><span class="line"></span><br><span class="line">Data</span><br><span class="line">====</span><br><span class="line">foo.txt:  16 bytes</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，与 ConfigMap 不同，Secret 中的数据的 <code>value</code> 是不会直接展示出来的，仅展示了 <code>value</code> 的字节大小，这也是 Secret 名称的含义，为了保存密文。</p>
+<ul>
+<li>通过 Yaml 文件创建</li>
+</ul>
+<p>创建 <code>secret-demo.yaml</code> 内容如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Secret</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">s2</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">type:</span> <span class="string">Opaque</span>  <span class="comment"># 默认类型</span></span><br><span class="line"><span class="attr">data:</span></span><br><span class="line">  <span class="attr">user:</span> <span class="string">cm9vdAo=</span></span><br><span class="line">  <span class="attr">password:</span> <span class="string">MTIzNDU2Cg==</span></span><br></pre></td></tr></table></figure>
+
+<p>通过 <code>kubectl apply</code> 命令应用这个文件。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl apply -f secret-demo.yaml</span><br><span class="line"></span><br><span class="line">$ kubectl get secret s2</span><br><span class="line">NAME   TYPE     DATA   AGE</span><br><span class="line">s2     Opaque   2      59s</span><br><span class="line"></span><br><span class="line">$ kubectl describe secret s2</span><br><span class="line">Name:         s2</span><br><span class="line">Namespace:    default</span><br><span class="line">Labels:       &lt;none&gt;</span><br><span class="line">Annotations:  &lt;none&gt;</span><br><span class="line"></span><br><span class="line">Type:  Opaque</span><br><span class="line"></span><br><span class="line">Data</span><br><span class="line">====</span><br><span class="line">password:  7 bytes</span><br><span class="line">user:      5 bytes</span><br></pre></td></tr></table></figure>
+
+<p>同样能够正确创建出 Secret 资源，通过 Yaml 文件创建 Secret 时，指定的 <code>data</code> 内容必须经过 <code>base64</code> 编码，如我们指定的 <code>user</code> 和 <code>password</code> 都是编码后的结果。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">data:</span><br><span class="line">  user: cm9vdAo&#x3D;</span><br><span class="line">  password: MTIzNDU2Cg&#x3D;&#x3D;</span><br></pre></td></tr></table></figure>
+
+<p>如果觉得麻烦，也可以使用原始字符串方式，如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">data:</span><br><span class="line">  stringData:</span><br><span class="line">   user: root</span><br><span class="line">   password: &quot;123456&quot;</span><br></pre></td></tr></table></figure>
+
+<p>以上两种方式等价，更推荐使用 <code>base64</code> 编码的方式。</p>
+<h5 id="使用示例-1"><a href="#使用示例-1" class="headerlink" title="使用示例"></a>使用示例</h5><p>同 ConfigMap 使用方式一样，我们也可以通过环境变量或卷挂载的方式来使用 Secret。</p>
+<p>这了演示通过卷挂载方式引用 Secret ，首先创建 <code>use-secret-volume-demo.yaml</code> 内容如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">"use-secret-volume-demo"</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">use-secret-volume-demo</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">"alpine"</span></span><br><span class="line">      <span class="attr">command:</span> <span class="string">["sleep",</span> <span class="string">"3600"</span><span class="string">]</span></span><br><span class="line">      <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">secret-volume</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/usr/share/tmp</span> <span class="comment"># 容器挂载目录</span></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">secret-volume</span></span><br><span class="line">      <span class="attr">secret:</span></span><br><span class="line">        <span class="attr">secretName:</span> <span class="string">s2</span></span><br></pre></td></tr></table></figure>
+
+<p>这里创建一个名为 <code>use-secret-volume-demo</code> 的 Pod，Pod 的容器通过卷挂载方式引用 Secret 的内容。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建 Pod</span></span><br><span class="line">$ kubectl apply -f use-secret-volume-demo.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 进入 Pod 容器内部</span></span><br><span class="line">$ kubectl <span class="built_in">exec</span> -it use-secret-volume-demo -- sh</span><br><span class="line"><span class="comment"># 进入容器挂载目录</span></span><br><span class="line">/ <span class="comment"># cd /usr/share/tmp/</span></span><br><span class="line"><span class="comment"># 查看挂载目录下的文件</span></span><br><span class="line">/usr/share/tmp <span class="comment"># ls</span></span><br><span class="line">password  user</span><br><span class="line"><span class="comment"># 查看文件内容</span></span><br><span class="line">/usr/share/tmp <span class="comment"># cat password </span></span><br><span class="line">123456</span><br><span class="line">/usr/share/tmp <span class="comment"># cat user </span></span><br><span class="line">root</span><br></pre></td></tr></table></figure>
+
+<p>可以发现被挂载到容器内部以后，Secret 的内容将变成明文存储。容器内部应用可以同使用 ConfigMap 一样来使用 Secret。</p>
+<p>由此可见，无论是 ConfigMap 还是 Secret，都可以用来存储配置信息，可以通过 ConfigMap 来存放普通配置，通过 Secret 来存放敏感配置。</p>
+<p>值得一提的是，使用环境变量方式引用 ConfigMap 或 Secret，当 ConfigMap 或 Secret 内容变更时，容器内部引用的内容不会自动更新；使用卷挂载方式引用 ConfigMap 或 Secret，当 ConfigMap 或 Secret 内容变更时，容器内部引用的内容会自动更新。如果容器内部应用支持配置文件热加载，那么通过卷挂载对的方式引用 ConfigMap 或 Secret 内容将是推荐方式。</p>
+<h4 id="DownwardAPI"><a href="#DownwardAPI" class="headerlink" title="DownwardAPI"></a>DownwardAPI</h4><p>DownwardAPI 可以将 Pod 对象自身的信息注入到 Pod 所管理的容器内部。</p>
+<h5 id="使用示例-2"><a href="#使用示例-2" class="headerlink" title="使用示例"></a>使用示例</h5><p>创建 <code>downwardapi-demo.yaml</code> 内容如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">downwardapi-volume-demo</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">downwardapi-volume-demo</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">foo:</span> <span class="string">bar</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">downwardapi-volume-demo</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">alpine</span></span><br><span class="line">      <span class="attr">command:</span> <span class="string">["sleep",</span> <span class="string">"3600"</span><span class="string">]</span></span><br><span class="line">      <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">podinfo</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/etc/podinfo</span></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">podinfo</span></span><br><span class="line">      <span class="attr">downwardAPI:</span></span><br><span class="line">        <span class="attr">items:</span></span><br><span class="line">          <span class="comment"># 指定引用的 labels</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">"labels"</span></span><br><span class="line">            <span class="attr">fieldRef:</span></span><br><span class="line">              <span class="attr">fieldPath:</span> <span class="string">metadata.labels</span></span><br><span class="line">          <span class="comment"># 指定引用的 annotations</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">"annotations"</span></span><br><span class="line">            <span class="attr">fieldRef:</span></span><br><span class="line">              <span class="attr">fieldPath:</span> <span class="string">metadata.annotations</span></span><br></pre></td></tr></table></figure>
+
+<p>使用如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建 Pod</span></span><br><span class="line">$ kubectl apply -f downwardapi-demo.yaml</span><br><span class="line">pod/downwardapi-volume-demo created</span><br><span class="line"></span><br><span class="line"><span class="comment"># 进入 Pod 容器内部</span></span><br><span class="line">$ kubectl <span class="built_in">exec</span> -it downwardapi-volume-demo -- sh</span><br><span class="line"><span class="comment"># 进入容器挂载目录</span></span><br><span class="line">/ <span class="comment"># cd /etc/podinfo/</span></span><br><span class="line"><span class="comment"># 查看挂载目录下的文件</span></span><br><span class="line">/etc/podinfo <span class="comment"># ls</span></span><br><span class="line">annotations  labels</span><br><span class="line"><span class="comment"># 查看文件内容</span></span><br><span class="line">/etc/podinfo <span class="comment"># cat annotations </span></span><br><span class="line">foo=<span class="string">"bar"</span></span><br><span class="line">kubectl.kubernetes.io/last-applied-configuration=<span class="string">"&#123;\"apiVersion\":\"v1\",\"kind\":\"Pod\",\"metadata\":&#123;\"annotations\":&#123;\"foo\":\"bar\"&#125;,\"labels\":&#123;\"app\":\"downwardapi-volume-demo\"&#125;,\"name\":\"downwardapi-volume-demo\",\"namespace\":\"default\"&#125;,\"spec\":&#123;\"containers\":[&#123;\"command\":[\"sleep\",\"3600\"],\"image\":\"alpine\",\"name\":\"downwardapi-volume-demo\",\"volumeMounts\":[&#123;\"mountPath\":\"/etc/podinfo\",\"name\":\"podinfo\"&#125;]&#125;],\"volumes\":[&#123;\"downwardAPI\":&#123;\"items\":[&#123;\"fieldRef\":&#123;\"fieldPath\":\"metadata.labels\"&#125;,\"path\":\"labels\"&#125;,&#123;\"fieldRef\":&#123;\"fieldPath\":\"metadata.annotations\"&#125;,\"path\":\"annotations\"&#125;]&#125;,\"name\":\"podinfo\"&#125;]&#125;&#125;\n"</span></span><br><span class="line">kubernetes.io/config.seen=<span class="string">"2022-03-12T13:06:50.766902000Z"</span></span><br><span class="line">/etc/podinfo <span class="comment"># cat labels</span></span><br><span class="line">app=<span class="string">"downwardapi-volume-demo"</span></span><br></pre></td></tr></table></figure>
+
+<p>不难发现，DownwardAPI 的使用方式同 ConfigMap 和 Secret 如出一辙，通过卷挂载方式挂载到容器内部以后，都是在容器挂载的目录下生成对应文件，用来存储 key: value。不同的是 DownwardAPI 不需要预先定义，可以直接使用，因为它能引用的内容已经都在当前 yaml 文件中定义好了。</p>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>ConfigMap 、Secret 、DownwardAPI 这三种 Volume 存在的意义不是为了保存容器中的数据，而是为了给容器传递预先定义好的数据。</p>
+<h3 id="临时卷"><a href="#临时卷" class="headerlink" title="临时卷"></a>临时卷</h3><p>接下来我们要关注的是临时卷，即临时存储。K8s 支持的临时存储中最常用的就是如下两种：</p>
+<ul>
+<li>EmptyDir</li>
+<li>HostPath</li>
+</ul>
+<p>临时存储卷会遵从 Pod 的生命周期，与 Pod 一起创建和删除。</p>
+<h4 id="EmptyDir"><a href="#EmptyDir" class="headerlink" title="EmptyDir"></a>EmptyDir</h4><p>先来看 EmptyDir 如何使用，EmptyDir 相当于使用 docker 时通过 <code>--volume/-v</code> 挂载时的隐式 Volume 形式，即不显式的声明在宿主机上的目录。K8s 会在宿主机上创建一个临时目录，被挂载到容器所声明的 <code>mountPath</code> 目录上。</p>
+<h5 id="使用示例-3"><a href="#使用示例-3" class="headerlink" title="使用示例"></a>使用示例</h5><p>创建 <code>emptydir-demo.yaml</code> 内容如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">"emptydir-nginx-pod"</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">"emptydir-nginx-pod"</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">html-generator</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">"alpine:latest"</span></span><br><span class="line">      <span class="attr">command:</span> <span class="string">["sh",</span> <span class="string">"-c"</span><span class="string">]</span></span><br><span class="line">      <span class="attr">args:</span></span><br><span class="line">       <span class="bullet">-</span> <span class="string">while</span> <span class="literal">true</span><span class="string">;</span> <span class="string">do</span></span><br><span class="line">          <span class="string">date</span> <span class="string">&gt;</span> <span class="string">/usr/share/index.html;</span></span><br><span class="line">          <span class="string">sleep</span> <span class="number">1</span><span class="string">;</span></span><br><span class="line">         <span class="string">done</span></span><br><span class="line">      <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">html</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/usr/share</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">"nginx:latest"</span></span><br><span class="line">      <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br><span class="line">          <span class="attr">name:</span> <span class="string">http</span></span><br><span class="line">      <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">html</span></span><br><span class="line">          <span class="comment"># nginx 容器 index.html 文件所在目录</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/usr/share/nginx/html</span></span><br><span class="line">          <span class="attr">readOnly:</span> <span class="literal">true</span></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">html</span></span><br><span class="line">      <span class="attr">emptyDir:</span> <span class="string">&#123;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>这里创建一个名为 <code>emptydir-nginx-pod</code> 的 Pod，它包含两个容器 <code>html-generator</code> 和 <code>nginx</code>，顾名思义，<code>html-generator</code> 用来不停的生成 <code>html</code> 文件，<code>nginx</code> 是一个 Web 服务，用来展示 <code>html-generator</code> 生成的 <code>index.html</code> 文件。</p>
+<p>通过两个容器对的描述信息可以发现，<code>html-generator</code> 不停的将当前时间写入到 <code>/usr/share/index.html</code> 下，并将 <code>/usr/share</code> 目录挂载到名为 <code>html</code> 的卷中，而 <code>nginx</code> 容器则将 <code>/usr/share/nginx/html</code> 目录挂载到名为 <code>html</code> 的卷中，这样两个容器通过同一个卷 <code>html</code> 挂载到了一起。现在通过 <code>kubectl apply</code> 命令应用这个文件。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建 Pod</span></span><br><span class="line">$ kubectl apply -f emptydir-demo.yaml</span><br><span class="line">pod/emptydir-nginx-pod created</span><br><span class="line"></span><br><span class="line"><span class="comment"># 进入 Pod 容器内部</span></span><br><span class="line">$ kubectl <span class="built_in">exec</span> -it pod/emptydir-nginx-pod -- sh</span><br><span class="line"><span class="comment"># 查看系统时区</span></span><br><span class="line">/ <span class="comment"># curl 127.0.0.1</span></span><br><span class="line">Sun Mar 13 08:40:01 UTC 2022</span><br><span class="line">/ <span class="comment"># curl 127.0.0.1</span></span><br><span class="line">Sun Mar 13 08:40:04 UTC 2022</span><br></pre></td></tr></table></figure>
+
+<p>根据 <code>nginx</code> 容器内部 <code>curl 127.0.0.1</code> 命令输出结果可以发现，<code>nginx</code> 容器 <code>/usr/share/nginx/html/indedx.html</code> 文件内容即为 <code>html-generator</code> 容器 <code>/usr/share/index.html</code> 文件内容。</p>
+<p>能够实现此效果的原理是，当我们声明卷类型为 <code>emptyDir: {}</code> 后，K8s 会自动在主机目录上创建一个临时目录，然后将 <code>html-generator</code> 容器 <code>/usr/share/</code> 目录和 <code>nginx</code> 容器 <code>/usr/share/nginx/html/</code> 同时挂载到这个临时目录上，这样两个容器的目录就能够同步数据了。</p>
+<p>需要注意的是，容器崩溃并不会导致 Pod 被从节点上移除，因此容器崩溃期间 EmptyDir 卷中的数据是安全的。另外，<code>emptyDir.medium</code> 除了可以设成 <code>{}</code>，还可以设成 <code>Memory</code> 表示内存挂载。</p>
+<h4 id="HostPath"><a href="#HostPath" class="headerlink" title="HostPath"></a>HostPath</h4><p>HostPath 卷能将主机节点文件系统上的文件或目录挂载到指定的 Pod 中，与 EmptyDir 不同的是，当 Pod 删除时，与之绑定的 HostPath 并不会随之删除，如果新创建一个 Pod 并且挂载到上一个 Pod 使用过的 HostPath，原 HostPath 中的内容仍然存在。但这仅限于新的 Pod 和已经删除的 Pod 被调度到同一节点上，所以严格来讲 HostPath 仍然属于临时存储。</p>
+<h5 id="使用示例-4"><a href="#使用示例-4" class="headerlink" title="使用示例"></a>使用示例</h5><p>HostPath 卷的一个典型应用是将主机节点上的时区通过卷挂载的方式注入到容器内部，这样能够保证启动的容器和主机节点时间同步。</p>
+<p>创建 <code>hostpath-demo.yaml</code> 内容如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">"hostpath-volume-pod"</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">"hostpath-volume-pod"</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">hostpath-volume-container</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">"alpine:latest"</span></span><br><span class="line">      <span class="attr">command:</span> <span class="string">["sleep",</span> <span class="string">"3600"</span><span class="string">]</span></span><br><span class="line">      <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">localtime</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/etc/localtime</span></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">localtime</span></span><br><span class="line">      <span class="attr">hostPath:</span></span><br><span class="line">        <span class="attr">path:</span> <span class="string">/usr/share/zoneinfo/Asia/Shanghai</span></span><br></pre></td></tr></table></figure>
+
+<p>要实现时间同步，只需要将主机目录 <code>/usr/share/zoneinfo/Asia/Shanghai</code> 通过卷挂载的方式挂载到容器内部的 <code>/etc/localtime</code> 目录即可。通过 <code>kubectl apply</code> 命令应用这个文件，然后进入 Pod 容器内部使用 <code>date</code> 命令查看容器当前时间。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建 Pod</span></span><br><span class="line">$ kubectl apply -f hostpath-demo.yaml</span><br><span class="line">pod/hostpath-volume-pod created</span><br><span class="line"><span class="comment"># 进入 Pod 容器内部</span></span><br><span class="line">$ kubectl <span class="built_in">exec</span> -it hostpath-volume-pod -- sh</span><br><span class="line"><span class="comment"># 执行 date 命令输出当前时间</span></span><br><span class="line">/ <span class="comment"># date</span></span><br><span class="line">Sun Mar 13 17:00:22 CST 2022  <span class="comment"># 上海时区</span></span><br></pre></td></tr></table></figure>
+
+<p>输出结果为 <code>Sun Mar 13 17:00:22 CST 2022</code>，其中 <code>CST</code> 代表了上海时区，也就是主机节点的时区，如果不通过卷挂载的方式将主机时区挂载到容器内部，容器默认时区为 <code>UTC</code> 时区。</p>
+<h4 id="小结-1"><a href="#小结-1" class="headerlink" title="小结"></a>小结</h4><p>本节介绍了 K8s 临时存储方案以及应用，EmptyDir 适用范围较少，可以当作临时缓存或者耗时任务检查点等。</p>
+<p>绝大多数 Pod 应该忽略主机节点，不应该访问节点上的文件系统，有时候 DaemonSet 可能需要访问主机节点的文件系统，HostPath 可以用来同步主机节点时区到容器，其他情况下使用较少，HostPath 的最佳实践就是尽量不使用 HostPath。</p>
+<h3 id="持久卷"><a href="#持久卷" class="headerlink" title="持久卷"></a>持久卷</h3><p>临时卷的生命周期与 Pod 相同，当 Pod 被删除时，K8s 会自动删除 Pod 挂载的临时卷。而当我们的 Pod 中应用需要将数据保存到磁盘，且即使 Pod 被调度到其他节点数据也应该存在时，我们就需要一个真正的持久化存储了。</p>
+<p>K8s 支持的持久卷类型非常多，这里列出了 <code>v1.24</code> 版本支持的所有卷：</p>
+<ul>
+<li><code>awsElasticBlockStore</code> - AWS 弹性块存储（EBS）</li>
+<li><code>azureDisk</code> - Azure Disk</li>
+<li><code>azureFile</code> - Azure File</li>
+<li><code>cephfs</code> - CephFS volume</li>
+<li><code>csi</code> - 容器存储接口 (CSI)</li>
+<li><code>fc</code> - Fibre Channel (FC) 存储</li>
+<li><code>gcePersistentDisk</code> - GCE 持久化盘</li>
+<li><code>glusterfs</code> - Glusterfs 卷</li>
+<li><code>iscsi</code> - iSCSI (SCSI over IP) 存储</li>
+<li><code>local</code> - 节点上挂载的本地存储设备</li>
+<li><code>nfs</code> - 网络文件系统 (NFS) 存储</li>
+<li><code>portworxVolume</code> - Portworx 卷</li>
+<li><code>rbd</code> - Rados 块设备 (RBD) 卷</li>
+<li><code>vsphereVolume</code> - vSphere VMDK 卷</li>
+<li>…</li>
+</ul>
+<p>看到这么多持久卷类型不必恐慌，有很多类型我也是第一次见，K8s 针对持久卷有一套独有的思想，旨在让开发者不必关心这背后的持久化存储类型，在 K8s 中，开发者无论使用哪种持久卷，其用法都是一致的。</p>
+<p>K8s 持久卷设计架构如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="k8s-storage.png" alt="K8s storage" title="">
+                </div>
+                <div class="image-caption">K8s storage</div>
+            </figure>
+
+<p><code>Node1</code> 和 <code>Node2</code> 分别代表两个工作节点，当我们在工作节点创建 Pod 时，可以通过 <code>spec.containers.volumeMounts</code> 来指定容器挂载目录，通过 <code>spec.volumes</code> 来指定挂载卷，之前我们用这个挂载卷挂载了配置信息和临时卷，这里指定挂载持久卷可以采用同样的方式，图中每个 <code>volumes</code> 指向的是下方存储集群中不同的存储类型，K8s 完全支持这样做。为了保证高可用，我们通常会搭建一个存储集群，而存储集群内部可以使用任何 K8s 支持的持久化存储，如上图的 <code>NFS</code>、<code>CephFS</code>、<code>CephRBD</code>。</p>
+<h4 id="存储集群"><a href="#存储集群" class="headerlink" title="存储集群"></a>存储集群</h4><p>关于存储集群，因为我们通过 Pod 来操作存储，而 Pod 都会部署在 Node 中，所以存储集群最好跟 Node 集群搭建在同一内网，这样速度更快。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="storage-cluster.png" alt="K8s storage cluster" title="">
+                </div>
+                <div class="image-caption">K8s storage cluster</div>
+            </figure>
+
+<h4 id="使用-NFS"><a href="#使用-NFS" class="headerlink" title="使用 NFS"></a>使用 NFS</h4><p>这里我们使用 NFS 存储来演示 K8s 对持久卷的支持（NFS 测试环境搭建过程可以参考文章结尾的附录部分），创建 <code>nfs-demo.yaml</code> 内容如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">"nfs-nginx-pod"</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">"nfs-nginx-pod"</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nfs-nginx</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">"nginx:latest"</span></span><br><span class="line">      <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br><span class="line">          <span class="attr">name:</span> <span class="string">http</span></span><br><span class="line">      <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">html-volume</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/usr/share/nginx/html/</span></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">html-volume</span></span><br><span class="line">      <span class="attr">nfs:</span></span><br><span class="line">        <span class="attr">server:</span> <span class="number">192.168</span><span class="number">.99</span><span class="number">.101</span>  <span class="comment"># 指定 nfs server 地址</span></span><br><span class="line">        <span class="attr">path:</span> <span class="string">/nfs/data/nginx</span>  <span class="comment"># 目录必须存在</span></span><br></pre></td></tr></table></figure>
+
+<p>持久化挂载方式与临时卷大同小异，我们这里同样使用一个 Nginx 服务来进行测试，将容器 <code>index.html</code> 所在目录 <code>/usr/share/nginx/html/</code> 挂载到 NFS 服务的 <code>/nfs/data/nginx</code> 目录下，在 <code>spec.volumes</code> 配置项中指定 NFS 服务，<code>server</code> 指明了 NFS 服务器地址，<code>path</code> 指明 NFS 服务器中挂载的路径，这个路径必须是已经存在的路径。通过 <code>kubectl apply</code> 命令应用这个文件。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl apply -f nfs-demo.yaml</span><br></pre></td></tr></table></figure>
+
+<p>接下来我们查看这个 Pod 使用 NFS 存储的结果：</p>
+<ul>
+<li>NFS 节点</li>
+</ul>
+<p>在 NFS 节点中我们准备一个 <code>index.html</code> 文件，其内容为 <code>hello nfs</code>。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="nfs-index.png" alt="index.html" title="">
+                </div>
+                <div class="image-caption">index.html</div>
+            </figure>
+
+<ul>
+<li>Pod</li>
+</ul>
+<p>使用 <code>curl</code> 命令直接访问 Pod 的 <code>IP</code> 地址，即可返回 Nginx 服务的 <code>index.html</code> 内容，结果输出为 <code>hello nfs</code>，证明 NFS 持久卷挂载成功。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="curl-pod.png" alt="hello nfs" title="">
+                </div>
+                <div class="image-caption">hello nfs</div>
+            </figure>
+
+<p>可以登入 Pod 容器，通过 <code>df -Th</code> 命令查看容器目录挂载信息，可以发现，容器的 <code>/usr/share/nginx/html/</code> 目录被挂载到 NFS 服务的 <code>/nfs/data/nginx</code> 目录。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="volume.png" alt="mount volume" title="">
+                </div>
+                <div class="image-caption">mount volume</div>
+            </figure>
+
+<p>现在，当我们执行 <code>kubectl delete -f nfs-demo.yaml</code> 删除 pod 后，NFS 服务器上数据盘中的数据依然存在，这就是持久卷。</p>
+<h4 id="持久卷使用痛点"><a href="#持久卷使用痛点" class="headerlink" title="持久卷使用痛点"></a>持久卷使用痛点</h4><p>虽然我们通过使用持久卷，解决了临时卷数据易丢失的问题，但目前持久卷的使用方式，还是有一些不足之处：</p>
+<ul>
+<li>Pod 开发人员可能对存储不够了解，却要对接多种存储</li>
+<li>安全问题，有些存储可能需要账号密码，这些信息不应该暴露给 Pod</li>
+</ul>
+<p>为了解决这些不足，K8s 又针对持久化存储抽象出了三种资源 PV、PVC、StorageClass。</p>
+<h4 id="PV（PersistentVolume）、PVC（PersistentVolumeClaim）、StorageClass"><a href="#PV（PersistentVolume）、PVC（PersistentVolumeClaim）、StorageClass" class="headerlink" title="PV（PersistentVolume）、PVC（PersistentVolumeClaim）、StorageClass"></a>PV（PersistentVolume）、PVC（PersistentVolumeClaim）、StorageClass</h4><p>三种资源定义如下：</p>
+<ul>
+<li>PV 描述的是持久化存储数据卷</li>
+<li>PVC 描述的是 Pod 想要使用的持久化存储属性，既存储卷申明</li>
+<li>StorageClass 作用是根据 PVC 的描述，申请创建对应的 PV</li>
+</ul>
+<p>PV 和 PVC 的概念可以对应编程语言中的面向对象思想，PVC 是接口，PV 是具体实现。</p>
+<p>有了这三种资源类型后，Pod 有两种方式来使用持久卷，分别是静态供应和动态供应。</p>
+<h4 id="静态供应"><a href="#静态供应" class="headerlink" title="静态供应"></a>静态供应</h4><p>我们先来学习静态供应，静态供应不涉及 StorageClass，只涉及到 PVC 和 PV。</p>
+<p>其使用流程图如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="static-storage.png" alt="static" title="">
+                </div>
+                <div class="image-caption">static</div>
+            </figure>
+
+<p>使用静态供应时，Pod 不再直接绑定持久存储，而是会绑定到 PVC 上，然后再由 PVC 跟 PV 进行绑定。这样就实现了 Pod 中的容器可以使用由 PV 真正去申请的持久化存储。</p>
+<h5 id="使用示例-5"><a href="#使用示例-5" class="headerlink" title="使用示例"></a>使用示例</h5><p>创建 <code>pv-demo.yaml</code> 内容如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolume</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nfs-pv-1g</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">type:</span> <span class="string">nfs</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">capacity:</span></span><br><span class="line">    <span class="attr">storage:</span> <span class="string">1Gi</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteOnce</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">nfs-storage</span></span><br><span class="line">  <span class="attr">nfs:</span></span><br><span class="line">    <span class="attr">server:</span> <span class="number">192.168</span><span class="number">.99</span><span class="number">.101</span></span><br><span class="line">    <span class="attr">path:</span> <span class="string">/nfs/data/nginx1</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolume</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nfs-pv-100m</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">type:</span> <span class="string">nfs</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">capacity:</span></span><br><span class="line">    <span class="attr">storage:</span> <span class="string">100m</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteOnce</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">nfs-storage</span></span><br><span class="line">  <span class="attr">nfs:</span></span><br><span class="line">    <span class="attr">server:</span> <span class="number">192.168</span><span class="number">.99</span><span class="number">.101</span></span><br><span class="line">    <span class="attr">path:</span> <span class="string">/nfs/data/nginx2</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolumeClaim</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">pvc-500m</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">pvc-500m</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">nfs-storage</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteOnce</span></span><br><span class="line">  <span class="attr">resources:</span></span><br><span class="line">    <span class="attr">requests:</span></span><br><span class="line">      <span class="attr">storage:</span> <span class="string">500m</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">"pv-nginx-pod"</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">"pv-nginx-pod"</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">pv-nginx</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">"nginx:latest"</span></span><br><span class="line">      <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br><span class="line">          <span class="attr">name:</span> <span class="string">http</span></span><br><span class="line">      <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">html</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/usr/share/nginx/html/</span></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">html</span></span><br><span class="line">      <span class="attr">persistentVolumeClaim:</span></span><br><span class="line">        <span class="attr">claimName:</span> <span class="string">pvc-500m</span></span><br></pre></td></tr></table></figure>
+
+<p>以上 <code>Yaml</code> 文件定义了两个 PV、一个 PVC 和一个 Pod。</p>
+<p>两个 PV 申请容量分别为 <code>1Gi</code>、<code>100m</code>，通过 <code>spec.capacity.storage</code> 指定，并且他们通过 <code>spec.nfs</code> 指定了 NFS 存储服务的地址和路径。PVC 则申请 <code>500m</code> 大小的存储。最后在 Pod 的定义中，<code>spec.volumes</code> 绑定了这个名为 <code>pvc-500m</code> 的 PVC，而没有直接去绑定 NFS 存储服务。</p>
+<p>通过 <code>kubectl apply</code> 命令应用这个文件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl apply -f pv-demo.yaml</span><br></pre></td></tr></table></figure>
+
+<p>创建好这些资源后，来观察下结果如何：</p>
+<p>首先通过 <code>kubectl get pod</code> 命令查看新创建的 Pod，通过 <code>curl</code> 命令访问 Pod 的 <code>IP</code> 地址，可以得到 <code>hello nginx1</code> 的响应结果。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="hello-nginx1.png" alt="hello nginx1" title="">
+                </div>
+                <div class="image-caption">hello nginx1</div>
+            </figure>
+
+<p>通过 <code>kubectl get pvc</code> 查看创建的 PVC，<code>STATUS</code> 字段标识这个 PVC 已经处于绑定（<code>Bound</code>）状态，也就是与 PV 进行了绑定，<code>CAPACITY</code> 字段标识这个 PVC 绑定到了 <code>1Gi</code> 的 PV 上，尽管我们申请的 PVC 大小是 <code>500m</code>，但由于我们创建的两个 PV 大小分别是 <code>1Gi</code> 和 <code>100m</code>，K8s 会帮我们选择满足条件的最优解，因为没有刚好等于 <code>500m</code> 大小的 PV 存在，而 <code>100m</code> 又不满足，所以 PVC 会自动与 <code>1Gi</code> 大小的 PV 进行绑定。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="get-pvc.png" alt="pvc" title="">
+                </div>
+                <div class="image-caption">pvc</div>
+            </figure>
+
+<p>通过 <code>kubectl get pv</code> 来查询创建的 PV 资源，可以发现 <code>1Gi</code> 大小的 PV <code>STATUS</code> 字段为 <code>Bound</code> 状态，<code>CLAIM</code> 有值，它标识的就是与之绑定的 PVC 的名字。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="get-pv.png" alt="pv" title="">
+                </div>
+                <div class="image-caption">pv</div>
+            </figure>
+
+<p>现在我们来登录 NFS 服务器，确认NFS 存储上不同持久卷（PV）挂载的目录下文件内容。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="nfs-volume.png" alt="nfs volume" title="">
+                </div>
+                <div class="image-caption">nfs volume</div>
+            </figure>
+
+<p>可以看到，<code>/nfs/data/nginx1</code> 目录下的 <code>index.html</code> 内容为 <code>hello nginx1</code>，即为上面通过 <code>curl</code> 命令访问 Pod 服务的响应结果。</p>
+<p>总结下整个持久卷使用流程：首先创建一个 Pod，这个 Pod 的 <code>spec.volumes</code> 中绑定了 PVC，而 PVC 只是一个存储申明，代表我们的 Pod 需要什么样的持久化存储，它并没有标明 NFS 服务地址，也没有明确要和哪个 PV 进行绑定，我们只需要创建出这个 PVC 即可，接着我们创建了两个 PV，在 PV 中也没有明确指出要与哪个 PVC 进行绑定，只需要指出它的大小和 NFS 存储服务地址即可，此时 K8s 会自动帮我们进行 PVC 和 PV 的绑定，这样 Pod 就和 PV 产生了联系，也就可以访问持久化存储了，这就是静态供应持久卷的使用流程。</p>
+<p>细心的你可能已经发现，前文中我提到静态供应不涉及 StorageClass，但是我在定义 PVC 和 PV 的 <code>Yaml</code> 文件时，还是都为其指定了 <code>spec.storageClassName</code> 值为 <code>nfs-storage</code>，因为这是一个比较好的实践，便于管理，只有具有相同 StorageClass 的 PVC 和 PV 才可以进行绑定。</p>
+<p>无论是 PVC 还是 PV，都有一个 <code>spec.accessModes</code> 字段，这个字段标识了持久卷的访问模式，K8s 持久化支持四中访问模式：</p>
+<ul>
+<li>RWO - ReadWriteOnce —— 卷可以被一个节点以读写方式挂载</li>
+<li>ROX - ReadOnlyMany —— 卷可以被多个节点以只读方式挂载</li>
+<li>RWX - ReadWriteMany —— 卷可以被多个节点以读写方式挂载</li>
+<li>RWOP - ReadWriteOncePod —— 卷可以被单个 Pod 以读写方式挂载（ K8s <code>1.22</code> 以上版本）</li>
+</ul>
+<p>只有具有相同读写模式的 PVC 和 PV 才可以进行绑定。</p>
+<p>现在我们来继续实验，通过命令 <code>kubectl delete pod pv-nginx-pod</code> 删除 Pod，再次查看 PVC 和 PV 状态。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="get-pvc-status.png" alt="pv-pvc" title="">
+                </div>
+                <div class="image-caption">pv-pvc</div>
+            </figure>
+
+<p>说明 Pod 删除后，PVC 和 PV 还在。Pod 删除并不影响 PVC 的存在，而当 PVC 删除时 PV 是否删除，则可以通过设置回收策略来决定。</p>
+<p>PV 回收策略（<code>pv.spec.persistentVolumeReclaimPolicy</code>）有三种：</p>
+<ul>
+<li>Retain —— 手动回收，也就是说删除 PVC 后，PV 依然存在，需要管理员手动进行删除</li>
+<li>Recycle —— 基本擦除 (相当于 rm -rf /*)（新版已废弃不建议使用，建议使用动态供应）</li>
+<li>Delete —— 删除 PV，即级联删除</li>
+</ul>
+<p>现在通过命令 <code>kubectl delete pvc pvc-500m</code> 删除 PVC，查看 PV 状态。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="get-pv-status.png" alt="pv" title="">
+                </div>
+                <div class="image-caption">pv</div>
+            </figure>
+
+<p>可以看到 PV 依然存在，其 <code>STATUS</code> 已经变成 <code>Released</code>，此状态下的 PV 无法再次绑定到 PVC，需要由管理员手动删除，这是由回收策略决定的。</p>
+<p>注意：绑定了 Pod 的 PVC，如果 Pod 正在运行中，PVC 无法删除。</p>
+<h5 id="静态供应的不足"><a href="#静态供应的不足" class="headerlink" title="静态供应的不足"></a>静态供应的不足</h5><p>我们一起体验了静态供应的流程，虽然比直接在 Pod 中绑定 NFS 服务更加清晰，但静态供应依然存在不足。</p>
+<ul>
+<li>首先会造成资源浪费，如上面示例中，PVC 申请 <code>500m</code>，而没有刚好等于 <code>500m</code> 的 PV 存在，这 K8s 会将 <code>1Gi</code> 的 PV 与之绑定</li>
+<li>还有一个致命的问题，如果当前没有满足条件的 PV 存在，则这 PVC 一直无法绑定到 PV 处于 <code>Pending</code> 状态，Pod 也将无法启动，所以就需要管理员提前创建好大量 PV 来等待新创建的 PVC 与之绑定，或者管理员时刻监控是否有满足 PVC 的 PV 存在，如果不存在则马上进行创建，这显然是无法接受的</li>
+</ul>
+<h4 id="动态供应"><a href="#动态供应" class="headerlink" title="动态供应"></a>动态供应</h4><p>介于静态供应存在不足，K8s 推出一种更加方便的持久卷使用方式，即动态供应。</p>
+<p>动态供应核心组件上面已经见过，就是 StorageClass——存储类。</p>
+<p>StorageClass 主要作用有两个：</p>
+<ul>
+<li>一是资源分组，我们上面使用静态供应时指定 StorageClass 的目前就是对资源进行分组，便于管理</li>
+<li>二是 StorageClass 能够帮我们根据 PVC 请求的资源，自动创建出新的 PV，这个功能是 StorageClass 中 <code>provisioner</code> 存储插件帮我们来做的。</li>
+</ul>
+<p>其使用流程图如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="dynamic-storage.png" alt="dynamic" title="">
+                </div>
+                <div class="image-caption">dynamic</div>
+            </figure>
+
+<p>相较于静态供应，动态供应在 PVC 和 PV 之间增加了存储类，这次 PV 并不需要提前创建好，只要我们申请了 PVC 并且绑定了有  <code>provisioner</code> 功能的 StorageClass，StorageClass 会帮我们自动创建 PV 并与 PVC 进行绑定。</p>
+<p>我们可以根据提供的持久化存储类型，分别创建对应的 StorageClass，比如：</p>
+<ul>
+<li>nfs-storage</li>
+<li>cephfs-storage</li>
+<li>rbd-storage</li>
+</ul>
+<p>也可以设置一个默认 StorageClass， 通过在创建 StorageClass 资源时指定对应的 <code>annotations</code> 实现：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.K8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">storageclass.kubernetes.io/is-default-class:</span> <span class="string">"true"</span></span><br><span class="line"><span class="string">...</span></span><br></pre></td></tr></table></figure>
+
+<p>当创建 PVC 时不指定 <code>spec.storageClassName</code>，这个 PVC 就会使用默认 StorageClass。</p>
+<h5 id="使用示例-6"><a href="#使用示例-6" class="headerlink" title="使用示例"></a>使用示例</h5><p>这里我们仍然使用 NFS 来作为持久化存储，首先我们需要有一个能够支持自动创建 PV 的 <code>provisioner</code>，可以在 GitHub 中找到一些开源的实现，我这里使用了 <code>nfs-subdir-external-provisioner</code> 这个存储插件，具体安装方法也非常简单，只需要通过 <code>kubectl apply</code> 命令应用它提供的几个 <code>Yaml</code> 文件即可，你可以点击<a href="https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner" target="_blank" rel="noopener">项目链接</a>查看文档。<br>当存储插件安装完成，我们可以创建如下 StorageClass：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.K8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nfs-storage</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">K8s-sigs.io/nfs-subdir-external-provisioner</span></span><br><span class="line"><span class="attr">parameters:</span></span><br><span class="line">  <span class="attr">archiveOnDelete:</span> <span class="string">"true"</span></span><br></pre></td></tr></table></figure>
+
+<p>这个 StorageClass 指定了 <code>provisioner</code> 为我们安装好的 <code>K8s-sigs.io/nfs-subdir-external-provisioner</code>，指定了 <code>provisioner</code> 的 StorageClass 就有了自动创建 PV 的能力。 <code>provisioner</code> 其实本质上也是一个 Pod，可以通过 <code>kubectl get pod</code> 来查看，是这个 Pod 能够自动创建 PV。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="get-storageclass.png" alt="StorageClass" title="">
+                </div>
+                <div class="image-caption">StorageClass</div>
+            </figure>
+
+<p>现在 <code>provisioner</code> 和 StorageClass 都已经创建好了，接下来就可以进行动态供应的实验了，创建 <code>nfs-provisioner-demo.yaml</code> 内容如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolumeClaim</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">test-claim</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">nfs-storage</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteOnce</span></span><br><span class="line">  <span class="attr">resources:</span></span><br><span class="line">    <span class="attr">requests:</span></span><br><span class="line">      <span class="attr">storage:</span> <span class="string">1Mi</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">"test-nginx-pod"</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">"test-nginx-pod"</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">test-nginx</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">"nginx:latest"</span></span><br><span class="line">      <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br><span class="line">          <span class="attr">name:</span> <span class="string">http</span></span><br><span class="line">      <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">html</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/usr/share/nginx/html/</span></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">html</span></span><br><span class="line">      <span class="attr">persistentVolumeClaim:</span></span><br><span class="line">        <span class="attr">claimName:</span> <span class="string">test-claim</span></span><br></pre></td></tr></table></figure>
+
+<p>这里我们只定义了一个 PVC 和一个 Pod，并没有定义 PV，PVC 的 <code>spec.storageClassName</code> 指定为上面创建好的 StorageClass <code>nfs-storage</code>，现在只需要通过 <code>kubectl apply</code> 命令来创建出 PVC 和 Pod 即可：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl apply -f nfs-provisioner-demo.yaml</span><br><span class="line">persistentvolumeclaim/<span class="built_in">test</span>-claim created</span><br><span class="line">pod/<span class="built_in">test</span>-nginx-pod created</span><br></pre></td></tr></table></figure>
+
+<p>现在可以查看 PV、PVC 和 Pod，发现 PV 也已经被自动创建出来了，并且它们之间实现了绑定关系。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="pv-pvc-bound.png" alt="Bound" title="">
+                </div>
+                <div class="image-caption">Bound</div>
+            </figure>
+
+<p>现在登录 NFS 服务，给远程挂载的卷写入 <code>hello nfs</code> 数据。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="hello-nfs.png" alt="NFS write data" title="">
+                </div>
+                <div class="image-caption">NFS write data</div>
+            </figure>
+
+<p>在 K8s 侧，就可以通过 <code>curl</code> 命令验证这次挂载的正确性了。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="curl-nfs.png" alt="NFS data" title="">
+                </div>
+                <div class="image-caption">NFS data</div>
+            </figure>
+
+<p>此时如果你通过 <code>kubectl delete -f nfs-provisioner-demo.yaml</code> 删除 Pod 和 PVC，PV 也会跟着删除，因为 PV 的删除策略是 Delete ，不过你会发现，NFS 卷中的数据还在，只不过被归档成了以 <code>archived</code> 开头的目录，这个功能是 <code>K8s-sigs.io/nfs-subdir-external-provisioner</code> 这个存储插件帮我们实现的，你可以回到上面查看在定义 StorageClass 是指定的 <code>parameters.archiveOnDelete</code> 属性，这就是存储插件的强大。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="ls-nfs.png" alt="NFS archive" title="">
+                </div>
+                <div class="image-caption">NFS archive</div>
+            </figure>
+
+<h4 id="小结-2"><a href="#小结-2" class="headerlink" title="小结"></a>小结</h4><p>通过定义指定了 <code>provisioner</code> 的 StorageClass，我们不仅可以实现 PV 的自动化创建，甚至可以实现数据删除时自动归档的功能，这完全依附于 K8s 动态供应存储设计的精妙。<br>通过以上的实验，我们可以得出结论：动态供应是持久化存储最佳实践。</p>
+<h3 id="附录"><a href="#附录" class="headerlink" title="附录"></a>附录</h3><h4 id="NFS-实验环境搭建"><a href="#NFS-实验环境搭建" class="headerlink" title="NFS 实验环境搭建"></a>NFS 实验环境搭建</h4><p>NFS 全称 Network File System，是一种分布式存储，它能够通过局域网实现不同主机间目录共享。</p>
+<h5 id="架构图"><a href="#架构图" class="headerlink" title="架构图"></a>架构图</h5><p>一个 Server 节点和两个 Client 节点。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="nfs-arch.png" alt="NFS-arch" title="">
+                </div>
+                <div class="image-caption">NFS-arch</div>
+            </figure>
+
+<h5 id="NFS-在-Centos-系统中的搭建过程："><a href="#NFS-在-Centos-系统中的搭建过程：" class="headerlink" title="NFS 在 Centos 系统中的搭建过程："></a>NFS 在 Centos 系统中的搭建过程：</h5><p>Server 节点：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 安装 nfs 工具</span></span><br><span class="line">yum install -y nfs-utils</span><br><span class="line"></span><br><span class="line"><span class="comment"># 创建 NFS 目录</span></span><br><span class="line">mkdir -p /nfs/data/</span><br><span class="line"></span><br><span class="line"><span class="comment"># 创建 exports 文件，* 表示所有网络上的 IP 都可以访问</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">"/nfs/data/ *(insecure,rw,sync,no_root_squash)"</span> &gt; /etc/exports</span><br><span class="line"></span><br><span class="line"><span class="comment"># 启动 rpc 远程绑定功能、NFS 服务功能</span></span><br><span class="line">systemctl <span class="built_in">enable</span> rpcbind</span><br><span class="line">systemctl <span class="built_in">enable</span> nfs-server</span><br><span class="line">systemctl start rpcbind</span><br><span class="line">systemctl start nfs-server</span><br><span class="line"></span><br><span class="line"><span class="comment"># 重载使配置生效</span></span><br><span class="line">exportfs -r</span><br><span class="line"><span class="comment"># 检查配置是否生效</span></span><br><span class="line">exportfs</span><br><span class="line"><span class="comment"># 输出结果如下所示</span></span><br><span class="line"><span class="comment"># /nfs/data       *</span></span><br></pre></td></tr></table></figure>
+
+<p>Client 节点：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 关闭防火墙</span></span><br><span class="line">systemctl stop firewalld</span><br><span class="line">systemctl <span class="built_in">disable</span> firewalld</span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装 nfs 工具</span></span><br><span class="line">yum install -y nfs-utils</span><br><span class="line"></span><br><span class="line"><span class="comment"># 挂载 nfs 服务器上的共享目录到本机路径 /root/nfsmount</span></span><br><span class="line">mkdir /root/nfsmount</span><br><span class="line">mount -t nfs 192.168.99.101:/nfs/data /root/nfsmount</span><br></pre></td></tr></table></figure>
+
+<p>希望此文能对你有所帮助。</p>
+<p><strong>联系我</strong></p>
+<ul>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客地址：<a href="https://jianghushinian.cn/" target="_blank" rel="noopener">https://jianghushinian.cn/</a></li>
+</ul>
+<p><strong>参考</strong></p>
+<ul>
+<li>图书《Kubernetes in Action中文版》</li>
+<li>kubernetes 存储：<a href="https://kubernetes.io/zh-cn/docs/concepts/storage/" target="_blank" rel="noopener">https://kubernetes.io/zh-cn/docs/concepts/storage/</a></li>
+<li>kubernetes 配置：<a href="https://kubernetes.io/zh-cn/docs/concepts/configuration/" target="_blank" rel="noopener">https://kubernetes.io/zh-cn/docs/concepts/configuration/</a></li>
+<li>NFS 存储插件：<a href="https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner" target="_blank" rel="noopener">https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2023-06-16T05:42:09.037Z" itemprop="dateUpdated">2023-06-16 13:42:09</time>
+</span><br>
+
+
+        
+        <a href="/2023/06/16/understanding-kubernetes-storage-design-in-one-post/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Kubernetes/" rel="tag">Kubernetes</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%AD%98%E5%82%A8/" rel="tag">存储</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/&title=《一文读懂 Kubernetes 存储设计》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/&title=《一文读懂 Kubernetes 存储设计》 — 江湖十年&source=互联网产品技术研究，软件开发" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《一文读懂 Kubernetes 存储设计》 — 江湖十年&url=http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">在 Go 中使用 sqlx 替代 database/sql 操作数据库</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2023</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/&title=《一文读懂 Kubernetes 存储设计》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/&title=《一文读懂 Kubernetes 存储设计》 — 江湖十年&source=互联网产品技术研究，软件开发" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《一文读懂 Kubernetes 存储设计》 — 江湖十年&url=http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/06/16/understanding-kubernetes-storage-design-in-one-post/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
