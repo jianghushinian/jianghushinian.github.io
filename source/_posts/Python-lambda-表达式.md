@@ -60,17 +60,17 @@ categories:
 假如我们有一个由 `元组` 组成的 `列表`，我们需要对其进行排序，此时可以使用 Python 内置的 `sorted` 函数：
 
 ```python
->>> li = [(1, 'Python'), (3, 'JavaScript'), (2, 'Golang')]
+>>> li = [(1, 'Python'), (3, 'JavaScript'), (2, 'Go')]
 >>> sorted(li)
-[(1, 'Python'), (2, 'Golang'), (3, 'JavaScript')]
+[(1, 'Python'), (2, 'Go'), (3, 'JavaScript')]
 ```
 
 可以看到，对 `列表` 使用 `sorted` 函数对其进行排序以后，其排序顺序是根据每个元组中第一个元素的大小进行排序的。那么如果我们想要根据元组的第二个元素按照字母顺序进行排序呢？这个时候，就可以用到 `匿名函数` 了。
 
 ```python
->>> li = [(1, 'Python'), (3, 'JavaScript'), (2, 'Golang')]
+>>> li = [(1, 'Python'), (3, 'JavaScript'), (2, 'Go')]
 >>> sorted(li, key=lambda x: x[1])
-[(2, 'Golang'), (3, 'JavaScript'), (1, 'Python')]
+[(2, 'Go'), (3, 'JavaScript'), (1, 'Python')]
 >>>
 ```
 

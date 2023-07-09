@@ -2,10 +2,10 @@
 title: Go 语言现代命令行框架 Cobra 详解
 date: 2023-05-08 23:12:19
 tags:
-- Golang
+- Go
 - 命令行
 categories:
-- Golang
+- Go
 ---
 
 Cobra 是一个 Go 语言开发的命令行（CLI）框架，它提供了简洁、灵活且强大的方式来创建命令行程序。它包含一个用于创建命令行程序的库（Cobra 库），以及一个用于快速生成基于 Cobra 库的命令行程序工具（Cobra 命令）。Cobra 是由 Go 团队成员 [spf13](https://spf13.com/) 为 [Hugo](https://gohugo.io/) 项目创建的，并已被许多流行的 Go 项目所采用，如 Kubernetes、Helm、Docker (distribution)、Etcd 等。

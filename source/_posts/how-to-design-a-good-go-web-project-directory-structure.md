@@ -2,7 +2,7 @@
 title: 如何设计一个优秀的 Go Web 项目目录结构
 date: 2023-02-25 08:48:22
 tags:
-- Golang
+- Go
 - Web
 categories:
 - Web

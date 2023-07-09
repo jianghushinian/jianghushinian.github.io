@@ -2,9 +2,9 @@
 title: Go Module 语义化版本规范
 date: 2023-01-01 15:36:27
 tags:
-- Golang
+- Go
 categories:
-- Golang
+- Go
 ---
 
 Go Module 的设计采用了语义化版本规范，语义化版本规范非常流行且具有指导意义，本文就来聊聊语义化版本规范的设计和在 Go 中的应用。

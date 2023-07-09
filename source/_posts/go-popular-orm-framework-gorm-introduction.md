@@ -2,10 +2,10 @@
 title: Go 语言流行 ORM 框架 GORM 使用介绍
 date: 2023-05-27 08:44:19
 tags:
-- Golang
+- Go
 - ORM
 categories:
-- Golang
+- Go
 ---
 
 GORM 是 Go 语言中最受欢迎的 ORM 库之一，它提供了强大的功能和简洁的 API，让数据库操作变得更加简单和易维护。本文将详细介绍 GORM 的常见用法，包括数据库连接、模型定义、CRUD、事务管理等方面，帮助大家快速上手使用 GORM 进行 Web 后端开发。

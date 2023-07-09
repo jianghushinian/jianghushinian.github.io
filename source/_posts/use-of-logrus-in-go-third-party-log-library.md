@@ -2,13 +2,13 @@
 title: Go 第三方 log 库之 logrus 使用
 date: 2023-03-15 20:51:51
 tags:
-- Golang
+- Go
 - Log
 categories:
-- Golang
+- Go
 ---
 
-Logrus 是目前 GitHub 上 Star 数量最多的 Go 日志库。尽管目前 Logrus 处于维护模式，不再引入新功能，但这并不意味着它已经死了。Logrus 仍将继续维护，以确保安全性、错误修复和提高性能。作为 Go 社区中最受欢迎的日志库之一，Logrus 最大的贡献是推动了 Golang 社区广泛使用结构化的日志记录。著名的 Docker 项目就在使用 Logrus 记录日志，这进一步证明了其在实际应用中的可靠性和实用性。
+Logrus 是目前 GitHub 上 Star 数量最多的 Go 日志库。尽管目前 Logrus 处于维护模式，不再引入新功能，但这并不意味着它已经死了。Logrus 仍将继续维护，以确保安全性、错误修复和提高性能。作为 Go 社区中最受欢迎的日志库之一，Logrus 最大的贡献是推动了 Go 社区广泛使用结构化的日志记录。著名的 Docker 项目就在使用 Logrus 记录日志，这进一步证明了其在实际应用中的可靠性和实用性。
 
 <!-- more -->
 

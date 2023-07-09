@@ -3,7 +3,7 @@ title: 使用 OpenAPI 构建 API 文档
 date: 2023-02-12 16:18:26
 tags:
 - 文档
-- Golang
+- Go
 categories:
 - 文档
 ---

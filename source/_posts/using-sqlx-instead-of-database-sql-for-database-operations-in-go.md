@@ -2,10 +2,10 @@
 title: 在 Go 中使用 sqlx 替代 database/sql 操作数据库
 date: 2023-06-15 22:39:37
 tags:
-- Golang
+- Go
 - SQL
 categories:
-- Golang
+- Go
 ---
 
 [sqlx](github.com/jmoiron/sqlx) 是 Go 语言中一个流行的第三方包，它提供了对 Go 标准库 `database/sql` 的扩展，旨在简化和改进 Go 语言中使用 SQL 的体验，并提供了更加强大的数据库交互功能。`sqlx` 保留了 `database/sql` 接口不变，是 `database/sql` 的超集，这使得将现有项目中使用的 `database/sql` 替换为 `sqlx` 变得相当轻松。

@@ -2,10 +2,10 @@
 title: Go 语言中 database/sql 是如何设计的
 date: 2023-06-21 21:47:11
 tags:
-- Golang
+- Go
 - SQL
 categories:
-- Golang
+- Go
 ---
 
 常见的关系型数据库都支持标准的 SQL 语言，所以无论是 MySQL、PostgreSQL 还是 SQL Server，我们都可以使用相同的 SQL 语句来对其进行操作。这种思想同样体现在 Go 语言的数据库操作中，在 Go 语言中内置了 `database/sql` 包，它只对外暴露了一套统一的编程接口，便可以操作不同数据库。

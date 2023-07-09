@@ -2,7 +2,7 @@
 title: 如何规范 RESTful API 的业务错误处理
 date: 2023-03-04 17:49:41
 tags:
-- Golang
+- Go
 - Web
 categories:
 - Web

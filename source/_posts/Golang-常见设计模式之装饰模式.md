@@ -1,10 +1,11 @@
 ---
-title: Golang 常见设计模式之装饰模式
+title: Go 常见设计模式之装饰模式
 date: 2022-02-28 08:57:42
 tags:
-- Golang
+- Go
+- 设计模式
 categories:
-- Golang
+- Go
 ---
 
 熟悉 Python 的同学想必对装饰模式都不会太陌生，Python 从语法上原生支持装饰器，大大提高了装饰模式在 Python 中的应用。而在 Go 语言中，虽然装饰模式没有像 Python 中应用那么广泛，但也有其用武之地，这篇文章我们就来一起看下装饰模式在 Go 语言中的应用。
