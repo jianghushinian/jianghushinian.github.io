@@ -3,7 +3,7 @@ title: 在 Go 中如何编写测试代码
 date: 2023-07-09 20:55:55
 tags:
 - Go
-- test
+- Test
 categories:
 - Go
 ---
