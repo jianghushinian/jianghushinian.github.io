@@ -1,5 +1,5 @@
 ---
-title: 使用 FOMEPay 充值 ChatGPT Plus
+title: 十分钟搞定 ChatGPT Plus 升级
 date: 2023-07-23 15:08:55
 tags:
 - ChatGPT
@@ -18,6 +18,8 @@ categories:
 <!-- more -->
 
 当然，FOMEPay 也有缺点，就是开卡费需要 $10，这个看个人需要是否能够接受，绝大多数平台都是需要开卡费的。
+
+> 提示：本文为[《十分钟搞定 Midjourney 付费订阅》](https://jianghushinian.cn/2023/07/23/use-fomepay-to-recharge-midjourney/)姊妹篇，如果你需要订阅 Midjourney，可以参考该文章。
 
 ### 注册
 
@@ -41,7 +43,7 @@ categories:
 
 <div style="text-align: center"><img src="recharge.png" width="100%" style="max-width: 400px;"></div>
 
-一天最多充值 3 次足够用了，可以选择微信和云闪付进行支付。开卡费 $10，充值 ChatGPT Plus 则需要 $20，充值时需要计算下手续费（但根据我的实测，充值竟然没要手续费，不知道是系统 BUG 还是怎样），保证「实际到账」金额足够用来支付 ChatGPT Plus。
+一天最多充值 3 次足够用了，可以选择微信和云闪付进行支付。开卡费 $10，充值 ChatGPT Plus 则需要 $20，充值时需要计算下手续费，保证「实际到账」金额足够用来支付 ChatGPT Plus。
 
 <div style="text-align: center"><img src="wechat-recharge.png" width="100%" style="max-width: 400px;"></div>
 
