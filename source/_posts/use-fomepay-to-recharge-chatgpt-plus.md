@@ -19,7 +19,7 @@ categories:
 
 当然，FOMEPay 也有缺点，就是开卡费需要 $10，这个看个人需要是否能够接受，绝大多数平台都是需要开卡费的。
 
-> 提示：本文为[《十分钟搞定 Midjourney 付费订阅》](https://jianghushinian.cn/2023/07/23/use-fomepay-to-recharge-midjourney/)姊妹篇，如果你需要订阅 Midjourney，可以参考该文章。
+> 提示：本文为[《十分钟搞定 Midjourney 付费订阅》](https://jianghushinian.cn/2023/07/25/use-fomepay-to-recharge-midjourney/)姊妹篇，如果你需要订阅 Midjourney，可以参考该文章。
 
 ### 注册
 
