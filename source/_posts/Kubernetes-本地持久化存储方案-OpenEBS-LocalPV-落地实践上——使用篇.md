@@ -32,7 +32,7 @@ K8s 官方文档里有一个使用 LocalPV 的[简单示例](https://kubernetes.
 - 如果想使用存储类来自动绑定 PVC 和 PV，则**必须将 StorageClass 配置成延迟绑定**，示例如下：
 
 ```yaml
-apiVersion: storage.K8s.io/v1
+apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: local-storage
