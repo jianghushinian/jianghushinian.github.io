@@ -97,7 +97,7 @@ Travis Jeffery 撰写了[一篇文章](https://travisjeffery.com/b/2019/11/i-ll-
 
 另外 Go 还会忽略以 `.` 或 `_` 开头的目录或文件，因此可以更具灵活性的来命名测试数据目录。
 
-##### `deployments`
+##### `/deployments`
 
 用来存放 IaaS、PaaS 系统和容器编排部署所需要的配置及模板（如：Docker-Compose，Kubernetes/Helm，Mesos，Terraform，Bosh）。
 
