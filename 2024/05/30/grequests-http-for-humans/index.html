@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>GRequests: 让 HTTP 服务人类 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Web,Go">
+    <meta name="description" content="熟悉我的读者朋友们都知道，我早期是写 Python 的，现在主力语言是 Go。开始接触 Go 语言以后，我发现 Go 自带的 net&#x2F;http 请求库不够好用，好在我没用 Go 写过一行爬虫代码，平时 net&#x2F;http 库用的也就比较少，不是每天都用，也就忍了。 最近我在网上冲浪时，无意间发现了 grequests 这个库，灵感来源于 Python 生态中大名鼎鼎的 requests 库。顾名思义">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GRequests: 让 HTTP 服务人类">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="熟悉我的读者朋友们都知道，我早期是写 Python 的，现在主力语言是 Go。开始接触 Go 语言以后，我发现 Go 自带的 net&#x2F;http 请求库不够好用，好在我没用 Go 写过一行爬虫代码，平时 net&#x2F;http 库用的也就比较少，不是每天都用，也就忍了。 最近我在网上冲浪时，无意间发现了 grequests 这个库，灵感来源于 Python 生态中大名鼎鼎的 requests 库。顾名思义">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/requests.png">
+<meta property="article:published_time" content="2024-05-30T11:37:45.000Z">
+<meta property="article:modified_time" content="2024-05-30T12:25:19.198Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Web">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/requests.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">GRequests: 让 HTTP 服务人类</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">GRequests: 让 HTTP 服务人类</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-05-30T11:37:45.000Z" itemprop="datePublished" class="page-time">
+  2024-05-30
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#简介"><span class="post-toc-number">1.</span> <span class="post-toc-text">简介</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用-net-http-发送-HTTP-请求"><span class="post-toc-number">2.</span> <span class="post-toc-text">使用 net&#x2F;http 发送 HTTP 请求</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#GRequests"><span class="post-toc-number">3.</span> <span class="post-toc-text">GRequests</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#极速开始"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">极速开始</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#QueryString"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">QueryString</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#POST-请求"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">POST 请求</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#HTTP-Basic-Auth"><span class="post-toc-number">3.4.</span> <span class="post-toc-text">HTTP Basic Auth</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#上传和下载文件"><span class="post-toc-number">3.5.</span> <span class="post-toc-text">上传和下载文件</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-grequests-http-for-humans"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">GRequests: 让 HTTP 服务人类</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-05-30 19:37:45" datetime="2024-05-30T11:37:45.000Z"  itemprop="datePublished">2024-05-30</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>熟悉我的读者朋友们都知道，我早期是写 Python 的，现在主力语言是 Go。开始接触 Go 语言以后，我发现 Go 自带的 <code>net/http</code> 请求库不够好用，好在我没用 Go 写过一行爬虫代码，平时 <code>net/http</code> 库用的也就比较少，不是每天都用，也就忍了。</p>
+<p>最近我在网上冲浪时，无意间发现了 <code>grequests</code> 这个库，灵感来源于 Python 生态中大名鼎鼎的 <code>requests</code> 库。顾名思义，这个库就是用来发送 HTTP 请求的。<code>grequests</code> 的出现让我眼前一亮，我的 Go 工具包又增添了一员，本文就来带大家一起体验下 <code>grequests</code> 库的强大之处。</p>
+<a id="more"></a>
+
+<h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p>以前写 Python 的时候，要说用起来最舒服的 HTTP 请求库，当属 <code>requests</code> 库了，没有之一。<code>requests</code> 库<a href="https://requests.readthedocs.io/en/latest/" target="_blank" rel="noopener">官方文档</a>标题是 <code>Requests: HTTP for Humans™</code>，有人将其翻译为<code>让 HTTP 服务人类</code>，可见这个库旨在降低我们在发送 HTTP 请求时写代码的心智负担。</p>
+<p>根据我的实际使用体验，这个标题绝对不是在吹牛，<code>requests</code> 库的 API 设计是真的符合直觉，也符合 Python 哲学。</p>
+<p><code>grequests</code> 即 Go 版本的 <code>requests</code>，官方介绍其为：<code>A Go &quot;clone&quot; of the great and famous Requests library</code>，看来 <code>grequests</code> 库是 <code>requests</code> 库的复刻。</p>
+<h3 id="使用-net-http-发送-HTTP-请求"><a href="#使用-net-http-发送-HTTP-请求" class="headerlink" title="使用 net/http 发送 HTTP 请求"></a>使用 <code>net/http</code> 发送 HTTP 请求</h3><p>在具体介绍 <code>grequests</code> 库的使用方法之前，我们先来回顾下 <code>net/http</code> 发送 HTTP 请求的用法，以此来对比 <code>grequests</code> 库的强大。</p>
+<p>使用 <code>net/http</code> 发送 HTTP <code>GET</code> 请求示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 发起 HTTP GET 请求</span></span><br><span class="line">resp, _ := http.Get(<span class="string">"https://httpbin.org/get"</span>)</span><br><span class="line"><span class="keyword">defer</span> resp.Body.Close() <span class="comment">// 确保关闭响应体</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 读取响应体内容</span></span><br><span class="line">body, _ := io.ReadAll(resp.Body)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 将响应体打印为字符串</span></span><br><span class="line">fmt.Println(<span class="keyword">string</span>(body))</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>NOTE: 为了保持代码逻辑清晰，这里只展示了代码主逻辑，并且代码中忽略了所有错误处理。后文中所有示例代码都会如此，完整代码可以在文末给出的示例代码 GitHub 链接中获取。</p>
+</blockquote>
+<blockquote>
+<p>NOTE: 示例中请求的网址 <code>httpbin.org</code> 是一个叫 <code>httpbin</code> 的开源项目，它提供了一个可用于测试和调试 HTTP 客户端（如浏览器、命令行工具、自定义脚本或任何发送 HTTP 请求的软件）的 HTTP 服务。这个服务模拟了各种 HTTP 场景，可以帮助开发者测试自己的 HTTP 客户端是否正确处理各种 HTTP 方法、响应等。<code>httpbin</code> 也是 <code>requests</code> 作者 <code>Kenneth Reitz</code> 开发并维护的项目。</p>
+</blockquote>
+<p>使用 <code>net/http</code> 发送 HTTP <code>POST</code> 请求示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个要发送的数据结构并编码为 JSON</span></span><br><span class="line">data := <span class="keyword">map</span>[<span class="keyword">string</span>]any&#123;</span><br><span class="line">    <span class="string">"username"</span>: <span class="string">"user"</span>,</span><br><span class="line">    <span class="string">"password"</span>: <span class="string">"pass"</span>,</span><br><span class="line">&#125;</span><br><span class="line">jsonData, _ := json.Marshal(data)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建 POST 请求</span></span><br><span class="line">url := <span class="string">"https://httpbin.org/post"</span></span><br><span class="line">request, _ := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))</span><br><span class="line"></span><br><span class="line"><span class="comment">// 添加请求头，指明发送的内容类型为 JSON</span></span><br><span class="line">request.Header.Set(<span class="string">"Content-Type"</span>, <span class="string">"application/json"</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 发送请求并获取响应</span></span><br><span class="line">client := &amp;http.Client&#123;&#125;</span><br><span class="line">resp, _ := client.Do(request)</span><br><span class="line"><span class="keyword">defer</span> resp.Body.Close()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 读取响应体内容</span></span><br><span class="line">body, _ := io.ReadAll(resp.Body)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 将响应体打印为字符串</span></span><br><span class="line">fmt.Println(<span class="keyword">string</span>(body))</span><br></pre></td></tr></table></figure>
+
+<p>可见，使用 <code>net/http</code> 发送 HTTP <code>GET</code> 请求的代码还算友好，但是发送 <code>POST</code> 请求真的是过于繁琐。</p>
+<p>好在，现在我们有了 <code>grequests</code>。</p>
+<h3 id="GRequests"><a href="#GRequests" class="headerlink" title="GRequests"></a>GRequests</h3><p>要使用 <code>grequests</code> 库就要先对其进行安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go get -u github.com/levigross/grequests</span><br></pre></td></tr></table></figure>
+
+<h4 id="极速开始"><a href="#极速开始" class="headerlink" title="极速开始"></a>极速开始</h4><p>使用 <code>grequests</code> 发送 HTTP <code>GET</code> 请求示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">resp, _ := grequests.Get(<span class="string">"https://httpbin.org/get"</span>, <span class="literal">nil</span>)</span><br><span class="line"><span class="keyword">defer</span> resp.Close() <span class="comment">// 确保关闭响应体</span></span><br><span class="line"></span><br><span class="line">fmt.Println(resp)</span><br><span class="line">fmt.Println(resp.String()) <span class="comment">// 实现了 `fmt.Stringer` 接口</span></span><br></pre></td></tr></table></figure>
+
+<p>没错，就是这么简单，仅需三行代码即可打印响应结果。一切都是那么的自然，符合直觉，这就是 <code>requests</code> API 的强大之处。</p>
+<p>我们不再需要使用 <code>io.ReadAll</code> 去读取 HTTP 响应体内容，<code>*grequests.Response</code> 提供了 <code>String</code> 方法，即实现了 <code>fmt.Stringer</code> 接口。</p>
+<h4 id="QueryString"><a href="#QueryString" class="headerlink" title="QueryString"></a>QueryString</h4><p><code>grequests</code> 库发送 <code>GET</code> 请求时传递 QueryString 参数方式如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">ro := &amp;grequests.RequestOptions&#123;</span><br><span class="line">    Params: <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>&#123;<span class="string">"Hello"</span>: <span class="string">"Goodbye"</span>&#125;,</span><br><span class="line">&#125;</span><br><span class="line">resp, _ := grequests.Get(<span class="string">"https://httpbin.org/get?Hello=World"</span>, ro)</span><br><span class="line"><span class="keyword">defer</span> resp.Close()</span><br><span class="line"></span><br><span class="line">fmt.Println(resp)</span><br><span class="line">fmt.Println(resp.RawResponse.Request.URL)</span><br></pre></td></tr></table></figure>
+
+<p>执行以上示例代码，打印结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line"> <span class="string">"args"</span>: &#123;</span><br><span class="line">   <span class="string">"Hello"</span>: <span class="string">"Goodbye"</span></span><br><span class="line"> &#125;,</span><br><span class="line"> <span class="string">"headers"</span>: &#123;</span><br><span class="line">   <span class="string">"Accept-Encoding"</span>: <span class="string">"gzip"</span>,</span><br><span class="line">   <span class="string">"Host"</span>: <span class="string">"httpbin.org"</span>,</span><br><span class="line">   <span class="string">"User-Agent"</span>: <span class="string">"GRequests/0.10"</span>,</span><br><span class="line">   <span class="string">"X-Amzn-Trace-Id"</span>: <span class="string">"Root=1-6657cca7-715b811a08dff4420f487570"</span></span><br><span class="line"> &#125;,</span><br><span class="line"> <span class="string">"origin"</span>: <span class="string">"69.28.52.250"</span>,</span><br><span class="line"> <span class="string">"url"</span>: <span class="string">"https://httpbin.org/get?Hello=Goodbye"</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">https://httpbin.org/get?Hello=Goodbye</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，现在 <code>url</code> 已经被替换成了 <code>https://httpbin.org/get?Hello=Goodbye</code> ，可见 <code>ro</code> 会覆盖 <code>url</code> 中的同名参数。</p>
+<p>略显遗憾的是，打印请求 URL 的代码稍显冗长：<code>resp.RawResponse.Request.URL</code>，如果能够像 <code>requests</code> 库那样提供 <code>resp.Url</code> 属性直接返回请求的 <code>url</code> 值就更友好了。</p>
+<h4 id="POST-请求"><a href="#POST-请求" class="headerlink" title="POST 请求"></a>POST 请求</h4><p>发送 <code>POST</code> 请求更能体现 <code>grequests</code> 库的方便之处，示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个要发送的数据结构</span></span><br><span class="line">postData := <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>&#123;</span><br><span class="line">    <span class="string">"username"</span>: <span class="string">"user"</span>,</span><br><span class="line">    <span class="string">"password"</span>: <span class="string">"pass"</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 将数据结构编码为 JSON 并准备请求选项</span></span><br><span class="line">ro := &amp;grequests.RequestOptions&#123;</span><br><span class="line">    JSON: postData, <span class="comment">// grequests 自动处理 JSON 编码</span></span><br><span class="line">    <span class="comment">// Data: postData,</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 发起 POST 请求</span></span><br><span class="line">resp, _ := grequests.Post(<span class="string">"https://httpbin.org/post"</span>, ro)</span><br><span class="line"><span class="keyword">defer</span> resp.Close()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 输出响应体内容</span></span><br><span class="line">fmt.Println(<span class="string">"Response:"</span>, resp.String())</span><br></pre></td></tr></table></figure>
+
+<p>这个示例代码明显比使用 <code>net/http</code> 发送 <code>POST</code> 请求的示例代码整洁不少。</p>
+<p><code>grequests</code> 会根据 <code>*grequests.RequestOptions</code> 的属性值，自动处理请求头中的 <code>Content-Type</code>。</p>
+<p>你可以自行尝试把 <code>grequests.RequestOptions</code> 中的 <code>JSON</code> 属性改为 <code>Data</code>，即如下写法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ro := &amp;grequests.RequestOptions&#123;</span><br><span class="line">    Data: postData,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>看看打印结果如何。</p>
+<h4 id="HTTP-Basic-Auth"><a href="#HTTP-Basic-Auth" class="headerlink" title="HTTP Basic Auth"></a>HTTP Basic Auth</h4><p>在 <code>requests</code> 库<a href="https://requests.readthedocs.io/en/latest/" target="_blank" rel="noopener">官方文档</a>首页，有一个示例展示了如何使用 <code>requests</code> 设置 Basic Auth 认证，简洁优雅，截图如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="requests.png" alt="requests Basic Auth" title="">
+                </div>
+                <div class="image-caption">requests Basic Auth</div>
+            </figure>
+
+<p>现在我们尝试用 <code>grequests</code> 来实现此功能：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">ro := &amp;grequests.RequestOptions&#123;Auth: []<span class="keyword">string</span>&#123;<span class="string">"user"</span>, <span class="string">"pass"</span>&#125;&#125;</span><br><span class="line">resp, _ := grequests.Get(<span class="string">"https://httpbin.org/basic-auth/user/pass"</span>, ro)</span><br><span class="line"><span class="keyword">defer</span> resp.Close()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> resp.Ok != <span class="literal">true</span> &#123;</span><br><span class="line">    log.Println(<span class="string">"Request did not return OK"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">fmt.Println(resp.StatusCode)</span><br><span class="line">fmt.Println(resp.Header.Get(<span class="string">"content-type"</span>))</span><br><span class="line">fmt.Println(resp.String())</span><br><span class="line"></span><br><span class="line">m := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]any)</span><br><span class="line">_ = resp.JSON(&amp;m)</span><br><span class="line">fmt.Println(m)</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>grequests</code> 库同样能够通过简洁友好的方式来设置 Basic Auth 认证信息。</p>
+<p><code>*grequests.Response</code> 提供了 <code>JSON</code> 方法，可以将响应体的 <code>JSON</code> 信息反序列化到对象中。</p>
+<p>相较于 <code>requests</code> 示例，<code>grequests</code> 唯一不足的是没有提供 <code>r.encoding</code> 属性可以方便获取响应结果编码格式。</p>
+<h4 id="上传和下载文件"><a href="#上传和下载文件" class="headerlink" title="上传和下载文件"></a>上传和下载文件</h4><p><code>grequests</code> 库上传和下载文件同样非常简单。</p>
+<p>下载内容到文件：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">resp, _ := grequests.Get(<span class="string">"https://httpbin.org/get"</span>, <span class="literal">nil</span>)</span><br><span class="line"><span class="keyword">defer</span> resp.Close()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> resp.Ok != <span class="literal">true</span> &#123;</span><br><span class="line">    log.Println(<span class="string">"Request did not return OK"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 下载响应体内容到 result.json</span></span><br><span class="line">_ = resp.DownloadToFile(<span class="string">"result.json"</span>)</span><br></pre></td></tr></table></figure>
+
+<p><code>*grequests.Response</code> 提供了 <code>DownloadToFile</code> 方法可以直接将响应体内容写入指定文件。</p>
+<p>上传文件内容到服务端：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 从 result.json 读取文件内容并上传到服务端</span></span><br><span class="line">fd, _ := grequests.FileUploadFromDisk(<span class="string">"result.json"</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// This will upload the file as a multipart mime request</span></span><br><span class="line">resp, _ := grequests.Post(<span class="string">"https://httpbin.org/post"</span>,</span><br><span class="line">    &amp;grequests.RequestOptions&#123;</span><br><span class="line">        Files: fd,</span><br><span class="line">        Data:  <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>&#123;<span class="string">"One"</span>: <span class="string">"Two"</span>&#125;,</span><br><span class="line">    &#125;)</span><br><span class="line"><span class="keyword">defer</span> resp.Close()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> resp.Ok != <span class="literal">true</span> &#123;</span><br><span class="line">    log.Println(<span class="string">"Request did not return OK"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">fmt.Println(resp)</span><br></pre></td></tr></table></figure>
+
+<p>上传文件可以通过 <code>*grequests.RequestOptions</code> 的 <code>Files</code> 属性来传递，并且可以同时使用 <code>Data</code> 参数传递表单数据（<code>form</code>）。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文带大家一起体验了下 <code>grequests</code> 库，展示了其强大之处。</p>
+<p>相较于 Go 语言内置的 <code>net/http</code> 库，<code>grequests</code> 的 API 设计更为优雅易用，尤其从 <code>POST</code> 请求的对比中可以发现 <code>grequests</code> 的 API 要简洁不少。</p>
+<p><code>grequests</code> 库能够以简洁友好的方式设置 Basic Auth 认证信息。并且，上传和下载文件同样只需要很少的代码即可实现。</p>
+<p>这些强大之处的灵感，都来源于 Python 生态中的 <code>requests</code> 库。</p>
+<p>当然，<code>grequests</code> 也有一些小遗憾，它并没有将 <code>requests</code> 库的全部便捷功能复制过来。但总体而言，<code>grequests</code> 的出现让我们在 Go 语言中发送 HTTP 请求方便了不少。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/grequests" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>GRequests 源码: <a href="https://github.com/levigross/grequests" target="_blank" rel="noopener">https://github.com/levigross/grequests</a></li>
+<li>GRequests 文档: <a href="https://pkg.go.dev/github.com/levigross/grequests" target="_blank" rel="noopener">https://pkg.go.dev/github.com/levigross/grequests</a></li>
+<li>requests 源码 <a href="https://github.com/psf/requests" target="_blank" rel="noopener">https://github.com/psf/requests</a></li>
+<li>requests 文档: <a href="https://requests.readthedocs.io/en/latest/" target="_blank" rel="noopener">https://requests.readthedocs.io/en/latest/</a></li>
+<li>httpbin 官网: <a href="https://httpbin.org/" target="_blank" rel="noopener">https://httpbin.org/</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/grequests" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/grequests</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about/" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2024-05-30T12:25:19.198Z" itemprop="dateUpdated">2024-05-30 20:25:19</time>
+</span><br>
+
+
+        
+        <a href="/2024/05/30/grequests-http-for-humans/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/&title=《GRequests: 让 HTTP 服务人类》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/&title=《GRequests: 让 HTTP 服务人类》 — 江湖十年&source=熟悉我的读者朋友们都知道，我早期是写 Python 的，现在主力语言是 Go。开始接触 Go 语言以后，我发现 Go 自带的 net/http 请求库不够..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《GRequests: 让 HTTP 服务人类》 — 江湖十年&url=http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/05/25/what-is-the-naming-convention-for-go-project-files/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 项目文件命名规范是什么？</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2024</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/&title=《GRequests: 让 HTTP 服务人类》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/&title=《GRequests: 让 HTTP 服务人类》 — 江湖十年&source=熟悉我的读者朋友们都知道，我早期是写 Python 的，现在主力语言是 Go。开始接触 Go 语言以后，我发现 Go 自带的 net/http 请求库不够..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《GRequests: 让 HTTP 服务人类》 — 江湖十年&url=http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/05/30/grequests-http-for-humans/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
