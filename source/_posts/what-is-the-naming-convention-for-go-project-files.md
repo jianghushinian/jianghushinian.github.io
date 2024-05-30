@@ -148,7 +148,7 @@ stringset
 tabwriter
 ```
 
-反例：
+反向示例：
 
 ```text
 MyUtil
@@ -226,7 +226,7 @@ middleware.go
 webshell.go
 ```
 
-反面示例：
+反向示例：
 
 ```text
 routers.go // 复数
