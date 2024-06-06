@@ -601,7 +601,7 @@ Error: first argument must be 'a'
 
 ### Hooks
 
-在执行 `Run` 函数前后，我么可以执行一些钩子函数，其作用和执行顺序如下：
+在执行 `Run` 函数前后，我们可以执行一些钩子函数，其作用和执行顺序如下：
 
 1. `PersistentPreRun`：在 `PreRun` 函数执行之前执行，对此命令的子命令同样生效。
 

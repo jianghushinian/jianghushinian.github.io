@@ -323,6 +323,8 @@ var ip = flag.IntP("flagname", "f", 1234, "help message")
 flag.Lookup("flagname").NoOptDefVal = "4321"
 ```
 
+> NOTE: `flag.Lookup` 用于返回指定标志的 `*Flag` 结构体指针对象。
+
 不同参数结果如下：
 
 |命令行参数|结果值|
