@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Go 中，如何优雅的使用 wire 依赖注入工具提高开发效率？ | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="如果你做过 Java 开发，那么想必一定听说或使用过依赖注入。依赖注入是一种软件设计模式，它允许将组件的依赖项外部化，从而使组件本身更加模块化和可测试。在 Java 中，依赖注入广泛应用于各种框架中，帮助开发者解耦代码和提高应用的灵活性。本文就来介绍下什么是依赖注入，以及在 Go 语言中如何实践依赖注入，提高 Go 项目的开发效率和可维护性。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Go 中，如何优雅的使用 wire 依赖注入工具提高开发效率？">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="如果你做过 Java 开发，那么想必一定听说或使用过依赖注入。依赖注入是一种软件设计模式，它允许将组件的依赖项外部化，从而使组件本身更加模块化和可测试。在 Java 中，依赖注入广泛应用于各种框架中，帮助开发者解耦代码和提高应用的灵活性。本文就来介绍下什么是依赖注入，以及在 Go 语言中如何实践依赖注入，提高 Go 项目的开发效率和可维护性。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-06-09T07:05:19.000Z">
+<meta property="article:modified_time" content="2024-06-12T23:55:34.875Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Go 中，如何优雅的使用 wire 依赖注入工具提高开发效率？</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Go 中，如何优雅的使用 wire 依赖注入工具提高开发效率？</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-06-09T07:05:19.000Z" itemprop="datePublished" class="page-time">
+  2024-06-09
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#什么是依赖注入？"><span class="post-toc-number">1.</span> <span class="post-toc-text">什么是依赖注入？</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#依赖注入工具-Wire-简介"><span class="post-toc-number">2.</span> <span class="post-toc-text">依赖注入工具 Wire 简介</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#安装-Wire"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">安装 Wire</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Wire-快速开始"><span class="post-toc-number">3.</span> <span class="post-toc-text">Wire 快速开始</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#为什么要使用依赖注入工具？"><span class="post-toc-number">4.</span> <span class="post-toc-text">为什么要使用依赖注入工具？</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Wire-核心概念"><span class="post-toc-number">5.</span> <span class="post-toc-text">Wire 核心概念</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Wire-高级用法"><span class="post-toc-number">6.</span> <span class="post-toc-text">Wire 高级用法</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#injector-函数参数和返回错误"><span class="post-toc-number">6.1.</span> <span class="post-toc-text">injector 函数参数和返回错误</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用-ProviderSet-进行分组"><span class="post-toc-number">6.2.</span> <span class="post-toc-text">使用 ProviderSet 进行分组</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用-Struct-定制-Provider"><span class="post-toc-number">6.3.</span> <span class="post-toc-text">使用 Struct 定制 Provider</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用-Struct-字段作为-Provider"><span class="post-toc-number">6.4.</span> <span class="post-toc-text">使用 Struct 字段作为 Provider</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#绑定「值」作为-Provider"><span class="post-toc-number">6.5.</span> <span class="post-toc-text">绑定「值」作为 Provider</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#绑定「接口」作为-Provider"><span class="post-toc-number">6.6.</span> <span class="post-toc-text">绑定「接口」作为 Provider</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#绑定结构体到接口"><span class="post-toc-number">6.7.</span> <span class="post-toc-text">绑定结构体到接口</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#清理函数"><span class="post-toc-number">6.8.</span> <span class="post-toc-text">清理函数</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#备用注入器语法，给语法加点糖"><span class="post-toc-number">6.9.</span> <span class="post-toc-text">备用注入器语法，给语法加点糖</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Wire-生产实践"><span class="post-toc-number">7.</span> <span class="post-toc-text">Wire 生产实践</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#为什么选择-Wire"><span class="post-toc-number">8.</span> <span class="post-toc-text">为什么选择 Wire</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Wire-命令行工具"><span class="post-toc-number">9.</span> <span class="post-toc-text">Wire 命令行工具</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">10.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Go 中，如何优雅的使用 wire 依赖注入工具提高开发效率？</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-06-09 15:05:19" datetime="2024-06-09T07:05:19.000Z"  itemprop="datePublished">2024-06-09</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>如果你做过 Java 开发，那么想必一定听说或使用过<strong>依赖注入</strong>。依赖注入是一种软件设计模式，它允许将组件的依赖项外部化，从而使组件本身更加<strong>模块化和可测试</strong>。在 Java 中，依赖注入广泛应用于各种框架中，帮助开发者解耦代码和提高应用的灵活性。本文就来介绍下什么是依赖注入，以及在 Go 语言中如何实践依赖注入，提高 Go 项目的开发效率和可维护性。</p>
+<a id="more"></a>
+
+<h3 id="什么是依赖注入？"><a href="#什么是依赖注入？" class="headerlink" title="什么是依赖注入？"></a>什么是依赖注入？</h3><p>正如前文所述，<a href="https://zh.wikipedia.org/wiki/依赖注入" target="_blank" rel="noopener">依赖注入</a>（dependency injection，缩写为 DI）是一种软件设计模式。</p>
+<p>官方定义比较晦涩，我直接举个例子你就理解了。</p>
+<p>在 Web 开发中，我们可以在 <code>store</code> 层（有些地方可会将其命名为 <code>repository</code>、<code>repo</code> 等）来操作数据库进行 CRUD。Go 语言中可以使用 GORM 操作数据库，所以 <code>store</code> 依赖 <code>*gorm.DB</code>，示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> userStore <span class="keyword">struct</span> &#123;</span><br><span class="line">	db *gorm.DB</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewStore</span><span class="params">()</span> *<span class="title">userStore</span></span> &#123;</span><br><span class="line">	db := NewDB()</span><br><span class="line">	<span class="keyword">return</span> &amp;userStore&#123;db: db&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *userStore)</span> <span class="title">Create</span><span class="params">(ctx context.Context, user *model.UserM)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> u.db.Create(&amp;user).Error</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>NOTE: 如果你对 GORM 不太了解，可以阅读我的另一篇文章<a href="https://jianghushinian.cn/2023/05/27/go-popular-orm-framework-gorm-introduction/" target="_blank" rel="noopener">《Go 语言流行 ORM 框架 GORM 使用介绍》</a>。</p>
+</blockquote>
+<p>针对这一小段示例代码，我们可以按照如下方式创建一个用户：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">store := NewStore()</span><br><span class="line">store.Create(ctx, user)</span><br></pre></td></tr></table></figure>
+
+<p>我们还可以将示例代码修改成这样：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> userStore <span class="keyword">struct</span> &#123;</span><br><span class="line">	db *gorm.DB</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewStore</span><span class="params">(db *gorm.DB)</span> *<span class="title">userStore</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;userStore&#123;db: db&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *userStore)</span> <span class="title">Create</span><span class="params">(ctx context.Context, user *model.UserM)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> u.db.Create(&amp;user).Error</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>修改后示例代码中，我将 <code>*gorm.DB</code> 对象 <code>db</code> 的实例化过程，移动到了 <code>NewStore</code> 函数外面，在调用 <code>NewStore</code> 创建 <code>*userStore</code> 对象 <code>store</code> 时，将其通过参数形式传递进来。</p>
+<p>现在，如果要创建一个用户，用法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">db := NewDB()</span><br><span class="line">store := NewStore(db)</span><br><span class="line">store.Create(ctx, user)</span><br></pre></td></tr></table></figure>
+
+<p>没错，我们已经在使用<strong>依赖注入</strong>了。</p>
+<p>我们还是使用 <code>store.Create(ctx, user)</code> 创建用户。但构造 <code>store</code> 时，<code>*userStore</code> <strong>依赖</strong> <code>*gorm.DB</code>，我们使用构造函数 <code>NewStore</code> 创建 <code>*userStore</code> 对象，并且将它的<strong>依赖对象</strong> <code>*gorm.DB</code> 通过函数参数的形式<strong>注入</strong>进来，这种编程思想，就叫「依赖注入」。</p>
+<p>回想一下，我们平时在编写 Go 代码的过程中，为了方便测试，是不是经常将某个方法的依赖项通过参数传递进来，而非在方法内部实例化，这就是在使用依赖注入编写代码。</p>
+<p>我在文章<a href="https://jianghushinian.cn/2023/07/22/how-to-write-testable-code-in-go/#%E4%BD%BF%E7%94%A8%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5%E6%9D%A5%E8%A7%A3%E5%86%B3%E5%A4%96%E9%83%A8%E4%BE%9D%E8%B5%96" target="_blank" rel="noopener">《在 Go 中如何编写出可测试的代码》</a>中就有提到<strong>如何使用依赖注入来解决外部依赖问题</strong>，你可以点击文章进行阅读。</p>
+<p>在 Go 中使用依赖注入的核心目的，就是为了解耦代码。这样做的主要好处是：</p>
+<ol>
+<li>方便测试。依赖由外部注入，方便使用 <code>fake object</code> 来替换依赖项。</li>
+<li>每个对象仅需要初始化一次，其他方法都可以复用。比如使用 <code>db := NewDB()</code> 初始化得到一个 <code>*gorm.DB</code> 对象，在 <code>NewUserStore(db)</code> 时可以使用，在 <code>NewPostStore(db)</code> 时还可以使用。</li>
+</ol>
+<blockquote>
+<p>NOTE: 我不太喜欢使用比较官方的话术来讲解技术，因为本来技术就需要理解成本，而官方的定义往往晦涩难懂。为了降低读者的心智负担，我更喜欢用白话讲解。<br>但说到「依赖注入」，定会有人提及「控制反转」。为了不一些让读者产生困惑，这里简单说明下控制反转和依赖注入的关系：<a href="https://zh.wikipedia.org/wiki/控制反转" target="_blank" rel="noopener">控制反转</a>（英语：Inversion of Control，缩写为 IoC），是面向对象编程中的一种设计原则，可以用来减低计算机代码之间的耦合度。其中最常见的方式叫做<a href="https://zh.wikipedia.org/wiki/依赖注入" target="_blank" rel="noopener">依赖注入</a>（dependency injection，缩写为 DI）。<br>我们可以简单的将控制反转理解为一种思想，而依赖注入是这一思想的具体实现方式。</p>
+</blockquote>
+<h3 id="依赖注入工具-Wire-简介"><a href="#依赖注入工具-Wire-简介" class="headerlink" title="依赖注入工具 Wire 简介"></a>依赖注入工具 Wire 简介</h3><p>wire 是一个由 Google 开发的自动依赖注入框架，专门用于 Go 语言。wire 通过<strong>代码生成而非运行时反射</strong>来实现依赖注入，这与许多其他语言中的依赖注入框架不同。这种方法使得注入的代码在编译时就已经确定，从而提高了性能并保证了代码的可维护性。</p>
+<h4 id="安装-Wire"><a href="#安装-Wire" class="headerlink" title="安装 Wire"></a>安装 Wire</h4><p>wire 分成两部分，一个是在项目中使用的 Go 包，用于在代码中引用 wire 代码；另一个是命令行工具，用于生成依赖注入代码。</p>
+<ul>
+<li>在项目中导入需要先通过 <code>go get</code> 获取 wire 依赖包。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go get -u github.com/google/wire</span><br></pre></td></tr></table></figure>
+
+<p>在 Go 代码中像其他 Go 包一样使用：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">"github.com/google/wire"</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>使用 <code>go install</code> 可以安装 wire 命令工具。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go install github.com/google/wire/cmd/wire</span><br></pre></td></tr></table></figure>
+
+<p>安装后通过 <code>--help</code> 标志执行 <code>wire</code> 命令查看其支持的所有子命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ wire --<span class="built_in">help</span>   </span><br><span class="line">Usage: wire &lt;flags&gt; &lt;subcommand&gt; &lt;subcommand args&gt;</span><br><span class="line"></span><br><span class="line">Subcommands:</span><br><span class="line">        check            <span class="built_in">print</span> any Wire errors found</span><br><span class="line">        commands         list all <span class="built_in">command</span> names</span><br><span class="line">        diff             output a diff between existing wire_gen.go files and what gen would generate</span><br><span class="line">        flags            describe all known top-level flags</span><br><span class="line">        gen              generate the wire_gen.go file <span class="keyword">for</span> each package</span><br><span class="line">        <span class="built_in">help</span>             describe subcommands and their syntax</span><br><span class="line">        show             describe all top-level provider sets</span><br></pre></td></tr></table></figure>
+
+<p>由于绝大多数 wire 子命令不常用，所以这部分会放在本文最后再来讲解。</p>
+<h3 id="Wire-快速开始"><a href="#Wire-快速开始" class="headerlink" title="Wire 快速开始"></a>Wire 快速开始</h3><p>示例程序 <code>main.go</code> 代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Message <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewMessage</span><span class="params">()</span> <span class="title">Message</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Message(<span class="string">"Hi there!"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Greeter <span class="keyword">struct</span> &#123;</span><br><span class="line">	Message Message</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewGreeter</span><span class="params">(m Message)</span> <span class="title">Greeter</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Greeter&#123;Message: m&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g Greeter)</span> <span class="title">Greet</span><span class="params">()</span> <span class="title">Message</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> g.Message</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Event <span class="keyword">struct</span> &#123;</span><br><span class="line">	Greeter Greeter</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewEvent</span><span class="params">(g Greeter)</span> <span class="title">Event</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Event&#123;Greeter: g&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(e Event)</span> <span class="title">Start</span><span class="params">()</span></span> &#123;</span><br><span class="line">	msg := e.Greeter.Greet()</span><br><span class="line">	fmt.Println(msg)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>示例代码很好理解，定义了 <code>Message</code> 类型是 <code>string</code> 的类型别名。定义了 <code>Greeter</code> 类型及其构造函数 <code>NewGreeter</code>，并且接收 <code>Message</code> 作为参数，<code>Greeter.Greet</code> 方法会返回 <code>Message</code> 信息。最后还定义了一个 <code>Event</code> 类型，它存储了 <code>Greeter</code>，<code>Greeter</code> 通过构造函数 <code>NewEvent</code> 参数传递进来，<code>Event.Start</code> 方法会代理到 <code>Greeter.Greet</code> 方法。</p>
+<p>定义如下 <code>main</code> 函数来执行这个示例程序：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	message := NewMessage()</span><br><span class="line">	greeter := NewGreeter(message)</span><br><span class="line">	event := NewEvent(greeter)</span><br><span class="line"></span><br><span class="line">	event.Start()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">Hi there!</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>main</code> 函数内部的代码有着明显的依赖关系，<code>NewEvent</code> 依赖 <code>NewGreeter</code>，<code>NewGreeter</code> 又依赖 <code>NewMessage</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">NewEvent -&gt; NewGreeter -&gt; NewMessage</span><br></pre></td></tr></table></figure>
+
+<p>我们可以将这部分代码进行抽离，封装到 <code>InitializeEvent</code> 函数中，保持入口函数 <code>main</code> 足够整洁，修改后代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeEvent</span><span class="params">()</span> <span class="title">Event</span></span> &#123;</span><br><span class="line">	message := NewMessage()</span><br><span class="line">	greeter := NewGreeter(message)</span><br><span class="line">	event := NewEvent(greeter)</span><br><span class="line">	<span class="keyword">return</span> event</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	event := InitializeEvent()</span><br><span class="line">	event.Start()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在是时候让 wire 登场了，在 <code>main.go</code> 同级目录创建 <code>wire.go</code> 文件（这是一个约定俗称的文件命名，不是强制约束）： </p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//go:build wireinject</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"github.com/google/wire"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeEvent</span><span class="params">()</span> <span class="title">Event</span></span> &#123;</span><br><span class="line">	wire.Build(NewEvent, NewGreeter, NewMessage)</span><br><span class="line">	<span class="keyword">return</span> Event&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们将 <code>main.go</code> 文件中的 <code>InitializeEvent</code> 函数迁移过来，并且修改了内部逻辑，不再手动调用每个构造函数，而是将它们依次传递给 <code>wire.Build</code> 函数，然后使用 <code>return</code> 返回一个空的 <code>Event{}</code> 对象。</p>
+<p>现在在当前目录下执行 <code>wire</code> 命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ wire gen .    </span><br><span class="line">wire: github.com/jianghushinian/blog-go-example/wire/getting-started: wrote /Users/jianghushinian/projects/blog-go-example/wire/getting-started/wire_gen.go</span><br></pre></td></tr></table></figure>
+
+<p>其中：</p>
+<ul>
+<li><code>gen</code> 是 <code>wire</code> 的子命令，他会扫描指定包中使用了 <code>wire.Build</code> 的代码，然后为其生成一个 <code>wire_gen.go</code> 的文件。</li>
+<li><code>.</code> 表示当前目录，用于指定包，不指定的话默认就是当前目录。如果项目下有很多包，可以使用 <code>./...</code> 表示全部包，这个参数其实跟我们执行 <code>go test</code> 测试时是一个道理。</li>
+</ul>
+<p>根据输出结果可以发现，<code>wire</code> 命令为我们在当前目录下生成了 <code>wire_gen.go</code> 文件，内容如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Code generated by Wire. DO NOT EDIT.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//go:generate go run -mod=mod github.com/google/wire/cmd/wire</span></span><br><span class="line"><span class="comment">//go:build !wireinject</span></span><br><span class="line"><span class="comment">// +build !wireinject</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="comment">// Injectors from wire.go:</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeEvent</span><span class="params">()</span> <span class="title">Event</span></span> &#123;</span><br><span class="line">	message := NewMessage()</span><br><span class="line">	greeter := NewGreeter(message)</span><br><span class="line">	event := NewEvent(greeter)</span><br><span class="line">	<span class="keyword">return</span> event</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>神奇的事情发生了，<code>wire</code> 为我们生成了 <code>InitializeEvent</code> 函数的代码，并且跟我们自己实现的代码一模一样。</p>
+<p>这就是 wire 的威力，它可以为我们自动生成依赖注入代码，只需要我们将所有依赖项（这里是几个构造函数）传给 <code>wire.Build</code> 即可。</p>
+<p>由于现在当前目录下存在 3 个 <code>.go</code> 文件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ tree    </span><br><span class="line">.</span><br><span class="line">├── go.mod</span><br><span class="line">├── go.sum</span><br><span class="line">├── main.go</span><br><span class="line">├── wire.go</span><br><span class="line">└── wire_gen.go</span><br></pre></td></tr></table></figure>
+
+<p>所以不能再使用 <code>go run main.go</code> 来执行示例代码了，可以使用 <code>go run .</code> 来执行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run .</span><br><span class="line">Hi there!</span><br></pre></td></tr></table></figure>
+
+<p>细心的你可能会觉得疑惑🤔，代码中有两处 <code>InitializeEvent</code> 函数的定义，程序编译执行的时候不会报错吗？</p>
+<p>我们在 <code>wire.go</code> 中定义了 <code>InitializeEvent</code> 函数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeEvent</span><span class="params">()</span> <span class="title">Event</span></span> &#123;</span><br><span class="line">	wire.Build(NewEvent, NewGreeter, NewMessage)</span><br><span class="line">	<span class="keyword">return</span> Event&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后 <code>wire</code> 命令帮我们在 <code>wire_gen.go</code> 中生成了新的 <code>InitializeEvent</code> 函数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeEvent</span><span class="params">()</span> <span class="title">Event</span></span> &#123;</span><br><span class="line">	message := NewMessage()</span><br><span class="line">	greeter := NewGreeter(message)</span><br><span class="line">	event := NewEvent(greeter)</span><br><span class="line">	<span class="keyword">return</span> event</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>而且这二者都是在同一个包下。</p>
+<p>程序没有编译报错，主要取决于 <code>wire.go</code> 和 <code>wire_gen.go</code> 文件中的 <code>//go:build</code> 注释。</p>
+<p>在 <code>wire.go</code> 文件中，注释为：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//go:build wireinject</span></span><br></pre></td></tr></table></figure>
+
+<p>首先 <code>//go:build</code> 叫<a href="https://pkg.go.dev/go/build#hdr-Build_Constraints" target="_blank" rel="noopener">构建约束</a>（build constraint）或构建标记（build tag），是一个必须放在 <code>.go</code> 文件最开始的注释代码。有了它之后，我们就可以告诉 <code>go build</code> 如何来构建代码。</p>
+<p>其次，<code>wireinject</code> 是传递给构建约束的选项。选项就相当于一个 <code>if</code> 判断条件，可以根据选项来定制构建时如何处理 Go 文件。</p>
+<p>这个构建约束有两个作用：</p>
+<ul>
+<li>将此文件标记文件为 <code>wire</code> 处理的目标：<code>//go:build wireinject</code> 告诉 <code>wire</code> 工具及开发者，该文件包含使用 <code>wire</code> 进行依赖注入的设置。即这通常意味着文件中包含了 <code>wire.Build</code> 函数调用。有了它，文件才会被 <code>wire</code> 识别。</li>
+<li>条件编译：确保在正常的构建过程中，带有这个构建约束的文件不会被编译进最终的可执行文件中。它只有在使用 <code>wire</code> 工具生成依赖注入代码时才被处理。这也是为什么代码不会编译报错，其实 <code>wire.go</code> 文件只是给 <code>wire</code> 命令用的，<code>go run .</code> 执行的是 <code>main.go</code> 和 <code>wire_gen.go</code> 两个文件，会忽略 <code>wire.go</code>。</li>
+</ul>
+<p>注意⚠️：<code>//go:build wireinject</code> 和 <code>package main</code> 之间需要保留一个空行，否则程序会报错。你记住就行，不必过于纠结于此，这个问题在 wire 仓库的 <a href="https://github.com/google/wire/issues/117" target="_blank" rel="noopener">issues 117</a> 中也有提及。</p>
+<p>我们再来看 <code>wire_gen.go</code> 文件，注释为：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Code generated by Wire. DO NOT EDIT.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//go:generate go run -mod=mod github.com/google/wire/cmd/wire</span></span><br><span class="line"><span class="comment">//go:build !wireinject</span></span><br><span class="line"><span class="comment">// +build !wireinject</span></span><br></pre></td></tr></table></figure>
+
+<p>第一行注释仅作为提示用，无特殊用途。</p>
+<p><code>//go:generate</code> 这行注释是一个 <a href="https://go.dev/blog/generate" target="_blank" rel="noopener">go generate</a> 指令。<code>go generate</code> 是一个由 Go 工具链提供的命令，用于在编译前自动执行生成代码的命令。这个特定的生成指令告诉 Go 在执行 <code>go generate</code> 命令时，运行 <code>wire</code> 工具来自动生成或更新 <code>wire_gen.go</code> 文件。</p>
+<p><code>go run -mod=mod github.com/google/wire/cmd/wire</code> 这部分指令运行 <code>wire</code> 命令，其中 <code>-mod=mod</code> 确保使用的是项目的 <code>go.mod</code> 文件中指定的依赖版本。</p>
+<p>我们也可以验证下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go generate</span><br><span class="line">wire: github.com/jianghushinian/blog-go-example/wire/getting-started: wrote /Users/jianghushinian/projects/blog-go-example/wire/getting-started/wire_gen.go</span><br></pre></td></tr></table></figure>
+
+<p>执行 <code>go generate</code> 确实会自动执行 <code>wire</code> 命令。</p>
+<p>注释 <code>//go:build !wireinject</code> 同样是一个构建约束。与 <code>wire.go</code> 中的约束不同，这里的 <code>!wireinject</code> 多了一个 <code>!</code>，<code>!</code> 在编程中通常是取反的意思，所以它用来告诉 <code>wire</code> 忽略此文件。因为这个文件是最终执行的代码，<code>wire</code> 并不需要知道此文件的存在。</p>
+<p>最后一个注释 <code>// +build !wireinject</code> 其实还是一个构建约束，只不过这是旧版本的条件编译标记（在 Go 1.17 版本之前使用）。它的作用与 <code>//go:build !wireinject</code> 相同，确保向后兼容性。这意味着在较老的 Go 版本中，编译条件也能被正确处理。</p>
+<h3 id="为什么要使用依赖注入工具？"><a href="#为什么要使用依赖注入工具？" class="headerlink" title="为什么要使用依赖注入工具？"></a>为什么要使用依赖注入工具？</h3><p>前文讲解了依赖注入思想，以及通过<a href="#Wire-快速开始">快速开始</a>的示例程序，我们极速入门了 wire 依赖注入工具的使用。</p>
+<p>不过直到到现在我们都还没有讨论过为什么要使用依赖注入工具？</p>
+<p>其实通过前文的示例，我们应该已经体会到，wire 最大的作用就是解放双手，提高生产力。</p>
+<p>示例程序中，依赖链只有 3 个对象，一个中大型项目，依赖对象可能有几十个，wire 的作用会愈加明显。</p>
+<p>使用依赖注入思想可以有效的解耦代码，那么使用依赖注入工具则进一步提高了生产力。我们无需手动实例化所有的依赖对象，仅需要编写函数声明，将依赖项扔给 <code>wire.Build</code>，<code>wire</code> 命令就能自动生成代码，可见 wire 是我们偷懒的利器，毕竟懒才是程序员的第一驱动力 :)。</p>
+<p>如果你对依赖注入工具的作用还存在质疑，请接着往下看！</p>
+<h3 id="Wire-核心概念"><a href="#Wire-核心概念" class="headerlink" title="Wire 核心概念"></a>Wire 核心概念</h3><p>我们已经通过<a href="#Wire-快速开始">快速开始</a>示例演示了 wire 的核心能力，现在是时候正式介绍下 wire 中的概念了。</p>
+<p>在 wire 中，有两个核心概念：<code>providers</code>（提供者）和 <code>injectors</code>（注入器）。</p>
+<p>这两个概念也很好理解，前文中的 <code>NewEvent</code>、<code>NewGreeter</code>、<code>NewMessage</code> 都是一个 <code>provider</code>。简单一句话：<code>provider</code> 就是一个可以<strong>产生值的函数</strong>，这些函数都是<strong>普通的 Go 函数</strong>。</p>
+<p>值得注意的是，<code>provider</code> 必须是可导出的函数，即函数名称首字母大写。</p>
+<p>而 <code>InitializeEvent</code> 实际上就是一个 <code>injector</code>。<code>injector</code> 是一个按依赖顺序调用 <code>provider</code> 的函数，该函数声明的主体是对 <code>wire.Build</code> 的调用。使用 wire 时，我们仅需编写 <code>injector</code> 的签名，然后由 <code>wire</code> 命令生成函数体。</p>
+<h3 id="Wire-高级用法"><a href="#Wire-高级用法" class="headerlink" title="Wire 高级用法"></a>Wire 高级用法</h3><p>wire 还有很多高级用法，值得介绍一下。</p>
+<h4 id="injector-函数参数和返回错误"><a href="#injector-函数参数和返回错误" class="headerlink" title="injector 函数参数和返回错误"></a>injector 函数参数和返回错误</h4><p>首先是 <code>injector</code> 函数支持传参和返回 <code>error</code>。</p>
+<p>修改示例程序代码如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">type</span> Message string</span><br><span class="line"></span><br><span class="line">// 接收参数作为消息内容</span><br><span class="line">func NewMessage(phrase string) Message &#123;</span><br><span class="line">	<span class="built_in">return</span> Message(phrase)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="built_in">type</span> Greeter struct &#123;</span><br><span class="line">	Message Message</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func NewGreeter(m Message) Greeter &#123;</span><br><span class="line">	<span class="built_in">return</span> Greeter&#123;Message: m&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func (g Greeter) Greet() Message &#123;</span><br><span class="line">	<span class="built_in">return</span> g.Message</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="built_in">type</span> Event struct &#123;</span><br><span class="line">	Greeter Greeter</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 增加返回错误信息</span><br><span class="line">func NewEvent(g Greeter) (Event, error) &#123;</span><br><span class="line">	// 模拟创建 Event 报错</span><br><span class="line">	<span class="keyword">if</span> time.Now().Unix()%2 == 0 &#123;</span><br><span class="line">		<span class="built_in">return</span> Event&#123;&#125;, errors.New(<span class="string">"new event error"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">return</span> Event&#123;Greeter: g&#125;, nil</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func (e Event) <span class="function"><span class="title">Start</span></span>() &#123;</span><br><span class="line">	msg := e.Greeter.Greet()</span><br><span class="line">	fmt.Println(msg)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里主要修改了两处代码，<code>NewMessage</code> 接收一个字符串类型的参数作为消息内容，在 <code>NewEvent</code> 内部模拟了创建 <code>Event</code> 出错的场景，并将错误返回。</p>
+<p>现在 <code>InitializeEvent</code> 函数定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeEvent</span><span class="params">(phrase <span class="keyword">string</span>)</span> <span class="params">(Event, error)</span></span> &#123;</span><br><span class="line">	wire.Build(NewEvent, NewMessage, NewGreeter)</span><br><span class="line">	<span class="keyword">return</span> Event&#123;&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这次传给 <code>wire.Build</code> 的 3 个构造函数顺序不同，可见顺序并不重要。但为了代码可维护性，我建议还是要按照依赖顺序依次传入 <code>provider</code>。</p>
+<p>这里返回值增加了 <code>error</code>，所以 <code>return</code> 的值增加了一个 <code>nil</code>，其实我们返回什么并不重要，只要返回的类型正确即可（确保编译通过），因为最终生成的代码返回值是由 <code>wire</code> 生成的。</p>
+<blockquote>
+<p>NOTE: 为了逻辑清晰，我只贴出核心代码，并且 <code>wire.go</code> 文件也不再贴出 <code>//go:build wireinject</code> 相关代码，后文也是如此，你在实践时不要忘记。完整代码详见文末给出的 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/wire" target="_blank" rel="noopener">GitHub 地址</a>。</p>
+</blockquote>
+<p>使用 <code>wire</code> 生成代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeEvent</span><span class="params">(phrase <span class="keyword">string</span>)</span> <span class="params">(Event, error)</span></span> &#123;</span><br><span class="line">	message := NewMessage(phrase)</span><br><span class="line">	greeter := NewGreeter(message)</span><br><span class="line">	event, err := NewEvent(greeter)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> Event&#123;&#125;, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> event, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在我们执行示例代码，可能出现两种情况：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run .    </span><br><span class="line">Hello World!</span><br></pre></td></tr></table></figure>
+
+<p>或者：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run .      </span><br><span class="line">new event error</span><br></pre></td></tr></table></figure>
+
+<h4 id="使用-ProviderSet-进行分组"><a href="#使用-ProviderSet-进行分组" class="headerlink" title="使用 ProviderSet 进行分组"></a>使用 ProviderSet 进行分组</h4><p>wire 为我们提供了 <code>provider sets</code>，顾名思义，它可以包含一组 <code>providers</code>。使用 <code>wire.NewSet</code> 函数可以将多个 <code>provider</code> 添加到一个集合中。</p>
+<p>我们把 <code>NewMessage</code>、<code>NewGreeter</code> 两个构造函数合并成一个 <code>provider sets</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> providerSet wire.ProviderSet = wire.NewSet(NewMessage, NewGreeter)</span><br></pre></td></tr></table></figure>
+
+<p><code>wire.NewSet</code> 接收不定长参数，并将它们组装成一个 <code>wire.ProviderSet</code> 类型返回。</p>
+<p><code>wire.Build</code> 可以直接接收 <code>wire.ProviderSet</code> 类型，现在我们只需要给它传递两个参数即可：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeEvent</span><span class="params">(phrase <span class="keyword">string</span>)</span> <span class="params">(Event, error)</span></span> &#123;</span><br><span class="line">	wire.Build(NewEvent, providerSet)</span><br><span class="line">	<span class="keyword">return</span> Event&#123;&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>wire</code> 生成代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeEvent</span><span class="params">(phrase <span class="keyword">string</span>)</span> <span class="params">(Event, error)</span></span> &#123;</span><br><span class="line">	message := NewMessage(phrase)</span><br><span class="line">	greeter := NewGreeter(message)</span><br><span class="line">	event, err := NewEvent(greeter)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> Event&#123;&#125;, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> event, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>与之前生成的代码一模一样。</p>
+<p>分组后，代码会更加清晰，每个 <code>provider sets</code> 仅包含一组关联的 <code>providers</code>，下文中实践部分你还能够看到 <code>provider sets</code> 更具有意义的用法。</p>
+<h4 id="使用-Struct-定制-Provider"><a href="#使用-Struct-定制-Provider" class="headerlink" title="使用 Struct 定制 Provider"></a>使用 Struct 定制 Provider</h4><p>有时候一个 <code>struct</code> 比较简单，我们通常不会为其定义一个构造函数，此时我们可以使用 <code>wire.Struct</code> 作为 <code>provider</code>。</p>
+<p>为了演示此功能，我们修改 <code>Message</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Message <span class="keyword">struct</span> &#123;</span><br><span class="line">	Content <span class="keyword">string</span></span><br><span class="line">	Code    <span class="keyword">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>修改 <code>InitializeEvent</code> 代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeEvent</span><span class="params">(phrase <span class="keyword">string</span>, code <span class="keyword">int</span>)</span> <span class="params">(Event, error)</span></span> &#123;</span><br><span class="line">	wire.Build(NewEvent, NewGreeter, wire.Struct(<span class="built_in">new</span>(Message), <span class="string">"Content"</span>))</span><br><span class="line">	<span class="keyword">return</span> Event&#123;&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里使用 <code>wire.Struct(new(Message), &quot;Content&quot;)</code> 替代了原来的 <code>NewMessage</code> 作为一个 <code>provider</code>。</p>
+<p><code>wire.Struct</code> 函数签名如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Struct</span><span class="params">(structType <span class="keyword">interface</span>&#123;&#125;, fieldNames ...<span class="keyword">string</span>)</span> <span class="title">StructProvider</span></span></span><br></pre></td></tr></table></figure>
+
+<p><code>structType</code> 就是我们要使用的 <code>struct</code>，<code>fieldNames</code> 用来控制哪些字段会被赋值。</p>
+<p>正常来说 <code>InitializeEvent</code> 的 <code>phrase</code> 参数会传给 <code>Message</code> 的 <code>Content</code> 字段，<code>code</code> 参数会传给 <code>Code</code>。wire 根据<strong>参数类型</strong>来判断应该将参数传给谁。</p>
+<p>由于我们在这里仅显式指定了 <code>Content</code> 字段，所以最终只有 <code>Content</code> 字段会被赋值。</p>
+<p>使用 <code>wire</code> 生成代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeEvent</span><span class="params">(phrase <span class="keyword">string</span>, code <span class="keyword">int</span>)</span> <span class="params">(Event, error)</span></span> &#123;</span><br><span class="line">	message := Message&#123;</span><br><span class="line">		Content: phrase,</span><br><span class="line">	&#125;</span><br><span class="line">	greeter := NewGreeter(message)</span><br><span class="line">	event, err := NewEvent(greeter)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> Event&#123;&#125;, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> event, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从生成的代码可以发现，确实没给 <code>Code</code> 赋值。</p>
+<p>如果我们想给 <code>Code</code> 赋值，可以这样写：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wire.Build(NewEvent, NewGreeter, wire.Struct(<span class="built_in">new</span>(Message), <span class="string">"Content"</span>, <span class="string">"Code"</span>))</span><br></pre></td></tr></table></figure>
+
+<p>也可以这样写：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wire.Build(NewEvent, NewGreeter, wire.Struct(<span class="built_in">new</span>(Message), <span class="string">"*"</span>))</span><br></pre></td></tr></table></figure>
+
+<p><code>*</code> 表示通配符，即使用 <code>Message</code> 所有字段。</p>
+<p>使用 <code>wire.Struct</code> 的好处是少定义一个构造函数，并且可以定制使用字段。</p>
+<h4 id="使用-Struct-字段作为-Provider"><a href="#使用-Struct-字段作为-Provider" class="headerlink" title="使用 Struct 字段作为 Provider"></a>使用 Struct 字段作为 Provider</h4><p>我们还可以指定 <code>struct</code> 的具体某个字段作为一个 <code>provider</code>。</p>
+<p>这需要用到 <code>wire.FieldsOf</code>，函数签名如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">FieldsOf</span><span class="params">(structType <span class="keyword">interface</span>&#123;&#125;, fieldNames ...<span class="keyword">string</span>)</span> <span class="title">StructFields</span></span></span><br></pre></td></tr></table></figure>
+
+<p>可以发现它跟 <code>wire.Struct</code> 函数参数一样，区别是返回值不同。</p>
+<p>现在示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Content <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Message <span class="keyword">struct</span> &#123;</span><br><span class="line">	Content Content</span><br><span class="line">	Code    <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewMessage 注意，这里返回的是指针类型</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewMessage</span><span class="params">(content <span class="keyword">string</span>, code <span class="keyword">int</span>)</span> *<span class="title">Message</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Message&#123;</span><br><span class="line">		Content: Content(content),</span><br><span class="line">		Code:    code,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Message</code> 的 <code>Content</code> 字段修改为 <code>string</code> 的别名类型 <code>Content</code>，<strong>这是有用意的，稍后讲解</strong>。</p>
+<p>为了演示更多种情况，这里采用日常开发中更加常用的场景，即构造函数返回 <code>struct</code> 的指针类型。</p>
+<p>修改 <code>InitializeEvent</code> 代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeMessage</span><span class="params">(phrase <span class="keyword">string</span>, code <span class="keyword">int</span>)</span> <span class="title">Content</span></span> &#123;</span><br><span class="line">	wire.Build(NewMessage, wire.FieldsOf(<span class="built_in">new</span>(*Message), <span class="string">"Content"</span>))</span><br><span class="line">	<span class="keyword">return</span> Content(<span class="string">""</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为示例代码中 <code>NewMessage</code> 返回 <code>*Message</code> 类型，而非 <code>Message</code> 类型，所以传递给 <code>wire.FieldsOf</code> 必须是 <code>new(*Message)</code> 而不是 <code>new(Message)</code>。</p>
+<p><code>InitializeMessage</code> 函数返回 <code>Content</code> 类型，而非 <code>Message</code> 类型。</p>
+<p>使用 <code>wire</code> 生成代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeMessage</span><span class="params">(phrase <span class="keyword">string</span>, code <span class="keyword">int</span>)</span> <span class="title">Content</span></span> &#123;</span><br><span class="line">	message := NewMessage(phrase, code)</span><br><span class="line">	content := message.Content</span><br><span class="line">	<span class="keyword">return</span> content</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>根据生成的代码可以发现，在通过 <code>NewMessage</code> 函数创建 <code>*Message</code> 对象以后，会将 <code>message.Content</code> 字段提取出来并返回。</p>
+<p>前文在讲解 <a href="#使用-Struct-字段作为-Provider">使用 Struct 定制 Provider</a>时我提到过「wire 根据<strong>参数类型</strong>来判断应该将参数传给谁」。</p>
+<p>其实不仅仅是参数，wire 规定 <code>injector</code> 函数的参数和返回值类型都必须唯一。不然 wire 无法对应上哪个值该给谁，这也是为什么我专门定义了 <code>Content</code> 类型作为 <code>Message</code> 的字段，因为 <code>InitializeMessage</code> 的参数 <code>phrase</code> 已经是 <code>string</code> 类型了，所以其返回值就不能是 <code>string</code> 类型了。</p>
+<p>现在就来演示一下 <code>injector</code> 函数的参数和返回值类型出现重复的情况，我们可以尝试把 <code>Message</code> 改回去：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Message <span class="keyword">struct</span> &#123;</span><br><span class="line">	Content <span class="keyword">string</span></span><br><span class="line">	Code    <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewMessage 注意，这里返回的是指针类型</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewMessage</span><span class="params">(content <span class="keyword">string</span>, code <span class="keyword">int</span>)</span> *<span class="title">Message</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Message&#123;</span><br><span class="line">		Content: content,</span><br><span class="line">		Code:    code,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>InitializeEvent</code> 函数返回值也改为 <code>string</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeMessage</span><span class="params">(phrase <span class="keyword">string</span>, code <span class="keyword">int</span>)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	wire.Build(NewMessage, wire.FieldsOf(<span class="built_in">new</span>(*Message), <span class="string">"Content"</span>))</span><br><span class="line">	<span class="keyword">return</span> <span class="string">""</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在使用 <code>wire</code> 生成代码，会得到类似如下错误：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ wire gen .</span><br><span class="line">wire: wire.go:10:2: multiple bindings <span class="keyword">for</span> string</span><br><span class="line">        current:</span><br><span class="line">        &lt;- wire.FieldsOf (structfields.go:8:2)</span><br><span class="line">        previous:</span><br><span class="line">        &lt;- argument phrase to injector <span class="keyword">function</span> InitializeMessage (wire.go:7:1)</span><br><span class="line">wire: github.com/jianghushinian/blog-go-example/wire/getting-started/advanced/structfields: generate failed</span><br><span class="line">wire: at least one generate failure</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>NOTE: 注意，这里为了展示清晰，我将输出的文件绝对路径进行了修改，去掉了路径部分，只保留了文件名，不影响输出语义。后文中可能也会如此。</p>
+</blockquote>
+<p>根据错误信息 <code>multiple bindings for string</code> 可知，wire 不支持函数的参数和返回值类型出现重复。</p>
+<p>所以，当遇到 <code>injector</code> 函数出现参数或返回值类型重复的情况，可以通过给类型定义别名来解决。</p>
+<h4 id="绑定「值」作为-Provider"><a href="#绑定「值」作为-Provider" class="headerlink" title="绑定「值」作为 Provider"></a>绑定「值」作为 Provider</h4><p>可以直接将一个<strong>值</strong>作为参数传给 <code>wire.Value</code> 来构造一个 <code>provider</code>。</p>
+<p>定义 <code>Message</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Message <span class="keyword">struct</span> &#123;</span><br><span class="line">	Message <span class="keyword">string</span></span><br><span class="line">	Code    <span class="keyword">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以直接实例化这个 <code>struct</code>，然后将其传给 <code>wire.Value</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeMessage</span><span class="params">()</span> <span class="title">Message</span></span> &#123;</span><br><span class="line">	<span class="comment">// 假设没有提供 NewMessage，可以直接绑定值并返回</span></span><br><span class="line">	wire.Build(wire.Value(Message&#123;</span><br><span class="line">		Message: <span class="string">"Binding Values"</span>,</span><br><span class="line">		Code:    <span class="number">1</span>,</span><br><span class="line">	&#125;))</span><br><span class="line">	<span class="keyword">return</span> Message&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>wire</code> 生成代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeMessage</span><span class="params">()</span> <span class="title">Message</span></span> &#123;</span><br><span class="line">	message := _wireMessageValue</span><br><span class="line">	<span class="keyword">return</span> message</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	_wireMessageValue = Message&#123;</span><br><span class="line">		Message: <span class="string">"Binding Values"</span>,</span><br><span class="line">		Code:    <span class="number">1</span>,</span><br><span class="line">	&#125;</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，实际上 wire 为我们定义了一个变量，并将这个变量作为 <code>InitializeMessage</code> 函数返回值。</p>
+<p>这种拿来即用的方式，提供了非常大的便利。</p>
+<p><code>wire.Value</code> 接收任何<strong>值类型</strong>，所以不止 <code>struct</code>，一个普通的 <code>int</code>、<code>string</code> 等类型都可以，就交给你自己去尝试了。</p>
+<h4 id="绑定「接口」作为-Provider"><a href="#绑定「接口」作为-Provider" class="headerlink" title="绑定「接口」作为 Provider"></a>绑定「接口」作为 Provider</h4><p><code>provider</code> 依赖项或返回值并不总是<strong>值</strong>，很多时候是一个<strong>接口</strong>。</p>
+<p>我们可以接将一个<strong>接口</strong>作为参数传给 <code>wire.InterfaceValue</code> 来构造一个 <code>provider</code>。</p>
+<p>创建一个 <code>Write</code> 函数，它依赖一个 <code>io.Writer</code> 接口：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Write</span><span class="params">(w io.Writer, value any)</span></span> &#123;</span><br><span class="line">	n, err := fmt.Fprintln(w, value)</span><br><span class="line">	fmt.Printf(<span class="string">"n: %d, err: %v\n"</span>, n, err)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>同 <code>wire.Value</code> 用法类似，我们可以使用 <code>wire.InterfaceValue</code> 绑定接口：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeWriter</span><span class="params">()</span> <span class="title">io</span>.<span class="title">Writer</span></span> &#123;</span><br><span class="line">	wire.Build(wire.InterfaceValue(<span class="built_in">new</span>(io.Writer), os.Stdout))</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>wire</code> 生成代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeWriter</span><span class="params">()</span> <span class="title">io</span>.<span class="title">Writer</span></span> &#123;</span><br><span class="line">	writer := _wireFileValue</span><br><span class="line">	<span class="keyword">return</span> writer</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	_wireFileValue = os.Stdout</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>生成代码套路跟 <code>wire.Value</code> 没什么区别。</p>
+<h4 id="绑定结构体到接口"><a href="#绑定结构体到接口" class="headerlink" title="绑定结构体到接口"></a>绑定结构体到接口</h4><p>有时候我们可能会写出如下代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Message <span class="keyword">struct</span> &#123;</span><br><span class="line">	Content <span class="keyword">string</span></span><br><span class="line">	Code    <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Store <span class="keyword">interface</span> &#123;</span><br><span class="line">	Save(msg *Message) error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> store <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 确保 store 实现了 Store 接口</span></span><br><span class="line"><span class="keyword">var</span> _ Store = (*store)(<span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">()</span> *<span class="title">store</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;store&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *store)</span> <span class="title">Save</span><span class="params">(msg *Message)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SaveMessage</span><span class="params">(s Store, msg *Message)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	fmt.Printf(<span class="string">"save message: %+v\n"</span>, msg)</span><br><span class="line">	<span class="keyword">return</span> s.Save(msg)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">RunStore</span><span class="params">(msg *Message)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	s := New()</span><br><span class="line">	<span class="keyword">return</span> SaveMessage(s, msg)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Store</code> 接口定义了一个 <code>Save</code> 方法用来保存 <code>Message</code>，定义了 <code>store</code> 结构体，结构体的指针 <code>*store</code> 实现了 <code>Store</code> 接口，所以 <code>store</code> 的构造函数 <code>New</code> 返回 <code>*store</code>。</p>
+<p>我们还定义了 <code>SaveMessage</code> 方法，它接收两个参数，分别是 <code>Store</code> 接口以及 <code>*Message</code>。</p>
+<p>最终定义的 <code>RunStore</code> 方法接收 <code>*Message</code>，并在内部创建 <code>*store</code>，然后将这两个变量传给 <code>SaveMessage</code> 保存消息。</p>
+<p>假如我们想使用 <code>wire</code> 命令来生成 <code>RunStore</code> 函数，定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WireRunStore</span><span class="params">(msg *Message)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	wire.Build(SaveMessage, New)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>wire</code> 生成代码将得到报错：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ wire gen .</span><br><span class="line">wire: wire.go:7:1: inject WireRunStore: no provider found <span class="keyword">for</span> github.com/jianghushinian/blog-go-example/wire/getting-started/advanced/bindingstruct.Store</span><br><span class="line">        needed by error <span class="keyword">in</span> provider <span class="string">"SaveMessage"</span> (bindingstruct.go:29:6)</span><br><span class="line">wire: github.com/jianghushinian/blog-go-example/wire/getting-started/advanced/bindingstruct: generate failed</span><br><span class="line">wire: at least one generate failure</span><br></pre></td></tr></table></figure>
+
+<p>这是因为 <strong>wire 的构建依靠参数类型，但不支持接口类型</strong>。而 <code>SaveMessage</code> 的 <code>s Store</code> 参数就是接口。</p>
+<p>此时，我们可以使用 <code>wire.Bind</code> 告诉 <code>wire</code> 工具，将一个结构体绑定到接口：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WireRunStore</span><span class="params">(msg *Message)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// new(Store) 接口无需使用指针</span></span><br><span class="line">	wire.Build(SaveMessage, New, wire.Bind(<span class="built_in">new</span>(Store), <span class="built_in">new</span>(*store)))</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样，<code>wire</code> 就知道 <code>New</code> 创建得到的 <code>*store</code> 类型需要传递给 <code>SaveMessage</code> 的 <code>s Store</code> 参数了。</p>
+<p>使用 <code>wire</code> 生成代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WireRunStore</span><span class="params">(msg *Message)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	bindingstructStore := New()</span><br><span class="line">	error2 := SaveMessage(bindingstructStore, msg)</span><br><span class="line">	<span class="keyword">return</span> error2</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>没有问题。</p>
+<h4 id="清理函数"><a href="#清理函数" class="headerlink" title="清理函数"></a>清理函数</h4><p>有时候我们的函数返回值可能包含一个清理函数，用来释放资源，示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">OpenFile</span><span class="params">(path <span class="keyword">string</span>)</span> <span class="params">(*os.File, <span class="keyword">func</span>()</span>, <span class="title">error</span>)</span> &#123;</span><br><span class="line">	f, err := os.Open(path)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	cleanup := <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"cleanup..."</span>)</span><br><span class="line">		<span class="keyword">if</span> err := f.Close(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> f, cleanup, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ReadFile</span><span class="params">(f *os.File)</span> <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">	b := <span class="built_in">make</span>([]<span class="keyword">byte</span>, <span class="number">1024</span>)</span><br><span class="line">	_, err := f.Read(b)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="string">""</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">string</span>(b), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>OpenFile</code> 函数接收一个文件路径作为参数，其内部会打开这个文件，并返回文件对象 <code>*os.File</code>。除此以外，还会返回一个清理函数和 <code>error</code>，清理函数内部会调用 <code>f.Close()</code> 关闭文件对象。</p>
+<p><code>ReadFile</code> 函数依赖 <code>*os.File</code> 文件对象，可以读取并返回其内容。</p>
+<p>我们可以定义如下 <code>injector</code> 函数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeFile</span><span class="params">(path <span class="keyword">string</span>)</span> <span class="params">(*os.File, <span class="keyword">func</span>()</span>, <span class="title">error</span>)</span> &#123;</span><br><span class="line">	wire.Build(OpenFile)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>wire</code> 生成代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeFile</span><span class="params">(path <span class="keyword">string</span>)</span> <span class="params">(*os.File, <span class="keyword">func</span>()</span>, <span class="title">error</span>)</span> &#123;</span><br><span class="line">	file, cleanup, err := OpenFile(path)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> file, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		cleanup()</span><br><span class="line">	&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，wire 能够正确处理这种情况。</p>
+<p>不过，wire 规定清理函数签名只能为 <code>func()</code>。而 <code>InitializeFile</code> 函数的返回值，也是我们工作中使用 wire 的典型场景：<code>injector</code> 函数返回 3 个值，分别是对象、清理函数以及 <code>error</code>。</p>
+<p>示例代码使用方式如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">f, cleanup, err := InitializeFile(<span class="string">"testdata/multi.txt"</span>)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	fmt.Println(err)</span><br><span class="line">&#125;</span><br><span class="line">content, err := ReadFile(f)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	fmt.Println(err)</span><br><span class="line">&#125;</span><br><span class="line">fmt.Println(content)</span><br><span class="line">cleanup()</span><br></pre></td></tr></table></figure>
+
+<p>还有一种情况，假如我们传递给的 <code>wire.Build</code> 多个 <code>provider</code> 都存在清理函数，这时候 <code>wire</code> 命名生成的代码会是什么样呢？</p>
+<p>这个就当做作业留给你自己去尝试了。</p>
+<blockquote>
+<p>NOTE: 如果你懒得尝试🤣，其实我也写好了例子，你可以点击 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/wire/getting-started/advanced/cleanupfunctions/multi" target="_blank" rel="noopener">GitHub 地址</a>进行查看。篇幅所限，我就不贴代码了，感兴趣可以点进去查看。</p>
+</blockquote>
+<h4 id="备用注入器语法，给语法加点糖"><a href="#备用注入器语法，给语法加点糖" class="headerlink" title="备用注入器语法，给语法加点糖"></a>备用注入器语法，给语法加点糖</h4><p>前文讲过，<code>injector</code> 函数返回值并不重要，只要我们写在 <code>return</code> 后面的返回值类型，跟函数签名一致即可。因为 wire 会忽略它们，所以上面很多示例返回值我都使用 <code>nil</code> 来替代。</p>
+<p>那么，既然返回值没什么用，我们是否可以偷个懒，不写 <code>return</code> 呢？</p>
+<p>答案是可以的，我们可以直接 <code>panic</code>，这样程序依然可以通过编译。</p>
+<p>示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Message <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewMessage</span><span class="params">(phrase <span class="keyword">string</span>)</span> <span class="title">Message</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Message(phrase)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里直接在 <code>injector</code> 函数中使用 <code>panic</code> 来简化代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeMessage</span><span class="params">(phrase <span class="keyword">string</span>)</span> <span class="title">Message</span></span> &#123;</span><br><span class="line">	<span class="built_in">panic</span>(wire.Build(NewMessage))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>wire</code> 生成代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeMessage</span><span class="params">(phrase <span class="keyword">string</span>)</span> <span class="title">Message</span></span> &#123;</span><br><span class="line">	message := NewMessage(phrase)</span><br><span class="line">	<span class="keyword">return</span> message</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>没有任何问题。</p>
+<p>这种方式少写了一行 <code>return</code>，算是 wire 给我们提供的一个“语法糖”。Kratos 框架<a href="https://go-kratos.dev/docs/guide/wire/" target="_blank" rel="noopener">文档</a>中也是这么写的，你可以点击查看。</p>
+<p>至于到底选用 <code>return</code> 还是 <code>panic</code>，社区并没有一致的规范，看个人喜好就好。我目前更喜欢使用 <code>return</code>，毕竟谁都不希望自己程序出现 <code>panic</code>，占位也不行 :)。</p>
+<p>至此，终于将 wire 的常用功能全部讲解完毕，接下来就进入 wire 生产实践了。</p>
+<h3 id="Wire-生产实践"><a href="#Wire-生产实践" class="headerlink" title="Wire 生产实践"></a>Wire 生产实践</h3><p>这里以一个 <code>user</code> 服务作为示例，演示下一个生产项目中是如何使用 wire 依赖注入工具的。</p>
+<p><code>user</code> 项目目录结构如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">$ tree user</span><br><span class="line">user</span><br><span class="line">├── assets</span><br><span class="line">│   ├── curl.sh</span><br><span class="line">│   └── schema.sql</span><br><span class="line">├── cmd</span><br><span class="line">│   └── main.go</span><br><span class="line">├── go.mod</span><br><span class="line">├── go.sum</span><br><span class="line">├── internal</span><br><span class="line">│   ├── biz</span><br><span class="line">│   │   └── user.go</span><br><span class="line">│   ├── config</span><br><span class="line">│   │   └── config.go</span><br><span class="line">│   ├── controller</span><br><span class="line">│   │   └── user.go</span><br><span class="line">│   ├── model</span><br><span class="line">│   │   └── user.go</span><br><span class="line">│   ├── router.go</span><br><span class="line">│   ├── store</span><br><span class="line">│   │   └── user.go</span><br><span class="line">│   ├── user.go</span><br><span class="line">│   ├── wire.go</span><br><span class="line">│   └── wire_gen.go</span><br><span class="line">└── pkg</span><br><span class="line">    ├── api</span><br><span class="line">    │   └── user.go</span><br><span class="line">    └── db</span><br><span class="line">        └── db.go</span><br><span class="line"></span><br><span class="line">12 directories, 16 files</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>NOTE: <code>user</code> 项目<a href="https://github.com/jianghushinian/blog-go-example/tree/main/wire/user" target="_blank" rel="noopener">源码在此</a>，你可以点击查看，建议下载下来执行启动下程序，加深理解。</p>
+</blockquote>
+<p>这是一个典型的 Web 应用，用来对用户进行 CRUD。不过为了保持代码简洁清晰，方便理解，<code>user</code> 项目仅实现了创建用户的功能。</p>
+<p>我先简单介绍下各个目录的功能。</p>
+<p><code>assets</code> 努目录用于存放项目资源。<code>schema.sql</code> 中是建表语句，<code>curl.sh</code> 保存了一个 <code>curl</code> 请求命令，用于测试创建用户功能。</p>
+<p><code>cmd</code> 中当然是程序入口文件。</p>
+<p><code>internal</code> 下保存了项目业务逻辑。</p>
+<p><code>pkg</code> 目录存放可导出的公共库。<code>api</code> 用于存放请求对象；<code>db</code> 用于构造数据库对象。</p>
+<p>项目设计了 4 层架构，<code>controller</code> 即对应 MVC 经典模式中的 Controller，<code>biz</code> 是业务层，<code>store</code> 层用于跟数据库交互，还有一个 <code>model</code> 层定义模型，用于映射数据库表。</p>
+<p><code>router.go</code> 用于注册路由。</p>
+<p><code>user.go</code> 用于定义创建和启动 <code>user</code> 服务的应用对象。</p>
+<p>而 <code>wire.go</code> 和 <code>wire_gen.go</code> 两个文件就无需我过多讲解了。</p>
+<blockquote>
+<p>NOTE: 本项目目录结构遵循最佳实践，可以参考我的另一篇文章<a href="https://jianghushinian.cn/2023/02/25/how-to-design-a-good-go-web-project-directory-structure/" target="_blank" rel="noopener">《如何设计一个优秀的 Go Web 项目目录结构》</a>。</p>
+</blockquote>
+<p>简单介绍完了目录结构，再来梳理下我们所设计的 4 层架构依赖关系：首先 <code>controller</code> 层依赖 <code>biz</code> 层，然后 <code>biz</code> 层又依赖 <code>store</code> 层，接着 <code>store</code> 层又依赖了数据库（即依赖 <code>pkg/db/</code>），而 <code>controller</code>、<code>biz</code>、<code>store</code> 这三者又都依赖 <code>model</code> 层。</p>
+<p>现在看了我的讲解，你可能有些发懵，没关系，下面我将主要代码逻辑都贴出来，加深你的理解。</p>
+<p><code>assets/schema.sql</code> 中的建表语句如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`user`</span></span><br><span class="line">(</span><br><span class="line">    <span class="string">`id`</span>        <span class="built_in">BIGINT</span>       <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">    <span class="string">`email`</span>     <span class="built_in">VARCHAR</span>(<span class="number">255</span>),</span><br><span class="line">    <span class="string">`nickname`</span>  <span class="built_in">VARCHAR</span>(<span class="number">255</span>),</span><br><span class="line">    <span class="string">`username`</span>  <span class="built_in">VARCHAR</span>(<span class="number">255</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line">    <span class="string">`password`</span>  <span class="built_in">VARCHAR</span>(<span class="number">255</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line">    <span class="string">`createdAt`</span> DATETIME,</span><br><span class="line">    <span class="string">`updatedAt`</span> DATETIME,</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="string">`id`</span>)</span><br><span class="line">) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span> <span class="keyword">DEFAULT</span> <span class="keyword">CHARSET</span>=utf8mb4;</span><br></pre></td></tr></table></figure>
+
+<p><code>user</code> 项目仅有一张表。</p>
+<p><code>cmd/main.go</code> 代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	user <span class="string">"github.com/jianghushinian/blog-go-example/wire/user/internal"</span></span><br><span class="line">	<span class="string">"github.com/jianghushinian/blog-go-example/wire/user/internal/config"</span></span><br><span class="line">	<span class="string">"github.com/jianghushinian/blog-go-example/wire/user/pkg/db"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	cfg := &amp;config.Config&#123;</span><br><span class="line">		MySQL: db.MySQLOptions&#123;</span><br><span class="line">			Address:  <span class="string">"127.0.0.1:3306"</span>,</span><br><span class="line">			Database: <span class="string">"user"</span>,</span><br><span class="line">			Username: <span class="string">"root"</span>,</span><br><span class="line">			Password: <span class="string">"123456"</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	app, cleanup, err := user.NewApp(cfg)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">defer</span> cleanup()</span><br><span class="line">	app.Run()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>入口函数 <code>main</code> 中先创建了配置对象 <code>cfg</code>，接着实例化 <code>app</code> 对象，最后调用 <code>app.Run()</code> 启动 <code>user</code> 服务。</p>
+<p>这也是一个典型的 Web 应用启动步骤。</p>
+<p><code>Config</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Config <span class="keyword">struct</span> &#123;</span><br><span class="line">	MySQL db.MySQLOptions <span class="string">`json:"mysql" yaml:"mysql"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> MySQLOptions <span class="keyword">struct</span> &#123;</span><br><span class="line">	Address  <span class="keyword">string</span></span><br><span class="line">	Database <span class="keyword">string</span></span><br><span class="line">	Username <span class="keyword">string</span></span><br><span class="line">	Password <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>user.go</code> 中的 <code>App</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// App 代表一个 Web 应用</span></span><br><span class="line"><span class="keyword">type</span> App <span class="keyword">struct</span> &#123;</span><br><span class="line">	*config.Config</span><br><span class="line"></span><br><span class="line">	g  *gin.Engine</span><br><span class="line">	uc *controller.UserController</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewApp Web 应用构造函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewApp</span><span class="params">(cfg *config.Config)</span> <span class="params">(*App, <span class="keyword">func</span>()</span>, <span class="title">error</span>)</span> &#123;</span><br><span class="line">	gormDB, cleanup, err := db.NewMySQL(&amp;cfg.MySQL)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	userStore := store.New(gormDB)</span><br><span class="line">	userBiz := biz.New(userStore)</span><br><span class="line">	userController := controller.New(userBiz)</span><br><span class="line">	</span><br><span class="line">	engine := gin.Default()</span><br><span class="line">	app := &amp;App&#123;</span><br><span class="line">		Config: cfg,</span><br><span class="line">		g:      engine,</span><br><span class="line">		uc:     userController,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> app, cleanup, err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Run 启动 Web 应用</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *App)</span> <span class="title">Run</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 注册路由</span></span><br><span class="line">	InitRouter(a)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := a.g.Run(<span class="string">":8000"</span>); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>App</code> 代表一个 Web 应用，它嵌入了配置、<code>gin</code> 框架的 <code>*Engine</code> 对象，以及 <code>controller</code>。</p>
+<p><code>NewApp</code> 是 <code>App</code> 的构造函数，通过 <code>Config</code> 来创建一个 <code>*App</code> 对象。</p>
+<p>根据其内部代码逻辑，也能看出项目的 4 层架构依赖关系：创建 <code>App</code> 对象依赖 <code>Config</code>，<code>Config</code> 是通过参数传递进来的；<code>*Engine</code> 对象可以通过 <code>gin.Default()</code> 得到；而 <code>userController</code> 则通过 <code>controller.New</code> 创建，<code>controller</code> 依赖 <code>biz</code>，<code>biz</code> 依赖 <code>store</code>，<code>store</code> 依赖 <code>*gorm.DB</code>。</p>
+<p>可以发现，依赖关系非常清晰，并且我们使用了依赖注入思想编写代码，那么此时，正是 wire 的用武之地。</p>
+<p>不过，我们先不急着讲解如何在这里使用 wire。我先将项目剩余主要代码贴出来，便于你理解这个 Web 应用。</p>
+<p>我们可以通过 <code>pkg/db/db.go</code> 中的 <code>NewMySQL</code> 创建出 <code>*gorm.DB</code> 对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewMySQL 根据选项构造 *gorm.DB</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewMySQL</span><span class="params">(opts *MySQLOptions)</span> <span class="params">(*gorm.DB, <span class="keyword">func</span>()</span>, <span class="title">error</span>)</span> &#123;</span><br><span class="line">	<span class="comment">// 可以用来释放资源，这里仅作为示例使用，没有释放任何资源，因为 gorm 内部已经帮我们做了</span></span><br><span class="line">	cleanFunc := <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;&#125;</span><br><span class="line"></span><br><span class="line">	db, err := gorm.Open(mysql.Open(opts.DSN()), &amp;gorm.Config&#123;</span><br><span class="line">		Logger: logger.Default.LogMode(logger.Silent),</span><br><span class="line">	&#125;)</span><br><span class="line">	<span class="keyword">return</span> db, cleanFunc, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>有了 <code>*gorm.DB</code> 就可以创建 <code>store</code> 对象了，<code>internal/store/user.go</code> 主要代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> store</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="comment">// ProviderSet 一个 Wire provider sets，用来初始化 store 实例对象，并将 UserStore 接口绑定到 *userStore 类型实现上</span></span><br><span class="line"><span class="keyword">var</span> ProviderSet = wire.NewSet(New, wire.Bind(<span class="built_in">new</span>(UserStore), <span class="built_in">new</span>(*userStore)))</span><br><span class="line"></span><br><span class="line"><span class="comment">// UserStore 定义 user 暴露的 CRUD 方法</span></span><br><span class="line"><span class="keyword">type</span> UserStore <span class="keyword">interface</span> &#123;</span><br><span class="line">	Create(ctx context.Context, user *model.UserM) error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// UserStore 接口实现</span></span><br><span class="line"><span class="keyword">type</span> userStore <span class="keyword">struct</span> &#123;</span><br><span class="line">	db *gorm.DB</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 确保 userStore 实现了 UserStore 接口</span></span><br><span class="line"><span class="keyword">var</span> _ UserStore = (*userStore)(<span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// New userStore 构造函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(db *gorm.DB)</span> *<span class="title">userStore</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;userStore&#123;db&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Create 插入一条 user 记录</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *userStore)</span> <span class="title">Create</span><span class="params">(ctx context.Context, user *model.UserM)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> u.db.Create(&amp;user).Error</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>有了 <code>store</code> 就可以创建 <code>biz</code> 对象了，<code>internal/biz/user.go</code> 主要代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> biz</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="comment">// ProviderSet 一个 Wire provider sets，用来初始化 biz 实例对象，并将 UserBiz 接口绑定到 *userBiz 类型实现上</span></span><br><span class="line"><span class="keyword">var</span> ProviderSet = wire.NewSet(New, wire.Bind(<span class="built_in">new</span>(UserBiz), <span class="built_in">new</span>(*userBiz)))</span><br><span class="line"></span><br><span class="line"><span class="comment">// UserBiz 定义 user 业务逻辑操作方法</span></span><br><span class="line"><span class="keyword">type</span> UserBiz <span class="keyword">interface</span> &#123;</span><br><span class="line">	Create(ctx context.Context, r *api.CreateUserRequest) error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// UserBiz 接口的实现</span></span><br><span class="line"><span class="keyword">type</span> userBiz <span class="keyword">struct</span> &#123;</span><br><span class="line">	s store.UserStore</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 确保 userBiz 实现了 UserBiz 接口</span></span><br><span class="line"><span class="keyword">var</span> _ UserBiz = (*userBiz)(<span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// New userBiz 构造函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(s store.UserStore)</span> *<span class="title">userBiz</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;userBiz&#123;s: s&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Create 创建用户</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *userBiz)</span> <span class="title">Create</span><span class="params">(ctx context.Context, r *api.CreateUserRequest)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> userM model.UserM</span><br><span class="line">	_ = copier.Copy(&amp;userM, r)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> b.s.Create(ctx, &amp;userM)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接着，有了 <code>biz</code> 就可以创建 <code>controller</code> 对象了，<code>internal/controller/user.go</code> 主要代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> controller</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="comment">// UserController 用来处理用户请求</span></span><br><span class="line"><span class="keyword">type</span> UserController <span class="keyword">struct</span> &#123;</span><br><span class="line">	b biz.UserBiz</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// New controller 构造函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(b biz.UserBiz)</span> *<span class="title">UserController</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;UserController&#123;b: b&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Create 创建用户</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ctrl *UserController)</span> <span class="title">Create</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> r api.CreateUserRequest</span><br><span class="line">	<span class="keyword">if</span> err := c.ShouldBindJSON(&amp;r); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		c.JSON(http.StatusBadRequest, gin.H&#123;</span><br><span class="line">			<span class="string">"err"</span>: err.Error(),</span><br><span class="line">		&#125;)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := ctrl.b.Create(c, &amp;r); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		c.JSON(http.StatusInternalServerError, gin.H&#123;</span><br><span class="line">			<span class="string">"err"</span>: err.Error(),</span><br><span class="line">		&#125;)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	c.JSON(http.StatusOK, gin.H&#123;&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这些对象都有了，就可以调用 <code>NewApp</code> 构造出 <code>App</code> 了。</p>
+<p><code>App</code> 在启动前，还会调用 <code>InitRouter</code> 进行路由注册：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// InitRouter 初始化路由</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitRouter</span><span class="params">(a *App)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 创建 users 路由分组</span></span><br><span class="line">	u := a.g.Group(<span class="string">"/users"</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		u.POST(<span class="string">""</span>, a.uc.Create)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在 <code>user</code> 项目逻辑已经清晰了，是时候启动应用程序了：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> user   </span><br><span class="line">$ go run cmd/main.go</span><br></pre></td></tr></table></figure>
+
+<p>程序启动后，会监听 <code>8000</code> 端口，可以使用 <code>assets/curl.sh</code> 中的 <code>curl</code> 命令进行访问：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ curl --location --request POST <span class="string">'http://127.0.0.1:8000/users'</span> \</span><br><span class="line">--header <span class="string">'Content-Type: application/json'</span> \</span><br><span class="line">--data-raw <span class="string">'&#123;</span></span><br><span class="line"><span class="string">    "email": "jianghushinian007@outlook.com",</span></span><br><span class="line"><span class="string">    "nickname": "江湖十年",</span></span><br><span class="line"><span class="string">    "username": "jianghushinian",</span></span><br><span class="line"><span class="string">    "password": "pass"</span></span><br><span class="line"><span class="string">&#125;'</span></span><br></pre></td></tr></table></figure>
+
+<p>不出意外，你将在数据库中看到新创建的用户。</p>
+<p>执行以下 SQL：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">USE</span> <span class="keyword">user</span>;</span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">user</span>;</span><br></pre></td></tr></table></figure>
+
+<p>将输出新创建出来的用户。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">+----+-------------------------------+----------+----------------+----------+---------------------+---------------------+</span><br><span class="line">| id | email                         | nickname | username       | password | createdAt           | updatedAt           |</span><br><span class="line">+----+-------------------------------+----------+----------------+----------+---------------------+---------------------+</span><br><span class="line">|  1 | jianghushinian007@outlook.com | 江湖十年  | jianghushinian | pass     | 2024-06-11 00:01:35 | 2024-06-11 00:01:35 |</span><br><span class="line">+----+-------------------------------+----------+----------------+----------+---------------------+---------------------+</span><br></pre></td></tr></table></figure>
+
+<p>现在，是时候讨论如何在 <code>user</code> 项目中使用 wire 来提高开发效率了。</p>
+<p>回顾下 <code>NewApp</code> 的定义：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewApp Web 应用构造函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewApp</span><span class="params">(cfg *config.Config)</span> <span class="params">(*App, <span class="keyword">func</span>()</span>, <span class="title">error</span>)</span> &#123;</span><br><span class="line">	gormDB, cleanup, err := db.NewMySQL(&amp;cfg.MySQL)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	userStore := store.New(gormDB)</span><br><span class="line">	userBiz := biz.New(userStore)</span><br><span class="line">	userController := controller.New(userBiz)</span><br><span class="line">	</span><br><span class="line">	engine := gin.Default()</span><br><span class="line">	app := &amp;App&#123;</span><br><span class="line">		Config: cfg,</span><br><span class="line">		g:      engine,</span><br><span class="line">		uc:     userController,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> app, cleanup, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其实这里面一层层的依赖注入，都是套路代码，基本上一个 Web 应用都可以按照这个套路来写。</p>
+<p>这就涉及到套路代码写多了其实是比较烦的，这还只是一个微型项目，如果是中大项目，可以预见这个 <code>NewApp</code> 代码量会很多，所以是时候让 wire 出场了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewApp</span><span class="params">(cfg *config.Config)</span> <span class="params">(*App, <span class="keyword">func</span>()</span>, <span class="title">error</span>)</span> &#123;</span><br><span class="line">	engine := gin.Default()</span><br><span class="line">	app, cleanup, err := wireApp(engine, cfg, &amp;cfg.MySQL)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> app, cleanup, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以将 <code>NewApp</code> 中的主逻辑全部拿走，放在 <code>wireApp</code> 中（在 <code>wire.go</code> 文件中）。</p>
+<p><code>wireApp</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">wireApp</span><span class="params">(engine *gin.Engine, cfg *config.Config, mysqlOptions *db.MySQLOptions)</span> <span class="params">(*App, <span class="keyword">func</span>()</span>, <span class="title">error</span>)</span> &#123;</span><br><span class="line">	wire.Build(</span><br><span class="line">		db.NewMySQL,</span><br><span class="line">		store.ProviderSet,</span><br><span class="line">		biz.ProviderSet,</span><br><span class="line">		controller.New,</span><br><span class="line">		wire.Struct(<span class="built_in">new</span>(App), <span class="string">"*"</span>),</span><br><span class="line">	)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>有了前文的讲解，其实这里无需我多言，你都能够看懂，因为并没有新的知识。</p>
+<p>不过我们还是简单分析下这里都用到了 wire 的哪些特性。</p>
+<p>首先 <code>wireApp</code> 返回值是典型的三件套：<code>(*App, func(), error)</code>，对象、清理函数和 <code>error</code>。</p>
+<p>这里使用了两个 <code>wire.ProviderSet</code> 进行分组，定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> ProviderSet = wire.NewSet(New, wire.Bind(<span class="built_in">new</span>(UserStore), <span class="built_in">new</span>(*userStore)))</span><br><span class="line"><span class="keyword">var</span> ProviderSet = wire.NewSet(New, wire.Bind(<span class="built_in">new</span>(UserBiz), <span class="built_in">new</span>(*userBiz)))</span><br></pre></td></tr></table></figure>
+
+<p>并且在构造 <code>wire.ProviderSet</code> 时，还使用了 <code>wire.Bind(new(UserStore), new(*userStore))</code> 将一个结构体绑定到接口。</p>
+<p>最后，我们使用了 <code>struct</code> 作为 <code>provider</code>：<code>wire.Struct(new(App), &quot;*&quot;)</code> ，通配符 <code>*</code> 用来表示所有字段。</p>
+<p>在真实项目中，wire 就这么使用。</p>
+<p>如果你觉得 <code>user</code> 项目太小，使用 wire 的价值还不够大。你可以看看 <code>onex</code> 项目，比如 <a href="https://github.com/superproj/onex/blob/master/internal/usercenter/wire.go" target="_blank" rel="noopener">usercenter</a> 中的代码，这个开源项目完全是生产级别。</p>
+<h3 id="为什么选择-Wire"><a href="#为什么选择-Wire" class="headerlink" title="为什么选择 Wire"></a>为什么选择 Wire</h3><p>通常来说，这部分内容是应该放在文章开头的。我将其放在这里，目的是为了让你熟悉 wire 后，再回过头来对比，wire 有哪些优势，加深你对为什么选择 wire 的理解。</p>
+<p>其实 Go 生态中依赖注入工具不止有 Google 的 <a href="https://github.com/google/wire" target="_blank" rel="noopener">wire</a> 一家独大，还有 Uber 开源的 <a href="https://github.com/uber-go/dig" target="_blank" rel="noopener">dig</a>，以及 Facebook 开源的 <a href="github.com/facebookarchive/inject">inject</a> 比较流行。</p>
+<p>但我为什么要选择 wire？</p>
+<p>一句话概括：wire 使用<strong>代码生成</strong>，而非<strong>反射</strong>。</p>
+<p> 我们可以分别举例看下 dig 以及 inject 是如何使用的。</p>
+<p>dig 的使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"log"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"go.uber.org/dig"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	name <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewUser - Creates a new instance of User</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewUser</span><span class="params">(name <span class="keyword">string</span>)</span> <span class="title">User</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> User&#123;name: name&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Get - A method with user as dependency</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *User)</span> <span class="title">Get</span><span class="params">(message <span class="keyword">string</span>)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> fmt.Sprintf(<span class="string">"Hello %s - %s"</span>, u.name, message)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Run - Depends on user and calls the Get method on User</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Run</span><span class="params">(user User)</span></span> &#123;</span><br><span class="line">	result := user.Get(<span class="string">"It's nice to meet you!"</span>)</span><br><span class="line">	fmt.Println(result)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// Initialize a new dig container</span></span><br><span class="line">	container := dig.New()</span><br><span class="line">	<span class="comment">// Provide a name parameter to the container</span></span><br><span class="line">	container.Provide(<span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">string</span></span> &#123; <span class="keyword">return</span> <span class="string">"jianghushinian"</span> &#125;)</span><br><span class="line">	<span class="comment">// Provide a new User instance to the container using the name injected above</span></span><br><span class="line">	<span class="keyword">if</span> err := container.Provide(NewUser); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// Invoke the Run function; Dig automatically injects the User instance provided above</span></span><br><span class="line">	<span class="keyword">if</span> err := container.Invoke(Run); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>简单解释下示例代码：</p>
+<p><code>dig.New()</code> 实例化一个 dig 容器。</p>
+<p><code>container.Provide(func() string { return &quot;jianghushinian&quot; })</code> 将一个匿名函数提供给容器。</p>
+<p>然后调用 <code>container.Provide(NewUser)</code>，dig 首先将字符串值 <code>jianghushinian</code> 作为 <code>name</code> 参数提供给 <code>NewUser</code> 函数。之后，<code>NewUser</code> 函数会根据此值创建出来一个 <code>User</code> 结构体的新实例，随后 dig 将其提供给容器。</p>
+<p>最后，<code>container.Invoke(Run)</code> 会将容器中保存的 <code>User</code> 结构体传递给 <code>Run</code> 函数并运行。</p>
+<p>我们可以类比 wire 来学习 dig：可以把 <code>Provide</code> 看作 <code>providers</code>，<code>Invoke</code> 看作 <code>injectors</code>，这样就好理解了。</p>
+<p>以上示例代码可以直接执行，无需像使用 wire 一样需要提前生成代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">Hello jianghushinian - It&#39;s nice to meet you!</span><br></pre></td></tr></table></figure>
+
+<p>这就是 dig 的使用。</p>
+<p>再来看一个 inject 的使用示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"log"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/facebookgo/inject"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	Name <span class="keyword">string</span> <span class="string">`inject:"name"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Get - A method with user as dependency</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *User)</span> <span class="title">Get</span><span class="params">(message <span class="keyword">string</span>)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> fmt.Sprintf(<span class="string">"Hello %s - %s"</span>, u.Name, message)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Run - Depends on user and calls the Get method on User</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Run</span><span class="params">(user *User)</span></span> &#123;</span><br><span class="line">	result := user.Get(<span class="string">"It's nice to meet you!"</span>)</span><br><span class="line">	fmt.Println(result)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// new an inject Graph</span></span><br><span class="line">	<span class="keyword">var</span> g inject.Graph</span><br><span class="line"></span><br><span class="line">	<span class="comment">// inject name</span></span><br><span class="line">	name := <span class="string">"jianghushinian"</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// provide string value</span></span><br><span class="line">	err := g.Provide(&amp;inject.Object&#123;Value: name, Name: <span class="string">"name"</span>&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// create a User instance and supply it to the dependency graph</span></span><br><span class="line">	user := &amp;User&#123;&#125;</span><br><span class="line">	err = g.Provide(&amp;inject.Object&#123;Value: user&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// resolve all dependencies</span></span><br><span class="line">	err = g.Populate()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	Run(user)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个示例代码我就不详细讲解了，学会了 wire 和 dig，这段代码很容易理解。</p>
+<p>可以发现的是，无论是 dig 还是 inject，它们使用的都是运行时反射机制，来实现依赖注入功能。</p>
+<p>这会带来最直观的两个问题：</p>
+<ol>
+<li>使用反射可能影响性能。</li>
+<li>我们需要根据工具的要求编写代码，而这份代码正确与否，只有在运行期间才能确定。也就是说，代码是“黑盒”的，通过 review 代码，很难一眼看出代码是否存在问题。</li>
+</ol>
+<p>而 wire 采用代码生成，它会根据我们编写的 <code>injector</code> 函数签名，生成最终代码。所以在执行代码之前，我们就已经有了 <code>injector</code> 函数的源码。</p>
+<p>这既不会影响性能，也不会让代码变成“黑盒”，在执行程序之前我们就知道代码长什么样。而这样做还能带来一个好处，能够大大简化我们排错的过程。</p>
+<p>Python 之禅中有一句话叫「显式优于隐式」，wire 做到了。</p>
+<h3 id="Wire-命令行工具"><a href="#Wire-命令行工具" class="headerlink" title="Wire 命令行工具"></a>Wire 命令行工具</h3><p>文章最后，我再来简单介绍下 <code>wire</code> 命令行工具。</p>
+<p>之所以放在最后讲解，是因为 <code>wire</code> 的子命令确实不太常用，如果你去网上搜索，几乎没人介绍。不过为了保证文章的完整性，我还是简单讲解下，作为扩展内容，你好有个印象。</p>
+<p>使用 <code>--help</code> 查看使用帮助信息。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ wire --<span class="built_in">help</span></span><br><span class="line">Usage: wire &lt;flags&gt; &lt;subcommand&gt; &lt;subcommand args&gt;</span><br><span class="line"></span><br><span class="line">Subcommands:</span><br><span class="line">        check            <span class="built_in">print</span> any Wire errors found</span><br><span class="line">        commands         list all <span class="built_in">command</span> names</span><br><span class="line">        diff             output a diff between existing wire_gen.go files and what gen would generate</span><br><span class="line">        flags            describe all known top-level flags</span><br><span class="line">        gen              generate the wire_gen.go file <span class="keyword">for</span> each package</span><br><span class="line">        <span class="built_in">help</span>             describe subcommands and their syntax</span><br><span class="line">        show             describe all top-level provider sets</span><br></pre></td></tr></table></figure>
+
+<p>可以发现 wire 连最基本的 <code>--version</code> 命令都不存在，即不支持查看版本信息。起初这点我是疑惑的，不过看了官方描述，也就不足为奇了。因为 wire 已经不再加入新功能，所以你可以理解为它就这一个版本。</p>
+<p>官方描述说当前<a href="https://github.com/google/wire?tab=readme-ov-file#project-status" target="_blank" rel="noopener">项目状态</a>不接受新功能，只接受错误报告和 Bug fix。看来官方也想保持 wire 的简洁。</p>
+<p>有人说项目不维护了。但我认为这又何尝不是一件好事情，其实项目还在维护，只是不增加新功能了。这在日新月异的技术行业里，是好事，极大的好事。我们不用投入太多精力学习这个工具，学一次受用很久。这也是我写这篇想着尽量把 wire 功能介绍完全，方便大家学习。</p>
+<p>回归正题，首先要讲解的是 <code>gen</code> 子命令。已经是我们的老朋友了，可以根据我们编写的 <code>injector</code> 函数签名，自动生成目标代码。</p>
+<p>其实如果直接使用 <code>wire</code> 命令，后面什么也不接，<code>wire</code> 默认会调用 <code>gen</code> 子命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ wire       </span><br><span class="line">wire: github.com/jianghushinian/blog-go-example/wire/getting-started: wrote /Users/jianghushinian/projects/blog-go-example/wire/getting-started/wire_gen.go</span><br></pre></td></tr></table></figure>
+
+<p><code>check</code> 子命令可以帮我们检查代码错误，比如我们将 <a href="#Wire-快速开始">Wire 快速开始</a> 部分的示例中的 <code>injector</code> 函数 <code>InitializeEvent</code> 故意写错。</p>
+<p><code>InitializeEvent</code> 代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeEvent</span><span class="params">()</span> <span class="title">Event</span></span> &#123;</span><br><span class="line">	wire.Build(NewEvent, NewGreeter, NewMessage)</span><br><span class="line">	<span class="keyword">return</span> Event&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在修改成错误的，漏写了 <code>NewMessage</code> 方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeEvent</span><span class="params">()</span> <span class="title">Event</span></span> &#123;</span><br><span class="line">	wire.Build(NewEvent, NewGreeter)</span><br><span class="line">	<span class="keyword">return</span> Event&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>wire check</code> 检查代码错误：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ wire check</span><br><span class="line">wire: wire.go:7:1: inject InitializeEvent: no provider found <span class="keyword">for</span> github.com/jianghushinian/blog-go-example/wire/getting-started.Message</span><br><span class="line">        needed by github.com/jianghushinian/blog-go-example/wire/getting-started.Greeter <span class="keyword">in</span> provider <span class="string">"NewGreeter"</span> (main.go:15:6)</span><br><span class="line">        needed by github.com/jianghushinian/blog-go-example/wire/getting-started.Event <span class="keyword">in</span> provider <span class="string">"NewEvent"</span> (main.go:27:6)</span><br><span class="line">wire: error loading packages</span><br></pre></td></tr></table></figure>
+
+<p>但其实我们直接执行 <code>wire</code> 命令生成代码时，也会得到相同的错误。</p>
+<p><code>commands</code> 子命令可以打印 <code>wire</code> 支持的所有子命令，嗯，仅此而已。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ wire commands</span><br><span class="line">commands</span><br><span class="line">flags</span><br><span class="line"><span class="built_in">help</span></span><br><span class="line">check</span><br><span class="line">diff</span><br><span class="line">gen</span><br><span class="line">show</span><br></pre></td></tr></table></figure>
+
+<p><code>flags</code> 子命令可以打印每个子命令接收的标志：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ wire flags gen</span><br><span class="line">  -header_file string</span><br><span class="line">        path to file to insert as a header <span class="keyword">in</span> wire_gen.go</span><br><span class="line">  -output_file_prefix string</span><br><span class="line">        string to prepend to output file names.</span><br><span class="line">  -tags string</span><br><span class="line">        append build tags to the default wirebuild</span><br></pre></td></tr></table></figure>
+
+<p>可以发现 <code>gen</code> 子命令支持 3 个标志，至于效果你可以自行尝试。</p>
+<p><code>diff</code> 子命令用于打印 <code>wire</code> 生成的 <code>wire_gen.go</code> 文件和之前有何不同：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ wire diff .    </span><br><span class="line">github.com/jianghushinian/blog-go-example/wire/getting-started: diff from wire_gen.go:</span><br><span class="line">@@ -11,2 +11,2 @@</span><br><span class="line">-func InitializeEvent() Event &#123;</span><br><span class="line">-       message := NewMessage()</span><br><span class="line">+func InitializeEvent(string2 string) Event &#123;</span><br><span class="line">+       message := NewMessage(string2)</span><br></pre></td></tr></table></figure>
+
+<p><code>show</code> 子命令用于分析和展示指定包中的依赖注入配置：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ wire show .    </span><br><span class="line"></span><br><span class="line">Injectors:</span><br><span class="line">        <span class="string">"github.com/jianghushinian/blog-go-example/wire/getting-started"</span>.InitializeEvent</span><br></pre></td></tr></table></figure>
+
+<p><code>wire</code> 命令行工具的讲解就介绍到这里。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>终于到了总结环节，又是一篇万字长文。</p>
+<p>本文主旨是为了讲解在 Go 中，如何优雅的使用 wire 依赖注入工具提高开发效率。</p>
+<p>首先介绍了什么是依赖注入，以及在 Go 中如何使用依赖注入思想编写代码。</p>
+<p>接着又对依赖注入工具 wire 进行了简单介绍，并安装了 <code>wire</code> 命令行工具。</p>
+<p>然后通过一个 wire 快速开始的示例程序，极速入门 wire 的使用。</p>
+<p>有了使用经验，我又讲解了为什么要使用 wire？因为它们帮我们自动生成依赖注入代码，提高开发效率。</p>
+<p>接下来我对 wire 的核心概念进行了讲解。我们知道了什么是 <code>providers</code> 和 <code>injectors</code>，知道了这两个核心概念，wire 就入门了。</p>
+<p>我还介绍了 wire 和很多高级特性。<code>injector</code> 函数支持参数，也支持返回清理函数和错误。我们可以使用 <code>ProviderSet</code> 对 <code>providers</code> 进行分组。可以使用 <code>wire.Struct</code> 将一个结构体作为 <code>provider</code>。也可以指定结构体的具体某个字段作为 <code>provider</code>。<code>wire.Value</code> 可以将一个值构造成 <code>provider</code>。<code>wire.InterfaceValue</code> 可以将一个接口构造成 <code>provider</code>。通过 <code>wire.Bind(new(Fooer), new(MyFoo)))</code> 可以将 <code>MyFoo</code> 结构体绑定到 <code>Fooer</code> 接口。wire 还为我们提供了备用注入器语法，可以使用 <code>panic</code> 取代在 <code>injector</code> 函数中编写返回值。</p>
+<p>wire 的用法都讲解完成以后，我又以一个 <code>user</code> Web 应用作为案例，为你讲解了在生产实践中 wire 的使用。</p>
+<p>既然我们学会了 wire，那就应该知道我们为什么要选择使用 wire。我对比了 Uber 开源的 dig，以及 Facebook 开源的 inject，为你讲解了选择 wire 的原因。可以用一句话概括：wire 使用代码生成，而非反射。</p>
+<p>最后，我又简单介绍了 <code>wire</code> 命令行工具的使用。</p>
+<p>记住，依赖注入并不神秘，wire 的作用也显而易见，就是为了解放双手。如果你更喜欢手动编写代码，那么也完全没有任何问题。不要过于神化依赖注入工具，起码在 Go 语言中是这样。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/wire" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>由于篇幅所限，有些示例文章中并没有给出执行结果，你一定要把我的示例代码 <code>clone</code> 下来，依次执行一遍，这样才能更加深刻的理解。</p>
+<p>至此本文完结，如果你想要更深入的了解 wire，那就去看它的<a href="https://github.com/google/wire" target="_blank" rel="noopener">源码</a>吧，祝你好运 :)。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>Compile-time Dependency Injection With Go Cloud’s Wire: <a href="https://go.dev/blog/wire" target="_blank" rel="noopener">https://go.dev/blog/wire</a></li>
+<li>Wire README: <a href="https://github.com/google/wire/blob/main/README.md" target="_blank" rel="noopener">https://github.com/google/wire/blob/main/README.md</a></li>
+<li>Wire Documentation: <a href="https://pkg.go.dev/github.com/google/wire/internal/wire" target="_blank" rel="noopener">https://pkg.go.dev/github.com/google/wire/internal/wire</a></li>
+<li>Wire 源码: <a href="https://github.com/google/wire" target="_blank" rel="noopener">https://github.com/google/wire</a></li>
+<li>onex usercenter: <a href="https://github.com/superproj/onex/tree/master/internal/usercenter" target="_blank" rel="noopener">https://github.com/superproj/onex/tree/master/internal/usercenter</a></li>
+<li>Go Dependency Injection with Wire: <a href="https://blog.drewolson.org/go-dependency-injection-with-wire/" target="_blank" rel="noopener">https://blog.drewolson.org/go-dependency-injection-with-wire/</a></li>
+<li>Golang Dependency Injection Using Wire: <a href="https://clavinjune.dev/en/blogs/golang-dependency-injection-using-wire/" target="_blank" rel="noopener">https://clavinjune.dev/en/blogs/golang-dependency-injection-using-wire/</a></li>
+<li>Dependency Injection in Go using Wire: <a href="https://www.mohitkhare.com/blog/go-dependency-injection/" target="_blank" rel="noopener">https://www.mohitkhare.com/blog/go-dependency-injection/</a></li>
+<li>Wire 依赖注入: <a href="https://go-kratos.dev/docs/guide/wire/" target="_blank" rel="noopener">https://go-kratos.dev/docs/guide/wire/</a></li>
+<li>Dependency Injection with Dig: <a href="https://www.jetbrains.com/guide/go/tutorials/dependency_injection_part_one/di_with_dig/" target="_blank" rel="noopener">https://www.jetbrains.com/guide/go/tutorials/dependency_injection_part_one/di_with_dig/</a></li>
+<li>inject Documentation: <a href="https://pkg.go.dev/github.com/facebookgo/inject" target="_blank" rel="noopener">https://pkg.go.dev/github.com/facebookgo/inject</a></li>
+<li>Build Constraints: <a href="https://pkg.go.dev/go/build#hdr-Build_Constraints" target="_blank" rel="noopener">https://pkg.go.dev/go/build#hdr-Build_Constraints</a></li>
+<li>控制反转: <a href="https://zh.wikipedia.org/wiki/控制反转" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/控制反转</a></li>
+<li>依赖注入: <a href="https://zh.wikipedia.org/wiki/依赖注入" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/依赖注入</a></li>
+<li>SOLID (面向对象设计): <a href="https://zh.wikipedia.org/wiki/SOLID_(面向对象设计)" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/SOLID_(面向对象设计)</a></li>
+<li>设计模式之美 —— 19 | 理论五：控制反转、依赖反转、依赖注入，这三者有何区别和联系？: <a href="https://time.geekbang.org/column/article/177444" target="_blank" rel="noopener">https://time.geekbang.org/column/article/177444</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/wire" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/wire</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2024-06-12T23:55:34.875Z" itemprop="dateUpdated">2024-06-13 07:55:34</time>
+</span><br>
+
+
+        
+        <a href="/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/&title=《在 Go 中，如何优雅的使用 wire 依赖注入工具提高开发效率？》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/&title=《在 Go 中，如何优雅的使用 wire 依赖注入工具提高开发效率？》 — 江湖十年&source=如果你做过 Java 开发，那么想必一定听说或使用过依赖注入。依赖注入是一种软件设计模式，它允许将组件的依赖项外部化，从而使组件本身更加模块化和可测试。在..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中，如何优雅的使用 wire 依赖注入工具提高开发效率？》 — 江湖十年&url=http://www.jianghushinian.cn/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 中空结构体惯用法，我帮你总结全了！</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2024</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/&title=《在 Go 中，如何优雅的使用 wire 依赖注入工具提高开发效率？》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/&title=《在 Go 中，如何优雅的使用 wire 依赖注入工具提高开发效率？》 — 江湖十年&source=如果你做过 Java 开发，那么想必一定听说或使用过依赖注入。依赖注入是一种软件设计模式，它允许将组件的依赖项外部化，从而使组件本身更加模块化和可测试。在..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中，如何优雅的使用 wire 依赖注入工具提高开发效率？》 — 江湖十年&url=http://www.jianghushinian.cn/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
