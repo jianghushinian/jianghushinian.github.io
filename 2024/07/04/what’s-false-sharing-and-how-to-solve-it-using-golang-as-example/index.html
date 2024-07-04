@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>以 Go 语言为例解释什么是伪共享以及如何解决 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,翻译">
+    <meta name="description" content="本文翻译自：What’s false sharing and how to solve it (using Golang as example)  译文在解释伪共享（false sharing）之前，有必要简要介绍一下 CPU 架构中缓存是如何工作的。 CPU 缓存中的最小单位是缓存行（cache line）（如今，CPU 中常见的缓存行大小为 64 字节）。因此，当 CPU 从内存读取一个变量">
+<meta property="og:type" content="article">
+<meta property="og:title" content="以 Go 语言为例解释什么是伪共享以及如何解决">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="本文翻译自：What’s false sharing and how to solve it (using Golang as example)  译文在解释伪共享（false sharing）之前，有必要简要介绍一下 CPU 架构中缓存是如何工作的。 CPU 缓存中的最小单位是缓存行（cache line）（如今，CPU 中常见的缓存行大小为 64 字节）。因此，当 CPU 从内存读取一个变量">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/figure1.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/figure2.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/figure3.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/figure4.png">
+<meta property="article:published_time" content="2024-07-04T03:04:34.000Z">
+<meta property="article:modified_time" content="2024-07-04T03:43:38.978Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="翻译">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/figure1.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">以 Go 语言为例解释什么是伪共享以及如何解决</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">以 Go 语言为例解释什么是伪共享以及如何解决</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-07-04T03:04:34.000Z" itemprop="datePublished" class="page-time">
+  2024-07-04
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#译文"><span class="post-toc-number">1.</span> <span class="post-toc-text">译文</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#P-S"><span class="post-toc-number">2.</span> <span class="post-toc-text">P.S.</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-what’s-false-sharing-and-how-to-solve-it-using-golang-as-example"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">以 Go 语言为例解释什么是伪共享以及如何解决</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-07-04 11:04:34" datetime="2024-07-04T03:04:34.000Z"  itemprop="datePublished">2024-07-04</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <blockquote>
+<p>本文翻译自：<a href="https://medium.com/@genchilu/whats-false-sharing-and-how-to-solve-it-using-golang-as-example-ef978a305e10" target="_blank" rel="noopener">What’s false sharing and how to solve it (using Golang as example)</a></p>
+</blockquote>
+<h3 id="译文"><a href="#译文" class="headerlink" title="译文"></a>译文</h3><p>在解释<strong>伪共享（false sharing）</strong>之前，有必要简要介绍一下 CPU 架构中缓存是如何工作的。</p>
+<p>CPU 缓存中的最小单位是<strong>缓存行（cache line）</strong>（如今，CPU 中常见的缓存行大小为 64 字节）。因此，当 CPU 从内存读取一个变量时，它会同时读取该变量附近的所有变量。图 1 是一个简单的例子：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="figure1.png" alt="图 1" title="">
+                </div>
+                <div class="image-caption">图 1</div>
+            </figure>
+
+<p>当 <code>core1</code> 从内存读取变量 <code>a</code> 时，它会同时将变量 <code>b</code> 读入缓存。（顺便说一句，我认为 CPU 从内存批量读取变量的主要原因是基于<strong>空间局部性理论</strong>：当 CPU 访问一个变量时，它可能很快就会读取旁边的变量。）</p>
+<p>这种缓存架构存在一个问题：如果一个变量像图 2 那样存在于不同 CPU 核心的两个缓存行中：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="figure2.png" alt="图 2" title="">
+                </div>
+                <div class="image-caption">图 2</div>
+            </figure>
+
+<p>当 <code>core1</code> 更新变量 <code>a</code> 时：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="figure3.png" alt="图 3" title="">
+                </div>
+                <div class="image-caption">图 3</div>
+            </figure>
+
+<p>即使变量 <code>b</code> 没有被修改，它也会导致 <code>core2</code> 的缓存失效，因此 <code>core2</code> 将重新加载缓存行中的所有变量，如图 4 所示：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="figure4.png" alt="图 4" title="">
+                </div>
+                <div class="image-caption">图 4</div>
+            </figure>
+
+<p>这就是所谓的<strong>伪共享</strong>：一个核心更新一个变量会迫使其他核心也更新缓存。我们都知道，CPU 从缓存读取变量比从内存读取要快得多。因此，当这个变量总是存在于多核中时，这将显著影响性能。</p>
+<p>解决这个问题的常见方法是<strong>缓存填充（cache padding）</strong>：在变量之间填充一些无意义的变量。这将迫使一个变量单独占用一个核心的缓存行，所以当其他核心更新缓存变量时，不会使该核心从内存中重新加载变量。</p>
+<p>让我们使用下面的 Go 代码片段简要介绍这个伪共享的概念。</p>
+<p>这里是一个包含 3 个 <code>uint64</code> 的 Go 结构体，</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> NoPad <span class="keyword">struct</span> &#123;</span><br><span class="line">	a <span class="keyword">uint64</span></span><br><span class="line">	b <span class="keyword">uint64</span></span><br><span class="line">	c <span class="keyword">uint64</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(myatomic *NoPad)</span> <span class="title">IncreaseAllEles</span><span class="params">()</span></span> &#123;</span><br><span class="line">	atomic.AddUint64(&amp;myatomic.a, <span class="number">1</span>)</span><br><span class="line">	atomic.AddUint64(&amp;myatomic.b, <span class="number">1</span>)</span><br><span class="line">	atomic.AddUint64(&amp;myatomic.c, <span class="number">1</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>还有另一个我在变量之间添加了 <code>[8]uint64</code> 以进行填充的结构体：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Pad <span class="keyword">struct</span> &#123;</span><br><span class="line">	a   <span class="keyword">uint64</span></span><br><span class="line">	_p1 [<span class="number">8</span>]<span class="keyword">uint64</span></span><br><span class="line">	b   <span class="keyword">uint64</span></span><br><span class="line">	_p2 [<span class="number">8</span>]<span class="keyword">uint64</span></span><br><span class="line">	c   <span class="keyword">uint64</span></span><br><span class="line">	_p3 [<span class="number">8</span>]<span class="keyword">uint64</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(myatomic *Pad)</span> <span class="title">IncreaseAllEles</span><span class="params">()</span></span> &#123;</span><br><span class="line">	atomic.AddUint64(&amp;myatomic.a, <span class="number">1</span>)</span><br><span class="line">	atomic.AddUint64(&amp;myatomic.b, <span class="number">1</span>)</span><br><span class="line">	atomic.AddUint64(&amp;myatomic.c, <span class="number">1</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后我编写了一个简单的代码来运行基准测试：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">testAtomicIncrease</span><span class="params">(myatomic MyAtomic)</span></span> &#123;</span><br><span class="line">	paraNum := <span class="number">1000</span></span><br><span class="line">	addTimes := <span class="number">1000</span></span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">	wg.Add(paraNum)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; paraNum; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">for</span> j := <span class="number">0</span>; j &lt; addTimes; j++ &#123;</span><br><span class="line">				myatomic.IncreaseAllEles()</span><br><span class="line">			&#125;</span><br><span class="line">			wg.Done()</span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">BenchmarkNoPad</span><span class="params">(b *testing.B)</span></span> &#123;</span><br><span class="line">	myatomic := &amp;NoPad&#123;&#125;</span><br><span class="line">	b.ResetTimer()</span><br><span class="line">	testAtomicIncrease(myatomic)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">BenchmarkPad</span><span class="params">(b *testing.B)</span></span> &#123;</span><br><span class="line">	myatomic := &amp;Pad&#123;&#125;</span><br><span class="line">	b.ResetTimer()</span><br><span class="line">	testAtomicIncrease(myatomic)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在 2014 年的 MBA 上运行的基准测试如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$&gt; go <span class="built_in">test</span> -bench=.</span><br><span class="line">BenchmarkNoPad-4 2000000000 0.07 ns/op</span><br><span class="line">BenchmarkPad-4 2000000000 0.02 ns/op</span><br><span class="line">PASS</span><br><span class="line">ok 1.777s</span><br></pre></td></tr></table></figure>
+
+<p>基准测试的结果显示，性能从 <code>0.07 ns/op</code> 提高到了 <code>0.02 ns/op</code>，这是一个很大的改进。</p>
+<p>你也可以在其他语言（如 Java）中测试这一点，我相信你会得到相同的结果。</p>
+<p>在你将其应用到生产环境之前，你应该了解两个关键点：</p>
+<ol>
+<li>确保了解你系统中 CPU 的缓存行大小：这与你使用的缓存填充大小有关。</li>
+<li>填充更多变量意味着你将消耗更多的内存资源。运行基准测试并确保你的投入是值得的。</li>
+</ol>
+<p>我所有的示例代码都在 <a href="https://github.com/genchilu/concurrencyPractice/tree/master/golang/pad" target="_blank" rel="noopener">GitHub</a> 上。</p>
+<h3 id="P-S"><a href="#P-S" class="headerlink" title="P.S."></a>P.S.</h3><p>之所以选择翻译此文，是因为我正在写关于 Go 结构体内存对齐的文章，需要介绍「伪共享」这个概念，受限于篇幅所限，就决定针对伪共享这个概念单独写一篇文章。我在查阅资料过程中发现此文讲解浅显易懂，于是想着把此文翻译下共读者查阅。</p>
+<p>不过虽然这篇文章思路清晰易懂，但作者提供的基准测试代码并不够严谨，我在 2022 款 M2 芯片的 MBA 上测试得到如下结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -bench=. -v</span><br><span class="line">goos: darwin</span><br><span class="line">goarch: arm64</span><br><span class="line">pkg: <span class="literal">false</span>-sharing</span><br><span class="line">BenchmarkNoPad</span><br><span class="line">BenchmarkNoPad-8        1000000000               0.09618 ns/op</span><br><span class="line">BenchmarkPad</span><br><span class="line">BenchmarkPad-8          1000000000               0.1065 ns/op</span><br><span class="line">PASS</span><br><span class="line">ok      <span class="literal">false</span>-sharing      2.368s</span><br></pre></td></tr></table></figure>
+
+<p>跟作者的结果完全相反，哈哈😄。</p>
+<p>我们可以写一个简单的基准测试来验证使用 <code>cache padding</code> 来解决 <code>false sharing</code> 的效果：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"sync/atomic"</span></span><br><span class="line">	<span class="string">"testing"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">BenchmarkPadding</span><span class="params">(b *testing.B)</span></span> &#123;</span><br><span class="line">	b.Run(<span class="string">"without_padding"</span>, <span class="function"><span class="keyword">func</span><span class="params">(b *testing.B)</span></span> &#123;</span><br><span class="line">		nums := [<span class="number">128</span>]atomic.Int64&#123;&#125;</span><br><span class="line">		i := atomic.Int64&#123;&#125;</span><br><span class="line">		b.RunParallel(<span class="function"><span class="keyword">func</span><span class="params">(pb *testing.PB)</span></span> &#123;</span><br><span class="line">			id := i.Add(<span class="number">1</span>)</span><br><span class="line">			<span class="keyword">for</span> pb.Next() &#123;</span><br><span class="line">				nums[id].Add(<span class="number">1</span>)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;)</span><br><span class="line">	b.Run(<span class="string">"with_padding"</span>, <span class="function"><span class="keyword">func</span><span class="params">(b *testing.B)</span></span> &#123;</span><br><span class="line">		<span class="keyword">type</span> pad <span class="keyword">struct</span> &#123;</span><br><span class="line">			val atomic.Int64</span><br><span class="line">			_   [<span class="number">8</span>]<span class="keyword">uint64</span></span><br><span class="line">		&#125;</span><br><span class="line">		nums := [<span class="number">128</span>]pad&#123;&#125;</span><br><span class="line">		i := atomic.Int64&#123;&#125;</span><br><span class="line">		b.RunParallel(<span class="function"><span class="keyword">func</span><span class="params">(pb *testing.PB)</span></span> &#123;</span><br><span class="line">			id := i.Add(<span class="number">1</span>)</span><br><span class="line">			<span class="keyword">for</span> pb.Next() &#123;</span><br><span class="line">				nums[id].val.Add(<span class="number">1</span>)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>without_padding</code> 场景中，由于 <code>nums</code> 数组的元素可能共享相同的缓存行，多个 <code>goroutine</code> 同时修改相邻元素时会导致缓存行失效，从而降低性能。</p>
+<p>而在 <code>with_padding</code> 场景中，通过在高频访问的变量之间加入缓存填充 <code>_ [8]uint64</code>，使得每个元素都占据独立的缓存行，减少了这种缓存行的失效情况，预期能观察到性能的提升。</p>
+<p>执行基准测试代码，输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -bench=. -v</span><br><span class="line">goos: darwin</span><br><span class="line">goarch: arm64</span><br><span class="line">pkg: <span class="literal">false</span>-sharing</span><br><span class="line">BenchmarkPadding</span><br><span class="line">BenchmarkPadding/without_padding</span><br><span class="line">BenchmarkPadding/without_padding-8              55441728                22.09 ns/op</span><br><span class="line">BenchmarkPadding/with_padding</span><br><span class="line">BenchmarkPadding/with_padding-8                 1000000000               1.075 ns/op</span><br><span class="line">PASS</span><br><span class="line">ok      <span class="literal">false</span>-sharing      4.255s</span><br></pre></td></tr></table></figure>
+
+<p>基准测试的结果显示，性能从 <code>22.09 ns/op</code> 提高到了 <code>1.075 ns/op</code>。</p>
+<p>这段代码由原文评论区提供，你可以自行尝试验证。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>原文地址: <a href="https://medium.com/@genchilu/whats-false-sharing-and-how-to-solve-it-using-golang-as-example-ef978a305e10" target="_blank" rel="noopener">https://medium.com/@genchilu/whats-false-sharing-and-how-to-solve-it-using-golang-as-example-ef978a305e10</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2024-07-04T03:43:38.978Z" itemprop="dateUpdated">2024-07-04 11:43:38</time>
+</span><br>
+
+
+        
+        <a href="/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E7%BF%BB%E8%AF%91/" rel="tag">翻译</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/&title=《以 Go 语言为例解释什么是伪共享以及如何解决》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/&title=《以 Go 语言为例解释什么是伪共享以及如何解决》 — 江湖十年&source=互联网产品技术研究，软件开发" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《以 Go 语言为例解释什么是伪共享以及如何解决》 — 江湖十年&url=http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/06/27/how-to-check-for-an-empty-struct-in-go/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">在 Go 中如何检查结构体是否为空</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2024</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/&title=《以 Go 语言为例解释什么是伪共享以及如何解决》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/&title=《以 Go 语言为例解释什么是伪共享以及如何解决》 — 江湖十年&source=互联网产品技术研究，软件开发" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《以 Go 语言为例解释什么是伪共享以及如何解决》 — 江湖十年&url=http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/07/04/what%E2%80%99s-false-sharing-and-how-to-solve-it-using-golang-as-example/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
