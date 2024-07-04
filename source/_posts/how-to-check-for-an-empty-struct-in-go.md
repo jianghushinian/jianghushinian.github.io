@@ -8,7 +8,7 @@ categories:
 - Go
 ---
 
-本文翻译自：[How to Check for an Empty Struct in Go](https://freshman.tech/snippets/go/check-empty-struct/)。
+> 本文翻译自：[How to Check for an Empty Struct in Go](https://freshman.tech/snippets/go/check-empty-struct/)
 
 本文概述了几种在 Go 中判断结构体是否为空的方法，适用于具有**可比较字段**和**不可比较字段**的结构体。Go 中的空结构体是指所有字段均设置为对应字段零值的结构体。
 
