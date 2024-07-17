@@ -250,7 +250,7 @@ img {
 
 > `http/static/js/script.js`:
 
-```js
+```javascript
 window.onload = function () {
     let body = document.querySelector("body")
     body.style.background = "#f3f3f3";
@@ -520,6 +520,7 @@ ok      github.com/jianghushinian/blog-go-example/embed/test    0.505s
 > NOTE: `go list` 命令是一个强大的工具，用于列出当前模块中的包或者查询包的特定属性。此命令可以显示关于包的详细信息，这些信息对于理解包的结构和依赖非常有用。
 
 执行 `go help list` 命令，可以在输出中找到如下几条信息：
+
 ```
 // Embedded files
 EmbedPatterns      []string // //go:embed patterns
