@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Go 中如何使用反射实现简易版 encoding/json | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,JSON">
+    <meta name="description" content="在使用 Go 语言开发过程中，我们经常需要实现结构体到 JSON 字符串的序列化（Marshalling）或 JSON 字符串到结构体的反序列化（Unmarshalling）操作。Go 为我们提供了 encoding&#x2F;json 库可以很方便的实现这一需求。 在本文中，我们将探索如何使用 Go 的反射机制自己来实现一个简易版的 encoding&#x2F;json 库。这个过程不仅能帮助我们理解序列化和反序列">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Go 中如何使用反射实现简易版 encoding&#x2F;json">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/07/28/struct-encoding-json/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在使用 Go 语言开发过程中，我们经常需要实现结构体到 JSON 字符串的序列化（Marshalling）或 JSON 字符串到结构体的反序列化（Unmarshalling）操作。Go 为我们提供了 encoding&#x2F;json 库可以很方便的实现这一需求。 在本文中，我们将探索如何使用 Go 的反射机制自己来实现一个简易版的 encoding&#x2F;json 库。这个过程不仅能帮助我们理解序列化和反序列">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-07-28T01:37:41.000Z">
+<meta property="article:modified_time" content="2024-07-29T06:48:46.528Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="JSON">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Go 中如何使用反射实现简易版 encoding/json</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Go 中如何使用反射实现简易版 encoding/json</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-07-28T01:37:41.000Z" itemprop="datePublished" class="page-time">
+  2024-07-28
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#encoding-json"><span class="post-toc-number">1.</span> <span class="post-toc-text">encoding&#x2F;json</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#reflect-简介"><span class="post-toc-number">2.</span> <span class="post-toc-text">reflect 简介</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#reflect-Value-常用方法"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">reflect.Value 常用方法</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#reflect-Type-常用方法"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">reflect.Type 常用方法</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用-reflect-实现-encoding-json"><span class="post-toc-number">3.</span> <span class="post-toc-text">使用 reflect 实现 encoding&#x2F;json</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#序列化"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">序列化</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#反序列化"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">反序列化</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-struct-encoding-json"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Go 中如何使用反射实现简易版 encoding/json</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-07-28 09:37:41" datetime="2024-07-28T01:37:41.000Z"  itemprop="datePublished">2024-07-28</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在使用 Go 语言开发过程中，我们经常需要实现结构体到 JSON 字符串的序列化（Marshalling）或 JSON 字符串到结构体的反序列化（Unmarshalling）操作。Go 为我们提供了 <code>encoding/json</code> 库可以很方便的实现这一需求。</p>
+<p>在本文中，我们将探索如何使用 Go 的反射机制自己来实现一个简易版的 <code>encoding/json</code> 库。这个过程不仅能帮助我们理解序列化和反序列化的基本原理，还能提供一种实用的反射使用方法，加深我们对反射的理解。</p>
+<p>通过本文的学习，我们将实现一个能够将结构体转和 JSON 字符串互相转换的包。</p>
+<a id="more"></a>
+
+<h3 id="encoding-json"><a href="#encoding-json" class="headerlink" title="encoding/json"></a>encoding/json</h3><p>我们先来回顾下在 Go 中如何使用 <code>encoding/json</code> 库实现结构体转和 JSON 字符串互转。</p>
+<p>示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"encoding/json"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	Name  <span class="keyword">string</span> <span class="string">`json:"name"`</span></span><br><span class="line">	Age   <span class="keyword">int</span>    <span class="string">`json:"age"`</span></span><br><span class="line">	Email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	&#123;</span><br><span class="line">		user := User&#123;</span><br><span class="line">			Name:  <span class="string">"江湖十年"</span>,</span><br><span class="line">			Age:   <span class="number">20</span>,</span><br><span class="line">			Email: <span class="string">"jianghushinian007@outlook.com"</span>,</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		jsonData, err := json.Marshal(user)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(<span class="string">"Error marshal to JSON:"</span>, err)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		fmt.Printf(<span class="string">"JSON data: %s\n"</span>, jsonData)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	&#123;</span><br><span class="line">		jsonData := <span class="string">`&#123;"name": "江湖十年", "age": 20, "Email": "jianghushinian007@outlook.com"&#125;`</span></span><br><span class="line"></span><br><span class="line">		<span class="keyword">var</span> user User</span><br><span class="line">		err := json.Unmarshal([]<span class="keyword">byte</span>(jsonData), &amp;user)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(<span class="string">"Error unmarshal from JSON:"</span>, err)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		fmt.Printf(<span class="string">"User struct: %+v\n"</span>, user)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>示例程序中定义了一个 <code>User</code> 结构体，结构体包含三个字段，<code>Name</code>、<code>Age</code> 和 <code>Email</code>。</p>
+<p><code>encoding/json</code> 会根据结构体字段上的 JSON <code>Tag</code>（标签）进行序列化和反序列化。序列化时，JSON <code>Tag</code> 会作为 JSON 字符串的 <code>key</code>，字段值作为 JSON 字符串的 <code>value</code>。反序列化时，JSON 字符串的 <code>key</code> 所对应的值会被映射到具有同样 JSON <code>Tag</code> 的结构体字段上。</p>
+<p><code>Name</code> 字段的 JSON <code>Tag</code> 是 <code>name</code>，则对应的 JSON 字符串 <code>key</code> 为 <code>name</code>；<code>Age</code> 字段的 JSON <code>Tag</code> 是 <code>age</code>，则对应的 JSON 字符串 <code>key</code> 为 <code>age</code>；<code>Email</code> 字段没有 JSON <code>Tag</code>，则默认会使用 <code>Email</code> 作为对应的 JSON 字符串 <code>key</code>。</p>
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">JSON data: &#123;<span class="string">"name"</span>:<span class="string">"江湖十年"</span>,<span class="string">"age"</span>:20,<span class="string">"Email"</span>:<span class="string">"jianghushinian007@outlook.com"</span>&#125;</span><br><span class="line">User struct: &#123;Name:江湖十年 Age:20 Email:jianghushinian007@outlook.com&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="reflect-简介"><a href="#reflect-简介" class="headerlink" title="reflect 简介"></a>reflect 简介</h3><p><code>reflect</code> 是 Go 语言为我们提供的<strong>反射</strong>库，用于在<strong>运行时检查类型并操作对象</strong>。它是实现动态编程和元编程的基础，使程序能够在<strong>运行时获取类型信息并进行相应的操作</strong>。</p>
+<p>有如下示例代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"reflect"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	Name  <span class="keyword">string</span> <span class="string">`json:"name"`</span></span><br><span class="line">	Age   <span class="keyword">int</span>    <span class="string">`json:"age"`</span></span><br><span class="line">	Email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 内置类型</span></span><br><span class="line">	&#123;</span><br><span class="line">		age := <span class="number">20</span></span><br><span class="line"></span><br><span class="line">		val := reflect.ValueOf(age)</span><br><span class="line">		typ := reflect.TypeOf(age)</span><br><span class="line">		fmt.Println(val, typ)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 自定义结构体类型</span></span><br><span class="line">	&#123;</span><br><span class="line">		user := User&#123;</span><br><span class="line">			Name:  <span class="string">"江湖十年"</span>,</span><br><span class="line">			Age:   <span class="number">20</span>,</span><br><span class="line">			Email: <span class="string">"jianghushinian007@outlook.com"</span>,</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		val := reflect.ValueOf(user)</span><br><span class="line">		typ := reflect.TypeOf(user)</span><br><span class="line">		fmt.Println(val, typ)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">20 int</span><br><span class="line">&#123;江湖十年 20 jianghushinian007@outlook.com&#125; main.User</span><br></pre></td></tr></table></figure>
+
+<p><code>reflect</code> 最常用的两个方法分别是 <code>reflect.ValueOf</code> 和 <code>reflect.TypeOf</code>，它们分别返回 <code>reflect.Value</code> 和 <code>reflect.Type</code> 类型。这两个方法可以应用于任何类型对象（<code>any</code>）。</p>
+<ul>
+<li><p><code>reflect.Value</code>：表示一个 Go 值，它提供了一些方法，<strong>可以获取值的详细信息，也可以操作值</strong>，例如获取值的类型、设置值等。</p>
+</li>
+<li><p><code>reflect.Type</code>：表示一个 Go 类型，它提供了一些方法，<strong>可以获取类型的详细信息</strong>，例如类型的名称（<code>Name</code>）、种类（<code>Kind</code>，基本类型、结构体、切片等）。</p>
+</li>
+</ul>
+<p>接下来对 <code>reflect.Value</code> 和 <code>reflect.Type</code> 类型的常用方法进行介绍，以如下实例化 <code>User</code> 结构体指针作为被操作对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 实例化 User 结构体指针</span></span><br><span class="line">user := &amp;User&#123;</span><br><span class="line">	Name:  <span class="string">"江湖十年"</span>,</span><br><span class="line">	Age:   <span class="number">20</span>,</span><br><span class="line">	Email: <span class="string">"jianghushinian007@outlook.com"</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="reflect-Value-常用方法"><a href="#reflect-Value-常用方法" class="headerlink" title="reflect.Value 常用方法"></a>reflect.Value 常用方法</h4><p><code>reflect.Value</code> 提供了 <code>Kind</code> 方法可以获取对应的类型<code>类别</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 注意这里传递的是指针类型</span></span><br><span class="line">kind := reflect.ValueOf(user).Kind()</span><br><span class="line">fmt.Println(kind)</span><br><span class="line">kind = reflect.ValueOf(*user).Kind()</span><br><span class="line">fmt.Println(kind)</span><br><span class="line">kind = reflect.ValueOf(user).Elem().Kind()</span><br><span class="line">fmt.Println(kind)</span><br></pre></td></tr></table></figure>
+
+<p>这段示例代码将得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ptr</span><br><span class="line">struct</span><br><span class="line">struct</span><br></pre></td></tr></table></figure>
+
+<p>这里 <code>Kind</code> 方法返回的是 <code>User</code> 的底层类型 <code>struct</code>，以及 <code>ptr</code> 类型，<code>ptr</code> 代表指针类型。</p>
+<p>值得注意的是，如果传递给 <code>reflect.ValueOf</code> 的是指针类型（<code>user</code>），需要使用 <code>Elem</code> 方法获取指针指向的值；如果传递给 <code>reflect.ValueOf</code> 的是值类型（<code>*user</code>），则可以直接得到值。</p>
+<p>使用指针类型的好处是可以使用 <code>reflect.Value</code> 提供的 <code>Set&lt;Type&gt;</code> 方法直接修改 <code>user</code> 字段的值，稍后讲解。</p>
+<p><code>reflect.Value</code> 同样提供了 <code>Type</code> 方法，可以得到 <code>reflect.Type</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 以下二者等价</span></span><br><span class="line">tpy := reflect.ValueOf(user).Type()</span><br><span class="line">fmt.Println(tpy)</span><br><span class="line">tpy1 := reflect.TypeOf(user)</span><br><span class="line">fmt.Println(tpy1)</span><br><span class="line">fmt.Println(reflect.DeepEqual(tpy, tpy1))</span><br></pre></td></tr></table></figure>
+
+<p>这与 <code>reflect.TypeOf</code> 等价。</p>
+<p>这段示例代码将得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">*main.User</span><br><span class="line">*main.User</span><br><span class="line"><span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>我们有多种方式可以获取结构体值字段：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nameField := reflect.ValueOf(user).Elem().FieldByName(<span class="string">"Name"</span>)</span><br><span class="line">ageField := reflect.ValueOf(user).Elem().FieldByIndex([]<span class="keyword">int</span>&#123;<span class="number">1</span>&#125;)</span><br><span class="line">emailField := reflect.ValueOf(user).Elem().Field(<span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p><code>FieldByName</code> 方法可以通过字段名获取结构体字段。</p>
+</li>
+<li><p><code>FieldByIndex</code> 方法通过索引切片获取结构体字段。</p>
+</li>
+<li><p><code>Field</code> 方法通过索引获取结构体字段。</p>
+</li>
+</ul>
+<p>实际上 <code>FieldByIndex</code> 方法内部调用的也是 <code>Field</code> 方法。这里的索引是结构体字段按照顺序排序所在位置，即 <code>Name</code> 字段索引为 0，<code>Age</code> 字段索引为 1，<code>Email</code> 字段索引为 2。</p>
+<p>我们可以使用 <code>NumField</code> 获取结构体字段总个数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">numField := reflect.ValueOf(*user).NumField()</span><br><span class="line">fmt.Println(numField)</span><br></pre></td></tr></table></figure>
+
+<p>拿到结构体字段对象后，可以根据其具体类型获取对应值：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">fmt.Println(nameField.String())</span><br><span class="line">fmt.Println(ageField.Int())</span><br><span class="line">fmt.Println(emailField.String())</span><br></pre></td></tr></table></figure>
+
+<p>以上示例代码将得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">3</span><br><span class="line">江湖十年</span><br><span class="line">20</span><br><span class="line">jianghushinian007@outlook.com</span><br></pre></td></tr></table></figure>
+
+<p>因为我们传递给 <code>reflect.ValueOf</code> 函数的是 <code>User</code> 结构体指针，所以可以使用 <code>reflect.Value</code> 提供的 <code>Set&lt;Type&gt;</code> 方法设置结构体字段的值：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nameField.SetString(<span class="string">"jianghushinian"</span>)             <span class="comment">// 设置 Name 字段的值</span></span><br><span class="line">ageField.SetInt(<span class="number">18</span>)                               <span class="comment">// 设置 Age 字段的值</span></span><br><span class="line">emailField.SetString(<span class="string">"jianghushinian007@163.com"</span>) <span class="comment">// 设置 Email 字段的值</span></span><br></pre></td></tr></table></figure>
+
+<p>现在打印 <code>user</code> 对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fmt.Println(user)</span><br></pre></td></tr></table></figure>
+
+<p>得到输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&amp;&#123;jianghushinian 18 jianghushinian007@163.com&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果我们传递给 <code>reflect.ValueOf</code> 函数的不是 <code>User</code> 结构体指针，而是结构体对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nameField := reflect.ValueOf(*user).FieldByName(<span class="string">"Name"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>现在去设置字段值：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nameField.SetString(<span class="string">"jianghushinian"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>程序会直接 <code>panic</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">panic: reflect: reflect.Value.SetString using unaddressable value</span><br></pre></td></tr></table></figure>
+
+<p>此外，我们还可以总结一个规律，使用指针时，就需要通过 <code>Elem</code> 方法获取指针指向的值，不使用指针就不需要调用 <code>Elem</code> 方法。</p>
+<h4 id="reflect-Type-常用方法"><a href="#reflect-Type-常用方法" class="headerlink" title="reflect.Type 常用方法"></a>reflect.Type 常用方法</h4><p>现在我们再来简单介绍下 <code>reflect.Type</code> 的几个常用方法。</p>
+<p><code>reflect.Type</code> 同样提供了如下几个方法，与 <code>reflect.Value</code> 对应：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nameField, _ := reflect.TypeOf(user).Elem().FieldByName(<span class="string">"Name"</span>)</span><br><span class="line">ageField := reflect.TypeOf(user).Elem().FieldByIndex([]<span class="keyword">int</span>&#123;<span class="number">1</span>&#125;)</span><br><span class="line">emailField := reflect.TypeOf(user).Elem().Field(<span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+
+<p>我们来输出下这几个对象的值：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">fmt.Printf(<span class="string">"%+v\n"</span>, nameField)</span><br><span class="line">fmt.Printf(<span class="string">"%+v\n"</span>, ageField)</span><br><span class="line">fmt.Printf(<span class="string">"%+v\n"</span>, emailField)</span><br></pre></td></tr></table></figure>
+
+<p>得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;Name:Name PkgPath: Type:string Tag:json:<span class="string">"name"</span> Offset:0 Index:[0] Anonymous:<span class="literal">false</span>&#125;</span><br><span class="line">&#123;Name:Age PkgPath: Type:int Tag:json:<span class="string">"age"</span> Offset:16 Index:[1] Anonymous:<span class="literal">false</span>&#125;</span><br><span class="line">&#123;Name:Email PkgPath: Type:string Tag: Offset:24 Index:[2] Anonymous:<span class="literal">false</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里打印了结构体每个字段的信息。</p>
+<ul>
+<li><p><code>Name</code> 对应字段名。</p>
+</li>
+<li><p><code>PkgPath</code> 是包路径。</p>
+</li>
+<li><p><code>Type</code> 是结构体字段类型。</p>
+</li>
+<li><p><code>Tag</code> 即为字段标签。</p>
+</li>
+<li><p><code>Offset</code> 是字段偏移量。如果你不清楚什么是字段偏移量，可以参考我写的另一篇文章<a href="https://jianghushinian.cn/2024/07/07/do-you-understand-the-memory-alignment-of-structs-in-the-go/" target="_blank" rel="noopener">《Go 语言中的结构体内存对齐你了解吗？》</a>。</p>
+</li>
+<li><p><code>Index</code> 是字段索引位置。</p>
+</li>
+<li><p><code>Anonymous</code> 表示是否为匿名字段。比如如下结构体：</p>
+</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	Name  <span class="keyword">string</span> <span class="string">`json:"name"`</span></span><br><span class="line">	Age   <span class="keyword">int</span>    <span class="string">`json:"age"`</span></span><br><span class="line">	Email <span class="keyword">string</span></span><br><span class="line">	<span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个结构体定义中，最后一个字段就是匿名字段。</p>
+<p>现在我们想获取结构体字段 JSON <code>Tag</code>，可以这样做：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">tag := nameField.Tag</span><br><span class="line">fmt.Printf(<span class="string">"%+v\n"</span>, tag)</span><br><span class="line">fmt.Printf(<span class="string">"%+v\n"</span>, tag.Get(<span class="string">"json"</span>))</span><br></pre></td></tr></table></figure>
+
+<p>将得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">json:<span class="string">"name"</span></span><br><span class="line">name</span><br></pre></td></tr></table></figure>
+
+<p><code>reflect</code> 基础语法就讲解到这里，更多使用方法需要我们在以后的的实践中去探索。</p>
+<h3 id="使用-reflect-实现-encoding-json"><a href="#使用-reflect-实现-encoding-json" class="headerlink" title="使用 reflect 实现 encoding/json"></a>使用 reflect 实现 encoding/json</h3><p>接下来就看看，如何使用 <code>reflect</code> 自己实现一个简易版本的 <code>encoding/json</code>。</p>
+<p>示例程序目录结构如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ tree                    </span><br><span class="line">.</span><br><span class="line">├── encoding</span><br><span class="line">│   └── json</span><br><span class="line">│       ├── decode.go</span><br><span class="line">│       └── encode.go</span><br><span class="line">├── go.mod</span><br><span class="line">└── main.go</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p><code>encoding/json/encode.go</code> 用于实现序列化功能。</p>
+</li>
+<li><p><code>encoding/json/decode.go</code> 用于实现反序列化功能。</p>
+</li>
+<li><p><code>main.go</code> 用来验证这个简易版的 <code>encoding/json</code> 功能。</p>
+</li>
+</ul>
+<h4 id="序列化"><a href="#序列化" class="headerlink" title="序列化"></a>序列化</h4><p>首先是实现序列化的代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> json</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"reflect"</span></span><br><span class="line">	<span class="string">"strconv"</span></span><br><span class="line">	<span class="string">"strings"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Marshal 序列化</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Marshal</span><span class="params">(v any)</span> <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 拿到对象 v 的 reflect.Value 和 reflect.Type</span></span><br><span class="line">	val := reflect.ValueOf(v)</span><br><span class="line">	<span class="keyword">if</span> val.Kind() != reflect.Struct &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="string">""</span>, fmt.Errorf(<span class="string">"only structs are supported"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	typ := val.Type()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 用来保存 JSON 字符串</span></span><br><span class="line">	jsonBuilder := strings.Builder&#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// <span class="doctag">NOTE:</span> 三步走拼接 JSON 字符串</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 1. JSON 左花括号</span></span><br><span class="line">	jsonBuilder.WriteString(<span class="string">"&#123;"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 2. key/value</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; val.NumField(); i++ &#123;</span><br><span class="line">		fieldVal := val.Field(i)</span><br><span class="line">		fieldType := typ.Field(i)</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 获取 JSON 标签</span></span><br><span class="line">		tag := fieldType.Tag.Get(<span class="string">"json"</span>)</span><br><span class="line">		<span class="keyword">if</span> tag == <span class="string">""</span> &#123;</span><br><span class="line">			tag = fieldType.Name</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		jsonBuilder.WriteString(<span class="string">`"`</span> + tag + <span class="string">`":`</span>)</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 根据字段类型转换，仅支持 string/int</span></span><br><span class="line">		<span class="keyword">switch</span> fieldVal.Kind() &#123;</span><br><span class="line">		<span class="keyword">case</span> reflect.String:</span><br><span class="line">			jsonBuilder.WriteString(<span class="string">`"`</span> + fieldVal.String() + <span class="string">`"`</span>)</span><br><span class="line">		<span class="keyword">case</span> reflect.Int:</span><br><span class="line">			jsonBuilder.WriteString(strconv.FormatInt(fieldVal.Int(), <span class="number">10</span>))</span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">			<span class="keyword">return</span> <span class="string">""</span>, fmt.Errorf(<span class="string">"unsupported field type: %s"</span>, fieldVal.Kind())</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> i &lt; val.NumField()<span class="number">-1</span> &#123;</span><br><span class="line">			jsonBuilder.WriteString(<span class="string">","</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 3. JSON 右花括号</span></span><br><span class="line">	jsonBuilder.WriteString(<span class="string">"&#125;"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> jsonBuilder.String(), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码中没有新的 <code>reflect</code> 语法，我们都在前文中介绍了，这里捋一下代码逻辑。</p>
+<p>所谓序列化操作，就是 Go 结构体转 JSON 字符串的操作。</p>
+<p>这里函数名参考 <code>encoding/json</code> 同样被定义为 <code>Marshal</code>。</p>
+<p>首先我们拿到对象 <code>v</code> 的 <code>reflect.Value</code> 和 <code>reflect.Type</code>，待后续使用。</p>
+<p>接着使用 <code>strings.Builder</code> 构造了一个用来保存 JSON 字符串信息的对象 <code>jsonBuilder</code>。</p>
+<p>构造 JSON 字符串分三步走：</p>
+<ol>
+<li><p>先写入 JSON 左花括号 <code>{</code> 内容到 <code>jsonBuilder</code>。</p>
+</li>
+<li><p>根据结构体字段和值，构造 JSON 字符串的键值对 <code>key/value</code> 并写入 <code>jsonBuilder</code>。</p>
+</li>
+<li><p>最后写入 JSON 右花括号 <code>}</code> 内容到 <code>jsonBuilder</code>。</p>
+</li>
+</ol>
+<p>函数最终返回 <code>jsonBuilder.String()</code> 即为 JSON 字符串。</p>
+<p>这里面主要逻辑都在步骤 2 中。</p>
+<p>首先会遍历结构体每个字段，并使用如下方式获取每个字段对应的 JSON <code>Tag</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">tag := fieldType.Tag.Get(<span class="string">"json"</span>)</span><br><span class="line"><span class="keyword">if</span> tag == <span class="string">""</span> &#123;</span><br><span class="line">	tag = fieldType.Name</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当 JSON <code>Tag</code> 不存在，则默认使用结构体字段名作为 JSON 字符串的 <code>key</code>，比如 <code>User.Email</code> 字段。</p>
+<p>将 JSON <code>key</code> 和 <code>:</code> 写入 <code>jsonBuilder</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jsonBuilder.WriteString(<span class="string">`"`</span> + tag + <span class="string">`":`</span>)</span><br></pre></td></tr></table></figure>
+
+<p>然后根据结构体字段类型转换成对应的 JSON 数据类型，写入 <code>jsonBuilder</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> fieldVal.Kind() &#123;</span><br><span class="line"><span class="keyword">case</span> reflect.String:</span><br><span class="line">	jsonBuilder.WriteString(<span class="string">`"`</span> + fieldVal.String() + <span class="string">`"`</span>)</span><br><span class="line"><span class="keyword">case</span> reflect.Int:</span><br><span class="line">	jsonBuilder.WriteString(strconv.FormatInt(fieldVal.Int(), <span class="number">10</span>))</span><br><span class="line"><span class="keyword">default</span>:</span><br><span class="line">	<span class="keyword">return</span> <span class="string">""</span>, fmt.Errorf(<span class="string">"unsupported field type: %s"</span>, fieldVal.Kind())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>每次循环末尾，判断是否为结构体最后一个字段，如果不是，则写入分隔符 <code>,</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> i &lt; val.NumField()<span class="number">-1</span> &#123;</span><br><span class="line">	jsonBuilder.WriteString(<span class="string">","</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>至此，序列化代码逻辑大功告成。</p>
+<p>我们可以使用如下示例代码进行测试：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> simplejson <span class="string">"github.com/jianghushinian/blog-go-example/struct/encoding-json/encoding/json"</span></span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">user := User&#123;</span><br><span class="line">	Name:  <span class="string">"江湖十年"</span>,</span><br><span class="line">	Age:   <span class="number">20</span>,</span><br><span class="line">	Email: <span class="string">"jianghushinian007@outlook.com"</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">jsonData, err := simplejson.Marshal(user)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"Error marshal to JSON:"</span>, err)</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">fmt.Printf(<span class="string">"JSON data: %s\n"</span>, jsonData)</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">JSON data: &#123;<span class="string">"name"</span>:<span class="string">"江湖十年"</span>,<span class="string">"age"</span>:20,<span class="string">"Email"</span>:<span class="string">"jianghushinian007@outlook.com"</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>没有任何问题，与原生的 <code>encoding/json</code> 中的 <code>Marshal</code> 方法表现一致。</p>
+<h4 id="反序列化"><a href="#反序列化" class="headerlink" title="反序列化"></a>反序列化</h4><p>接下来是实现反序列化的代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> json</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"errors"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"reflect"</span></span><br><span class="line">	<span class="string">"strconv"</span></span><br><span class="line">	<span class="string">"strings"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Unmarshal 反序列化</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Unmarshal</span><span class="params">(data []<span class="keyword">byte</span>, v <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	parsedData, err := parseJSON(<span class="keyword">string</span>(data))</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	val := reflect.ValueOf(v).Elem()</span><br><span class="line">	typ := val.Type()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; val.NumField(); i++ &#123;</span><br><span class="line">		fieldVal := val.Field(i)</span><br><span class="line">		fieldType := typ.Field(i)</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 获取 JSON 标签</span></span><br><span class="line">		tag := fieldType.Tag.Get(<span class="string">"json"</span>)</span><br><span class="line">		<span class="keyword">if</span> tag == <span class="string">""</span> &#123;</span><br><span class="line">			tag = fieldType.Name</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 从解析的数据中获取值</span></span><br><span class="line">		<span class="keyword">if</span> value, ok := parsedData[tag]; ok &#123;</span><br><span class="line">			<span class="keyword">switch</span> fieldVal.Kind() &#123;</span><br><span class="line">			<span class="keyword">case</span> reflect.String:</span><br><span class="line">				fieldVal.SetString(value)</span><br><span class="line">			<span class="keyword">case</span> reflect.Int:</span><br><span class="line">				intValue, err := strconv.Atoi(value)</span><br><span class="line">				<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">					<span class="keyword">return</span> err</span><br><span class="line">				&#125;</span><br><span class="line">				fieldVal.SetInt(<span class="keyword">int64</span>(intValue))</span><br><span class="line">			<span class="keyword">default</span>:</span><br><span class="line">				<span class="keyword">return</span> fmt.Errorf(<span class="string">"unsupported field type: %s"</span>, fieldVal.Kind())</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码中同样没有新的 <code>reflect</code> 语法。</p>
+<p>所谓反序列化操作，就是 JSON 字符串转 Go 结构体的操作。</p>
+<p>这里函数名参考 <code>encoding/json</code> 同样被定义为 <code>Unmarshal</code>，并且函数签名也保持一致。</p>
+<p>反序列化操作首先使用 <code>parseJSON</code> 函数解析传递进来的 JSON 数据，得到 <code>parsedData</code>。</p>
+<p><code>parsedData</code> 类型为 <code>map[string]string</code>，<code>map</code> 的 <code>key</code> 为 JSON 字符串中的 <code>key</code>，<code>map</code> 的 <code>value</code> 即为 JSON 字符串中的 <code>value</code>。</p>
+<p>接下来核心逻辑是遍历结构体每个字段，并获取字段对应的 JSON <code>Tag</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">tag := fieldType.Tag.Get(<span class="string">"json"</span>)</span><br><span class="line"><span class="keyword">if</span> tag == <span class="string">""</span> &#123;</span><br><span class="line">	tag = fieldType.Name</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当 JSON <code>Tag</code> 不存在，则默认使用结构体字段名作为 JSON 字符串的 <code>key</code>，比如 <code>User.Email</code> 字段。</p>
+<p>然后根据 JSON <code>Tag</code> 从解析后的 <code>parsedData</code> 数据中获取 <code>key/value</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> value, ok := parsedData[tag]; ok &#123;</span><br><span class="line">	<span class="keyword">switch</span> fieldVal.Kind() &#123;</span><br><span class="line">	<span class="keyword">case</span> reflect.String:</span><br><span class="line">		fieldVal.SetString(value)</span><br><span class="line">	<span class="keyword">case</span> reflect.Int:</span><br><span class="line">		intValue, err := strconv.Atoi(value)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		fieldVal.SetInt(<span class="keyword">int64</span>(intValue))</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"unsupported field type: %s"</span>, fieldVal.Kind())</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里根据结构体字段的类型，将 <code>parsedData</code> 中对应的字符串 <code>value</code> 转换成对应类型。并使用 <code>reflect.Value</code> 提供的 <code>SetString</code> 和 <code>SetInt</code> 方法设置字段的值。</p>
+<p>现在，我们唯一没有讲解的逻辑就只剩下 <code>parseJSON</code> 函数了。</p>
+<p><code>parseJSON</code> 函数定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 简易版 JSON 解析器，仅支持 string/int 且不考虑嵌套</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">parseJSON</span><span class="params">(data <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">	result := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>)</span><br><span class="line"></span><br><span class="line">	data = strings.TrimSpace(data)</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(data) &lt; <span class="number">2</span> || data[<span class="number">0</span>] != <span class="string">'&#123;'</span> || data[<span class="built_in">len</span>(data)<span class="number">-1</span>] != <span class="string">'&#125;'</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">"invalid JSON"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	data = data[<span class="number">1</span> : <span class="built_in">len</span>(data)<span class="number">-1</span>]</span><br><span class="line">	parts := strings.Split(data, <span class="string">","</span>)</span><br><span class="line">	<span class="keyword">for</span> _, part := <span class="keyword">range</span> parts &#123;</span><br><span class="line">		kv := strings.SplitN(part, <span class="string">":"</span>, <span class="number">2</span>)</span><br><span class="line">		<span class="keyword">if</span> <span class="built_in">len</span>(kv) != <span class="number">2</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">"invalid JSON"</span>)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		k := strings.Trim(strings.TrimSpace(kv[<span class="number">0</span>]), <span class="string">`"`</span>)</span><br><span class="line">		v := strings.Trim(strings.TrimSpace(kv[<span class="number">1</span>]), <span class="string">`"`</span>)</span><br><span class="line"></span><br><span class="line">		result[k] = v</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> result, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>parseJSON</code> 实现了一个简易版本的 JSON 字符串解析器，能够将 JSON 字符串的 <code>key/value</code> 解析出来，并保存到 <code>map[string]string</code> 中。</p>
+<p>我们可以使用如下示例代码进行测试 <code>Unmarshal</code> 代码逻辑是否正确：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> simplejson <span class="string">"github.com/jianghushinian/blog-go-example/struct/encoding-json/encoding/json"</span></span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">jsonData := <span class="string">`&#123;"name": "江湖十年", "age": 20, "Email": "jianghushinian007@outlook.com"&#125;`</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> user User</span><br><span class="line">err := simplejson.Unmarshal([]<span class="keyword">byte</span>(jsonData), &amp;user)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"Error unmarshal from JSON:"</span>, err)</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">fmt.Printf(<span class="string">"User struct: %+v\n"</span>, user)</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">User struct: &#123;Name:江湖十年 Age:20 Email:jianghushinian007@outlook.com&#125;</span><br></pre></td></tr></table></figure>
+
+<p>没有任何问题，与原生的 <code>encoding/json</code> 中的 <code>Unmarshal</code> 方法表现一致。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><code>reflect</code> 是 Go 语言为我们提供的反射库，用于在运行时检查类型并操作对象。</p>
+<p><code>reflect</code> 最常用的两个方法分别是 <code>reflect.ValueOf</code> 和 <code>reflect.TypeOf</code>，调用这两个方法分别可以得到 <code>reflect.Value</code> 和 <code>reflect.Type</code> 类型。</p>
+<p>有了这两个类型及其方法，我们可以获取任意一个 Go 对象的类型信息、值的详细信息和操作值，可见反射之强大。</p>
+<p>本文使用 <code>reflect</code> 反射包实现了一个简易版本的 <code>encoding/json</code>。</p>
+<p>虽然是简易版本，很多 <code>case</code> 和异常都没有考虑，但这足够我们学习 <code>encoding/json</code> 原理了，并且这也是一个很好的 <code>reflect</code> 实践应用。</p>
+<p>不过话虽如此，对于何时使用反射，我的观点是：反射固然强大，有了它我们的代码足够灵活，但是过度使用反射会让代码变得复杂且混乱。所以非必要，尽量不要使用反射。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/struct/encoding-json" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li><a href="mailto:reflect@go1.22.5">reflect@go1.22.5</a> Documentation：<a href="https://pkg.go.dev/reflect@go1.22.5" target="_blank" rel="noopener">https://pkg.go.dev/reflect@go1.22.5</a></li>
+<li>encoding/json@go1.22.5 Documentation：<a href="https://pkg.go.dev/encoding/json@go1.22.5" target="_blank" rel="noopener">https://pkg.go.dev/encoding/json@go1.22.5</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/struct/encoding-json" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/struct/encoding-json</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2024-07-29T06:48:46.528Z" itemprop="dateUpdated">2024-07-29 14:48:46</time>
+</span><br>
+
+
+        
+        <a href="/2024/07/28/struct-encoding-json/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/07/28/struct-encoding-json/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/JSON/" rel="tag">JSON</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/07/28/struct-encoding-json/&title=《在 Go 中如何使用反射实现简易版 encoding/json》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/07/28/struct-encoding-json/&title=《在 Go 中如何使用反射实现简易版 encoding/json》 — 江湖十年&source=在使用 Go 语言开发过程中，我们经常需要实现结构体到 JSON 字符串的序列化（Marshalling）或 JSON 字符串到结构体的反序列化（Unma..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/07/28/struct-encoding-json/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中如何使用反射实现简易版 encoding/json》 — 江湖十年&url=http://www.jianghushinian.cn/2024/07/28/struct-encoding-json/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/07/28/struct-encoding-json/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/07/20/chinese-copywriting-guidelines/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">中文文案排版指北</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2024</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/07/28/struct-encoding-json/&title=《在 Go 中如何使用反射实现简易版 encoding/json》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/07/28/struct-encoding-json/&title=《在 Go 中如何使用反射实现简易版 encoding/json》 — 江湖十年&source=在使用 Go 语言开发过程中，我们经常需要实现结构体到 JSON 字符串的序列化（Marshalling）或 JSON 字符串到结构体的反序列化（Unma..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/07/28/struct-encoding-json/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中如何使用反射实现简易版 encoding/json》 — 江湖十年&url=http://www.jianghushinian.cn/2024/07/28/struct-encoding-json/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/07/28/struct-encoding-json/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/07/28/struct-encoding-json/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
