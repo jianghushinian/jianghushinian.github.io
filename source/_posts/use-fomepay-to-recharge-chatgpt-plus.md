@@ -7,6 +7,8 @@ categories:
 - ChatGPT
 ---
 
+# 2024/08/14 更新：FOMEPay 疑似跑路，不要再使用了！
+
 今天我来为大家介绍一种充值 ChatGPT Plus 的新渠道 FOMEPay，亲测有效。之所以选择使用 FOMEPay，是因为它有很多优势：
 
 - 注册方便，仅需手机号即可完成注册。
