@@ -7,6 +7,8 @@ categories:
 - Midjourney
 ---
 
+# 2024/08/15 更新：请移步新的方式：「[ChatGPT4 充值渠道 FOMEPay 跑路？我找来了替代方案：WildCard！](https://jianghushinian.cn/2024/08/15/chatgpt-plus-wildcard/)」
+
 # 2024/08/14 更新：FOMEPay 疑似跑路，不要再使用了！
 
 今天我来为大家介绍一种订阅 Midjourney 的方法，使用 FOMEPay，亲测有效。之所以选择使用 FOMEPay，是因为它有很多优势：
