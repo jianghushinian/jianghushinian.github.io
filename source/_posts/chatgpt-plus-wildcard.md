@@ -47,7 +47,7 @@ FOMEPay 是我一直在使用的充值 ChatGPT Plus 首选渠道，已经稳定�
 
 #### WildCard 注册
 
-[WildCard](https://wildcard.com.cn/i/JIANGHU) 是邀请制注册，可输入我的邀请码 **JIANGHU**，或者直接点击我的邀请链接 https://bewildcard.com/i/JIANGHU。
+[WildCard](https://wildcard.com.cn/i/JIANGHU) 是邀请制注册，可输入我的邀请码 **JIANGHU**，或者直接点击我的邀请链接 https://bewildcard.com/i/JIANGHU 。
 
 注册成功即可开卡使用，首次开卡费 $11.99，**不过你通过我的邀请码注册可以减少 $1.00，即开卡费为 $10.99，下次开卡费用降至 $9.99**。
 
