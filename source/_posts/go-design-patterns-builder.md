@@ -578,8 +578,6 @@ adminMiddleware := NewRBACMiddlewareBuilder().
 
 此外，其实使用 Options 模式也可以实现这个 `RBACMiddleware`。Builder 模式与 Options 模式最大的区别就是 Options 模式不能链式调用，不过却可以支持任意数量的参数。你可以自行尝试实现一下，对比下与 Builder 模式的区别。不过，如果你懒得实现，也可以参考 [我实现的版本](https://github.com/jianghushinian/blog-go-example/tree/main/design-patterns/builder/middleware/middleware/options)。
 
-
-
 ### 总结
 
 Builder 模式是一种创建型模式，可以用来创建对象。
