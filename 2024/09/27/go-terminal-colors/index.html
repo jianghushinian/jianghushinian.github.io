@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>厌倦了黑底白字？用 Go 给终端点颜色瞧瞧！ | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,Terminal">
+    <meta name="description" content="如果你每天都在使用终端，想必无法忍受终端永远都是黑白两种配色。如果你不知道终端中各种花哨的颜色是如何输出的，那么本文就来帮你解答。 而如果你恰巧在使用 Go 语言，那么你将在一分钟内学会使用 Go 语言在终端中输出彩色字符。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="厌倦了黑底白字？用 Go 给终端点颜色瞧瞧！">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="如果你每天都在使用终端，想必无法忍受终端永远都是黑白两种配色。如果你不知道终端中各种花哨的颜色是如何输出的，那么本文就来帮你解答。 而如果你恰巧在使用 Go 语言，那么你将在一分钟内学会使用 Go 语言在终端中输出彩色字符。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/colors-in-terminal.jpg">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/standard-colors.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/mix-and-reuse-colors.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/use-your-own-output.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/use-your-own-output-content.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/insert-into-noncolor-strings.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/plug-into-existing-code.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/lscolor.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/blue.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/reset.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/use-your-own-output-content.png">
+<meta property="article:published_time" content="2024-09-27T11:45:30.000Z">
+<meta property="article:modified_time" content="2024-09-28T03:18:54.492Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="Terminal">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/colors-in-terminal.jpg">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">厌倦了黑底白字？用 Go 给终端点颜色瞧瞧！</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">厌倦了黑底白字？用 Go 给终端点颜色瞧瞧！</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-09-27T11:45:30.000Z" itemprop="datePublished" class="page-time">
+  2024-09-27
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#给终端加点颜色"><span class="post-toc-number">1.</span> <span class="post-toc-text">给终端加点颜色</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#终端输出彩色字符原理解析"><span class="post-toc-number">2.</span> <span class="post-toc-text">终端输出彩色字符原理解析</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">3.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go-terminal-colors"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">厌倦了黑底白字？用 Go 给终端点颜色瞧瞧！</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-09-27 19:45:30" datetime="2024-09-27T11:45:30.000Z"  itemprop="datePublished">2024-09-27</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>如果你每天都在使用终端，想必无法忍受终端永远都是黑白两种配色。如果你不知道终端中各种花哨的颜色是如何输出的，那么本文就来帮你解答。</p>
+<p>而如果你恰巧在使用 Go 语言，那么你将在一分钟内学会使用 Go 语言在终端中输出彩色字符。</p>
+<a id="more"></a>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="colors-in-terminal.jpg" alt="Colors in terminal" title="">
+                </div>
+                <div class="image-caption">Colors in terminal</div>
+            </figure>
+
+<p>废话不多说，我们开始吧。</p>
+<h3 id="给终端加点颜色"><a href="#给终端加点颜色" class="headerlink" title="给终端加点颜色"></a>给终端加点颜色</h3><p>Go 社区中有一个叫 <a href="https://github.com/fatih/color" target="_blank" rel="noopener">fatih/color</a> 的包，可以非常方便的为输出的字符添加颜色。并且这个库用法非常简单，我来带你极速上手。</p>
+<p>示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"github.com/fatih/color"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	color.Cyan(<span class="string">"Prints text in cyan."</span>)</span><br><span class="line">	color.Blue(<span class="string">"Prints %s in blue."</span>, <span class="string">"text"</span>)</span><br><span class="line">	color.Red(<span class="string">"Prints text in red."</span>)</span><br><span class="line">	color.Magenta(<span class="string">"And many others..."</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到以下输出：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="standard-colors.png" alt="Standard colors" title="">
+                </div>
+                <div class="image-caption">Standard colors</div>
+            </figure>
+
+<p>没错，就是这么简单！</p>
+<p>导入第三方包 <code>fatih/color</code>，使用 <code>color.Blue</code> 输出蓝色，然后使用 <code>color.Red</code> 输出红色。</p>
+<p>现在你已经学会了使用 Go 语言在终端中输出彩色字符 :)。</p>
+<p>当然，<code>fatih/color</code> 还有更多玩法。它不仅能改变输出字符颜色，还能<strong>同时</strong>给字符设置一些其他属性，比如字体加粗、下划线等。</p>
+<p>示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个 color 对象，输出效果：蓝绿色 + 下划线</span></span><br><span class="line">c := color.New(color.FgCyan).Add(color.Underline)</span><br><span class="line">c.Println(<span class="string">"Prints cyan text with an underline."</span>) <span class="comment">// 注意 Println 输出自动加换行</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 输出效果：蓝绿色 + 加粗</span></span><br><span class="line">d := color.New(color.FgCyan, color.Bold)</span><br><span class="line">d.Printf(<span class="string">"This prints bold cyan %s\n"</span>, <span class="string">"too!."</span>) <span class="comment">// 注意 Printf 需要手动加换行</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 输出效果：红色 + 白色背景</span></span><br><span class="line">red := color.New(color.FgRed)</span><br><span class="line">whiteBackground := red.Add(color.BgWhite)</span><br><span class="line">whiteBackground.Println(<span class="string">"Red text with white background."</span>)</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到以下输出：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="mix-and-reuse-colors.png" alt="Mix and reuse colors" title="">
+                </div>
+                <div class="image-caption">Mix and reuse colors</div>
+            </figure>
+
+<p>我们也可以将内容输出到任何 <code>io.Writer</code> 对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">f, _ := os.OpenFile(<span class="string">"output.log"</span>, os.O_APPEND|os.O_CREATE|os.O_WRONLY, <span class="number">0644</span>)</span><br><span class="line"></span><br><span class="line">color.New(color.FgBlue).Fprintln(f, <span class="string">"blue color!"</span>)</span><br><span class="line"></span><br><span class="line">blue := color.New(color.FgBlue)</span><br><span class="line">blue.Fprint(f, <span class="string">"This will print text in blue.\n"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>这里将 <code>color</code> 对象的输出内容直接写入文件。</p>
+<p>执行示例代码，得到以下输出：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="use-your-own-output.png" alt="Use your own output" title="">
+                </div>
+                <div class="image-caption">Use your own output</div>
+            </figure>
+
+<p>可以使用 <code>vim</code> 打开 <code>output.log</code> 查看文件内容如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="use-your-own-output-content.png" alt="output.log" title="">
+                </div>
+                <div class="image-caption">output.log</div>
+            </figure>
+
+<blockquote>
+<p>NOTE:<br>至于文件内容为什么长这样，稍后分析。</p>
+</blockquote>
+<p><code>fatih/color</code> 还支持混合输出普通字符和带颜色的字符：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 输出效果：普通文本 + 黄色 warning + 红色 error</span></span><br><span class="line">yellow := color.New(color.FgYellow).SprintFunc()</span><br><span class="line">red := color.New(color.FgRed).SprintFunc()</span><br><span class="line">fmt.Printf(<span class="string">"This is a %s and this is %s.\n"</span>, yellow(<span class="string">"warning"</span>), red(<span class="string">"error"</span>))</span><br><span class="line"></span><br><span class="line"><span class="comment">// 模拟输出日志内容</span></span><br><span class="line">fmt.Println(color.GreenString(<span class="string">"Info:"</span>), <span class="string">"a info log message"</span>)</span><br><span class="line">fmt.Printf(<span class="string">"%v: %v\n"</span>, color.RedString(<span class="string">"Warn"</span>), <span class="string">"a warning log message"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到以下输出：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="insert-into-noncolor-strings.png" alt="Insert into noncolor strings" title="">
+                </div>
+                <div class="image-caption">Insert into noncolor strings</div>
+            </figure>
+
+<p>最后，我们可以在不修改原来的 <code>fmt.PrintX</code> 代码的情况下，改变其输出内容属性：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 修改标准输出</span></span><br><span class="line">color.Set(color.FgYellow)</span><br><span class="line">fmt.Println(<span class="string">"Existing text will now be in yellow"</span>)</span><br><span class="line">fmt.Printf(<span class="string">"This one %s\n"</span>, <span class="string">"too"</span>)</span><br><span class="line">color.Unset() <span class="comment">// 恢复设置</span></span><br><span class="line">fmt.Println(<span class="string">"This is normal text"</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 在函数中使用</span></span><br><span class="line">	color.Set(color.FgMagenta, color.Bold)</span><br><span class="line">	<span class="keyword">defer</span> color.Unset()</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">"All text will now be bold magenta."</span>)</span><br><span class="line">&#125;()</span><br><span class="line">fmt.Println(<span class="string">"This is normal text too"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到以下输出：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="plug-into-existing-code.png" alt="Plug into existing code" title="">
+                </div>
+                <div class="image-caption">Plug into existing code</div>
+            </figure>
+
+<p><code>fatih/color</code> 更多用法，可以参考官方 <a href="https://github.com/fatih/color" target="_blank" rel="noopener">README.md</a>。</p>
+<p>现在我们对 <code>fatih/color</code> 进行一个小实战，用 <a href="github.com/spf13/cobra">Cobra</a> 写一个命令行 demo 程序 <code>lscolor</code>。它模仿 Linux 的 <code>ls</code> 命令，对目录或文件输出不同颜色。</p>
+<p>代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/fatih/color"</span></span><br><span class="line">	<span class="string">"github.com/spf13/cobra"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> rootCmd = &amp;cobra.Command&#123;</span><br><span class="line">	Use:   <span class="string">"lscolor"</span>,</span><br><span class="line">	Short: <span class="string">"lscolor lists files and directories with colors"</span>,</span><br><span class="line">	Args:  cobra.MaximumNArgs(<span class="number">1</span>), <span class="comment">// 允许零个或一个参数</span></span><br><span class="line">	Run:   run,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">run</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	dir := <span class="string">"."</span> <span class="comment">// 默认使用当前目录</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(args) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		dir = args[<span class="number">0</span>] <span class="comment">// 如果提供了参数，则使用该参数</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 获取当前目录的文件和子目录</span></span><br><span class="line">	entries, err := os.ReadDir(dir)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		color.Red(<span class="string">"error reading directory: %s"</span>, err)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 遍历并输出每个条目</span></span><br><span class="line">	<span class="keyword">for</span> _, entry := <span class="keyword">range</span> entries &#123;</span><br><span class="line">		<span class="keyword">if</span> entry.IsDir() &#123;</span><br><span class="line">			color.Cyan(entry.Name()) <span class="comment">// 目录用蓝绿色</span></span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			color.White(entry.Name()) <span class="comment">// 文件用白色</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err := rootCmd.Execute(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Println(err)</span><br><span class="line">		os.Exit(<span class="number">1</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>NOTE:<br>如果你对 <a href="github.com/spf13/cobra">Cobra</a> 不熟悉，可以参考我的另一篇文章：<a href="https://jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details/" target="_blank" rel="noopener">《Go 语言现代命令行框架 Cobra 详解》</a>。</p>
+</blockquote>
+<p>执行示例代码，得到以下输出：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="lscolor.png" alt="lscolor" title="">
+                </div>
+                <div class="image-caption">lscolor</div>
+            </figure>
+
+<p>现在，你已经掌握了使用 <code>fatih/color</code> 在终端输出彩色字符，如果你对终端输出彩色字符的原理感兴趣，不妨接着往下看。</p>
+<h3 id="终端输出彩色字符原理解析"><a href="#终端输出彩色字符原理解析" class="headerlink" title="终端输出彩色字符原理解析"></a>终端输出彩色字符原理解析</h3><p>我们知道，键盘中的每一个键都在 <a href="https://zh.wikipedia.org/wiki/ASCII" target="_blank" rel="noopener">ASCII</a> 表中。比如字母 <code>A</code> 在 ASCII 表中对应的数字为 <code>65</code>，字母 <code>B</code> 在 ASCII 表中对应的数字为 <code>66</code>。像这些字符，叫「可显示字符」，输出到终端是可以被我们看见的。</p>
+<p>ASCII 表中还定义了一些不可显示的字符，它们是 ASCII 表中 <code>0~31</code> 以及 <code>127</code> 这些数字，也叫「控制字符」。</p>
+<p>比如经典的「回车」和「换行」字符，<code>CR</code>（Carriage Return） 代表回车，<code>LF</code>（Line Feed）代表换行。因为它们无法显示，通常在文件传输等场景，需要对其进行转义，所以它们都有对应的<a href="https://zh.wikipedia.org/wiki/转义字符" target="_blank" rel="noopener">转义字符</a>。<code>CR</code> 的转义字符是 <code>\r</code>，<code>LF</code> 转义字符是 <code>\n</code>。<code>CR</code> 在 ASCII 表中对应的数字为 <code>13</code>，<code>LF</code> 在 ASCII 表中对应的数字为 <code>10</code>。</p>
+<p>控制字符很好用，可以控制终端的各种属性。但现有的控制字符还是太少了，有些需求无法满足，比如给终端输出的文字加上颜色。因此就有了可以使用<a href="https://zh.wikipedia.org/wiki/转义序列" target="_blank" rel="noopener">转义序列</a>来控制终端属性的方法。</p>
+<p>以转义字符开头的字符序列被叫做转义序列，所以转义序列通常由转义字符后跟普通字符序列组成。转义字符 + 几个普通字符组成的转义序列就能作为一个控制字符。</p>
+<p>终端在收到转义符时，会把其后面的紧挨着几个字符当作指令来解析，这样就能实现相应的控制。此外，我们还需要一个表示转义序列结束的标志，转义序列结束后，可以紧挨着普通的文本字符。终端在识别出有效的转义序列结束后，会执行控制命令，随后打印所接收到的普通字符。</p>
+<p>铺垫了这么多，是时候来讲解终端是如何输出彩色字符的了。</p>
+<p>一个控制终端输出颜色的转义序列长这样：<code>\e[34;4m</code>。</p>
+<p>其中，<code>\e</code> 很显然是一个转义字符，表示 <code>ESC</code> 键。<code>ESC</code> 在 ASCII 表中对应的数字为 <code>27</code>，十六进制是 <code>0x1B</code>，八进制是 <code>033</code>，所以 <code>\e</code>、<code>\0x1B</code>、<code>\033</code> 写法都是等价的。</p>
+<p><code>ESC</code> + <code>[</code> 表示控制序列导入器（Control Sequence Introducer），简称 <code>CSI</code>，这是由 <a href="https://zh.wikipedia.org/wiki/ANSI转义序列" target="_blank" rel="noopener">ANSI转义序列</a> 规定的。所以 <code>\e[</code> 就表示这是一个控制序列，告诉终端控制序列开始了，接下来几个字符不要当作普通字符输出，要作为指令来解析。</p>
+<p><code>34;4</code> 都是普通字符，但是在这里，它们是指令。<code>;</code> 是一个分隔符，用来分隔多个指令，<code>34</code> 代表红色，<code>4</code> 代表下划线。这个指令的完整格式是 <code>[&lt;PREFIX&gt;];[&lt;COLOR&gt;];[&lt;TEXT DECORATION&gt;]</code>，即 <code>前缀;颜色;文本装饰</code>，每个指令之间使用 <code>;</code> 分隔，每个指令都可以省略，显然这里省略了 <code>PREFIX</code> 指令。</p>
+<p>最后的字符 <code>m</code> 想必你已经猜到了，没错，它就是控制序列结束的标志。</p>
+<p>所以 <code>\e[34;4m</code> 就表示：输出蓝色并且带有下划线。</p>
+<p>我们可以执行 <code>echo -e &#39;\033[34;4mHello&#39;</code> 命令尝试一下，看看结果：</p>
+<blockquote>
+<p>NOTE:<br><code>echo</code> 的 <code>-e</code> 标志表示开启转义，否则只会当作普通文本解析。</p>
+</blockquote>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="blue.png" alt="Blue" title="">
+                </div>
+                <div class="image-caption">Blue</div>
+            </figure>
+
+<p>指令生效了。细心的你一定发现了问题，就是接下来的所有输出都变成了蓝色 + 下划线，如何还原呢？</p>
+<p>我们可以使用 <code>\e[0m</code> 指令，它表示重置所有属性。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="reset.png" alt="Reset" title="">
+                </div>
+                <div class="image-caption">Reset</div>
+            </figure>
+
+<p>现在，回过头去看看我们使用 <code>fatih/color</code> 写的示例代码，你是不是能大概猜测到它是怎么实现的。</p>
+<p>还记得 <code>output.log</code> 文件内容吗？</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="use-your-own-output-content.png" alt="output.log" title="">
+                </div>
+                <div class="image-caption">output.log</div>
+            </figure>
+
+<p>在 <a href="https://zh.wikipedia.org/wiki/ANSI转义序列" target="_blank" rel="noopener">ANSI转义序列</a>中，控制指令 <code>ESC + [</code> 一般会被显示为 <code>^[[</code>。所以，这个文本内容也就一目了然了。</p>
+<p><code>fatih/color</code> 正是使用了 <code>\e[</code> 控制序列来实现在终端中输出彩色字符的。</p>
+<p>好了，原理部分就讲解到这里，虽然概念比较多，但其实就是一个简单的指令罢了。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>现在你不仅学会使用 Go 语言在终端中输出带有颜色的字符，还明白了其实现原理。</p>
+<p>无需我多做什么总结了，如果你有兴趣了解终端都支持输出哪些颜色，可以去看看 <a href="https://zh.wikipedia.org/wiki/ANSI转义序列" target="_blank" rel="noopener">ANSI转义序列</a>。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/terminal/colors" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>fatih/color 源码：<a href="https://github.com/fatih/color" target="_blank" rel="noopener">https://github.com/fatih/color</a></li>
+<li>字符编码：<a href="https://zh.wikipedia.org/wiki/字符编码" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/字符编码</a></li>
+<li>ASCII：<a href="https://zh.wikipedia.org/wiki/ASCII" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/ASCII</a></li>
+<li>控制字符：<a href="https://zh.wikipedia.org/wiki/控制字符" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/控制字符</a></li>
+<li>转义字符：<a href="https://zh.wikipedia.org/wiki/转义字符" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/转义字符</a></li>
+<li>转义序列：<a href="https://zh.wikipedia.org/wiki/转义序列" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/转义序列</a></li>
+<li>ANSI转义序列：<a href="https://zh.wikipedia.org/wiki/ANSI转义序列" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/ANSI转义序列</a></li>
+<li>Colors In Terminal：<a href="https://jafrog.com/2013/11/23/colors-in-terminal.html" target="_blank" rel="noopener">https://jafrog.com/2013/11/23/colors-in-terminal.html</a></li>
+<li>Go 语言现代命令行框架 Cobra 详解：<a href="https://jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details" target="_blank" rel="noopener">https://jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/terminal/colors" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/terminal/colors</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2024-09-28T03:18:54.492Z" itemprop="dateUpdated">2024-09-28 11:18:54</time>
+</span><br>
+
+
+        
+        <a href="/2024/09/27/go-terminal-colors/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Terminal/" rel="tag">Terminal</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/&title=《厌倦了黑底白字？用 Go 给终端点颜色瞧瞧！》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/&title=《厌倦了黑底白字？用 Go 给终端点颜色瞧瞧！》 — 江湖十年&source=如果你每天都在使用终端，想必无法忍受终端永远都是黑白两种配色。如果你不知道终端中各种花哨的颜色是如何输出的，那么本文就来帮你解答。
+而如果你恰巧在使用 G..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《厌倦了黑底白字？用 Go 给终端点颜色瞧瞧！》 — 江湖十年&url=http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/09/17/mac-migration/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Mac 一键迁移初体验</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2024</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/&title=《厌倦了黑底白字？用 Go 给终端点颜色瞧瞧！》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/&title=《厌倦了黑底白字？用 Go 给终端点颜色瞧瞧！》 — 江湖十年&source=如果你每天都在使用终端，想必无法忍受终端永远都是黑白两种配色。如果你不知道终端中各种花哨的颜色是如何输出的，那么本文就来帮你解答。
+而如果你恰巧在使用 G..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《厌倦了黑底白字？用 Go 给终端点颜色瞧瞧！》 — 江湖十年&url=http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/09/27/go-terminal-colors/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
