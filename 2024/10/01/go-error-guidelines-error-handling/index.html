@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 错误处理指北：如何优雅的处理错误？ | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,Error">
+    <meta name="description" content="本文是 Go 错误处理指北系列第三篇文章：如何优雅的处理错误？作为铺垫，我在系列的前两篇文章 Error vs Exception vs ErrNo 和 pkg&#x2F;errors 源码解读 中分别讲解了 Go 错误处理机制和流行的第三方包 pkg&#x2F;errors，现在是时候对 Go 语言中的错误处理做一个比较全面的讲解了。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 错误处理指北：如何优雅的处理错误？">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="本文是 Go 错误处理指北系列第三篇文章：如何优雅的处理错误？作为铺垫，我在系列的前两篇文章 Error vs Exception vs ErrNo 和 pkg&#x2F;errors 源码解读 中分别讲解了 Go 错误处理机制和流行的第三方包 pkg&#x2F;errors，现在是时候对 Go 语言中的错误处理做一个比较全面的讲解了。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-10-01T08:54:48.000Z">
+<meta property="article:modified_time" content="2024-10-06T15:23:29.049Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="Error">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 错误处理指北：如何优雅的处理错误？</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 错误处理指北：如何优雅的处理错误？</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-10-01T08:54:48.000Z" itemprop="datePublished" class="page-time">
+  2024-10-01
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Go-中为什么没有-Exception"><span class="post-toc-number">1.</span> <span class="post-toc-text">Go 中为什么没有 Exception</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#构造错误"><span class="post-toc-number">2.</span> <span class="post-toc-text">构造错误</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#处理错误"><span class="post-toc-number">3.</span> <span class="post-toc-text">处理错误</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#错误处理惯用法"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">错误处理惯用法</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Sentinel-error"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">Sentinel error</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#常量错误"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">常量错误</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#定制错误类型"><span class="post-toc-number">3.4.</span> <span class="post-toc-text">定制错误类型</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Opaque-error"><span class="post-toc-number">3.5.</span> <span class="post-toc-text">Opaque error</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#错误值比较"><span class="post-toc-number">3.6.</span> <span class="post-toc-text">错误值比较</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#类型断言"><span class="post-toc-number">3.7.</span> <span class="post-toc-text">类型断言</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#行为断言"><span class="post-toc-number">3.8.</span> <span class="post-toc-text">行为断言</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#暂存错误状态"><span class="post-toc-number">3.9.</span> <span class="post-toc-text">暂存错误状态</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#返回错误而不是指针"><span class="post-toc-number">3.10.</span> <span class="post-toc-text">返回错误而不是指针</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Errors-are-values"><span class="post-toc-number">3.11.</span> <span class="post-toc-text">Errors are values</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#不要忽略你的错误"><span class="post-toc-number">3.12.</span> <span class="post-toc-text">不要忽略你的错误</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#错误只应处理一次"><span class="post-toc-number">3.13.</span> <span class="post-toc-text">错误只应处理一次</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#审查你的错误处理代码"><span class="post-toc-number">3.14.</span> <span class="post-toc-text">审查你的错误处理代码</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#在缩进中处理错误"><span class="post-toc-number">3.14.1.</span> <span class="post-toc-text">在缩进中处理错误</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#不要做冗余的错误检查"><span class="post-toc-number">3.14.2.</span> <span class="post-toc-text">不要做冗余的错误检查</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#nil-错误值可能不等于-nil"><span class="post-toc-number">3.15.</span> <span class="post-toc-text">nil 错误值可能不等于 nil</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#错误与日志"><span class="post-toc-number">3.16.</span> <span class="post-toc-text">错误与日志</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#显式胜于隐式"><span class="post-toc-number">3.16.1.</span> <span class="post-toc-text">显式胜于隐式</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#记录日志前请确保错误真的存在"><span class="post-toc-number">3.16.2.</span> <span class="post-toc-text">记录日志前请确保错误真的存在</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#何时记录错误日志"><span class="post-toc-number">3.16.3.</span> <span class="post-toc-text">何时记录错误日志</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#错误日志应该记录什么"><span class="post-toc-number">3.16.4.</span> <span class="post-toc-text">错误日志应该记录什么</span></a></li></ol></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#pkg-errors"><span class="post-toc-number">4.</span> <span class="post-toc-text">pkg&#x2F;errors</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#记录错误调用链"><span class="post-toc-number">4.1.</span> <span class="post-toc-text">记录错误调用链</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#记录错误堆栈"><span class="post-toc-number">4.2.</span> <span class="post-toc-text">记录错误堆栈</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#不要做冗余的错误检查-1"><span class="post-toc-number">4.3.</span> <span class="post-toc-text">不要做冗余的错误检查</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Sentinel-error-处理"><span class="post-toc-number">4.4.</span> <span class="post-toc-text">Sentinel error 处理</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#小结"><span class="post-toc-number">4.5.</span> <span class="post-toc-text">小结</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Go-1-13"><span class="post-toc-number">5.</span> <span class="post-toc-text">Go 1.13</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#fmt-Errorf"><span class="post-toc-number">5.1.</span> <span class="post-toc-text">fmt.Errorf</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#errors-Unwrap"><span class="post-toc-number">5.2.</span> <span class="post-toc-text">errors.Unwrap</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#errors-Is"><span class="post-toc-number">5.3.</span> <span class="post-toc-text">errors.Is</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#errors-As"><span class="post-toc-number">5.4.</span> <span class="post-toc-text">errors.As</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Go-1-20"><span class="post-toc-number">6.</span> <span class="post-toc-text">Go 1.20</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Go-1-23"><span class="post-toc-number">7.</span> <span class="post-toc-text">Go 1.23</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Go-2"><span class="post-toc-number">8.</span> <span class="post-toc-text">Go 2</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">9.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go-error-guidelines-error-handling"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 错误处理指北：如何优雅的处理错误？</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-10-01 16:54:48" datetime="2024-10-01T08:54:48.000Z"  itemprop="datePublished">2024-10-01</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>本文是 <strong>Go 错误处理指北</strong>系列第三篇文章：<a href="https://jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/" target="_blank" rel="noopener">如何优雅的处理错误</a>？作为铺垫，我在系列的前两篇文章 <a href="https://jianghushinian.cn/2024/09/06/go-error-guidelines-error-exception-errno/" target="_blank" rel="noopener">Error vs Exception vs ErrNo</a> 和 <a href="https://jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/" target="_blank" rel="noopener">pkg/errors 源码解读</a> 中分别讲解了 Go 错误处理机制和流行的第三方包 <code>pkg/errors</code>，现在是时候对 Go 语言中的错误处理做一个比较全面的讲解了。</p>
+<a id="more"></a>
+
+<h3 id="Go-中为什么没有-Exception"><a href="#Go-中为什么没有-Exception" class="headerlink" title="Go 中为什么没有 Exception"></a>Go 中为什么没有 Exception</h3><p>我在 <a href="https://jianghushinian.cn/2024/09/06/go-error-guidelines-error-exception-errno/" target="_blank" rel="noopener">Error vs Exception vs ErrNo</a> 一文中对比过 Python、C、Go 这三种编程语言错误处理的不同之处。其中 Python 的 <code>Exception</code> 异常处理机制是主流编程语言中最为流行的方式，可是 Go 为什么采用了 <code>Error</code> 机制呢？</p>
+<p>Go 官方的 <a href="https://go.dev/doc/faq#exceptions" target="_blank" rel="noopener">FAQ: Why does Go not have exceptions?</a> 中给出了解释：</p>
+<blockquote>
+<p>我们认为，将异常与控制结构耦合在一起（如 <code>try-catch-finally</code> 语句）会导致代码变得复杂。同时，这也往往会促使程序员将太多普通的错误（比如打开文件失败）标记为异常。</p>
+<p>Go 采用了一种不同的处理方式。对于普通的错误处理，Go 函数支持多返回值机制使得在不覆盖返回值的情况下，能够轻松地报告错误。<a href="https://go.dev/blog/error-handling-and-go" target="_blank" rel="noopener">Go 还提供了一个标准的错误类型，再加上其他特性</a>，使得错误处理变得简洁而又与其他语言截然不同。</p>
+<p>Go 还提供了一些内置函数，用于标识和恢复真正的异常情况。恢复机制只会在函数状态因错误而被销毁时执行，这足以处理灾难性错误，同时不需要额外的控制结构。使用得当时，可以写出简洁的错误处理代码。</p>
+<p>详情请参考 <a href="https://go.dev/blog/defer-panic-and-recover" target="_blank" rel="noopener">Defer, Panic, and Recover</a> 一文。另外，博客文章 <a href="https://go.dev/blog/errors-are-values" target="_blank" rel="noopener">Errors are values</a> 展示了一种整洁的错误处理方式，说明了由于错误只是值，Go 语言的全部能力都可以用于处理错误。</p>
+</blockquote>
+<p>说白了，Go 官方认为 <code>Error</code> 机制更简单有效，且符合 Go 语言大道至简的调性。</p>
+<h3 id="构造错误"><a href="#构造错误" class="headerlink" title="构造错误"></a>构造错误</h3><p>既然要讲解如何处理错误，那么就先从如何构造一个错误说起吧。</p>
+<p>我们知道，Go 的 <code>error</code> 实际上就是一个普通的接口，普普通通：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> error <span class="keyword">interface</span> &#123;</span><br><span class="line">	Error() <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>得益于 Go 函数支持多返回值的能力，我们可以非常方便的返回一个错误：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">foo</span><span class="params">()</span> <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// do something</span></span><br><span class="line">	<span class="keyword">return</span> <span class="string">""</span>, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>NOTE:<br>当函数返回多个值时，<code>error</code> 作为最后一个返回值是约定俗成的惯用法。如果你不这么做，代码当然能成功编译，但你有更好的选择。</p>
+</blockquote>
+<p>Go 提供了两种构造错误的方式：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个错误值</span></span><br><span class="line">err1 := errors.New(<span class="string">"example err1"</span>)</span><br><span class="line"><span class="comment">// 格式化错误消息</span></span><br><span class="line">err2 := fmt.Errorf(<span class="string">"example err2: %d"</span>, userID)</span><br></pre></td></tr></table></figure>
+
+<p>这两种构造错误的方式最终都是返回 <code>errorString</code> 类型的指针：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// errors.New 函数定义</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(text <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;errorString&#123;text&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// errorString is a trivial implementation of error.</span></span><br><span class="line"><span class="keyword">type</span> errorString <span class="keyword">struct</span> &#123;</span><br><span class="line">	s <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(e *errorString)</span> <span class="title">Error</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> e.s</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>NOTE:<br>其实 <code>fmt.Errorf</code> 内部也是调用 <code>errors.New</code> 来创建 <code>error</code>。当然，在 Go 1.13 版本以后，<code>fmt.Errorf</code> 可能会在特定条件下返回 <code>wrapError</code> 类型错误。</p>
+</blockquote>
+<h3 id="处理错误"><a href="#处理错误" class="headerlink" title="处理错误"></a>处理错误</h3><p>现在我们已经可以构造一个错误，接下来看看如何优雅的处理错误。</p>
+<h4 id="错误处理惯用法"><a href="#错误处理惯用法" class="headerlink" title="错误处理惯用法"></a>错误处理惯用法</h4><p>如下示例是 Go 中经典的错误处理方式：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">data, err := foo()</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="comment">// 处理错误</span></span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 正常逻辑</span></span><br><span class="line">fmt.Println(data)</span><br></pre></td></tr></table></figure>
+
+<p>一切的错误处理都从 <code>if err != nil</code> 开始。</p>
+<h4 id="Sentinel-error"><a href="#Sentinel-error" class="headerlink" title="Sentinel error"></a>Sentinel error</h4><p>预定义的错误值：<code>Sentinel error</code>，一般被译为 <code>哨兵错误</code>。这是一种错误处理惯用法，在 Go 内置包中有大量应用。</p>
+<p>比如：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.1/src/bufio/bufio.go#L22" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.1/src/bufio/bufio.go#L22</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	ErrInvalidUnreadByte = errors.New(<span class="string">"bufio: invalid use of UnreadByte"</span>)</span><br><span class="line">	ErrInvalidUnreadRune = errors.New(<span class="string">"bufio: invalid use of UnreadRune"</span>)</span><br><span class="line">	ErrBufferFull        = errors.New(<span class="string">"bufio: buffer full"</span>)</span><br><span class="line">	ErrNegativeCount     = errors.New(<span class="string">"bufio: negative count"</span>)</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>或者：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.1/src/io/io.go#L29" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.1/src/io/io.go#L29</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> ErrShortWrite = errors.New(<span class="string">"short write"</span>)</span><br><span class="line"><span class="keyword">var</span> errInvalidWrite = errors.New(<span class="string">"invalid write result"</span>)</span><br><span class="line"><span class="keyword">var</span> ErrShortBuffer = errors.New(<span class="string">"short buffer"</span>)</span><br><span class="line"><span class="keyword">var</span> EOF = errors.New(<span class="string">"EOF"</span>)</span><br><span class="line"><span class="keyword">var</span> ErrUnexpectedEOF = errors.New(<span class="string">"unexpected EOF"</span>)</span><br><span class="line"><span class="keyword">var</span> ErrNoProgress = errors.New(<span class="string">"multiple Read calls return no data or error"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>这些都叫 <code>Sentinel error</code>，绝大多数 <code>Sentinel error</code> 都会被定义为包级别公开变量，可以看到也有内置的 <code>errInvalidWrite</code> 并没有对外公开。</p>
+<p>每个 <code>error</code> 变量都以前缀 <code>Err</code> 开头，这是约定俗成的做法。<code>io.EOF</code> 是个特例，因为 <a href="https://en.wikipedia.org/wiki/End-of-file" target="_blank" rel="noopener">EOF</a> 是另一种约定用法，它的全拼是 <code>end of file</code>，表示文件结束，应用非常广泛，可以算作专有名词了。</p>
+<p>我们可以像这样处理 <code>Sentinel error</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err == bufio.ErrBufferFull &#123;</span><br><span class="line">		<span class="comment">// handle ErrBufferFull</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// handle err</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>要处理多种错误类型时，可以使用 <code>switch...case...</code> 语句来简化处理：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">f, err := os.Open(<span class="string">"example.txt"</span>)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">b := bufio.NewReader(f)</span><br><span class="line"></span><br><span class="line">data, err := b.Peek(<span class="number">10</span>)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">switch</span> err &#123;</span><br><span class="line">    <span class="keyword">case</span> bufio.ErrNegativeCount:</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    <span class="keyword">case</span> bufio.ErrBufferFull:</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">fmt.Println(<span class="keyword">string</span>(data))</span><br></pre></td></tr></table></figure>
+
+<p>示例中 <code>b.Peek(10)</code> 可能会返回 <code>ErrNegativeCount</code> 或 <code>ErrBufferFull</code> 错误变量，因为它们是依赖包中可导出的公开变量，所以我们可以在自己的代码中使用这些变量来识别返回了哪个特定的错误消息。</p>
+<p>也就是说，这些 <code>Sentinel error</code>  <strong>变量会成为包 API 的一部分</strong>，用于错误处理。</p>
+<p>如果没有 <code>Sentinel error</code> 的存在，我们可能需要通过字符串匹配的方式来识别错误类型：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> strings.Contains(err.Error(), <span class="string">"buffer full"</span>) &#123;</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>我个人完全不赞成这种写法，不到万不得已，千万不要写成这种代码。</strong></p>
+<p><strong>记住：<code>error</code> 接口上的 <code>Error</code> 方法适用于人类，而非代码</strong>。只有我们需要查看错误信息，或者记录日志的时候，才应该使用 <code>Error</code> 方法。</p>
+<p>此外，你可能在标准库中见到过如下类似代码：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.1/src/os/error.go#L16" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.1/src/os/error.go#L16</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	<span class="comment">// ErrInvalid indicates an invalid argument.</span></span><br><span class="line">	<span class="comment">// Methods on File will return this error when the receiver is nil.</span></span><br><span class="line">	ErrInvalid = fs.ErrInvalid <span class="comment">// "invalid argument"</span></span><br><span class="line"></span><br><span class="line">	ErrPermission = fs.ErrPermission <span class="comment">// "permission denied"</span></span><br><span class="line">	ErrExist      = fs.ErrExist      <span class="comment">// "file already exists"</span></span><br><span class="line">	ErrNotExist   = fs.ErrNotExist   <span class="comment">// "file does not exist"</span></span><br><span class="line">	ErrClosed     = fs.ErrClosed     <span class="comment">// "file already closed"</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p><code>os.ErrInvalid</code> 实际上等价于 <code>fs.ErrInvalid</code>，这种为 <code>Sentinel error</code> 重新赋值的操作也很常见。为了保持良好的分层架构，我们自己的代码设计也可以这样做。</p>
+<p>另外，<code>Sentinel error</code> 还有一种看似“另类”的用法，表示错误没有发生，比如 <code>path/filepath.SkipDir</code>：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.1/src/path/filepath/path.go#L259" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.1/src/path/filepath/path.go#L259</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// SkipDir is used as a return value from [WalkDirFunc] to indicate that</span></span><br><span class="line"><span class="comment">// the directory named in the call is to be skipped. It is not returned</span></span><br><span class="line"><span class="comment">// as an error by any function.</span></span><br><span class="line"><span class="keyword">var</span> SkipDir = errors.New(<span class="string">"skip this directory"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>根据注释我们可以了解到，<code>SkipDir</code> 变量用作 <code>WalkDirFunc</code> 的返回值，以指示将跳过调用中指定的目录，它并不表示一个错误。</p>
+<p>所以这里 <code>SkipDir</code> 仅作为哨兵，而非错误。其实 <code>io.EOF</code> 也是哨兵，并且它们都没有以 <code>Err</code> 来命名。</p>
+<p>这也是我认为 <code>Sentinel error</code> 存在二义性的地方，我个人认为绝大多数情况下不应该这么使用，尽量避免这种用法。</p>
+<h4 id="常量错误"><a href="#常量错误" class="headerlink" title="常量错误"></a>常量错误</h4><p>因为 <code>Sentinel error</code> 是一个变量，所以我们可以随意改变它的值：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">oldEOF := io.EOF</span><br><span class="line">io.EOF = errors.New(<span class="string">"MyEOF"</span>)</span><br><span class="line">fmt.Println(oldEOF == io.EOF) <span class="comment">// false</span></span><br></pre></td></tr></table></figure>
+
+<p>这是一个很可怕的事情。</p>
+<p>所以 <code>Sentinel error</code> 的确不是一个好的设计，起码也应该将其定义成一个常量。</p>
+<p>但问题是在 Go 中我们无法直接将 <code>errors.New</code> 的返回值赋值给一个常量。</p>
+<p>如下示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> ErrMyEOF = errors.New(<span class="string">"MyEOF"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>这将得到编译报错：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">errors.New(<span class="string">"MyEOF"</span>) (value of <span class="built_in">type</span> error) is not constant</span><br></pre></td></tr></table></figure>
+
+<p>为了解决这个问题，我们可以自定义 <code>error</code> 类型：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Error <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(e Error)</span> <span class="title">Error</span><span class="params">()</span> <span class="title">string</span></span> &#123; <span class="keyword">return</span> <span class="keyword">string</span>(e) &#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Error</code> 类型底层类型为 <code>string</code>，所以可以直接赋值给一个常量：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> ErrMyEOF = Error(<span class="string">"MyEOF"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>现在常量 <code>ErrMyEOF</code> 不可改变。</p>
+<p>但是，这又会引入另外一个新的问题。以下示例代码，执行结果为 <code>true</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> ErrMyEOF = Error(<span class="string">"MyEOF"</span>)</span><br><span class="line"><span class="keyword">const</span> ErrNewMyEOF = Error(<span class="string">"MyEOF"</span>)</span><br><span class="line">fmt.Println(ErrMyEOF == ErrNewMyEOF) <span class="comment">// true</span></span><br></pre></td></tr></table></figure>
+
+<p>这与 Go 内置的 <code>errors.New</code> 表现并不相同。</p>
+<p>以下示例代码，执行结果为 <code>false</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">myEOF = errors.New(<span class="string">"EOF"</span>)</span><br><span class="line">fmt.Println(io.EOF == myEOF) <span class="comment">// false</span></span><br></pre></td></tr></table></figure>
+
+<p>造成二者表现不同的原因是：内置的 <code>errors.New</code> 函数返回 <code>errorString</code> 的指针类型 <code>&amp;errorString{text}</code>，而我们构造的自定义 <code>Error</code> 实际上是 <code>string</code> 类型。</p>
+<p><code>errors.New</code> 返回指针类型是有意而为之的，目的就是在判断两个错误值是否相等时，会比较两个对象是否为同一个对象，而不是比较 <code>Error</code> 方法所返回的字符串内容是否相等。如果仅比较字符串内容是否相等，则我们随便使用 <code>errors.New</code> 函数创建的错误就可以实现与预置的 <code>Sentinel error</code> 相等。</p>
+<p>所以常量错误并不常见，我个人其实也不太推荐一定要追求把错误定义为常量，适当引入的编码规范更加切合实际。</p>
+<p>尽管 <code>errorString</code> 类型仅包含一个字段 <code>s string</code>，但它还是被有意设计成 <code>struct</code> 而非简单的 <code>string</code> 类型别名，否则 <code>Sentinel error</code> 实用价值将大大折扣。</p>
+<h4 id="定制错误类型"><a href="#定制错误类型" class="headerlink" title="定制错误类型"></a>定制错误类型</h4><p>与使用 <code>errors.New</code> 创建出来的 <code>*errorString</code> 错误值相比，定制错误类型往往能提供更多的上下文信息。</p>
+<p>Go 内置库中就有这样的例子，比如错误类型 <code>os.PathError</code>：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.1/src/io/fs/fs.go#L250" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.1/src/io/fs/fs.go#L250</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// PathError records an error and the operation and file path that caused it.</span></span><br><span class="line"><span class="keyword">type</span> PathError <span class="keyword">struct</span> &#123;</span><br><span class="line">	Op   <span class="keyword">string</span></span><br><span class="line">	Path <span class="keyword">string</span></span><br><span class="line">	Err  error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(e *PathError)</span> <span class="title">Error</span><span class="params">()</span> <span class="title">string</span></span> &#123; <span class="keyword">return</span> e.Op + <span class="string">" "</span> + e.Path + <span class="string">": "</span> + e.Err.Error() &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>NOTE:<br>错误类型命名通常以 <code>Error</code> 结尾，这是约定俗成的惯用法。</p>
+</blockquote>
+<p><code>PathError</code> 类型不仅能够记录错误，还会记录导致出现错误的操作和文件路径。在出现错误时，更方便排查问题。</p>
+<p>有了新的错误类型后，最大的好处是可以通过类型断言，来判断错误的类型。如果断言成立，则可以根据错误类型对当前错误做更为精细的控制。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 尝试打开一个不存在的文件</span></span><br><span class="line">_, err := os.Open(<span class="string">"nonexistent.txt"</span>)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="comment">// 使用类型断言检查是否为 *os.PathError 类型</span></span><br><span class="line">	<span class="keyword">if</span> pathErr, ok := err.(*os.PathError); ok &#123;</span><br><span class="line">		fmt.Printf(<span class="string">"Failed to %s file: %s\n"</span>, pathErr.Op, pathErr.Path)</span><br><span class="line">		fmt.Println(<span class="string">"Error message:"</span>, pathErr.Err)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">// 其他类型的错误处理</span></span><br><span class="line">		fmt.Println(<span class="string">"Error:"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，为了实现错误类型的断言检查，<code>PathError</code> 类型必须是公开类型。</p>
+<p>其实无论是 <code>Sentinel error</code>，还是自定义的错误类型，它们都存在同样的问题，都会成为包 API 的一部分，被公开出去。这很可能导致包 API 的快速膨胀。并且，如果代码分层设计不好，很容易出现循环依赖问题。</p>
+<h4 id="Opaque-error"><a href="#Opaque-error" class="headerlink" title="Opaque error"></a>Opaque error</h4><p><code>Opaque error</code> 是 Go 语言布道师 <a href="https://github.com/davecheney" target="_blank" rel="noopener">Dave Cheney</a> 在 <a href="https://dave.cheney.net/paste/gocon-spring-2016.pdf" target="_blank" rel="noopener">Gocon Spring 2016</a> 演讲中提出的一种叫法，姑且把它翻译为 <code>不透明的错误处理</code>。</p>
+<p><code>Opaque error</code> 非常简单，它是最灵活的错误处理策略，因为它需要代码和调用者之间的耦合最少。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> “github.com/quux/bar”</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">fn</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">        x, err := bar.Foo()</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> err</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// use x</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这就是 <code>Opaque error</code> 的全部内容了：只需返回错误，而不对其内容做出任何假设。</p>
+<p>没错，遇到错误后直接 <code>return err</code> 的做法就是 <code>Opaque error</code>。</p>
+<p>显然，这种代码看似优雅，却过于理想。现实中我们仍有很多情况下还是需要知道错误内容，然后决定是否对其进行处理。</p>
+<h4 id="错误值比较"><a href="#错误值比较" class="headerlink" title="错误值比较"></a>错误值比较</h4><p>比较两个错误值是否相等的操作，一般结合 <code>Sentinel error</code> 一同使用：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err == bufio.ErrBufferFull &#123;</span><br><span class="line">		<span class="comment">// handle ErrBufferFull</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// handle err</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>先使用 <code>if err != nil</code> 与 <code>nil</code> 比较来判定是否存在错误，如果有错误，更进一步，使用 <code>if err == bufio.ErrBufferFull</code> 来判定错误是否为某个 <code>Sentinel error</code>。</p>
+<p>当可能出现多种错误时，还可以使用 <code>switch...case...</code> 来判定错误值：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">switch</span> err &#123;</span><br><span class="line">    <span class="keyword">case</span> bufio.ErrNegativeCount:</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    <span class="keyword">case</span> bufio.ErrBufferFull:</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="类型断言"><a href="#类型断言" class="headerlink" title="类型断言"></a>类型断言</h4><p>Go 支持两种类型断言，<a href="https://go.dev/doc/effective_go#interface_conversions" target="_blank" rel="noopener">Type Assertion</a> 和 <a href="https://go.dev/doc/effective_go#type_switch" target="_blank" rel="noopener">Type Switch</a>。</p>
+<p>Go 的类型断言语法可以直接应用于错误处理，因为 <code>error</code> 本身就是一个普通的接口。</p>
+<p>断言一个错误的类型，其实前文中我们已经见过了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 尝试打开一个不存在的文件</span></span><br><span class="line">_, err := os.Open(<span class="string">"nonexistent.txt"</span>)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="comment">// 使用类型断言检查是否为 *os.PathError 类型</span></span><br><span class="line">	<span class="keyword">if</span> pathErr, ok := err.(*os.PathError); ok &#123;</span><br><span class="line">		fmt.Printf(<span class="string">"Failed to %s file: %s\n"</span>, pathErr.Op, pathErr.Path)</span><br><span class="line">		fmt.Println(<span class="string">"Error message:"</span>, pathErr.Err)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">// 其他类型的错误处理</span></span><br><span class="line">		fmt.Println(<span class="string">"Error:"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果改用 <code>switch...case...</code> 可以这样写：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 尝试打开一个不存在的文件</span></span><br><span class="line">_, err := os.Open(<span class="string">"nonexistent.txt"</span>)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="comment">// 使用 switch type 检查错误类型</span></span><br><span class="line">	<span class="keyword">switch</span> e := err.(<span class="keyword">type</span>) &#123;</span><br><span class="line">	<span class="keyword">case</span> *os.PathError:</span><br><span class="line">		fmt.Printf(<span class="string">"Failed to %s file: %s\n"</span>, e.Op, e.Path)</span><br><span class="line">		fmt.Println(<span class="string">"Error message:"</span>, e.Err)</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="comment">// 其他类型的错误处理</span></span><br><span class="line">		fmt.Println(<span class="string">"Error:"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>值得一提的是，在使用 <code>Type Switch</code> 语法时，是禁止使用 <code>fallthrough</code> 关键字的，否则编译报错 <code>cannot fallthrough in type switch</code>。</p>
+<p>这种情况 <code>case</code> 语句只能使用逗号并提供多个选项：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> err.(<span class="keyword">type</span>) &#123;</span><br><span class="line">	<span class="keyword">case</span> *os.PathError, *os.LinkError:</span><br><span class="line">		<span class="comment">// do something</span></span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="comment">// do something</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这两种方法的最大缺点就是我们需要导入指定的错误类型，如示例中的 <code>os.PathError</code> 或 <code>os.LinkError</code>。这会导致我们的代码与错误所在的包存在较强的依赖关系。</p>
+<h4 id="行为断言"><a href="#行为断言" class="headerlink" title="行为断言"></a>行为断言</h4><p>随着 Go 语言的演进，大家对 Go 的错误处理又有了新的理解。以前断言错误类型，现在社区中则更推荐断言错误行为。</p>
+<p>Go 语言布道师 <a href="https://dave.cheney.net/practical-go" target="_blank" rel="noopener">Dave Cheney</a> 在他的文章 <a href="https://dave.cheney.net/2014/12/24/inspecting-errors" target="_blank" rel="noopener">Inspecting errors</a> 中提出了<strong>断言错误行为而不是类型</strong>。</p>
+<blockquote>
+<p>NOTE:<br>没错，<code>Dave Cheney</code> 的名字再一次出现，后文还会出现😄。这位大佬对 Go 社区的贡献很大，尤其是错误处理，著名的 <code>pkg/errors</code> 包就是他开发的。</p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">isTimeout</span><span class="params">(err error)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">type</span> timeout <span class="keyword">interface</span> &#123;</span><br><span class="line">		Timeout() <span class="keyword">bool</span></span><br><span class="line">	&#125;</span><br><span class="line">	te, ok := err.(timeout)</span><br><span class="line">	<span class="keyword">return</span> ok &amp;&amp; te.Timeout()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>函数 <code>isTimeout</code> 用来判定一个错误对象是否表示 <code>Timeout</code>，内部通过断言错误对象是否实现了 <code>timeout</code> 接口来实现。</p>
+<p>我们不再假设错误的类型，而是假设其实现了某个接口，并且 <code>timeout</code> 接口是一个临时接口，并不是从其他包中导入的接口类型。这样就真正的实现了包之间的解耦，错误类型无需公开，它们不再必须是包 API 的一部分。</p>
+<p><code>net.Error</code> 就是一个比较不错的实践：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.1/src/net/net.go#L415" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.1/src/net/net.go#L415</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// An Error represents a network error.</span></span><br><span class="line"><span class="keyword">type</span> Error <span class="keyword">interface</span> &#123;</span><br><span class="line">	error</span><br><span class="line">	Timeout() <span class="keyword">bool</span> <span class="comment">// Is the error a timeout?</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Deprecated: Temporary errors are not well-defined.</span></span><br><span class="line">	<span class="comment">// Most "temporary" errors are timeouts, and the few exceptions are surprising.</span></span><br><span class="line">	<span class="comment">// Do not use this method.</span></span><br><span class="line">	Temporary() <span class="keyword">bool</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>客户端代码可以断言错误是否为 <code>net.Error</code> 类型，然后再根据行为区分暂时性网络错误和永久性网络错误。</p>
+<p>例如，一个爬虫程序在遇到临时错误时可以短暂休眠并重试，否则放弃这个请求，直接处理错误。</p>
+<p>示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> nerr, ok := err.(net.Error); ok &amp;&amp; nerr.Temporary() &#123;</span><br><span class="line">	time.Sleep(<span class="number">1e9</span>)</span><br><span class="line">	<span class="keyword">continue</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	log.Fatal(err)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当然，这段代码还可以写成这样：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> nerr, ok := err.(<span class="keyword">interface</span>&#123;</span><br><span class="line">	Temporary() <span class="keyword">bool</span></span><br><span class="line">&#125;); ok &#123;</span><br><span class="line">	time.Sleep(<span class="number">1e9</span>)</span><br><span class="line">	<span class="keyword">continue</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	log.Fatal(err)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样就实现了我们的代码与错误所在的包之间最大化的解耦。</p>
+<p>当然这两种写法其实都可以，看个人喜好。</p>
+<h4 id="暂存错误状态"><a href="#暂存错误状态" class="headerlink" title="暂存错误状态"></a>暂存错误状态</h4><p>在使用 <code>Builder 模式</code>、链式调用或者 <code>for</code> 循环等场景下，暂存中间过程所出现的错误，有助于简化代码，使编写出的代码逻辑更加连贯。</p>
+<blockquote>
+<p>NOTE:<br>如果你不了解 <code>Builder 模式</code>，可以查阅我的另一篇文章：<a href="https://jianghushinian.cn/2024/08/26/go-design-patterns-builder/" target="_blank" rel="noopener">《Builder 模式在 Go 语言中的应用》</a>。</p>
+</blockquote>
+<p>以下示例中使用 K8s <code>client-go</code> SDK 提供的 <code>clientset</code> 客户端查询 <code>pod</code> 信息：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">pod, err := clientset.CoreV1().Pods(<span class="string">"default"</span>).Get(ctx, <span class="string">"nginx"</span>, metav1.GetOptions&#123;&#125;)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="comment">// do something</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中的 <code>Get</code> 方法内部，就使用了链式调用，源码如下：</p>
+<blockquote>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/release-1.30/staging/src/k8s.io/client-go/kubernetes/typed/core/v1/pod.go#L75" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/release-1.30/staging/src/k8s.io/client-go/kubernetes/typed/core/v1/pod.go#L75</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Get takes name of the pod, and returns the corresponding pod object, and an error if there is any.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *pods)</span> <span class="title">Get</span><span class="params">(ctx context.Context, name <span class="keyword">string</span>, options metav1.GetOptions)</span> <span class="params">(result *v1.Pod, err error)</span></span> &#123;</span><br><span class="line">	result = &amp;v1.Pod&#123;&#125;</span><br><span class="line">	err = c.client.Get().</span><br><span class="line">		Namespace(c.ns).</span><br><span class="line">		Resource(<span class="string">"pods"</span>).</span><br><span class="line">		Name(name).</span><br><span class="line">		VersionedParams(&amp;options, scheme.ParameterCodec).</span><br><span class="line">		Do(ctx).</span><br><span class="line">		Into(result)</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>c.client.Get()</code> 会返回一个 <code>*Request</code> 对象，接着调用它的 <code>Namespace(c.ns)</code> 方法：</p>
+<blockquote>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/release-1.30/staging/src/k8s.io/client-go/rest/request.go#L294" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/release-1.30/staging/src/k8s.io/client-go/rest/request.go#L294</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Namespace applies the namespace scope to a request (&lt;resource&gt;/[ns/&lt;namespace&gt;/]&lt;name&gt;)</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *Request)</span> <span class="title">Namespace</span><span class="params">(namespace <span class="keyword">string</span>)</span> *<span class="title">Request</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> r.err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> r</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> r.namespaceSet &#123;</span><br><span class="line">		r.err = fmt.Errorf(<span class="string">"namespace already set to %q, cannot change to %q"</span>, r.namespace, namespace)</span><br><span class="line">		<span class="keyword">return</span> r</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> msgs := IsValidPathSegmentName(namespace); <span class="built_in">len</span>(msgs) != <span class="number">0</span> &#123;</span><br><span class="line">		r.err = fmt.Errorf(<span class="string">"invalid namespace %q: %v"</span>, namespace, msgs)</span><br><span class="line">		<span class="keyword">return</span> r</span><br><span class="line">	&#125;</span><br><span class="line">	r.namespaceSet = <span class="literal">true</span></span><br><span class="line">	r.namespace = namespace</span><br><span class="line">	<span class="keyword">return</span> r</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>*Request.Namespace</code> 方法首先会通过 <code>if r.err != nil</code> 判断是否存在错误，如果存在则直接返回，不再继续执行。如果不存在错误，则接下来每次可能出现错误的调用，都会将错误信息暂存到 <code>r.err</code> 属性中。</p>
+<p>接下来是调用 <code>Resource(&quot;pods&quot;)</code> 方法：</p>
+<blockquote>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/release-1.30/staging/src/k8s.io/client-go/rest/request.go#L210" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/release-1.30/staging/src/k8s.io/client-go/rest/request.go#L210</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Resource sets the resource to access (&lt;resource&gt;/[ns/&lt;namespace&gt;/]&lt;name&gt;)</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *Request)</span> <span class="title">Resource</span><span class="params">(resource <span class="keyword">string</span>)</span> *<span class="title">Request</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> r.err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> r</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(r.resource) != <span class="number">0</span> &#123;</span><br><span class="line">		r.err = fmt.Errorf(<span class="string">"resource already set to %q, cannot change to %q"</span>, r.resource, resource)</span><br><span class="line">		<span class="keyword">return</span> r</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> msgs := IsValidPathSegmentName(resource); <span class="built_in">len</span>(msgs) != <span class="number">0</span> &#123;</span><br><span class="line">		r.err = fmt.Errorf(<span class="string">"invalid resource %q: %v"</span>, resource, msgs)</span><br><span class="line">		<span class="keyword">return</span> r</span><br><span class="line">	&#125;</span><br><span class="line">	r.resource = resource</span><br><span class="line">	<span class="keyword">return</span> r</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>*Request.Resource</code> 方法内部代码逻辑的套路，与 <code>*Request.Namespace</code> 方法如出一辙。</p>
+<p><code>client-go</code> 就是通过将错误暂存到 <code>*Request.err</code> 属性的方式，简化了使用侧的代码逻辑。我们可以放心编写代码中的链式调用，只在最后处理一次错误即可。如果调用链中间某个方法出现了错误，之后执行的方法都能够自行处理。</p>
+<h4 id="返回错误而不是指针"><a href="#返回错误而不是指针" class="headerlink" title="返回错误而不是指针"></a>返回错误而不是指针</h4><p><a href="https://dave.cheney.net/practical-go" target="_blank" rel="noopener">Dave Cheney</a> 在他的文章 <a href="https://dave.cheney.net/2015/01/26/errors-and-exceptions-redux" target="_blank" rel="noopener">Errors and Exceptions, redux</a> 中列举了一个程序示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Positive</span><span class="params">(n <span class="keyword">int</span>)</span> <span class="params">(<span class="keyword">bool</span>, <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">        <span class="keyword">if</span> n == <span class="number">0</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">false</span>, <span class="literal">false</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> n &gt; <span class="number">-1</span>, <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这是一个判断给定变量 <code>n</code> 的值为正负数的小函数。</p>
+<p><code>0</code> 既不是正数也不是负数，因此为了判断传进来的 <code>n</code> 是否为 <code>0</code>，函数必须返回两个值，第一个 <code>bool</code> 值标识 <code>正/负</code>，第二个 <code>bool</code> 值标识返回的第一个值是否有效，即 <code>n</code> 是否为 <code>0</code>。</p>
+<p>还有一种实现方式是下面这样：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Positive</span><span class="params">(n <span class="keyword">int</span>)</span> <span class="params">(<span class="keyword">bool</span>, error)</span></span> &#123;</span><br><span class="line">        <span class="keyword">if</span> n == <span class="number">0</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">false</span>, errors.New(<span class="string">"undefined"</span>)</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> n &gt; <span class="number">-1</span>, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们使用 <code>error</code> 来作为 <code>Sentinel</code>，标识 <code>n</code> 是否为 <code>0</code>。</p>
+<p>以上两种方式我个人认为都可以接受，看个人喜好选择即可。</p>
+<p>不过，有人可能会有不同的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Positive</span><span class="params">(n <span class="keyword">int</span>)</span> *<span class="title">bool</span></span> &#123;</span><br><span class="line">        <span class="keyword">if</span> n == <span class="number">0</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">        &#125;</span><br><span class="line">        r := n &gt; <span class="number">-1</span></span><br><span class="line">        <span class="keyword">return</span> &amp;r</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这次实现的 <code>Positive</code> 函数仅有一个返回值，类型是 <code>*bool</code>。</p>
+<p>当 <code>*bool</code> 值为 <code>nil</code>，标识 <code>n</code> 是否为 <code>0</code>。</p>
+<p>当 <code>*bool</code> 值不为 <code>nil</code>，其解引用后，值为 <code>true</code> 标识结果为 <code>正</code>，值为 <code>false</code> 标识结果为 <code>负</code>。</p>
+<p>这种做法极其不推荐，不仅使返回值存在二义性，还使调用方代码变得啰嗦。在任何地方使用返回值之前，我们都必须检查它以确保它指向的地址有效。</p>
+<h4 id="Errors-are-values"><a href="#Errors-are-values" class="headerlink" title="Errors are values"></a>Errors are values</h4><p><a href="https://go.dev/blog/errors-are-values" target="_blank" rel="noopener">Errors are values</a> 是 <a href="https://en.wikipedia.org/wiki/Rob_Pike" target="_blank" rel="noopener">Rob Pike</a> 提出来的，旨在纠正人们对 Go 错误处理的认知。</p>
+<p><code>Errors are values</code> —— <strong>错误就是值</strong>！它没什么特殊的，你在使用 Go 语言编程过程中，可以像对待其他任何普通类型一样对待错误。</p>
+<p>所以，我们可以对错误进行等值比较、类型断言、行为断言等操作。遗憾的是，这是非常基本的东西，大多数 Go 程序员却没有注意到。</p>
+<p>现在我们有如下示例代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">_, err = fd.Write(p0[a:b])</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line">_, err = fd.Write(p1[c:d])</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line">_, err = fd.Write(p2[e:f])</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// and so on</span></span><br></pre></td></tr></table></figure>
+
+<p>这里存在非常严重的重复，这也是 <code>if err != nil</code> 容易被吐槽的典型场景。</p>
+<p>不过，我们可以编写一个简单的辅助函数，来解决这个问题：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> err error</span><br><span class="line">write := <span class="function"><span class="keyword">func</span><span class="params">(buf []<span class="keyword">byte</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    _, err = w.Write(buf)</span><br><span class="line">&#125;</span><br><span class="line">write(p0[a:b])</span><br><span class="line">write(p1[c:d])</span><br><span class="line">write(p2[e:f])</span><br><span class="line"><span class="comment">// and so on</span></span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在，代码看起来是不是好了一些，没有了那么多重复的 <code>if err != nil</code>。</p>
+<p>我们还可以对这个示例程序做进一步优化：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> errWriter <span class="keyword">struct</span> &#123;</span><br><span class="line">    w   io.Writer</span><br><span class="line">    err error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ew *errWriter)</span> <span class="title">write</span><span class="params">(buf []<span class="keyword">byte</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> ew.err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    _, ew.err = ew.w.Write(buf)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>定义一个 <code>errWriter</code> 结构体，来代理 <code>io.Writer</code> 对象的写操作，并能暂存错误。</p>
+<p>可以这样使用 <code>errWriter</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">ew := &amp;errWriter&#123;w: fd&#125;</span><br><span class="line">ew.write(p0[a:b])</span><br><span class="line">ew.write(p1[c:d])</span><br><span class="line">ew.write(p2[e:f])</span><br><span class="line"><span class="comment">// and so on</span></span><br><span class="line"><span class="keyword">if</span> ew.err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> ew.err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在的代码使用辅助结构体更为优雅的解决了 <code>if err != nil</code> 重复问题。</p>
+<p>这里正是采用了前文中讲解的 <a href="#暂存错误状态">暂存错误状态</a> 思想。</p>
+<p>之所以列举这个示例，就是为了告诉大家，你可以像对待其他任何普通类型一样对待错误。错误可以作为 <code>errWriter</code> 结构体的一个属性存在，这没什么不妥，像编写其他代码一样正常的处理错误即可。</p>
+<p>记住：<strong>错误就是值</strong>。</p>
+<h4 id="不要忽略你的错误"><a href="#不要忽略你的错误" class="headerlink" title="不要忽略你的错误"></a>不要忽略你的错误</h4><p>任何时候不要写出这种代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">data, _ := Foo()</span><br></pre></td></tr></table></figure>
+
+<p>如果你确信 <code>Foo()</code> 的确不会返回错误，可以对其进行包装，在内部处理错误：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">MustFoo</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	data, err := Foo()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> data</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在，我们可以不关心错误直接调用 <code>MustFoo()</code>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">data :&#x3D; MustFoo()</span><br></pre></td></tr></table></figure>
+
+<p><code>MustXxx</code> 这种做法也算比较常见，比如 Gin 框架中就有很多这种风格的实现：</p>
+<blockquote>
+<p><a href="https://github.com/gin-gonic/gin/blob/v1.10.0/context.go#L280" target="_blank" rel="noopener">https://github.com/gin-gonic/gin/blob/v1.10.0/context.go#L280</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Get returns the value for the given key, ie: (value, true).</span></span><br><span class="line"><span class="comment">// If the value does not exist it returns (nil, false)</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Context)</span> <span class="title">Get</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="params">(value any, exists <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	c.mu.RLock()</span><br><span class="line">	<span class="keyword">defer</span> c.mu.RUnlock()</span><br><span class="line">	value, exists = c.Keys[key]</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// MustGet returns the value for the given key if it exists, otherwise it panics.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Context)</span> <span class="title">MustGet</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="title">any</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> value, exists := c.Get(key); exists &#123;</span><br><span class="line">		<span class="keyword">return</span> value</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">panic</span>(<span class="string">"Key \""</span> + key + <span class="string">"\" does not exist"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>切记，不要忽略你的错误，除非这你把它当作一个 demo 程序，而非生产项目。</p>
+<h4 id="错误只应处理一次"><a href="#错误只应处理一次" class="headerlink" title="错误只应处理一次"></a>错误只应处理一次</h4><p>虽然，不应该忽略你的错误，但错误也不应该被重复处理，你应该只处理一次错误。</p>
+<p>处理错误意味着检查错误值并做出决定。也就是说，根据能否处理错误，我们实际上只有两种选择：</p>
+<ol>
+<li>不能处理：直接向上传递错误，自身不对错误做任何假设，也就是 <code>Opaque error</code>。</li>
+<li>可以处理：降级处理，并向上返回 <code>nil</code>，因为自己已经处理了错误，表示不再有错误了，上层不应该继续拿到这个错误。</li>
+</ol>
+<p>有如下示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> errors.New(<span class="string">"foo error"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := Foo()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// do something</span></span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := Bar()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// do something</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在函数调用链中，错误被处理了两次。这是非常糟糕的实践，如果两处都记录日志，那么最终看到的日志将会有非常多的重复内容。</p>
+<p>正确的做法应该是这样：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span> <span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> errors.New(<span class="string">"foo error"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Foo()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := Bar()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// do something</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>仅在调用链顶端 <code>main</code> 函数中处理一次错误。</p>
+<p>有时候，我们也可以这样处理：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> errors.New(<span class="string">"foo error"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := Foo()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// do something</span></span><br><span class="line">		<span class="comment">// <span class="doctag">NOTE:</span> 这里提供服务降级处理，如记录日志</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// do something</span></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := Bar()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// do something</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这次，<code>Bar</code> 函数中遇到调用 <code>Foo()</code> 出错的情况，会进行降级，然后返回 <code>nil</code>。</p>
+<p>错误同样只会被处理一次，<code>main</code> 函数永远也得不到 <code>Foo()</code> 函数返回的错误。</p>
+<h4 id="审查你的错误处理代码"><a href="#审查你的错误处理代码" class="headerlink" title="审查你的错误处理代码"></a>审查你的错误处理代码</h4><p>一些代码细节，也能让处理错误的代码更加优雅。</p>
+<h5 id="在缩进中处理错误"><a href="#在缩进中处理错误" class="headerlink" title="在缩进中处理错误"></a>在缩进中处理错误</h5><p>在缩进中编写你的处理错误逻辑：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">f, err := os.Open(filename)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="comment">// handle error</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// normal logic</span></span><br></pre></td></tr></table></figure>
+
+<p>而不是在缩进中处理正常逻辑：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">f, err := os.Open(filename)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="comment">// normal logic</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// handle error</span></span><br></pre></td></tr></table></figure>
+
+<p>这样在 IDE 中能够非常方便的折叠 <code>if err != nil</code> 逻辑，使得阅读正常逻辑的代码更加清晰。</p>
+<h5 id="不要做冗余的错误检查"><a href="#不要做冗余的错误检查" class="headerlink" title="不要做冗余的错误检查"></a>不要做冗余的错误检查</h5><p>不要写出这种代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := Bar()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里的错误检查完全没有任何意义，属于冗余代码。除非你的工作以代码行数来做 KPI 考核，否则没有任何理由这样写。</p>
+<p>正确写法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Bar()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考社区中的 Go 代码规范，更多代码细节就等着你自己去发现了。</p>
+<h4 id="nil-错误值可能不等于-nil"><a href="#nil-错误值可能不等于-nil" class="headerlink" title="nil 错误值可能不等于 nil"></a>nil 错误值可能不等于 nil</h4><p>这个问题来自 Go 的 <a href="https://go.dev/doc/faq#nil_error" target="_blank" rel="noopener">FAQ: Why is my nil error value not equal to nil ?</a> 是我们开发过程中要注意的一个点。</p>
+<p>有如下示例代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> MyError <span class="keyword">struct</span> &#123;</span><br><span class="line">	msg <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(e *MyError)</span> <span class="title">Error</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> e.msg</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">returnsError</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> p *MyError = <span class="literal">nil</span></span><br><span class="line">	<span class="keyword">return</span> p <span class="comment">// Will always return a non-nil error.</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := returnsError()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"err:"</span>, err)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Println(<span class="string">"success"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">err: &lt;nil&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>main</code> 函数中的 <code>if err != nil</code> 错误检查结果为 <code>true</code>，但使用 <code>fmt.Println</code> 输出的值却为 <code>nil</code>。</p>
+<p>出现这一怪异现象的原因与 Go 的接口实现有关。</p>
+<p>在 Go 中一个接口对象实际包含两个属性：类型 <code>T</code> 和具体的值 <code>V</code>。例如，如果我们将值为 <code>3</code> 的 <code>int</code> 类型对象存储在接口中，则生成的接口对象实际上内部保存了：<code>T=int, V=3</code>。</p>
+<p>仅当 <code>T</code> 和 <code>V</code> 都未设置时（<code>T=nil, V 未设置</code>），接口的值才为 <code>nil</code>。</p>
+<p>如果我们将 <code>*int</code> 类型的 <code>nil</code> 指针存储在接口对象中，则无论指针的值是什么，接口类型都将是 <code>T=*int, V=nil</code>。</p>
+<p>同理虽然 <code>p</code> 在初始化时赋值为 <code>nil</code>（<code>var p *MyError = nil</code>），但是它会被赋值给接口类型 <code>error</code>，我们得到的接口类型将是 <code>T=*MyError, V=nil</code>。</p>
+<p>所以，我们应该避免写出这种代码。</p>
+<h4 id="错误与日志"><a href="#错误与日志" class="headerlink" title="错误与日志"></a>错误与日志</h4><p>错误与日志密不可分，在程序出错时记录日志能够方便我们排查问题。</p>
+<h5 id="显式胜于隐式"><a href="#显式胜于隐式" class="headerlink" title="显式胜于隐式"></a>显式胜于隐式</h5><p>我们知道 <code>fmt.Printf</code> 的 <code>%s</code> 动词能够格式化一个字符串。如果参数是一个 <code>error</code> 对象，则会自动调用其 <code>Error</code> 方法。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fmt.Printf(<span class="string">"%s"</span>, err)</span><br></pre></td></tr></table></figure>
+
+<p>但更好的方式是我们手动调用 <code>Error</code> 方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fmt.Printf(<span class="string">"%s"</span>, err.Error())</span><br></pre></td></tr></table></figure>
+
+<p>Python 之禅中的「显式胜于隐式」在这里依然适用。</p>
+<h5 id="记录日志前请确保错误真的存在"><a href="#记录日志前请确保错误真的存在" class="headerlink" title="记录日志前请确保错误真的存在"></a>记录日志前请确保错误真的存在</h5><p>如下示例代码记录了错误日志：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := Foo()</span><br><span class="line">	<span class="comment">// slog.Info(err.Error())</span></span><br><span class="line">	fmt.Printf(<span class="string">"INFO: call foo: %s\n"</span>, err)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">call foo: %!s(&lt;nil&gt;)</span><br></pre></td></tr></table></figure>
+
+<p>可以发现这里格式化 <code>err</code> 对象失败了。</p>
+<p>在将错误记录到日志前，我们有责任确保错误真的存在。否则调用 <code>err.Error()</code> 程序将发生 <code>panic</code>。</p>
+<h5 id="何时记录错误日志"><a href="#何时记录错误日志" class="headerlink" title="何时记录错误日志"></a>何时记录错误日志</h5><p>记录日志其实是一个比较大的话题，并且存在一定争议。何时记录、记录什么以及如何更好的记录都是比较复杂的问题。更糟糕的是，对于不同项目，可能会有不同的答案。</p>
+<p>所以，这里只讲下我个人对何时记录错误日志的理解。</p>
+<p>其实核心还是一句话：错误只应处理一次。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> errors.New(<span class="string">"foo error"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Foo()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := Bar()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		slog.Error(err.Error())</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>示例代码中只在 <code>main</code> 函数中记录了一次错误日志，调用链中间遇到错误直接返回，不做任何处理。</p>
+<p>同样，如果遇到服务降级的情况，我们也可以记录日志，并返回 <code>nil</code>，不再继续向上报告当前错误：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> errors.New(<span class="string">"foo error"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := Foo()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// <span class="doctag">NOTE:</span> 服务降级，记录日志</span></span><br><span class="line">		slog.Error(err.Error())</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// do something</span></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := Bar()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		slog.Error(err.Error())</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此外，我们还可以在调用链中间为错误附加信息，并在顶层 <code>main</code> 函数中处理错误：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> errors.New(<span class="string">"foo error"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := Foo()</span><br><span class="line">	<span class="keyword">return</span> errors.WithMessage(err, <span class="string">"Bar"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := Bar()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		slog.Error(fmt.Sprintf(<span class="string">"%+v"</span>, err))</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>并且，这里还使用 <code>%+v</code> 动词记录了错误的详细堆栈信息到日志中。</p>
+<h5 id="错误日志应该记录什么"><a href="#错误日志应该记录什么" class="headerlink" title="错误日志应该记录什么"></a>错误日志应该记录什么</h5><p>一般来说，记录错误日志是为了方便排查问题，所以信息要尽可能多，那么错误日志中堆栈信息就必不可少。</p>
+<p>所以，仍然推荐使用 <code>pkg/errors</code> 来处理错误。</p>
+<p>如果项目比较小，调用层数不深，错误日志中只记录 <code>err.Error()</code> 信息也没什么关系。</p>
+<p>但是，如果是中大型项目，尤其是微服务开发，错误日志应该记录 <code>err.Format()</code> 信息，即使用 <code>fmt.Sprintf(&quot;%+v&quot;, err)</code> 结果。</p>
+<h3 id="pkg-errors"><a href="#pkg-errors" class="headerlink" title="pkg/errors"></a>pkg/errors</h3><p>我在<a href="https://jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/" target="_blank" rel="noopener">《Go 错误处理指北：pkg/errors 源码解读》</a> 一文中对 <code>pkg/errors</code> 包源码做了详细的讲解，不过却没有在用法上给出过多建议，本节就来补充一下。</p>
+<p><a href="https://github.com/pkg/errors/" target="_blank" rel="noopener">pkg/errors</a> 是由 <a href="https://github.com/davecheney" target="_blank" rel="noopener">Dave Cheney</a> 所开发的，是目前 Go 错误处理的最优解。</p>
+<h4 id="记录错误调用链"><a href="#记录错误调用链" class="headerlink" title="记录错误调用链"></a>记录错误调用链</h4><p>我们可以在错误调用链中，使用 <code>pkg/errors</code> 提供的 <code>errors.Wrap</code> 方法为错误附加一些信息，以此来记录链路调用过程。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/pkg/errors"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> errors.New(<span class="string">"foo error"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := Foo()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.Wrap(err, <span class="string">"bar"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := Bar()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Printf(<span class="string">"err: %s\n"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">err: bar: foo error</span><br></pre></td></tr></table></figure>
+
+<h4 id="记录错误堆栈"><a href="#记录错误堆栈" class="headerlink" title="记录错误堆栈"></a>记录错误堆栈</h4><p>附加错误信息还不够，<code>pkg/errors</code> 包最大的好处是可以记录错误堆栈。</p>
+<p>修改 <code>main</code> 函数的错误处理，只需要将 <code>fmt.Printf</code> 中格式化错误的动词从 <code>%s</code> 改成 <code>%+v</code> 即可：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := Bar()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Printf(<span class="string">"err: %+v\n"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">err: foo error</span><br><span class="line">main.Foo</span><br><span class="line">        /go/blog-go-example/error/handling-error/pkg-errors/main.go:32</span><br><span class="line">main.Bar</span><br><span class="line">        /go/blog-go-example/error/handling-error/pkg-errors/main.go:36</span><br><span class="line">main.main</span><br><span class="line">        /go/blog-go-example/error/handling-error/pkg-errors/main.go:44</span><br><span class="line">runtime.main</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/runtime/proc.go:272</span><br><span class="line">runtime.goexit</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/runtime/asm_arm64.s:1223</span><br><span class="line">bar</span><br><span class="line">main.Bar</span><br><span class="line">        /go/blog-go-example/error/handling-error/pkg-errors/main.go:38</span><br><span class="line">main.main</span><br><span class="line">        /go/blog-go-example/error/handling-error/pkg-errors/main.go:44</span><br><span class="line">runtime.main</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/runtime/proc.go:272</span><br><span class="line">runtime.goexit</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/runtime/asm_arm64.s:1223</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，错误从产生开始，整个调用链堆栈信息都被记录了下来。</p>
+<p>但是这里存在重复的问题，错误调用链被打印了两次。这其实是因为 <code>pkg/errors</code> 包提供的 <code>errors.New</code> 函数本身在构造错误时就已经记录了堆栈信息，而 <code>errors.Wrap</code> 又记录了一遍。</p>
+<p>所以，如果错误是通过 <code>errors.New</code> 构造的，调用链中间不应该再次使用 <code>errors.Wrap</code> 附加错误信息，而应该使用 <code>errors.WithMessage</code>。</p>
+<p>修改 <code>Bar</code> 函数如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := Foo()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.WithMessage(err, <span class="string">"bar"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">err: foo error</span><br><span class="line">main.Foo</span><br><span class="line">        /go/blog-go-example/error/handling-error/pkg-errors/main.go:32</span><br><span class="line">main.Bar</span><br><span class="line">        /go/blog-go-example/error/handling-error/pkg-errors/main.go:36</span><br><span class="line">main.main</span><br><span class="line">        /go/blog-go-example/error/handling-error/pkg-errors/main.go:44</span><br><span class="line">runtime.main</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/runtime/proc.go:272</span><br><span class="line">runtime.goexit</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/runtime/asm_arm64.s:1223</span><br><span class="line">bar</span><br></pre></td></tr></table></figure>
+
+<p>现在记录的错误堆栈就正常了。</p>
+<h4 id="不要做冗余的错误检查-1"><a href="#不要做冗余的错误检查-1" class="headerlink" title="不要做冗余的错误检查"></a>不要做冗余的错误检查</h4><p>其实 <code>pkg/errors</code> 包提供了更方便的使用方法。</p>
+<p>我们无需编写这种代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := Foo()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.WithMessage(err, <span class="string">"bar"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以直接去掉那冗余的错误检查：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := Foo()</span><br><span class="line">	<span class="keyword">return</span> errors.WithMessage(err, <span class="string">"bar"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这不对执行结果造成任何影响。</p>
+<p>我们无需判断 <code>err</code> 是否为 <code>nil</code>，因为 <code>pkg/errors</code> 内部的方法帮我们做好了这项检查：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithMessage</span><span class="params">(err error, message <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;withMessage&#123;</span><br><span class="line">		cause: err,</span><br><span class="line">		msg:   message,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对于 <code>errors.Wrap/errors.WithStack</code> 同样如此。</p>
+<h4 id="Sentinel-error-处理"><a href="#Sentinel-error-处理" class="headerlink" title="Sentinel error 处理"></a>Sentinel error 处理</h4><p>因为 <code>pkg/errors</code> 包提供的 <code>errors.Wrap/errors.WithStack/errors.WithMessage</code> 这三个方法都会返回新的错误，所以默认情况下 <code>Sentinel error</code> 相等性判断就会失效。</p>
+<p>不过 <code>pkg/errors</code> 包考虑到了这点，提供了 <code>errors.Cause</code> 方法可以得到一个错误的根因。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> io.EOF</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := Foo()</span><br><span class="line">	<span class="keyword">return</span> errors.WithMessage(err, <span class="string">"bar"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := Bar()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> errors.Cause(err) == io.EOF &#123;</span><br><span class="line">			fmt.Println(<span class="string">"EOF err"</span>)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		fmt.Printf(<span class="string">"err: %+v\n"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">EOF err</span><br></pre></td></tr></table></figure>
+
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>可以发现，<code>pkg/errors</code> 包充分考虑了人类和程序对错误的不同处理。</p>
+<p><code>pkg/errors</code> 包可以非常方便的向一个已有错误添加新的上下文，错误堆栈可以方便我们程序员排查问题，<code>errors.Cause</code> 获取错误根因的方法，可以方便程序中对错误进行相等性检查。</p>
+<p>如果我们的代码中全局都在使用 <code>pkg/errors</code> 包，那么通过 <code>errors.New/errors.Errorf</code> 构造的错误天然就已经携带了错误堆栈信息。</p>
+<p>通常在调用链中间过程直接返回底层错误即可，如果想要附加信息，则可以使用 <code>errors.WithMessage</code>，不要使用 <code>errors.Wrap/errors.WithStack</code> 以免造成堆栈信息的重复。</p>
+<p>如果与标准库或来自第三方的代码包进行交互，可以考虑使用 <code>errors.Wrap/errors.WithStack</code> 在原错误基础上建立堆栈跟踪。</p>
+<p>在错误处理调用链顶层，可以使用 <code>%+v</code> 来记录包含足够详细信息的错误。</p>
+<h3 id="Go-1-13"><a href="#Go-1-13" class="headerlink" title="Go 1.13"></a>Go 1.13</h3><p><a href="https://go.dev/doc/go1.13#error_wrapping" target="_blank" rel="noopener">Go 1.13</a> 的发布为错误处理进带来了全新功能 <code>Error wrapping</code>。</p>
+<p>具体细节可以参考相关提案 <a href="https://go.googlesource.com/proposal/+/master/design/29934-error-values.md" target="_blank" rel="noopener">Proposal: Go 2 Error Inspection</a> 以及 <a href="https://github.com/golang/go/issues/29934" target="_blank" rel="noopener">issues/29934</a> 讨论。</p>
+<p>Go 1.13 为 <code>errors</code> 和 <code>fmt</code> 标准库包引入了新功能：</p>
+<ul>
+<li><code>fmt.Errorf</code> 支持使用 <code>%w</code> 动词包装错误。</li>
+<li>新增 <code>errors.Unwrap</code> 函数为错误解包以获取根因。</li>
+<li>新增 <code>errors.Is</code> 函数取代 <code>==</code> 做等值比较。</li>
+<li>新增 <code>errors.As</code> 函数取代 <code>Type Assertion</code> 做类型断言。</li>
+</ul>
+<p>我们来一一讲解。</p>
+<h4 id="fmt-Errorf"><a href="#fmt-Errorf" class="headerlink" title="fmt.Errorf"></a>fmt.Errorf</h4><p><code>fmt.Errorf</code> 新增的 <code>%w</code> 动词功能对标 <code>pkg/errors</code> 包中的 <code>errors.Wrap</code> 函数，用法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"errors"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> errors.New(<span class="string">"foo error"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := Foo()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"bar: %w"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := Bar()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Printf(<span class="string">"err: %s\n"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">err: bar: foo error</span><br></pre></td></tr></table></figure>
+
+<h4 id="errors-Unwrap"><a href="#errors-Unwrap" class="headerlink" title="errors.Unwrap"></a>errors.Unwrap</h4><p><code>errors.Unwrap</code> 函数对标 <code>pkg/errors</code> 包中的 <code>errors.Cause</code> 函数，用法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> io.EOF</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := Foo()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"bar: %w"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := Bar()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> errors.Unwrap(err) == io.EOF &#123;</span><br><span class="line">			fmt.Println(<span class="string">"EOF err"</span>)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		fmt.Printf(<span class="string">"err: %+v\n"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">EOF err</span><br></pre></td></tr></table></figure>
+
+<h4 id="errors-Is"><a href="#errors-Is" class="headerlink" title="errors.Is"></a>errors.Is</h4><p><code>errors.Is</code> 函数可以取代 <code>==</code> 做等值比较，用法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> io.EOF</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := Foo()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"bar: %w"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := Bar()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// if err == io.EOF &#123;</span></span><br><span class="line">		<span class="keyword">if</span> errors.Is(err, io.EOF) &#123;</span><br><span class="line">			fmt.Println(<span class="string">"EOF err"</span>)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		fmt.Printf(<span class="string">"err: %+v\n"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="keyword">go</span> run main.<span class="keyword">go</span></span><br><span class="line">EOF err</span><br></pre></td></tr></table></figure>
+
+<p>由于我们使用了 <code>fmt.Errorf(&quot;bar: %w&quot;, err)</code> 对初始错误进行了包装，所以在 <code>main</code> 函数中不能直接使用 <code>if err == io.EOF</code> 来对 <code>Sentinel error</code> 进行相等性判断。</p>
+<p>除了可以使用 <code>if errors.Unwrap(err) == io.EOF</code> 这种方式，我们还可以使用 <code>errors.Is(err, io.EOF)</code> 方式来取代 <code>==</code>，执行结果相同。</p>
+<h4 id="errors-As"><a href="#errors-As" class="headerlink" title="errors.As"></a>errors.As</h4><p><code>errors.As</code> 函数可以取代 <code>Type Assertion</code> 做类型断言，用法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> MyError <span class="keyword">struct</span> &#123;</span><br><span class="line">	msg <span class="keyword">string</span></span><br><span class="line">	err error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(e *MyError)</span> <span class="title">Error</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> e.msg + <span class="string">": "</span> + e.err.Error()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;MyError&#123;</span><br><span class="line">		msg: <span class="string">"foo"</span>,</span><br><span class="line">		err: io.EOF,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Bar</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := Foo()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"bar: %w"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := Bar()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">var</span> e *MyError</span><br><span class="line">		<span class="keyword">if</span> errors.As(err, &amp;e) &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"EOF err: %s\n"</span>, e)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		fmt.Printf(<span class="string">"err: %+v\n"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">EOF err: foo: EOF</span><br></pre></td></tr></table></figure>
+
+<h3 id="Go-1-20"><a href="#Go-1-20" class="headerlink" title="Go 1.20"></a>Go 1.20</h3><p><a href="https://go.dev/doc/go1.20#errors" target="_blank" rel="noopener">Go 1.20</a> 新增了 <a href="https://pkg.go.dev/errors@go1.20#Join" target="_blank" rel="noopener">errors.Join</a> 函数返回包装后的错误列表。</p>
+<p>用法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"errors"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err1 := errors.New(<span class="string">"err1"</span>)</span><br><span class="line">	err2 := errors.New(<span class="string">"err2"</span>)</span><br><span class="line">	err := errors.Join(err1, err2)</span><br><span class="line">	fmt.Println(<span class="string">"---------"</span>)</span><br><span class="line">	fmt.Println(err)</span><br><span class="line">	fmt.Println(<span class="string">"---------"</span>)</span><br><span class="line">	<span class="keyword">if</span> errors.Is(err, err1) &#123;</span><br><span class="line">		fmt.Println(<span class="string">"err is err1"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> errors.Is(err, err2) &#123;</span><br><span class="line">		fmt.Println(<span class="string">"err is err2"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">---------</span><br><span class="line">err1</span><br><span class="line">err2</span><br><span class="line">---------</span><br><span class="line">err is err1</span><br><span class="line">err is err2</span><br></pre></td></tr></table></figure>
+
+<p>可以发现通过 <code>errors.Join(err1, err2)</code> 得到的 <code>err</code> 对象打印结果中会在多个错误之间增加换行。并且 <code>errors.Is</code> 函数也做了升级，能够处理这种情况，对 <code>err1</code> 或 <code>err2</code> 的相等性比较结果都为 <code>true</code>。</p>
+<h3 id="Go-1-23"><a href="#Go-1-23" class="headerlink" title="Go 1.23"></a>Go 1.23</h3><p><a href="https://tip.golang.org/doc/go1.23" target="_blank" rel="noopener">Go 1.23</a> 对 <code>errors.Is</code> 函数做了一点小优化。</p>
+<p>这是 Go 1.23 中的 <code>errors.Is</code> 函数：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.0/src/errors/wrap.go#L44-L51" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/errors/wrap.go#L44-L51</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Is</span><span class="params">(err, target error)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> || target == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err == target</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	isComparable := reflectlite.TypeOf(target).Comparable()</span><br><span class="line">	<span class="keyword">return</span> is(err, target, isComparable)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这是 Go 1.22.8 中的 <code>errors.Is</code> 函数：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.22.8/src/errors/wrap.go#L44-L51" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.22.8/src/errors/wrap.go#L44-L51</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Is</span><span class="params">(err, target error)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> target == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err == target</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	isComparable := reflectlite.TypeOf(target).Comparable()</span><br><span class="line">	<span class="keyword">return</span> is(err, target, isComparable)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现 Go 1.23 中 <code>errors.Is</code> 函数多了一个 <code>if err == nil</code> 逻辑的判断。不过由于这个改动比较小，不会对现有代码造成任何影响，这一改变并没有出现在 <a href="https://tip.golang.org/doc/go1.23" target="_blank" rel="noopener">Go 1.23 Release Notes</a> 中。</p>
+<p>仅此而已。</p>
+<h3 id="Go-2"><a href="#Go-2" class="headerlink" title="Go 2"></a>Go 2</h3><p>Go 1.13 版本之前的错误处理是过去，Go 1.13 版本错误处理是现在，Go 2 版本错误处理是未来。</p>
+<p>由于社区中对 Go 错误处理的吐槽声一直不断，Go 也在努力改变这一现状，虽然进展缓慢。</p>
+<p>Go 1.13 的出现已经是最大的诚意了 :)。</p>
+<p>很多人依然不满足于现状，将错误处理希望寄托于 Go 2。不过我个人持悲观态度，基于 Go 泛型的演进过程，我认为几年内 Go 错误处理都不会有较大改变。</p>
+<p>不过 Go 2 的蓝图的确已经在勾勒中了，感兴趣的读者可以进入 <a href="https://go.googlesource.com/proposal/+/master/design/go2draft.md" target="_blank" rel="noopener">Go 2 Draft Designs</a> 查看，里面对 <code>Error handling</code> 以及 <code>Error values</code> 都罗列了几个链接供读者参阅。</p>
+<p>期待 Go 2 的错误处理能够更上一层楼。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>Go 官方认为 <code>Error</code> 机制更简单有效，所以 Go 中并没有 <code>Exception</code>。</p>
+<p>在 Go 中可以通过 <code>errors.New</code> 或 <code>fmt.Errorf</code> 构造一个错误对象。</p>
+<p>有了错误对象，就需要对错误进行处理。Go 中一切的错误处理都从 <code>if err != nil</code> 开始。</p>
+<p><code>Sentinel error</code>，是一种错误处理惯用法，不过 <code>Sentinel error</code> 会成为公共 API 的一部分，它会引入源和运行时耦合，可能导致循环依赖。并且有些 <code>Sentinel error</code> 变量仅用于哨兵，而非错误，具有二义性，所以综合来看，并不推荐使用。尽管标准库中有大量应用，但是为了保持 Go 1 的兼容性承诺，短期来看不太可能有大变动。</p>
+<p>因为 <code>Sentinel error</code> 是一个变量，值可以被改变。所以有人提出使用常量来定义错误，不过目前来看这种用法并不常见。</p>
+<p><code>Opaque error</code> 是最理想的错误处理方式，但它过于理想。</p>
+<p>为了提供更多的上下文信息，我们可以自定义错误类型。</p>
+<p>始终记住：<code>Errors are values</code>，无论是内置错误类型还是我们自定义的错误类型都是值，我们可以对其进行等值判断、类型断言、赋值给结构体的属性等操作。</p>
+<p>随着 Go 语言的演进，现在社区中更推荐断言错误行为。这样能够实现了我们的代码与错误所在的包之间最大化的解耦。</p>
+<p>在使用 <code>Builder 模式</code>、链式调用或者 <code>for</code> 循环等场景下，暂存中间过程所出现的错误，有助于简化代码，使编写出的代码逻辑更加连贯。</p>
+<p>为了避免函数返回值存在二义性，我们应该返回错误而不是指针。</p>
+<p>不要忽略你的错误，但错误也不应该被重复处理，错误只应被处理一次。</p>
+<p>在在缩进代码块中处理错误有助于正常逻辑清晰可见。</p>
+<p>由于 Go 接口实现的特殊方式，可能存在 <code>nil</code> 错误值可能不等于 <code>nil</code> 的情况，编写代码时需要注意不要踩坑。</p>
+<p>记录日志前请确保错误真的存在，一个错误只应记录一次日志，并且为了方便拍错，日志信息最好包含堆栈信息。</p>
+<p>Go 1.13 虽然新增了几个方法，用来辅助错误处理，但是依然不能记录堆栈信息。</p>
+<p>所以，即使有 Go 1.13 的存在，现在也依然推荐使用 <code>pkg/errors</code> 来处理错误。</p>
+<p>Go 2 承担了 Go 未来错误处理的重任。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/error/handling-error" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>EOF是什么？：<a href="https://www.ruanyifeng.com/blog/2011/11/eof.html" target="_blank" rel="noopener">https://www.ruanyifeng.com/blog/2011/11/eof.html</a></li>
+<li>Why does Go not have exceptions?：<a href="https://go.dev/doc/faq#exceptions" target="_blank" rel="noopener">https://go.dev/doc/faq#exceptions</a></li>
+<li>Type Assertion：<a href="https://go.dev/doc/effective_go#interface_conversions" target="_blank" rel="noopener">https://go.dev/doc/effective_go#interface_conversions</a></li>
+<li>Type switch：<a href="https://go.dev/doc/effective_go#type_switch" target="_blank" rel="noopener">https://go.dev/doc/effective_go#type_switch</a></li>
+<li>Why is my nil error value not equal to nil?：<a href="https://go.dev/doc/faq#nil_error" target="_blank" rel="noopener">https://go.dev/doc/faq#nil_error</a></li>
+<li>Return and handle an error：<a href="https://go.dev/doc/tutorial/handle-errors" target="_blank" rel="noopener">https://go.dev/doc/tutorial/handle-errors</a></li>
+<li>Error wrapping：<a href="https://go.dev/doc/go1.13#error_wrapping" target="_blank" rel="noopener">https://go.dev/doc/go1.13#error_wrapping</a></li>
+<li>Error handling in Upspin：<a href="https://commandcenter.blogspot.com/2017/12/error-handling-in-upspin.html" target="_blank" rel="noopener">https://commandcenter.blogspot.com/2017/12/error-handling-in-upspin.html</a></li>
+<li>Why Go’s Error Handling is Awesome：<a href="https://rauljordan.com/why-go-error-handling-is-awesome/" target="_blank" rel="noopener">https://rauljordan.com/why-go-error-handling-is-awesome/</a></li>
+<li>Error Handling in Go：<a href="https://medium.com/gett-engineering/error-handling-in-go-53b8a7112d04" target="_blank" rel="noopener">https://medium.com/gett-engineering/error-handling-in-go-53b8a7112d04</a></li>
+<li>Handle Errors In Go Like A Pro：<a href="https://medium.com/@leodahal4/handle-errors-in-go-like-a-pro-5f2ab97c660b" target="_blank" rel="noopener">https://medium.com/@leodahal4/handle-errors-in-go-like-a-pro-5f2ab97c660b</a></li>
+<li>The Go standard error APIs：<a href="https://dr-knz.net/cockroachdb-errors-std-api.html" target="_blank" rel="noopener">https://dr-knz.net/cockroachdb-errors-std-api.html</a></li>
+<li>Constant errors：<a href="https://dave.cheney.net/2016/04/07/constant-errors" target="_blank" rel="noopener">https://dave.cheney.net/2016/04/07/constant-errors</a></li>
+<li>Inspecting errors：<a href="https://dave.cheney.net/2014/12/24/inspecting-errors" target="_blank" rel="noopener">https://dave.cheney.net/2014/12/24/inspecting-errors</a></li>
+<li>Errors and Exceptions, redux：<a href="https://dave.cheney.net/2015/01/26/errors-and-exceptions-redux" target="_blank" rel="noopener">https://dave.cheney.net/2015/01/26/errors-and-exceptions-redux</a></li>
+<li>Gocon Spring 2016：<a href="https://dave.cheney.net/paste/gocon-spring-2016.pdf" target="_blank" rel="noopener">https://dave.cheney.net/paste/gocon-spring-2016.pdf</a></li>
+<li>Stack traces and the errors package：<a href="https://dave.cheney.net/2016/06/12/stack-traces-and-the-errors-package" target="_blank" rel="noopener">https://dave.cheney.net/2016/06/12/stack-traces-and-the-errors-package</a></li>
+<li>Don’t just check errors, handle them gracefully：<a href="https://dave.cheney.net/2016/04/27/dont-just-check-errors-handle-them-gracefully" target="_blank" rel="noopener">https://dave.cheney.net/2016/04/27/dont-just-check-errors-handle-them-gracefully</a></li>
+<li>Effective error handling in Go.：<a href="https://morsmachine.dk/error-handling" target="_blank" rel="noopener">https://morsmachine.dk/error-handling</a></li>
+<li>Design Philosophy On Logging：<a href="https://www.ardanlabs.com/blog/2017/05/design-philosophy-on-logging.html" target="_blank" rel="noopener">https://www.ardanlabs.com/blog/2017/05/design-philosophy-on-logging.html</a></li>
+<li>Error Handling In Go, Part I：<a href="https://www.ardanlabs.com/blog/2014/10/error-handling-in-go-part-i.html" target="_blank" rel="noopener">https://www.ardanlabs.com/blog/2014/10/error-handling-in-go-part-i.html</a></li>
+<li>Error Handling In Go, Part II：<a href="https://www.ardanlabs.com/blog/2014/11/error-handling-in-go-part-ii.html" target="_blank" rel="noopener">https://www.ardanlabs.com/blog/2014/11/error-handling-in-go-part-ii.html</a></li>
+<li>Design Philosophy On Logging：<a href="https://www.ardanlabs.com/blog/2017/05/design-philosophy-on-logging.html" target="_blank" rel="noopener">https://www.ardanlabs.com/blog/2017/05/design-philosophy-on-logging.html</a></li>
+<li>Error handling and Go：<a href="https://go.dev/blog/error-handling-and-go" target="_blank" rel="noopener">https://go.dev/blog/error-handling-and-go</a></li>
+<li>Errors are values：<a href="https://go.dev/blog/errors-are-values" target="_blank" rel="noopener">https://go.dev/blog/errors-are-values</a></li>
+<li>Working with Errors in Go 1.13：<a href="https://go.dev/blog/go1.13-errors" target="_blank" rel="noopener">https://go.dev/blog/go1.13-errors</a></li>
+<li>Defer, Panic, and Recover：<a href="https://go.dev/blog/defer-panic-and-recover" target="_blank" rel="noopener">https://go.dev/blog/defer-panic-and-recover</a></li>
+<li>Go 1.13 errors 源码：<a href="https://github.com/golang/go/tree/go1.13/src/errors" target="_blank" rel="noopener">https://github.com/golang/go/tree/go1.13/src/errors</a></li>
+<li>Go 1.22.8 errors 源码：<a href="https://github.com/golang/go/blob/go1.22.8/src/errors/wrap.go#L44-L51" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.22.8/src/errors/wrap.go#L44-L51</a></li>
+<li>Go 1.23 errors 源码：<a href="https://github.com/golang/go/blob/go1.23.0/src/errors/wrap.go#L44-L51" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/errors/wrap.go#L44-L51</a></li>
+<li>Go 错误处理指北：Error vs Exception vs ErrNo：<a href="https://jianghushinian.cn/2024/09/06/go-error-guidelines-error-exception-errno/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/09/06/go-error-guidelines-error-exception-errno/</a></li>
+<li>Go 错误处理指北：pkg/errors 源码解读：<a href="https://jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/</a></li>
+<li>如何规范 RESTful API 的业务错误处理：<a href="https://jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/" target="_blank" rel="noopener">https://jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/</a></li>
+<li>Builder 模式在 Go 语言中的应用：<a href="https://jianghushinian.cn/2024/08/26/go-design-patterns-builder/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/08/26/go-design-patterns-builder/</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/error/handling-error" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/error/handling-error</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2024-10-06T15:23:29.049Z" itemprop="dateUpdated">2024-10-06 23:23:29</time>
+</span><br>
+
+
+        
+        <a href="/2024/10/01/go-error-guidelines-error-handling/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Error/" rel="tag">Error</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/&title=《Go 错误处理指北：如何优雅的处理错误？》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/&title=《Go 错误处理指北：如何优雅的处理错误？》 — 江湖十年&source=本文是 Go 错误处理指北系列第三篇文章：如何优雅的处理错误？作为铺垫，我在系列的前两篇文章 Error vs Exception vs ErrNo 和 ..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 错误处理指北：如何优雅的处理错误？》 — 江湖十年&url=http://www.jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/09/29/wildcard-claude/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">建议收藏！Claude 注册使用保姆级教程：稳定不封号</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2024</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/&title=《Go 错误处理指北：如何优雅的处理错误？》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/&title=《Go 错误处理指北：如何优雅的处理错误？》 — 江湖十年&source=本文是 Go 错误处理指北系列第三篇文章：如何优雅的处理错误？作为铺垫，我在系列的前两篇文章 Error vs Exception vs ErrNo 和 ..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 错误处理指北：如何优雅的处理错误？》 — 江湖十年&url=http://www.jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
