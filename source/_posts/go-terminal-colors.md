@@ -20,7 +20,7 @@ categories:
 
 ### 给终端加点颜色
 
-Go 社区中有一个叫 [fatih/color](https://github.com/fatih/color) 的包，可以非常方便的为输出的字符添加颜色。并且这个库用法非常简单，我来带你极速上手。
+Go 社区中有一个叫 [fatih/color](https://github.com/fatih/color) 的包，可以非常方便的为输出的字符添加颜色。并且这个包用法非常简单，我来带你极速上手。
 
 示例代码如下：
 

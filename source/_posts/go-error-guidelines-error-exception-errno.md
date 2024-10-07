@@ -497,6 +497,8 @@ Go 因为是后起之秀，所以可以参考它的前辈们，来设计属于�
 
 我倒是觉得这种错误处理非常的 "Go"，很有 Go 语言的特点，大道至简。
 
+Go 在 [FAQ](https://go.dev/doc/faq#exceptions) 中解释了为什么 Go 中没有“异常”，感兴趣的读者可以跳转过去查看。
+
 对比了三种主流编程语言的错误处理以后，你是否对 Go 语言的错误处理有了更新的认识？你喜欢哪种错误处理方式？可以在评论区进行交流。
 
 本文示例源码我都放在了 [GitHub](https://github.com/jianghushinian/blog-go-example/tree/main/error/error-exception-errno) 中，欢迎点击查看。
@@ -508,6 +510,8 @@ Go 因为是后起之秀，所以可以参考它的前辈们，来设计属于�
 - The Python Tutorial：Errors and Exceptions：https://docs.python.org/3/tutorial/errors.html
 - C 错误处理：https://www.runoob.com/cprogramming/c-error-handling.html
 - Go 编程模式：错误处理：https://coolshell.cn/articles/21140.html
+- Why does Go not have exceptions?：https://go.dev/doc/faq#exceptions
+- Why Go gets exceptions right：https://dave.cheney.net/2012/01/18/why-go-gets-exceptions-right
 - The Go Blog：Defer, Panic, and Recover：https://go.dev/blog/defer-panic-and-recover
 - 本文 GitHub 示例代码：https://github.com/jianghushinian/blog-go-example/tree/main/error/error-exception-errno
 
