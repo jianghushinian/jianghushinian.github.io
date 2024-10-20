@@ -3,6 +3,7 @@ title: 开源协议简介
 date: 2023-01-15 10:09:11
 tags:
 - 开源
+- License
 categories:
 - 开源
 ---
