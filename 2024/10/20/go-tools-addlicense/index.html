@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>一行命令为项目文件添加开源协议头 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,License,开源">
+    <meta name="description" content="今天给大家介绍一款可以为项目文件添加开源协议头信息的命令行工具 addlicense。 如果一个现有的项目，想要开源，免不了要为项目中的文件增加开源协议头信息。虽然很多 IDE 都可以为新创建的文件自动增加头信息，但修改已有的文件还是要麻烦些。好在我们有 addlicense 工具可以使用，一行命令就能搞定。并且 addlicense 是用 Go 语言开发的，本文不仅教你如何使用，还会对其源码进行">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一行命令为项目文件添加开源协议头">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/10/20/go-tools-addlicense/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="今天给大家介绍一款可以为项目文件添加开源协议头信息的命令行工具 addlicense。 如果一个现有的项目，想要开源，免不了要为项目中的文件增加开源协议头信息。虽然很多 IDE 都可以为新创建的文件自动增加头信息，但修改已有的文件还是要麻烦些。好在我们有 addlicense 工具可以使用，一行命令就能搞定。并且 addlicense 是用 Go 语言开发的，本文不仅教你如何使用，还会对其源码进行">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-10-20T02:13:28.000Z">
+<meta property="article:modified_time" content="2024-10-20T03:19:09.518Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="License">
+<meta property="article:tag" content="开源">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">一行命令为项目文件添加开源协议头</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">一行命令为项目文件添加开源协议头</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-10-20T02:13:28.000Z" itemprop="datePublished" class="page-time">
+  2024-10-20
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#安装"><span class="post-toc-number">1.</span> <span class="post-toc-text">安装</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用"><span class="post-toc-number">2.</span> <span class="post-toc-text">使用</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用内置-License"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">使用内置 License</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#指定自定义-License"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">指定自定义 License</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#源码解读"><span class="post-toc-number">3.</span> <span class="post-toc-text">源码解读</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#附录"><span class="post-toc-number">5.</span> <span class="post-toc-text">附录</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#filepath-Walk"><span class="post-toc-number">5.1.</span> <span class="post-toc-text">filepath.Walk</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#基本语法"><span class="post-toc-number">5.1.1.</span> <span class="post-toc-text">基本语法</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#使用示例"><span class="post-toc-number">5.1.2.</span> <span class="post-toc-text">使用示例</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#errgroup"><span class="post-toc-number">5.2.</span> <span class="post-toc-text">errgroup</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#使用场景"><span class="post-toc-number">5.2.1.</span> <span class="post-toc-text">使用场景</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#基本使用"><span class="post-toc-number">5.2.2.</span> <span class="post-toc-text">基本使用</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#使用示例-1"><span class="post-toc-number">5.2.3.</span> <span class="post-toc-text">使用示例</span></a></li></ol></li></ol></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go-tools-addlicense"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">一行命令为项目文件添加开源协议头</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-10-20 10:13:28" datetime="2024-10-20T02:13:28.000Z"  itemprop="datePublished">2024-10-20</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>今天给大家介绍一款可以为项目文件添加开源协议头信息的命令行工具 <a href="https://github.com/superproj/addlicense" target="_blank" rel="noopener">addlicense</a>。</p>
+<p>如果一个现有的项目，想要开源，免不了要为项目中的文件增加开源协议头信息。虽然很多 IDE 都可以为新创建的文件自动增加头信息，但修改已有的文件还是要麻烦些。好在我们有 <code>addlicense</code> 工具可以使用，一行命令就能搞定。并且 <code>addlicense</code> 是用 Go 语言开发的，本文不仅教你如何使用，还会对其源码进行分析讲解。</p>
+<a id="more"></a>
+
+<h3 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h3><p>使用如下命令安装 <code>addlicense</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go install github.com/superproj/addlicense</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>-h/--help</code> 查看帮助信息：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">$ addlicense -h</span><br><span class="line">Usage: addlicense [flags] pattern [pattern ...]</span><br><span class="line"></span><br><span class="line">The program ensures <span class="built_in">source</span> code files have copyright license headers</span><br><span class="line">by scanning directory patterns recursively.</span><br><span class="line"></span><br><span class="line">It modifies all <span class="built_in">source</span> files <span class="keyword">in</span> place and avoids adding a license header</span><br><span class="line">to any file that already has one.</span><br><span class="line"></span><br><span class="line">The pattern argument can be provided multiple <span class="built_in">times</span>, and may also refer</span><br><span class="line">to single files.</span><br><span class="line"></span><br><span class="line">Flags:</span><br><span class="line"></span><br><span class="line">      --check                check only mode: verify presence of license headers and <span class="built_in">exit</span> with non-zero code <span class="keyword">if</span> missing</span><br><span class="line">  -h, --<span class="built_in">help</span>                 show this <span class="built_in">help</span> message</span><br><span class="line">  -c, --holder string        copyright holder (default <span class="string">"Google LLC"</span>)</span><br><span class="line">  -l, --license string       license <span class="built_in">type</span>: apache, bsd, mit, mpl (default <span class="string">"apache"</span>)</span><br><span class="line">  -f, --licensef string      custom license file (no default)</span><br><span class="line">      --skip-dirs strings    regexps of directories to skip</span><br><span class="line">      --skip-files strings   regexps of files to skip</span><br><span class="line">  -v, --verbose              verbose mode: <span class="built_in">print</span> the name of the files that are modified</span><br><span class="line">  -y, --year string          copyright year(s) (default <span class="string">"2024"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>参数说明：</p>
+<ul>
+<li><code>--check</code> 只检查文件是否存在 License，执行后会打印所有不包含 License 版权头信息的文件名。</li>
+<li><code>-h/--help</code> 查看 <code>addlicense</code> 使用帮助信息，我们已经使用过了。</li>
+<li><code>-c/--holder</code> 指定 License 的版权所有者。</li>
+<li><code>-l/--license</code> 指定 License 的协议类型，目前内置支持了 <code>Apache 2.0</code>、<code>BSD</code>、<code>MIT</code> 和 <code>MPL 2.0</code> 协议。</li>
+<li><code>-f/--licensef</code> 指定自定义的 License 头文件。</li>
+<li><code>--skip-dirs</code> 跳过指定的目录。</li>
+<li><code>--skip-files</code> 跳过指定的文件。</li>
+<li><code>-v/--verbose</code> 打印被更改的文件名。</li>
+<li><code>-y/--year</code> 指定 License 的版权起始年份。</li>
+</ul>
+<h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><p>准备实验的目录如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ tree data -a</span><br><span class="line">data</span><br><span class="line">├── a</span><br><span class="line">│   ├── main.go</span><br><span class="line">│   └── main_test.go</span><br><span class="line">├── b</span><br><span class="line">│   └── c</span><br><span class="line">│       └── keep</span><br><span class="line">├── c</span><br><span class="line">│   └── main.py</span><br><span class="line">├── d.go</span><br><span class="line">└── d_test.go</span><br><span class="line"></span><br><span class="line">5 directories, 6 files</span><br></pre></td></tr></table></figure>
+
+<h4 id="使用内置-License"><a href="#使用内置-License" class="headerlink" title="使用内置 License"></a>使用内置 License</h4><p>检查 <code>data</code> 目录下的所有文件是否存在 License 头信息：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ addlicense --check data</span><br><span class="line">data/a/main_test.go</span><br><span class="line">data/d_test.go</span><br><span class="line">data/d.go</span><br><span class="line">data/c/main.py</span><br><span class="line">data/a/main.go</span><br></pre></td></tr></table></figure>
+
+<p>输出了没有 License 头信息的文件。可以发现，这里自动跳过了没有后缀名的文件 <code>keep</code>。</p>
+<blockquote>
+<p>NOTE:<br>因为 <code>addlicense</code>是并发操作多个目录，所以每次执行打印结果顺序可能不同。</p>
+</blockquote>
+<p>为缺失 License 头信息的文件添加 License 头信息：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ addlicense -v -l mit -c 江湖十年 --skip-dirs=c data</span><br><span class="line">data/a/main_test.go added license</span><br><span class="line">data/a/main.go added license</span><br><span class="line">data/d.go added license</span><br><span class="line">data/d_test.go added license</span><br></pre></td></tr></table></figure>
+
+<p>输出了所有本次命令增加了 License 头信息的文件。</p>
+<p><code>data/a/main.go</code> 效果如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Copyright (c) 2024 江湖十年</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Permission is hereby granted, free of charge, to any person obtaining a copy of</span></span><br><span class="line"><span class="comment">// this software and associated documentation files (the "Software"), to deal in</span></span><br><span class="line"><span class="comment">// the Software without restriction, including without limitation the rights to</span></span><br><span class="line"><span class="comment">// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of</span></span><br><span class="line"><span class="comment">// the Software, and to permit persons to whom the Software is furnished to do so,</span></span><br><span class="line"><span class="comment">// subject to the following conditions:</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// The above copyright notice and this permission notice shall be included in all</span></span><br><span class="line"><span class="comment">// copies or substantial portions of the Software.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR</span></span><br><span class="line"><span class="comment">// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS</span></span><br><span class="line"><span class="comment">// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR</span></span><br><span class="line"><span class="comment">// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER</span></span><br><span class="line"><span class="comment">// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN</span></span><br><span class="line"><span class="comment">// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<h4 id="指定自定义-License"><a href="#指定自定义-License" class="headerlink" title="指定自定义 License"></a>指定自定义 License</h4><p>我们也可以指定自定义的 License 文件 <code>boilerplate.txt</code> 内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Copyright 2024 jianghushinian &lt;jianghushinian007@outlook.com&gt;. All rights reserved.</span><br><span class="line">Use of this source code is governed by a MIT style</span><br><span class="line">license that can be found in the LICENSE file. The original repo for</span><br><span class="line">this file is https:&#x2F;&#x2F;github.com&#x2F;jianghushinian&#x2F;blog-go-example.</span><br></pre></td></tr></table></figure>
+
+<p>为缺失 License 头信息的文件添加 License 头信息：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ addlicense -v -f ./boilerplate.txt --skip-dirs=^a$ --skip-files=d.go,d_test.go data</span><br><span class="line">data/c/main.py added license</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>NOTE:<br>注意这次的命令使用了正则 <code>--skip-dirs=^a$</code> 来跳过目录 <code>a</code>，没有直接使用 <code>--skip-dirs=a</code> 是因为如果这样做会跳过整个 <code>data</code> 目录，不再进一步遍历子目录。稍后阅读完 <code>addlicense</code> 源码就知道为什么会这样了。</p>
+</blockquote>
+<p><code>data/c/main.py</code> 效果如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># Copyright <span class="number">2024</span> jianghushinian &lt;jianghushinian007@outlook.com&gt;. All rights reserved.</span><br><span class="line"># Use of this source code is governed by a MIT style</span><br><span class="line"># license that can be found in the LICENSE file. The original repo <span class="keyword">for</span></span><br><span class="line"># this file is https:<span class="comment">//github.com/jianghushinian/blog-go-example.</span></span><br><span class="line"></span><br><span class="line">def main():</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"Hello Python"</span>)</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<h3 id="源码解读"><a href="#源码解读" class="headerlink" title="源码解读"></a>源码解读</h3><p>我们学会了 <code>addlicense</code> 命令行工具如何使用，接下来可以深入其源码，来看看它是如何实现的。这样在使用过程中如果出现任何问题，也方便排查。</p>
+<p><code>addlicense</code> 项目很小，项目源文件如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ tree addlicense                        </span><br><span class="line">addlicense</span><br><span class="line">├── Makefile</span><br><span class="line">├── README.md</span><br><span class="line">├── boilerplate.txt</span><br><span class="line">├── go.mod</span><br><span class="line">├── go.sum</span><br><span class="line">└── main.go</span><br><span class="line"></span><br><span class="line">1 directory, 6 files</span><br></pre></td></tr></table></figure>
+
+<p><code>addlicense</code> 的代码逻辑，其实只有一个 <code>main.go</code> 文件，我们来对其代码进行逐行分析。</p>
+<p>打开 <code>main.go</code> 文件，首先映入眼帘的就是 License 头信息：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Copyright 2020 Lingfei Kong &lt;colin404@foxmail.com&gt;. All rights reserved.</span></span><br><span class="line"><span class="comment">// Use of this source code is governed by a MIT style</span></span><br><span class="line"><span class="comment">// license that can be found in the LICENSE file.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// This program ensures source code files have copyright license headers.</span></span><br><span class="line"><span class="comment">// See usage with "addlicense -h".</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"bufio"</span></span><br><span class="line">	<span class="string">"bytes"</span></span><br><span class="line">	<span class="string">"errors"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"html/template"</span></span><br><span class="line">	<span class="string">"io/ioutil"</span></span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line">	<span class="string">"path/filepath"</span></span><br><span class="line">	<span class="string">"regexp"</span></span><br><span class="line">	<span class="string">"strings"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line">	<span class="string">"unicode"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/spf13/pflag"</span></span><br><span class="line">	<span class="string">"golang.org/x/sync/errgroup"</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>License 头信息下面就是正常的 Go 包声明和导入信息。</p>
+<p>接下来是几个常量的定义：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> helpText = <span class="string">`Usage: addlicense [flags] pattern [pattern ...]</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">The program ensures source code files have copyright license headers</span></span><br><span class="line"><span class="string">by scanning directory patterns recursively.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">It modifies all source files in place and avoids adding a license header</span></span><br><span class="line"><span class="string">to any file that already has one.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">The pattern argument can be provided multiple times, and may also refer</span></span><br><span class="line"><span class="string">to single files.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Flags:</span></span><br><span class="line"><span class="string">`</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> tmplApache = <span class="string">`Copyright &#123;&#123;.Year&#125;&#125; &#123;&#123;.Holder&#125;&#125;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Licensed under the Apache License, Version 2.0 (the "License");</span></span><br><span class="line"><span class="string">you may not use this file except in compliance with the License.</span></span><br><span class="line"><span class="string">You may obtain a copy of the License at</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">     http://www.apache.org/licenses/LICENSE-2.0</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Unless required by applicable law or agreed to in writing, software</span></span><br><span class="line"><span class="string">distributed under the License is distributed on an "AS IS" BASIS,</span></span><br><span class="line"><span class="string">WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span></span><br><span class="line"><span class="string">See the License for the specific language governing permissions and</span></span><br><span class="line"><span class="string">limitations under the License.`</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> tmplBSD = <span class="string">`Copyright (c) &#123;&#123;.Year&#125;&#125; &#123;&#123;.Holder&#125;&#125; All rights reserved.</span></span><br><span class="line"><span class="string">Use of this source code is governed by a BSD-style</span></span><br><span class="line"><span class="string">license that can be found in the LICENSE file.`</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> tmplMIT = <span class="string">`Copyright (c) &#123;&#123;.Year&#125;&#125; &#123;&#123;.Holder&#125;&#125;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Permission is hereby granted, free of charge, to any person obtaining a copy of</span></span><br><span class="line"><span class="string">this software and associated documentation files (the "Software"), to deal in</span></span><br><span class="line"><span class="string">the Software without restriction, including without limitation the rights to</span></span><br><span class="line"><span class="string">use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of</span></span><br><span class="line"><span class="string">the Software, and to permit persons to whom the Software is furnished to do so,</span></span><br><span class="line"><span class="string">subject to the following conditions:</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">The above copyright notice and this permission notice shall be included in all</span></span><br><span class="line"><span class="string">copies or substantial portions of the Software.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR</span></span><br><span class="line"><span class="string">IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS</span></span><br><span class="line"><span class="string">FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR</span></span><br><span class="line"><span class="string">COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER</span></span><br><span class="line"><span class="string">IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN</span></span><br><span class="line"><span class="string">CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.`</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> tmplMPL = <span class="string">`This Source Code Form is subject to the terms of the Mozilla Public</span></span><br><span class="line"><span class="string">License, v. 2.0. If a copy of the MPL was not distributed with this</span></span><br><span class="line"><span class="string">file, You can obtain one at https://mozilla.org/MPL/2.0/.`</span></span><br></pre></td></tr></table></figure>
+
+<p>常量 <code>helpText</code> 就是使用 <code>-h/--help</code> 打印帮助信息最上面的内容，回去看看是不是能对应上。</p>
+<p>剩下的几个常量就是内置支持的 License 头信息了，分别是 <code>Apache</code>、<code>BSD</code>、<code>MIT</code>、<code>MPL</code> 协议。看到每个 License 头信息中的 <code>{ {.Year} } { {.Holder} }</code> 就知道，这是 Go template 的模板语法。</p>
+<p>然后，我们能看到定义的所有命令行标志都在这里了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	holder    = pflag.StringP(<span class="string">"holder"</span>, <span class="string">"c"</span>, <span class="string">"Google LLC"</span>, <span class="string">"copyright holder"</span>)</span><br><span class="line">	license   = pflag.StringP(<span class="string">"license"</span>, <span class="string">"l"</span>, <span class="string">"apache"</span>, <span class="string">"license type: apache, bsd, mit, mpl"</span>)</span><br><span class="line">	licensef  = pflag.StringP(<span class="string">"licensef"</span>, <span class="string">"f"</span>, <span class="string">""</span>, <span class="string">"custom license file (no default)"</span>)</span><br><span class="line">	year      = pflag.StringP(<span class="string">"year"</span>, <span class="string">"y"</span>, fmt.Sprint(time.Now().Year()), <span class="string">"copyright year(s)"</span>)</span><br><span class="line">	verbose   = pflag.BoolP(<span class="string">"verbose"</span>, <span class="string">"v"</span>, <span class="literal">false</span>, <span class="string">"verbose mode: print the name of the files that are modified"</span>)</span><br><span class="line">	checkonly = pflag.BoolP(</span><br><span class="line">		<span class="string">"check"</span>,</span><br><span class="line">		<span class="string">""</span>,</span><br><span class="line">		<span class="literal">false</span>,</span><br><span class="line">		<span class="string">"check only mode: verify presence of license headers and exit with non-zero code if missing"</span>,</span><br><span class="line">	)</span><br><span class="line">	skipDirs  = pflag.StringSliceP(<span class="string">"skip-dirs"</span>, <span class="string">""</span>, <span class="literal">nil</span>, <span class="string">"regexps of directories to skip"</span>)</span><br><span class="line">	skipFiles = pflag.StringSliceP(<span class="string">"skip-files"</span>, <span class="string">""</span>, <span class="literal">nil</span>, <span class="string">"regexps of files to skip"</span>)</span><br><span class="line">	help      = pflag.BoolP(<span class="string">"help"</span>, <span class="string">"h"</span>, <span class="literal">false</span>, <span class="string">"show this help message"</span>)</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>这里使用了 <code>pflag</code> 库来定义所有命令行标志，每个标志的作用已经在前文讲解过了，忘记的读者可以翻上去回顾一下。</p>
+<p>可以发现 <code>--skip-dirs</code> 和 <code>--skip-files</code> 两个标志都是 <code>slice</code> 类型，传入格式为 <code>a,b,c</code>。</p>
+<blockquote>
+<p>NOTE:<br>如果你不太熟悉 <code>pflag</code> 库，可以参考我的另一篇文章<a href="https://jianghushinian.cn/2023/03/27/use-of-go-command-line-parameter-parsing-tool-pflag/" target="_blank" rel="noopener">《Go 命令行参数解析工具 pflag 使用》</a>。</p>
+</blockquote>
+<p>下面就进入主逻辑 <code>main</code> 函数了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	pflag.Usage = usage</span><br><span class="line">	pflag.Parse()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> *help &#123;</span><br><span class="line">		pflag.Usage()</span><br><span class="line">		os.Exit(<span class="number">1</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> pflag.NArg() == <span class="number">0</span> &#123;</span><br><span class="line">		pflag.Usage()</span><br><span class="line">		os.Exit(<span class="number">1</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(*skipDirs) != <span class="number">0</span> &#123;</span><br><span class="line">		ps, err := getPatterns(*skipDirs)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(err.Error())</span><br><span class="line">			os.Exit(<span class="number">1</span>)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		patterns.dirs = ps</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(*skipFiles) != <span class="number">0</span> &#123;</span><br><span class="line">		ps, err := getPatterns(*skipFiles)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(err.Error())</span><br><span class="line">			os.Exit(<span class="number">1</span>)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		patterns.files = ps</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	data := &amp;copyrightData&#123;</span><br><span class="line">		Year:   *year,</span><br><span class="line">		Holder: *holder,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> t *template.Template</span><br><span class="line">	<span class="keyword">if</span> *licensef != <span class="string">""</span> &#123;</span><br><span class="line">		d, err := ioutil.ReadFile(*licensef)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"license file: %v\n"</span>, err)</span><br><span class="line">			os.Exit(<span class="number">1</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		t, err = template.New(<span class="string">""</span>).Parse(<span class="keyword">string</span>(d))</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"license file: %v\n"</span>, err)</span><br><span class="line">			os.Exit(<span class="number">1</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		t = licenseTemplate[*license]</span><br><span class="line">		<span class="keyword">if</span> t == <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"unknown license: %s\n"</span>, *license)</span><br><span class="line">			os.Exit(<span class="number">1</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// process at most 1000 files in parallel</span></span><br><span class="line">	ch := <span class="built_in">make</span>(<span class="keyword">chan</span> *file, <span class="number">1000</span>)</span><br><span class="line">	done := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">var</span> wg errgroup.Group</span><br><span class="line">		<span class="keyword">for</span> f := <span class="keyword">range</span> ch &#123;</span><br><span class="line">			f := f <span class="comment">// https://golang.org/doc/faq#closures_and_goroutines</span></span><br><span class="line">			wg.Go(<span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">				<span class="comment">// nolint: nestif</span></span><br><span class="line">				<span class="keyword">if</span> *checkonly &#123;</span><br><span class="line">					<span class="comment">// Check if file extension is known</span></span><br><span class="line">					lic, err := licenseHeader(f.path, t, data)</span><br><span class="line">					<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">						fmt.Printf(<span class="string">"%s: %v\n"</span>, f.path, err)</span><br><span class="line"></span><br><span class="line">						<span class="keyword">return</span> err</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="keyword">if</span> lic == <span class="literal">nil</span> &#123; <span class="comment">// Unknown fileExtension</span></span><br><span class="line">						<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">					&#125;</span><br><span class="line">					<span class="comment">// Check if file has a license</span></span><br><span class="line">					isMissingLicenseHeader, err := fileHasLicense(f.path)</span><br><span class="line">					<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">						fmt.Printf(<span class="string">"%s: %v\n"</span>, f.path, err)</span><br><span class="line"></span><br><span class="line">						<span class="keyword">return</span> err</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="keyword">if</span> isMissingLicenseHeader &#123;</span><br><span class="line">						fmt.Printf(<span class="string">"%s\n"</span>, f.path)</span><br><span class="line"></span><br><span class="line">						<span class="keyword">return</span> errors.New(<span class="string">"missing license header"</span>)</span><br><span class="line">					&#125;</span><br><span class="line">				&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">					modified, err := addLicense(f.path, f.mode, t, data)</span><br><span class="line">					<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">						fmt.Printf(<span class="string">"%s: %v\n"</span>, f.path, err)</span><br><span class="line"></span><br><span class="line">						<span class="keyword">return</span> err</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="keyword">if</span> *verbose &amp;&amp; modified &#123;</span><br><span class="line">						fmt.Printf(<span class="string">"%s added license\n"</span>, f.path)</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">			&#125;)</span><br><span class="line">		&#125;</span><br><span class="line">		err := wg.Wait()</span><br><span class="line">		<span class="built_in">close</span>(done)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			os.Exit(<span class="number">1</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> _, d := <span class="keyword">range</span> pflag.Args() &#123;</span><br><span class="line">		walk(ch, d)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">close</span>(ch)</span><br><span class="line">	&lt;-done</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里逻辑很长，咱们一点点来拆解阅读。</p>
+<p>首先是对命令行标志的处理：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">pflag.Usage = usage</span><br><span class="line">pflag.Parse()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> *help &#123;</span><br><span class="line">    pflag.Usage()</span><br><span class="line">    os.Exit(<span class="number">1</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> pflag.NArg() == <span class="number">0</span> &#123;</span><br><span class="line">    pflag.Usage()</span><br><span class="line">    os.Exit(<span class="number">1</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>pflag.Usage</code> 字段是一个函数，用来打印使用帮助信息，变量 <code>usage</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	...</span><br><span class="line">	usage           = <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Println(helpText)</span><br><span class="line">		pflag.PrintDefaults()</span><br><span class="line">	&#125;</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p><code>if *help</code> 就是对 <code>-h/--help</code> 标志进行判断，如果用户输入了此标志，就打印帮助信息，并直接退出程序。</p>
+<p><code>pflag.NArg()</code> 返回处理完标志后剩余的参数个数，用来指定需要处理的目录。如果用户没传，同样打印帮助信息并退出。</p>
+<p>如果执行 <code>addlicense -v -l mit -c 江湖十年 a b c</code> 命令，<code>pflag.NArg()</code> 会返回 <code>a</code>、<code>b</code>、<code>c</code> 三个目录。我们至少要传一个搜索路径，不然 <code>addlicense</code> 会不知道去找哪些文件。</p>
+<p>你可能想，这里也可以设置为默认查找当前目录，即默认目录为 <code>.</code>。但是我个人不推荐这种设计，因为 <code>addlicense</code> 会修改文件，最好还是用户明确传了哪个目录，再去操作。不然假如用户不小心在家目录下执行了这个命令，所有文件都被改了。</p>
+<p>显然，在这个场景中，显式胜于隐式。</p>
+<p>接下来是对 <code>--skip-dirs</code> 和 <code>--skip-files</code> 两个命令行标志的处理：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(*skipDirs) != <span class="number">0</span> &#123;</span><br><span class="line">    ps, err := getPatterns(*skipDirs)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(err.Error())</span><br><span class="line">        os.Exit(<span class="number">1</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    patterns.dirs = ps</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(*skipFiles) != <span class="number">0</span> &#123;</span><br><span class="line">    ps, err := getPatterns(*skipFiles)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(err.Error())</span><br><span class="line">        os.Exit(<span class="number">1</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    patterns.files = ps</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>跳过的目录和文件都通过 <code>getPatterns</code> 函数来转换成正则表达式，并赋值给 <code>patterns</code> 对象。</p>
+<p><code>patterns</code> 和 <code>getPatterns</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> patterns = <span class="keyword">struct</span> &#123;</span><br><span class="line">	dirs  []*regexp.Regexp</span><br><span class="line">	files []*regexp.Regexp</span><br><span class="line">&#125;&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getPatterns</span><span class="params">(patterns []<span class="keyword">string</span>)</span> <span class="params">([]*regexp.Regexp, error)</span></span> &#123;</span><br><span class="line">	patternsRe := <span class="built_in">make</span>([]*regexp.Regexp, <span class="number">0</span>, <span class="built_in">len</span>(patterns))</span><br><span class="line">	<span class="keyword">for</span> _, p := <span class="keyword">range</span> patterns &#123;</span><br><span class="line">		patternRe, err := regexp.Compile(p)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"can't compile regexp %q\n"</span>, p)</span><br><span class="line"></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"compile regexp failed, %w"</span>, err)</span><br><span class="line">		&#125;</span><br><span class="line">		patternsRe = <span class="built_in">append</span>(patternsRe, patternRe)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> patternsRe, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接着又构建了一个 <code>copyrightData</code> 对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">data := &amp;copyrightData&#123;</span><br><span class="line">    Year:   *year,</span><br><span class="line">    Holder: *holder,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>holder</code> 是通过 <code>-c/--holder</code> 传入的，<code>year</code> 是通过 <code>-y--year</code> 传入的，<code>year</code>不传默认值就是当前年份。</p>
+<p><code>data</code> 变量稍后将用于渲染模板。</p>
+<p>而接下来就是构造模版逻辑：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> t *template.Template</span><br><span class="line"><span class="keyword">if</span> *licensef != <span class="string">""</span> &#123;</span><br><span class="line">    d, err := ioutil.ReadFile(*licensef)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"license file: %v\n"</span>, err)</span><br><span class="line">        os.Exit(<span class="number">1</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    t, err = template.New(<span class="string">""</span>).Parse(<span class="keyword">string</span>(d))</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"license file: %v\n"</span>, err)</span><br><span class="line">        os.Exit(<span class="number">1</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    t = licenseTemplate[*license]</span><br><span class="line">    <span class="keyword">if</span> t == <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"unknown license: %s\n"</span>, *license)</span><br><span class="line">        os.Exit(<span class="number">1</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>if *licensef != &quot;&quot;</code> 表示如果用户使用<code>-f/--licensef</code> 指定了自定义的 License 头文件，则进入此逻辑，读取其中内容作为模板。</p>
+<p>否则，使用默认支持的版权内容作为模板。<code>licenseTemplate</code> 是一个全局变量，并在 <code>init</code>中被初始化：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	licenseTemplate = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]*template.Template)</span><br><span class="line">	...</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	licenseTemplate[<span class="string">"apache"</span>] = template.Must(template.New(<span class="string">""</span>).Parse(tmplApache))</span><br><span class="line">	licenseTemplate[<span class="string">"mit"</span>] = template.Must(template.New(<span class="string">""</span>).Parse(tmplMIT))</span><br><span class="line">	licenseTemplate[<span class="string">"bsd"</span>] = template.Must(template.New(<span class="string">""</span>).Parse(tmplBSD))</span><br><span class="line">	licenseTemplate[<span class="string">"mpl"</span>] = template.Must(template.New(<span class="string">""</span>).Parse(tmplMPL))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>无论哪个分支，只要报错，就会调用 <code>os.Exit(1)</code> 退出。</p>
+<p>接下来就是程序的核心逻辑了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// process at most 1000 files in parallel</span></span><br><span class="line">ch := <span class="built_in">make</span>(<span class="keyword">chan</span> *file, <span class="number">1000</span>)</span><br><span class="line">done := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> wg errgroup.Group</span><br><span class="line">    <span class="keyword">for</span> f := <span class="keyword">range</span> ch &#123;</span><br><span class="line">        f := f <span class="comment">// https://golang.org/doc/faq#closures_and_goroutines</span></span><br><span class="line">        wg.Go(<span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">            <span class="comment">// nolint: nestif</span></span><br><span class="line">            <span class="keyword">if</span> *checkonly &#123;</span><br><span class="line">                <span class="comment">// Check if file extension is known</span></span><br><span class="line">                lic, err := licenseHeader(f.path, t, data)</span><br><span class="line">                <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                    fmt.Printf(<span class="string">"%s: %v\n"</span>, f.path, err)</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">return</span> err</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> lic == <span class="literal">nil</span> &#123; <span class="comment">// Unknown fileExtension</span></span><br><span class="line">                    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">                &#125;</span><br><span class="line">                <span class="comment">// Check if file has a license</span></span><br><span class="line">                isMissingLicenseHeader, err := fileHasLicense(f.path)</span><br><span class="line">                <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                    fmt.Printf(<span class="string">"%s: %v\n"</span>, f.path, err)</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">return</span> err</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> isMissingLicenseHeader &#123;</span><br><span class="line">                    fmt.Printf(<span class="string">"%s\n"</span>, f.path)</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">return</span> errors.New(<span class="string">"missing license header"</span>)</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                modified, err := addLicense(f.path, f.mode, t, data)</span><br><span class="line">                <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                    fmt.Printf(<span class="string">"%s: %v\n"</span>, f.path, err)</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">return</span> err</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> *verbose &amp;&amp; modified &#123;</span><br><span class="line">                    fmt.Printf(<span class="string">"%s added license\n"</span>, f.path)</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">    err := wg.Wait()</span><br><span class="line">    <span class="built_in">close</span>(done)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        os.Exit(<span class="number">1</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;()</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> _, d := <span class="keyword">range</span> pflag.Args() &#123;</span><br><span class="line">    walk(ch, d)</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">close</span>(ch)</span><br><span class="line">&lt;-done</span><br></pre></td></tr></table></figure>
+
+<p>这段代码乍一看挺多，其实理清思路还是比较容易理解的。</p>
+<p>我们先理清这段代码的整体脉络：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// process at most 1000 files in parallel</span></span><br><span class="line">ch := <span class="built_in">make</span>(<span class="keyword">chan</span> *file, <span class="number">1000</span>)</span><br><span class="line">done := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> wg errgroup.Group</span><br><span class="line">    <span class="keyword">for</span> f := <span class="keyword">range</span> ch &#123;</span><br><span class="line">        wg.Go(<span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">            ...</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">    err := wg.Wait()</span><br><span class="line">    <span class="built_in">close</span>(done)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        os.Exit(<span class="number">1</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;()</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> _, d := <span class="keyword">range</span> pflag.Args() &#123;</span><br><span class="line">    walk(ch, d)</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">close</span>(ch)</span><br><span class="line">&lt;-done</span><br></pre></td></tr></table></figure>
+
+<p>这段代码设计还是比较精妙的，主 <code>goroutine</code> 与子 <code>goroutine</code> 通过 <code>ch</code> 和 <code>done</code> 进行协作。这也是典型的生产者消费者模型。</p>
+<p><code>ch := make(chan *file, 1000)</code> 创建了一个带缓冲的通道，缓冲大小为 1000，即最大并发为 1000。它用于将遍历到的文件（通过 <code>walk</code> 函数找到的文件）发送到消费者 <code>goroutine</code> 中。</p>
+<p><code>done := make(chan struct{})</code> 创建了一个无缓冲的通道，用于通知主 <code>goroutine</code> 所有并发任务（检查或修改文件）已经完成。</p>
+<p>生产者 <code>goroutine</code> 遍历 <code>pflag.Args()</code> 的返回值并调用 <code>walk(ch, d)</code> 来将生产的数据传入 <code>ch</code>。<code>pflag.Args()</code> 调用会返回处理完标志后剩余的参数列表，类型为 <code>[]string</code>，即传进来的目录或文件。前面提到的 <code>pflag.NArg()</code> 返回几，<code>pflag.Args()</code> 返回的切片中就有几个值。</p>
+<p>当生产者中的 <code>walk</code> 函数完成遍历所有目录并发送所有文件后，主 <code>goroutine</code> 会调用 <code>close(ch)</code> 关闭 <code>ch</code> 通道，通知接收方没有更多的文件需要处理。然后调用 <code>&lt;-done</code> 阻塞，等待消费者 <code>goroutine</code> 发送过来的完成信号。</p>
+<p>消费者 <code>goroutine</code> 中，<code>for f := range ch { ... }</code> 循环从 <code>ch</code> 通道接收文件（<code>*file</code> 类型），并为每个文件启动一个新的 <code>goroutine</code>（通过 <code>errgroup</code> 的 <code>Go</code> 方法管理并发任务）。如果你对 <code>errgroup</code> 不熟悉，可以参考后文附录部分对 <code>errgroup</code> 的讲解，了解其用法后再回过来接着分析代码。当 <code>ch</code> 通道被关闭，<code>for</code> 循环也就结束了。<code>wg.Wait()</code> 会等待所有消费 <code>goroutine</code> 处理完成并返回。然后调用 <code>close(done)</code> 关闭 <code>done</code> 通道。最后根据是否有 <code>goroutine</code> 返回 <code>error</code> 来决定是否调用 <code>os.Exit(1)</code> 进行异常退出。</p>
+<p>当消费者 <code>goroutine</code> 关闭 <code>done</code> 通道时，生产者 <code>&lt;-done</code> 会立即收到完成信号，由于这是 <code>main</code> 函数的最后一行代码，<code>&lt;-done</code> 返回也就意味着整个程序执行完成并退出。</p>
+<p>两个 <code>goroutine</code> 协同工作的主要逻辑已经解释清楚，我们就来分别看下二者的具体逻辑实现。</p>
+<p>生产者 <code>goroutine</code> 主要逻辑都在 <code>walk</code> 函数中：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">walk</span><span class="params">(ch <span class="keyword">chan</span>&lt;- *file, start <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	_ = filepath.Walk(start, <span class="function"><span class="keyword">func</span><span class="params">(path <span class="keyword">string</span>, fi os.FileInfo, err error)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"%s error: %v\n"</span>, path, err)</span><br><span class="line"></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> fi.IsDir() &#123;</span><br><span class="line">			<span class="keyword">for</span> _, pattern := <span class="keyword">range</span> patterns.dirs &#123;</span><br><span class="line">				<span class="keyword">if</span> pattern.MatchString(fi.Name()) &#123;</span><br><span class="line">					<span class="keyword">return</span> filepath.SkipDir</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">for</span> _, pattern := <span class="keyword">range</span> patterns.files &#123;</span><br><span class="line">			<span class="keyword">if</span> pattern.MatchString(fi.Name()) &#123;</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		ch &lt;- &amp;file&#123;path, fi.Mode()&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>walk</code>接收两个参数 <code>ch</code> 通道以及遍历的起始目录 <code>start</code>。</p>
+<p>其中 <code>ch</code> 通道中的 <code>file</code> 类型定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> file <span class="keyword">struct</span> &#123;</span><br><span class="line">	path <span class="keyword">string</span></span><br><span class="line">	mode os.FileMode</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>path</code>表示文件路径，<code>mode</code> 表示文件操作模式。</p>
+<p><code>walk</code>函数内部使用 <code>filepath.Walk</code> 来从 <code>start</code> 开始递归的遍历目录，并对其进行处理。如果你对 <code>filepath.Walk</code> 不熟悉，可以参考后文附录部分对 <code>filepath.Walk</code> 的讲解，了解其用法后再回过来接着分析代码。</p>
+<p>这里处理逻辑也很简单，就是通过正则匹配，来过滤用户通过 <code>--skip-dirs</code> 和 <code>--skip-files</code> 两个标志传进来需要跳过的目录和文件。然后将需要处理的文件传递给 <code>ch</code> 通道等待消费者去处理。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>现在你知道为什么前文示例中的命令使用了正则 <code>--skip-dirs=^a$</code> 来跳过目录 <code>a</code>，而没有直接使用 <code>--skip-dirs=a</code> 了吗？对字符串 <code>a</code> 做 <code>pattern.MatchString</code> 会匹配到 <code>data</code>，所以程序才会跳过整个 <code>data</code> 目录，不再进一步遍历子目录。</p>
+</blockquote>
+<p>当 <code>*file</code> 对象被传入 <code>ch</code> 通道，消费者就要开始工作了。</p>
+<p>消费 <code>goroutine</code> 中主逻辑分两种情况：</p>
+<ol>
+<li>用户执行命令时输入了 <code>--check</code> 标志，只检查文件是否存在 License。</li>
+<li>需要添加 License 头信息的逻辑。</li>
+</ol>
+<p>我们一个一个来看。</p>
+<ol>
+<li>用户执行命令时输入了 <code>--check</code> 标志，只检查文件是否存在 License，处理逻辑如下：</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> *checkonly &#123;</span><br><span class="line">    <span class="comment">// Check if file extension is known</span></span><br><span class="line">    lic, err := licenseHeader(f.path, t, data)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"%s: %v\n"</span>, f.path, err)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> lic == <span class="literal">nil</span> &#123; <span class="comment">// Unknown fileExtension</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Check if file has a license</span></span><br><span class="line">    isMissingLicenseHeader, err := fileHasLicense(f.path)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"%s: %v\n"</span>, f.path, err)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> isMissingLicenseHeader &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"%s\n"</span>, f.path)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> errors.New(<span class="string">"missing license header"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先调用 <code>licenseHeader</code> 函数来检查文件扩展名是否支持，它接收三个参数，分别是文件路径、License 模板、和 <code>data</code>，还记得 <code>data</code> 的内容吗？包含 <code>holder</code> 和 <code>year</code>，用来渲染模板。</p>
+<p><code>licenseHeader</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">licenseHeader</span><span class="params">(path <span class="keyword">string</span>, tmpl *template.Template, data *copyrightData)</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> lic []<span class="keyword">byte</span></span><br><span class="line">	<span class="keyword">var</span> err error</span><br><span class="line">	<span class="keyword">switch</span> fileExtension(path) &#123;</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">	<span class="keyword">case</span> <span class="string">".c"</span>, <span class="string">".h"</span>:</span><br><span class="line">		lic, err = prefix(tmpl, data, <span class="string">"/*"</span>, <span class="string">" * "</span>, <span class="string">" */"</span>)</span><br><span class="line">	<span class="keyword">case</span> <span class="string">".js"</span>, <span class="string">".mjs"</span>, <span class="string">".cjs"</span>, <span class="string">".jsx"</span>, <span class="string">".tsx"</span>, <span class="string">".css"</span>, <span class="string">".tf"</span>, <span class="string">".ts"</span>:</span><br><span class="line">		lic, err = prefix(tmpl, data, <span class="string">"/**"</span>, <span class="string">" * "</span>, <span class="string">" */"</span>)</span><br><span class="line">	<span class="keyword">case</span> <span class="string">".cc"</span>,</span><br><span class="line">		<span class="string">".cpp"</span>,</span><br><span class="line">		<span class="string">".cs"</span>,</span><br><span class="line">		<span class="string">".go"</span>,</span><br><span class="line">		<span class="string">".hh"</span>,</span><br><span class="line">		<span class="string">".hpp"</span>,</span><br><span class="line">		<span class="string">".java"</span>,</span><br><span class="line">		<span class="string">".m"</span>,</span><br><span class="line">		<span class="string">".mm"</span>,</span><br><span class="line">		<span class="string">".proto"</span>,</span><br><span class="line">		<span class="string">".rs"</span>,</span><br><span class="line">		<span class="string">".scala"</span>,</span><br><span class="line">		<span class="string">".swift"</span>,</span><br><span class="line">		<span class="string">".dart"</span>,</span><br><span class="line">		<span class="string">".groovy"</span>,</span><br><span class="line">		<span class="string">".kt"</span>,</span><br><span class="line">		<span class="string">".kts"</span>:</span><br><span class="line">		lic, err = prefix(tmpl, data, <span class="string">""</span>, <span class="string">"// "</span>, <span class="string">""</span>)</span><br><span class="line">	<span class="keyword">case</span> <span class="string">".py"</span>, <span class="string">".sh"</span>, <span class="string">".yaml"</span>, <span class="string">".yml"</span>, <span class="string">".dockerfile"</span>, <span class="string">"dockerfile"</span>, <span class="string">".rb"</span>, <span class="string">"gemfile"</span>:</span><br><span class="line">		lic, err = prefix(tmpl, data, <span class="string">""</span>, <span class="string">"# "</span>, <span class="string">""</span>)</span><br><span class="line">	<span class="keyword">case</span> <span class="string">".el"</span>, <span class="string">".lisp"</span>:</span><br><span class="line">		lic, err = prefix(tmpl, data, <span class="string">""</span>, <span class="string">";; "</span>, <span class="string">""</span>)</span><br><span class="line">	<span class="keyword">case</span> <span class="string">".erl"</span>:</span><br><span class="line">		lic, err = prefix(tmpl, data, <span class="string">""</span>, <span class="string">"% "</span>, <span class="string">""</span>)</span><br><span class="line">	<span class="keyword">case</span> <span class="string">".hs"</span>, <span class="string">".sql"</span>:</span><br><span class="line">		lic, err = prefix(tmpl, data, <span class="string">""</span>, <span class="string">"-- "</span>, <span class="string">""</span>)</span><br><span class="line">	<span class="keyword">case</span> <span class="string">".html"</span>, <span class="string">".xml"</span>, <span class="string">".vue"</span>:</span><br><span class="line">		lic, err = prefix(tmpl, data, <span class="string">"&lt;!--"</span>, <span class="string">" "</span>, <span class="string">"--&gt;"</span>)</span><br><span class="line">	<span class="keyword">case</span> <span class="string">".php"</span>:</span><br><span class="line">		lic, err = prefix(tmpl, data, <span class="string">""</span>, <span class="string">"// "</span>, <span class="string">""</span>)</span><br><span class="line">	<span class="keyword">case</span> <span class="string">".ml"</span>, <span class="string">".mli"</span>, <span class="string">".mll"</span>, <span class="string">".mly"</span>:</span><br><span class="line">		lic, err = prefix(tmpl, data, <span class="string">"(**"</span>, <span class="string">"   "</span>, <span class="string">"*)"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> lic, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>里面逻辑看起来 <code>case</code> 比较多，不过主要是为了支持各种编程语言的文件。</p>
+<p>函数 <code>fileExtension</code> 用来获取文件扩展名：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">fileExtension</span><span class="params">(name <span class="keyword">string</span>)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> v := filepath.Ext(name); v != <span class="string">""</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> strings.ToLower(v)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> strings.ToLower(filepath.Base(name))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后根据不同的文件扩展名调用 <code>prefix</code> 函数渲染模板。</p>
+<p><code>prefix</code> 函数定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">prefix</span><span class="params">(t *template.Template, d *copyrightData, top, mid, bot <span class="keyword">string</span>)</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> buf bytes.Buffer</span><br><span class="line">	<span class="keyword">if</span> err := t.Execute(&amp;buf, d); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"render template failed, err: %w"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">var</span> out bytes.Buffer</span><br><span class="line">	<span class="keyword">if</span> top != <span class="string">""</span> &#123;</span><br><span class="line">		fmt.Fprintln(&amp;out, top)</span><br><span class="line">	&#125;</span><br><span class="line">	s := bufio.NewScanner(&amp;buf)</span><br><span class="line">	<span class="keyword">for</span> s.Scan() &#123;</span><br><span class="line">		fmt.Fprintln(&amp;out, strings.TrimRightFunc(mid+s.Text(), unicode.IsSpace))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> bot != <span class="string">""</span> &#123;</span><br><span class="line">		fmt.Fprintln(&amp;out, bot)</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Fprintln(&amp;out)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> out.Bytes(), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>prefix</code> 函数会根据不同编程语言的注释风格生成版权声明头信息。它需要传入 License 模板、版权信息（年份、作者）、开头、中间、结尾标识符。</p>
+<p>所以我们调用 <code>lic, err := licenseHeader(f.path, t, data)</code>，最终得到的 <code>lic</code> 实际上内容根据文件类型是渲染后的 License 信息。</p>
+<p>比如同一个 License 头信息，在不同编程语言文件中都要写成对应的注释形式，所以要入乡随俗。</p>
+<p>在 Go 文件中 License 头信息长这样：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Copyright 2024 jianghushinian &lt;jianghushinian007@outlook.com&gt;. All rights reserved.</span></span><br><span class="line"><span class="comment">// Use of this source code is governed by a MIT style</span></span><br><span class="line"><span class="comment">// license that can be found in the LICENSE file. The original repo for</span></span><br><span class="line"><span class="comment">// this file is https://github.com/jianghushinian/blog-go-example.</span></span><br></pre></td></tr></table></figure>
+
+<p>在 Python 文件中 License 头信息则要长这样：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Copyright 2024 jianghushinian &lt;jianghushinian007@outlook.com&gt;. All rights reserved.</span></span><br><span class="line"><span class="comment"># Use of this source code is governed by a MIT style</span></span><br><span class="line"><span class="comment"># license that can be found in the LICENSE file. The original repo for</span></span><br><span class="line"><span class="comment"># this file is https://github.com/jianghushinian/blog-go-example.</span></span><br></pre></td></tr></table></figure>
+
+<p>接下来判断如果没拿到结果，说明是不支持的文件扩展名，直接返回不做进一步处理，逻辑如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> lic == <span class="literal">nil</span> &#123; <span class="comment">// Unknown fileExtension</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>之后调用 <code>fileHasLicense</code>检查文件是否包含授权头信息。<code>fileHasLicense</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">fileHasLicense</span><span class="params">(path <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">bool</span>, error)</span></span> &#123;</span><br><span class="line">	b, err := ioutil.ReadFile(path)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> hasLicense(b) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">hasLicense</span><span class="params">(b []<span class="keyword">byte</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	n := <span class="number">1000</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(b) &lt; <span class="number">1000</span> &#123;</span><br><span class="line">		n = <span class="built_in">len</span>(b)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> bytes.Contains(bytes.ToLower(b[:n]), []<span class="keyword">byte</span>(<span class="string">"copyright"</span>)) ||</span><br><span class="line">		bytes.Contains(bytes.ToLower(b[:n]), []<span class="keyword">byte</span>(<span class="string">"mozilla public"</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里实现比较简单，就是读取文件内容，然后判断前 1000 个字符中是否包含 <code>copyright</code> 或 <code>mozilla public</code> 关键字。</p>
+<p><code>fileHasLicense</code> 函数返回后，如果其返回值为 <code>true</code>，则说明文件中不包含 License 头信息，直接返回一个 <code>error</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> isMissingLicenseHeader &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"%s\n"</span>, f.path)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> errors.New(<span class="string">"missing license header"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里返回的 <code>error</code> 会被 <code>err := wg.Wait()</code> 拿到，最终调用 <code>os.Exit(1)</code> 异常退出。</p>
+<ol start="2">
+<li>处理需要添加 License 头信息的逻辑如下：</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">    modified, err := addLicense(f.path, f.mode, t, data)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"%s: %v\n"</span>, f.path, err)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> *verbose &amp;&amp; modified &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"%s added license\n"</span>, f.path)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里调用 <code>addLicense</code> 函数为指定文件插入 License 头信息。</p>
+<p><code>addLicense</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">addLicense</span><span class="params">(path <span class="keyword">string</span>, fmode os.FileMode, tmpl *template.Template, data *copyrightData)</span> <span class="params">(<span class="keyword">bool</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> lic []<span class="keyword">byte</span></span><br><span class="line">	<span class="keyword">var</span> err error</span><br><span class="line">	lic, err = licenseHeader(path, tmpl, data)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> || lic == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	b, err := ioutil.ReadFile(path)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> hasLicense(b) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	line := hashBang(b)</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(line) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		b = b[<span class="built_in">len</span>(line):]</span><br><span class="line">		<span class="keyword">if</span> line[<span class="built_in">len</span>(line)<span class="number">-1</span>] != <span class="string">'\n'</span> &#123;</span><br><span class="line">			line = <span class="built_in">append</span>(line, <span class="string">'\n'</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		line = <span class="built_in">append</span>(line, <span class="string">'\n'</span>)</span><br><span class="line">		lic = <span class="built_in">append</span>(line, lic...)</span><br><span class="line">	&#125;</span><br><span class="line">	b = <span class="built_in">append</span>(lic, b...)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>, ioutil.WriteFile(path, b, fmode)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先这里也调用了 <code>licenseHeader</code> 来判断文件扩展名是否被支持，并渲染 License 模板。</p>
+<p>然后调用 <code>hasLicense</code> 来判断文件是否已经存在 License 头信息。</p>
+<p>如果文件不存在 License 头信息，接下来的逻辑就是正式准备写入 License 头信息了。</p>
+<p>接下来这段逻辑分两种情况，首先调用 <code>hashBang</code> 函数用来判断文件是否存在 <a href="https://zh.wikipedia.org/wiki/Shebang" target="_blank" rel="noopener">Shebang</a> 行，如果有 <code>Shebang</code> 行，则源文件内容为 <code>Shebang</code> 行 + 代码，新内容为 <code>Shebang</code> 行 + License 头信息 + 代码。如果没有 <code>Shebang</code> 行存在，则源文件内容只包含代码，新内容为 License 头信息 + 代码。</p>
+<p><code>hashBang</code> 函数内容如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> head = []<span class="keyword">string</span>&#123;</span><br><span class="line">	<span class="string">"#!"</span>,                       <span class="comment">// shell script</span></span><br><span class="line">	<span class="string">"&lt;?xml"</span>,                    <span class="comment">// XML declaratioon</span></span><br><span class="line">	<span class="string">"&lt;!doctype"</span>,                <span class="comment">// HTML doctype</span></span><br><span class="line">	<span class="string">"# encoding:"</span>,              <span class="comment">// Ruby encoding</span></span><br><span class="line">	<span class="string">"# frozen_string_literal:"</span>, <span class="comment">// Ruby interpreter instruction</span></span><br><span class="line">	<span class="string">"&lt;?php"</span>,                    <span class="comment">// PHP opening tag</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">hashBang</span><span class="params">(b []<span class="keyword">byte</span>)</span> []<span class="title">byte</span></span> &#123;</span><br><span class="line">	line := <span class="built_in">make</span>([]<span class="keyword">byte</span>, <span class="number">0</span>, <span class="built_in">len</span>(b))</span><br><span class="line">	<span class="keyword">for</span> _, c := <span class="keyword">range</span> b &#123;</span><br><span class="line">		line = <span class="built_in">append</span>(line, c)</span><br><span class="line">		<span class="keyword">if</span> c == <span class="string">'\n'</span> &#123;</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	first := strings.ToLower(<span class="keyword">string</span>(line))</span><br><span class="line">	<span class="keyword">for</span> _, h := <span class="keyword">range</span> head &#123;</span><br><span class="line">		<span class="keyword">if</span> strings.HasPrefix(first, h) &#123;</span><br><span class="line">			<span class="keyword">return</span> line</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后这段逻辑就简单了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> *verbose &amp;&amp; modified &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"%s added license\n"</span>, f.path)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里用来处理 <code>-v/--verbose</code> 参数。</p>
+<p>至此，<code>addlicense</code> 所有源码就都解读完成了。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文介绍可一行命令为项目文件添加开源协议头的工具 <code>addlicense</code>，并且还对其源码进行了逐行解读，让你能够知其然，也能知其所以然。</p>
+<p>不过 <code>addlicense</code> 工具能力还比较有限，比如不支持跳过 <code>a/b/c</code> 这种嵌套目录，再比如 <code>hashBang</code> 函数支持有限，不支持 Python3 的 <code># -*- coding:utf-8 -*-</code> 等。</p>
+<p>如果感兴趣，你可以一起投入到项目建设中来，为这个工具提供更强大的能力，欢迎提交 <a href="https://github.com/superproj/addlicense/pulls" target="_blank" rel="noopener">PR</a>。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/tools/addlicense" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<h3 id="附录"><a href="#附录" class="headerlink" title="附录"></a>附录</h3><h4 id="filepath-Walk"><a href="#filepath-Walk" class="headerlink" title="filepath.Walk"></a>filepath.Walk</h4><p><code>filepath.Walk</code> 是 Go 标准库中的一个函数，用来递归遍历文件系统中的目录和文件。它可以遍历指定目录下的所有文件和子目录，并对每个文件或目录执行用户提供的回调函数。</p>
+<h5 id="基本语法"><a href="#基本语法" class="headerlink" title="基本语法"></a>基本语法</h5><p><code>Walk</code> 函数签名如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Walk</span><span class="params">(root <span class="keyword">string</span>, fn WalkFunc)</span> <span class="title">error</span></span></span><br></pre></td></tr></table></figure>
+
+<p><code>Walk</code> 接收两个参数：</p>
+<ul>
+<li><code>root</code>：需要递归遍历的起始目录路径。</li>
+<li><code>fn</code>：每次遍历到一个文件或目录时调用的回调函数。</li>
+</ul>
+<p><code>Walk</code> 遍历以 <code>root</code> 为根的文件树，并为树中的每个文件或目录（包括 <code>root</code>）调用 <code>fn</code> 函数。</p>
+<p><code>WalkFunc</code> 函数签名如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> WalkFunc <span class="function"><span class="keyword">func</span><span class="params">(path <span class="keyword">string</span>, info fs.FileInfo, err error)</span> <span class="title">error</span></span></span><br></pre></td></tr></table></figure>
+
+<p><code>WalkFunc</code> 接收三个参数：</p>
+<ul>
+<li><code>path</code>：当前文件或目录的路径。</li>
+<li><code>info</code>：当前文件或目录的 <code>fs.FileInfo</code>，这里包含了文件的元信息，如是否为目录、文件大小等。</li>
+<li><code>err</code>：错误信息，如权限问题。</li>
+</ul>
+<p>该函数返回的错误结果会控制 <code>Walk</code> 是否继续执行。如果函数返回特殊值 <code>filepath.SkipDir</code>，则 <code>Walk</code> 会跳过当前目录（如果 <code>path</code> 是目录跳过当前目录，否则跳过 <code>path</code> 的父目录）但继续遍历其他内容。如果函数返回特殊值 <code>filepath.SkipAll</code>，则 <code>Walk</code> 将跳过所有剩余的文件和目录。否则，如果函数返回非 <code>nil</code> 错误，则 <code>Walk</code> 将完全停止并返回该错误。</p>
+<h5 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h5><p>现在我们准备如下用来测试的目录：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ tree data -a</span><br><span class="line">data</span><br><span class="line">├── .git</span><br><span class="line">├── a</span><br><span class="line">│   ├── main.go</span><br><span class="line">│   └── main_test.go</span><br><span class="line">├── b</span><br><span class="line">│   └── c</span><br><span class="line">│       └── keep</span><br><span class="line">├── d.go</span><br><span class="line">└── d_test.go</span><br><span class="line"></span><br><span class="line">5 directories, 5 files</span><br></pre></td></tr></table></figure>
+
+<p>我们来使用 <code>Walk</code> 遍历 <code>data</code> 目录，并且输出每个文件或目录的路径。此外，需要跳过名为 <code>.git</code> 的目录和以 <code>test.go</code> 结尾的 Go 测试文件。</p>
+<p>示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line">	<span class="string">"path/filepath"</span></span><br><span class="line">	<span class="string">"strings"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 定义起始目录</span></span><br><span class="line">	root := <span class="string">"./data"</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 调用 Walk 函数遍历目录</span></span><br><span class="line">	err := filepath.Walk(root, <span class="function"><span class="keyword">func</span><span class="params">(path <span class="keyword">string</span>, info os.FileInfo, err error)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="comment">// 如果发生错误，则输出错误并继续遍历</span></span><br><span class="line">			fmt.Printf(<span class="string">"Error accessing path %s: %v\n"</span>, path, err)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 跳过名为 `.git` 的目录</span></span><br><span class="line">		<span class="keyword">if</span> info.IsDir() &amp;&amp; info.Name() == <span class="string">".git"</span> &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"Skipping directory: %s\n"</span>, path)</span><br><span class="line">			<span class="keyword">return</span> filepath.SkipDir</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 跳过 Go 测试文件</span></span><br><span class="line">		<span class="keyword">if</span> !info.IsDir() &amp;&amp; strings.HasSuffix(info.Name(), <span class="string">"test.go"</span>) &#123;</span><br><span class="line">			fmt.Println(<span class="string">"Skipping file:"</span>, path)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 输出每个文件或目录的路径</span></span><br><span class="line">		fmt.Println(path)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Printf(<span class="string">"Error walking the path %v\n"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过 <code>info.IsDir()</code> 可以判断是否为目录，<code>info.Name()</code> 可以获取文件或目录名。</p>
+<p>使用 <code>strings.HasSuffix()</code> 函数可以过滤出 <code>.go</code> 文件。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go </span><br><span class="line">./data</span><br><span class="line">Skipping directory: data/.git</span><br><span class="line">data/a</span><br><span class="line">data/a/main.go</span><br><span class="line">Skipping file: data/a/main_test.go</span><br><span class="line">data/b</span><br><span class="line">data/b/c</span><br><span class="line">data/b/c/keep</span><br><span class="line">data/d.go</span><br><span class="line">Skipping file: data/d_test.go</span><br></pre></td></tr></table></figure>
+
+<h4 id="errgroup"><a href="#errgroup" class="headerlink" title="errgroup"></a>errgroup</h4><p><code>errgroup</code> 是 <a href="https://go.dev/wiki/X-Repositories" target="_blank" rel="noopener">Go 官方库 x</a> 中提供的一个非常实用的工具，用于并发执行多个 goroutine，并且方便的处理错误。</p>
+<h5 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h5><ol>
+<li><strong>并发处理多个任务</strong>：当需要并发执行多个任务时，<code>errgroup</code> 有助于管理这些任务。</li>
+<li><strong>收集错误</strong>：<code>errgroup</code> 会在任何一个 goroutine 出现错误时收集并返回这个错误，避免手动处理 goroutine 的错误。</li>
+<li><strong>等待所有 goroutine 完成</strong>：<code>errgroup</code> 提供了一个简便的方法等待所有并发的 goroutine 完成。</li>
+</ol>
+<h5 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h5><p><code>errgroup</code> 基本使用套路如下：</p>
+<ol>
+<li>导入 <code>errgroup</code> 包。</li>
+<li>创建一个 <code>errgroup.Group</code> 实例。</li>
+<li>使用 <code>Group.Go</code> 方法启动多个并发任务。</li>
+<li>使用 <code>Group.Wait</code> 方法等待所有 goroutine 完成或有一个返回错误。</li>
+</ol>
+<h5 id="使用示例-1"><a href="#使用示例-1" class="headerlink" title="使用示例"></a>使用示例</h5><p>我们有 10 个并发任务用 <code>errgroup</code> 来管理，示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"errors"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"golang.org/x/sync/errgroup"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> g errgroup.Group</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		i := i</span><br><span class="line">		g.Go(<span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">			<span class="keyword">if</span> i == <span class="number">3</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> errors.New(<span class="string">"task 3 failed"</span>)</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> i == <span class="number">5</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> errors.New(<span class="string">"task 5 failed"</span>)</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="comment">// 其他任务继续运行</span></span><br><span class="line">			fmt.Printf(<span class="string">"run task %d\n"</span>, i)</span><br><span class="line"></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span> <span class="comment">// 正常返回 nil 表示成功</span></span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err := g.Wait(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Printf(<span class="string">"Error: %v\n"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码解析：</p>
+<ol>
+<li><code>var g errgroup.Group</code>: 创建了一个 <code>errgroup.Group</code> 对象，它用于管理多个 goroutine 并跟踪它们的状态。</li>
+<li><code>g.Go(func() error {...})</code>: 每次调用 <code>g.Go</code>，都会启动一个新的 goroutine，传入的匿名函数是任务的执行内容。<code>Go</code> 方法会记录这个任务的返回值（<code>error</code> 类型）。</li>
+<li><strong>并发执行任务</strong>：在 <code>g.Go</code> 内部执行的 <code>func() error</code> 都会并发执行。</li>
+<li><code>g.Wait()</code>: <code>g.Wait</code> 会等待所有的 goroutine 执行完成。如果所有任务都执行成功，它会返回 <code>nil</code>，否则，无论有几个 goroutine 执行失败，它会<strong>返回第一个出现的错误</strong>。示例中第 3 个任务和第 5 个任务出错，<strong>其他的 8 个任务不会受到影响，它们依然会继续运行并完成</strong>。</li>
+</ol>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go </span><br><span class="line">run task 9</span><br><span class="line">run task 4</span><br><span class="line">run task 2</span><br><span class="line">run task 6</span><br><span class="line">run task 7</span><br><span class="line">run task 1</span><br><span class="line">run task 8</span><br><span class="line">run task 0</span><br><span class="line">Error: task 3 failed</span><br></pre></td></tr></table></figure>
+
+<p>由于任务是并发执行，所以多次执行输出结果顺序可能不同。</p>
+<p>并且，输出错误可能是 <code>Error: task 3 failed</code>，也有可能是 <code>Error: task 5 failed</code>。</p>
+<p>这里还有一个更加真实的改编自 <code>errgroup</code> <a href="https://pkg.go.dev/golang.org/x/sync@v0.8.0/errgroup#example-Group-JustErrors" target="_blank" rel="noopener">官方文档</a>的示例，用来并发请求多个 URL 并输出响应状态码。</p>
+<p>你可以再来感受下 <code>errgroup</code> 的用法，代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"net/http"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"golang.org/x/sync/errgroup"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	g := <span class="built_in">new</span>(errgroup.Group)</span><br><span class="line">	<span class="keyword">var</span> urls = []<span class="keyword">string</span>&#123;</span><br><span class="line">		<span class="string">"http://www.golang.org/"</span>,</span><br><span class="line">		<span class="string">"http://www.google.com/"</span>,</span><br><span class="line">		<span class="string">"http://www.somestupidname.com/"</span>, <span class="comment">// 这是一个错误的 URL，会导致任务失败</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建一个 map 来保存结果</span></span><br><span class="line">	<span class="keyword">var</span> result sync.Map</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 启动多个 goroutine，并发处理多个 URL</span></span><br><span class="line">	<span class="keyword">for</span> _, url := <span class="keyword">range</span> urls &#123;</span><br><span class="line">		<span class="comment">// <span class="doctag">NOTE:</span> 注意这里的 url 需要传递给闭包函数，避免闭包共享变量问题，自 Go 1.22 开始无需考虑此问题</span></span><br><span class="line">		url := url <span class="comment">// https://golang.org/doc/faq#closures_and_goroutines</span></span><br><span class="line"></span><br><span class="line">		<span class="comment">// 启动一个 goroutine 来获取 URL</span></span><br><span class="line">		g.Go(<span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">			resp, err := http.Get(url)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> err <span class="comment">// 发生错误，返回该错误</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">defer</span> resp.Body.Close()</span><br><span class="line"></span><br><span class="line">			<span class="comment">// 保存每个 URL 的响应状态码</span></span><br><span class="line">			result.Store(url, resp.Status)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 等待所有 goroutine 完成</span></span><br><span class="line">	<span class="keyword">if</span> err := g.Wait(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// 如果有任何一个 goroutine 返回了错误，这里会得到该错误</span></span><br><span class="line">		fmt.Println(<span class="string">"Error: "</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 所有 goroutine 都执行完成，遍历并打印成功的结果</span></span><br><span class="line">	result.Range(<span class="function"><span class="keyword">func</span><span class="params">(key, value any)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">		fmt.Printf(<span class="string">"%s: %s\n"</span>, key, value)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>你可能注意到示例代码中有一句 <code>url := url</code>，这是由于在 Go 1.22 以前，由于 <code>for</code> 循环声明的变量只会被创建一次，并在每次迭代时更新。所以为了避免多个 <code>goroutine</code> 中拿到相同的 <code>url</code> 值，而进行的拷贝操作。</p>
+<p>在 Go 1.22 中，循环的每次迭代都会创建新的变量，以避免意外的共享错误。这在 Go 1.22 <a href="https://go.dev/doc/go1.22#language" target="_blank" rel="noopener">Release Notes</a> 中有说明。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">Error:  Get <span class="string">"http://www.somestupidname.com/"</span>: dial tcp: lookup www.somestupidname.com: no such host</span><br><span class="line">http://www.google.com/: 200 OK</span><br><span class="line">http://www.golang.org/: 200 OK</span><br></pre></td></tr></table></figure>
+
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>开源协议简介：<a href="https://jianghushinian.cn/2023/01/15/open-source-license-introduction/" target="_blank" rel="noopener">https://jianghushinian.cn/2023/01/15/open-source-license-introduction/</a></li>
+<li>Go 命令行参数解析工具 pflag 使用：<a href="https://jianghushinian.cn/2023/03/27/use-of-go-command-line-parameter-parsing-tool-pflag/" target="_blank" rel="noopener">https://jianghushinian.cn/2023/03/27/use-of-go-command-line-parameter-parsing-tool-pflag/</a></li>
+<li>filepath.Walk 文档：<a href="https://pkg.go.dev/path/filepath@go1.23.1#Walk" target="_blank" rel="noopener">https://pkg.go.dev/path/filepath@go1.23.1#Walk</a></li>
+<li>errgroup 文档：<a href="https://pkg.go.dev/golang.org/x/sync@v0.8.0/errgroup" target="_blank" rel="noopener">https://pkg.go.dev/golang.org/x/sync@v0.8.0/errgroup</a></li>
+<li>Go FAQ: What happens with closures running as goroutines：<a href="https://go.dev/doc/faq#closures_and_goroutines" target="_blank" rel="noopener">https://go.dev/doc/faq#closures_and_goroutines</a></li>
+<li>Go 1.22 Release Notes：<a href="https://go.dev/doc/go1.22#language" target="_blank" rel="noopener">https://go.dev/doc/go1.22#language</a></li>
+<li>Go Wiki: X-Repositories：<a href="https://go.dev/wiki/X-Repositories" target="_blank" rel="noopener">https://go.dev/wiki/X-Repositories</a></li>
+<li>Shebang：<a href="https://zh.wikipedia.org/wiki/Shebang" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/Shebang</a></li>
+<li>addlicense 源码：<a href="https://github.com/superproj/addlicense" target="_blank" rel="noopener">https://github.com/superproj/addlicense</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/tools/addlicense" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/tools/addlicense</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2024-10-20T03:19:09.518Z" itemprop="dateUpdated">2024-10-20 11:19:09</time>
+</span><br>
+
+
+        
+        <a href="/2024/10/20/go-tools-addlicense/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/10/20/go-tools-addlicense/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/License/" rel="tag">License</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%80%E6%BA%90/" rel="tag">开源</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/10/20/go-tools-addlicense/&title=《一行命令为项目文件添加开源协议头》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/10/20/go-tools-addlicense/&title=《一行命令为项目文件添加开源协议头》 — 江湖十年&source=今天给大家介绍一款可以为项目文件添加开源协议头信息的命令行工具 addlicense。
+如果一个现有的项目，想要开源，免不了要为项目中的文件增加开源协议头..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/10/20/go-tools-addlicense/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《一行命令为项目文件添加开源协议头》 — 江湖十年&url=http://www.jianghushinian.cn/2024/10/20/go-tools-addlicense/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/10/20/go-tools-addlicense/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/10/13/go-error-guidelines-defer-panic-recover/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 错误处理指北：Defer、Panic、Recover 三剑客</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2024</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/10/20/go-tools-addlicense/&title=《一行命令为项目文件添加开源协议头》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/10/20/go-tools-addlicense/&title=《一行命令为项目文件添加开源协议头》 — 江湖十年&source=今天给大家介绍一款可以为项目文件添加开源协议头信息的命令行工具 addlicense。
+如果一个现有的项目，想要开源，免不了要为项目中的文件增加开源协议头..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/10/20/go-tools-addlicense/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《一行命令为项目文件添加开源协议头》 — 江湖十年&url=http://www.jianghushinian.cn/2024/10/20/go-tools-addlicense/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/10/20/go-tools-addlicense/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/10/20/go-tools-addlicense/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
