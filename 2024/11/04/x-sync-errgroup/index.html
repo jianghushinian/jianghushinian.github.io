@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 并发控制：errgroup 详解 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="errgroup 是 Go 官方库 x 中提供的一个非常实用的工具，用于并发执行多个 goroutine，并且方便的处理错误。 我们知道，Go 标准库中有个 sync.WaitGroup 可以用来并发执行多个 goroutine，errgroup 就是在其基础上实现了 errgroup.Group。不过，errgroup.Group 和 sync.WaitGroup 在功能上是有区别的，尽管它们都">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 并发控制：errgroup 详解">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/11/04/x-sync-errgroup/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="errgroup 是 Go 官方库 x 中提供的一个非常实用的工具，用于并发执行多个 goroutine，并且方便的处理错误。 我们知道，Go 标准库中有个 sync.WaitGroup 可以用来并发执行多个 goroutine，errgroup 就是在其基础上实现了 errgroup.Group。不过，errgroup.Group 和 sync.WaitGroup 在功能上是有区别的，尽管它们都">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-11-04T14:20:50.000Z">
+<meta property="article:modified_time" content="2024-11-04T14:30:24.392Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 并发控制：errgroup 详解</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 并发控制：errgroup 详解</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-11-04T14:20:50.000Z" itemprop="datePublished" class="page-time">
+  2024-11-04
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#errgroup-优势"><span class="post-toc-number">1.</span> <span class="post-toc-text">errgroup 优势</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#sync-WaitGroup-使用示例"><span class="post-toc-number">2.</span> <span class="post-toc-text">sync.WaitGroup 使用示例</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#errgroup-Group-使用示例"><span class="post-toc-number">3.</span> <span class="post-toc-text">errgroup.Group 使用示例</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#基本使用"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">基本使用</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#上下文取消"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">上下文取消</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#限制并发数量"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">限制并发数量</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#尝试启动"><span class="post-toc-number">3.4.</span> <span class="post-toc-text">尝试启动</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#源码解读"><span class="post-toc-number">4.</span> <span class="post-toc-text">源码解读</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">5.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-x-sync-errgroup"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 并发控制：errgroup 详解</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-11-04 22:20:50" datetime="2024-11-04T14:20:50.000Z"  itemprop="datePublished">2024-11-04</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p><code>errgroup</code> 是 <a href="https://go.dev/wiki/X-Repositories" target="_blank" rel="noopener">Go 官方库 x</a> 中提供的一个非常实用的工具，用于并发执行多个 goroutine，并且方便的处理错误。</p>
+<p>我们知道，Go 标准库中有个 <code>sync.WaitGroup</code> 可以用来并发执行多个 goroutine，<code>errgroup</code> 就是在其基础上实现了 <code>errgroup.Group</code>。不过，<code>errgroup.Group</code> 和 <code>sync.WaitGroup</code> 在功能上是有区别的，尽管它们都用于管理 goroutine 的同步。</p>
+<a id="more"></a>
+
+<h3 id="errgroup-优势"><a href="#errgroup-优势" class="headerlink" title="errgroup 优势"></a>errgroup 优势</h3><p>与 <code>sync.WaitGroup</code> 相比，以下是设计 <code>errgroup.Group</code> 的原因和优势：</p>
+<ol>
+<li><strong>错误处理</strong>：<ul>
+<li><code>sync.WaitGroup</code> 只负责等待 goroutine 完成，不处理 goroutine 的返回值或错误。</li>
+<li><code>errgroup.Group</code> 虽然目前也不能直接处理 goroutine 的返回值，但在 goroutine 返回错误时，可以立即取消其他正在运行的 goroutine，并在 <code>Wait</code> 方法中返回第一个非 <code>nil</code> 的错误。</li>
+</ul>
+</li>
+<li><strong>上下文取消</strong>：<ul>
+<li><code>errgroup</code> 可以与 <code>context.Context</code> 配合使用，支持在某个 goroutine 出现错误时自动取消其他 goroutine，这样可以更好地控制资源，避免不必要的工作。</li>
+</ul>
+</li>
+<li><strong>简化并发编程</strong>：<ul>
+<li>使用 <code>errgroup</code> 可以减少错误处理的样板代码，开发者不需要手动管理错误状态和同步逻辑，使得并发编程更简单、更易于维护。</li>
+</ul>
+</li>
+<li><strong>限制并发数量</strong>：<ul>
+<li><code>errgroup</code> 提供了便捷的接口来限制并发 goroutine 的数量，避免过载，而 <code>sync.WaitGroup</code> 没有这样的功能。</li>
+</ul>
+</li>
+</ol>
+<p>以上，<code>errgroup</code> 为处理并发任务提供了更强大的错误管理和控制机制，因此在许多并发场景下是更优的选择。</p>
+<p>随着本文接下来的深入讲解，你就能深刻体会到上面所说的优势了。</p>
+<h3 id="sync-WaitGroup-使用示例"><a href="#sync-WaitGroup-使用示例" class="headerlink" title="sync.WaitGroup 使用示例"></a>sync.WaitGroup 使用示例</h3><p>在介绍 <code>errgroup.Group</code> 前，我们还是先来一起回顾下 <code>sync.WaitGroup</code> 的用法。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"net/http"</span></span><br><span class="line">    <span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> urls = []<span class="keyword">string</span>&#123;</span><br><span class="line">        <span class="string">"http://www.golang.org/"</span>,</span><br><span class="line">        <span class="string">"http://www.google.com/"</span>,</span><br><span class="line">        <span class="string">"http://www.somestupidname.com/"</span>, <span class="comment">// 这是一个错误的 URL，会导致任务失败</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">var</span> err error</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> wg sync.WaitGroup <span class="comment">// 零值可用，不必显式初始化</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> _, url := <span class="keyword">range</span> urls &#123;</span><br><span class="line">        wg.Add(<span class="number">1</span>) <span class="comment">// 增加 WaitGroup 计数器</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// 启动一个 goroutine 来获取 URL</span></span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">            <span class="keyword">defer</span> wg.Done() <span class="comment">// 当 goroutine 完成时递减 WaitGroup 计数器</span></span><br><span class="line"></span><br><span class="line">            resp, e := http.Get(url)</span><br><span class="line">            <span class="keyword">if</span> e != <span class="literal">nil</span> &#123; <span class="comment">// 发生错误返回，并记录该错误</span></span><br><span class="line">                err = e</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">defer</span> resp.Body.Close()</span><br><span class="line">            fmt.Printf(<span class="string">"fetch url %s status %s\n"</span>, url, resp.Status)</span><br><span class="line">        &#125;()</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 等待所有 goroutine 执行完成</span></span><br><span class="line">    wg.Wait()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123; <span class="comment">// err 会记录最后一个错误</span></span><br><span class="line">        fmt.Printf(<span class="string">"Error: %s\n"</span>, err)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>示例中，我们使用 <code>sync.WaitGroup</code> 来启动 3 个 goroutine 并发访问 3 个不同的 <code>URL</code>，并在成功时打印响应状态码，或失败时记录错误信息。</p>
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go run waitgroup/main.go</span><br><span class="line">fetch url http://www.google.com/ status 200 OK</span><br><span class="line">fetch url http://www.golang.org/ status 200 OK</span><br><span class="line">Error: Get <span class="string">"http://www.somestupidname.com/"</span>: dial tcp: lookup www.somestupidname.com: no such host</span><br></pre></td></tr></table></figure>
+
+<p>我们获取了两个成功的响应，并打印了一条错误信息。</p>
+<p>根据示例，我们可以抽象出 <code>sync.WaitGroup</code> 最典型的惯用法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> ... &#123;</span><br><span class="line">    wg.Add(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">defer</span> wg.Done()</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">    &#125;()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">wg.Wait()</span><br></pre></td></tr></table></figure>
+
+<h3 id="errgroup-Group-使用示例"><a href="#errgroup-Group-使用示例" class="headerlink" title="errgroup.Group 使用示例"></a>errgroup.Group 使用示例</h3><p>其实 <code>errgroup.Group</code> 的使用套路与 <code>sync.WaitGroup</code> 非常类似。</p>
+<h4 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h4><p><code>errgroup</code> 基本使用套路如下：</p>
+<ol>
+<li>导入 <code>errgroup</code> 包。</li>
+<li>创建一个 <code>errgroup.Group</code> 实例。</li>
+<li>使用 <code>Group.Go</code> 方法启动多个并发任务。</li>
+<li>使用 <code>Group.Wait</code> 方法等待所有 goroutine 完成或有一个返回错误。</li>
+</ol>
+<p>将前文中的 <code>sync.WaitGroup</code> 程序示例使用 <code>errgroup.Group</code> 重写为如下示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"net/http"</span></span><br><span class="line"></span><br><span class="line">    <span class="string">"golang.org/x/sync/errgroup"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> urls = []<span class="keyword">string</span>&#123;</span><br><span class="line">        <span class="string">"http://www.golang.org/"</span>,</span><br><span class="line">        <span class="string">"http://www.google.com/"</span>,</span><br><span class="line">        <span class="string">"http://www.somestupidname.com/"</span>, <span class="comment">// 这是一个错误的 URL，会导致任务失败</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用 errgroup 创建一个新的 goroutine 组</span></span><br><span class="line">    <span class="keyword">var</span> g errgroup.Group <span class="comment">// 零值可用，不必显式初始化</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> _, url := <span class="keyword">range</span> urls &#123;</span><br><span class="line">        <span class="comment">// 使用 errgroup 启动一个 goroutine 来获取 URL</span></span><br><span class="line">        g.Go(<span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">            resp, err := http.Get(url)</span><br><span class="line">            <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> err <span class="comment">// 发生错误，返回该错误</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">defer</span> resp.Body.Close()</span><br><span class="line">            fmt.Printf(<span class="string">"fetch url %s status %s\n"</span>, url, resp.Status)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">nil</span> <span class="comment">// 返回 nil 表示成功</span></span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 等待所有 goroutine 完成并返回第一个错误（如果有）</span></span><br><span class="line">    <span class="keyword">if</span> err := g.Wait(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"Error: %s\n"</span>, err)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，这段程序与 <code>sync.WaitGroup</code> 示例很像，根据代码中的注释，很容易看懂。</p>
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go run examples/main.go</span><br><span class="line">fetch url http://www.google.com/ status 200 OK</span><br><span class="line">fetch url http://www.golang.org/ status 200 OK</span><br><span class="line">Error: Get <span class="string">"http://www.somestupidname.com/"</span>: dial tcp: lookup www.somestupidname.com: no such host</span><br></pre></td></tr></table></figure>
+
+<p>输出结果也没什么变化。</p>
+<h4 id="上下文取消"><a href="#上下文取消" class="headerlink" title="上下文取消"></a>上下文取消</h4><p><code>errgroup</code> 提供了 <code>errgroup.WithContext</code> 可以附加取消功能，在任意一个 goroutine 返回错误时，可以立即取消其他正在运行的 goroutine，并在 <code>Wait</code> 方法中返回第一个非 <code>nil</code> 的错误。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"context"</span></span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"net/http"</span></span><br><span class="line">    <span class="string">"sync"</span></span><br><span class="line"></span><br><span class="line">    <span class="string">"golang.org/x/sync/errgroup"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> urls = []<span class="keyword">string</span>&#123;</span><br><span class="line">        <span class="string">"http://www.golang.org/"</span>,</span><br><span class="line">        <span class="string">"http://www.google.com/"</span>,</span><br><span class="line">        <span class="string">"http://www.somestupidname.com/"</span>, <span class="comment">// 这是一个错误的 URL，会导致任务失败</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建一个带有 context 的 errgroup</span></span><br><span class="line">    <span class="comment">// 任何一个 goroutine 返回非 nil 的错误，或 Wait() 等待所有 goroutine 完成后，context 都会被取消</span></span><br><span class="line">    g, ctx := errgroup.WithContext(context.Background())</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建一个 map 来保存结果</span></span><br><span class="line">    <span class="keyword">var</span> result sync.Map</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> _, url := <span class="keyword">range</span> urls &#123;</span><br><span class="line">        <span class="comment">// 使用 errgroup 启动一个 goroutine 来获取 URL</span></span><br><span class="line">        g.Go(<span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">            req, err := http.NewRequestWithContext(ctx, <span class="string">"GET"</span>, url, <span class="literal">nil</span>)</span><br><span class="line">            <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> err <span class="comment">// 发生错误，返回该错误</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 发起请求</span></span><br><span class="line">            resp, err := http.DefaultClient.Do(req)</span><br><span class="line">            <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> err <span class="comment">// 发生错误，返回该错误</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">defer</span> resp.Body.Close()</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 保存每个 URL 的响应状态码</span></span><br><span class="line">            result.Store(url, resp.Status)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">nil</span> <span class="comment">// 返回 nil 表示成功</span></span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 等待所有 goroutine 完成并返回第一个错误（如果有）</span></span><br><span class="line">    <span class="keyword">if</span> err := g.Wait(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(<span class="string">"Error: "</span>, err)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 所有 goroutine 都执行完成，遍历并打印成功的结果</span></span><br><span class="line">    result.Range(<span class="function"><span class="keyword">func</span><span class="params">(key, value any)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"fetch url %s status %s\n"</span>, key, value)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run examples/withcontext/main.go</span><br><span class="line">Error:  Get <span class="string">"http://www.somestupidname.com/"</span>: dial tcp: lookup www.somestupidname.com: no such host</span><br><span class="line">fetch url http://www.google.com/ status 200 OK</span><br></pre></td></tr></table></figure>
+
+<p>由测试结果来看，对于 <code>[http://www.google.com/](http://www.google.com/)</code> 的请求可以接收到成功响应，由于对 <code>[http://www.somestupidname.com/](http://www.somestupidname.com/)</code> 请求报错，程序来不及等待 <code>[http://www.golang.org/](http://www.golang.org/)</code> 响应，就被取消了。</p>
+<p>其实我们大致可以猜测到，取消功能应该是通过 <code>context.cancelCtx</code> 来实现的，我们暂且不必深究，稍后探索源码就能验证我们的猜想了。</p>
+<h4 id="限制并发数量"><a href="#限制并发数量" class="headerlink" title="限制并发数量"></a>限制并发数量</h4><p><code>errgroup</code> 提供了 <code>errgroup.SetLimit</code> 可以限制并发执行的 goroutine 数量。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">    <span class="string">"golang.org/x/sync/errgroup"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建一个 errgroup.Group</span></span><br><span class="line">    <span class="keyword">var</span> g errgroup.Group</span><br><span class="line">    <span class="comment">// 设置最大并发限制为 3</span></span><br><span class="line">    g.SetLimit(<span class="number">3</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 启动 10 个 goroutine</span></span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">1</span>; i &lt;= <span class="number">10</span>; i++ &#123;</span><br><span class="line">        g.Go(<span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">            <span class="comment">// 打印正在运行的 goroutine</span></span><br><span class="line">            fmt.Printf(<span class="string">"Goroutine %d is starting\n"</span>, i)</span><br><span class="line">            time.Sleep(<span class="number">2</span> * time.Second) <span class="comment">// 模拟任务耗时</span></span><br><span class="line">            fmt.Printf(<span class="string">"Goroutine %d is done\n"</span>, i)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 等待所有 goroutine 完成</span></span><br><span class="line">    <span class="keyword">if</span> err := g.Wait(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"Encountered an error: %v\n"</span>, err)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    fmt.Println(<span class="string">"All goroutines complete."</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>g.SetLimit(3)</code> 可以限制最大并发为 3 个 goroutine。</p>
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">$  go run examples/setlimit/main.go</span><br><span class="line">Goroutine 3 is starting</span><br><span class="line">Goroutine 1 is starting</span><br><span class="line">Goroutine 2 is starting</span><br><span class="line">Goroutine 2 is <span class="keyword">done</span></span><br><span class="line">Goroutine 1 is <span class="keyword">done</span></span><br><span class="line">Goroutine 5 is starting</span><br><span class="line">Goroutine 3 is <span class="keyword">done</span></span><br><span class="line">Goroutine 6 is starting</span><br><span class="line">Goroutine 4 is starting</span><br><span class="line">Goroutine 6 is <span class="keyword">done</span></span><br><span class="line">Goroutine 5 is <span class="keyword">done</span></span><br><span class="line">Goroutine 8 is starting</span><br><span class="line">Goroutine 4 is <span class="keyword">done</span></span><br><span class="line">Goroutine 7 is starting</span><br><span class="line">Goroutine 9 is starting</span><br><span class="line">Goroutine 9 is <span class="keyword">done</span></span><br><span class="line">Goroutine 8 is <span class="keyword">done</span></span><br><span class="line">Goroutine 10 is starting</span><br><span class="line">Goroutine 7 is <span class="keyword">done</span></span><br><span class="line">Goroutine 10 is <span class="keyword">done</span></span><br><span class="line">All goroutines complete.</span><br></pre></td></tr></table></figure>
+
+<p>根据输出可以发现，虽然我们通过 <code>for</code> 循环启动了 10 个 goroutine，但程序执行时最多只允许同时启动 3 个 goroutine，当这 3 个 goroutine 中有某个执行完成并退出，才会有新的 goroutine 被启动。</p>
+<h4 id="尝试启动"><a href="#尝试启动" class="headerlink" title="尝试启动"></a>尝试启动</h4><p><code>errgroup</code> 还提供了 <code>errgroup.TryGo</code> 可以<strong>尝试启动一个任务</strong>，它返回一个 <code>bool</code> 值，标识任务是否启动成功，<code>true</code> 表示成功，<code>false</code> 表示失败。</p>
+<p><code>errgroup.TryGo</code> 需要搭配 <code>errgroup.SetLimit</code> 一同使用，因为如果不限制并发数量，那么 <code>errgroup.TryGo</code> 始终返回 <code>true</code>，当达到最大并发数量限制时，<code>errgroup.TryGo</code> 返回 <code>false</code>。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">    <span class="string">"golang.org/x/sync/errgroup"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建一个 errgroup.Group</span></span><br><span class="line">    <span class="keyword">var</span> g errgroup.Group</span><br><span class="line">    <span class="comment">// 设置最大并发限制为 3</span></span><br><span class="line">    g.SetLimit(<span class="number">3</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 启动 10 个 goroutine</span></span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">1</span>; i &lt;= <span class="number">10</span>; i++ &#123;</span><br><span class="line">        <span class="keyword">if</span> g.TryGo(<span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">            <span class="comment">// 打印正在运行的 goroutine</span></span><br><span class="line">            fmt.Printf(<span class="string">"Goroutine %d is starting\n"</span>, i)</span><br><span class="line">            time.Sleep(<span class="number">2</span> * time.Second) <span class="comment">// 模拟工作</span></span><br><span class="line">            fmt.Printf(<span class="string">"Goroutine %d is done\n"</span>, i)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">        &#125;) &#123;</span><br><span class="line">            <span class="comment">// 如果成功启动，打印提示</span></span><br><span class="line">            fmt.Printf(<span class="string">"Goroutine %d started successfully\n"</span>, i)</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 如果达到并发限制，打印提示</span></span><br><span class="line">            fmt.Printf(<span class="string">"Goroutine %d could not start (limit reached)\n"</span>, i)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 等待所有 goroutine 完成</span></span><br><span class="line">    <span class="keyword">if</span> err := g.Wait(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"Encountered an error: %v\n"</span>, err)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    fmt.Println(<span class="string">"All goroutines complete."</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>g.SetLimit(3)</code> 限制最大并发为 3 个 goroutine，调用 <code>g.TryGo</code> 如果启动任务成功，打印 <code>Goroutine {i} started successfully</code> 提示信息；启动任务失败，则打印 <code>Goroutine {i} could not start (limit reached)</code> 提示信息。</p>
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ go run examples/trygo/main.go</span><br><span class="line">Goroutine 1 started successfully</span><br><span class="line">Goroutine 1 is starting</span><br><span class="line">Goroutine 2 is starting</span><br><span class="line">Goroutine 2 started successfully</span><br><span class="line">Goroutine 3 started successfully</span><br><span class="line">Goroutine 4 could not start (<span class="built_in">limit</span> reached)</span><br><span class="line">Goroutine 5 could not start (<span class="built_in">limit</span> reached)</span><br><span class="line">Goroutine 6 could not start (<span class="built_in">limit</span> reached)</span><br><span class="line">Goroutine 7 could not start (<span class="built_in">limit</span> reached)</span><br><span class="line">Goroutine 8 could not start (<span class="built_in">limit</span> reached)</span><br><span class="line">Goroutine 9 could not start (<span class="built_in">limit</span> reached)</span><br><span class="line">Goroutine 10 could not start (<span class="built_in">limit</span> reached)</span><br><span class="line">Goroutine 3 is starting</span><br><span class="line">Goroutine 2 is <span class="keyword">done</span></span><br><span class="line">Goroutine 3 is <span class="keyword">done</span></span><br><span class="line">Goroutine 1 is <span class="keyword">done</span></span><br><span class="line">All goroutines complete.</span><br></pre></td></tr></table></figure>
+
+<p>因为限制最大并发数量为 3，所以前面 3 个 goroutine 启动成功，并且正常执行完成，其他几个 goroutine 全部执行失败。</p>
+<p>以上就是 <code>errgroup</code> 的全部用法了，更多使用场景你可以在实践中去尝试和感悟。</p>
+<h3 id="源码解读"><a href="#源码解读" class="headerlink" title="源码解读"></a>源码解读</h3><p>接下来，我们一起阅读下 <code>errgroup</code> 源码，以此来加深对 <code>errgroup</code> 的理解。</p>
+<p><code>errgroup</code> 源码非常少，仅有 3 个文件。这 3 个文件源码内容分别如下：</p>
+<p>主逻辑代码：</p>
+<blockquote>
+<p><a href="https://github.com/golang/sync/blob/v0.8.0/errgroup/errgroup.go" target="_blank" rel="noopener">https://github.com/golang/sync/blob/v0.8.0/errgroup/errgroup.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Copyright 2016 The Go Authors. All rights reserved.</span></span><br><span class="line"><span class="comment">// Use of this source code is governed by a BSD-style</span></span><br><span class="line"><span class="comment">// license that can be found in the LICENSE file.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Package errgroup provides synchronization, error propagation, and Context</span></span><br><span class="line"><span class="comment">// cancelation for groups of goroutines working on subtasks of a common task.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// [errgroup.Group] is related to [sync.WaitGroup] but adds handling of tasks</span></span><br><span class="line"><span class="comment">// returning errors.</span></span><br><span class="line"><span class="keyword">package</span> errgroup</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"context"</span></span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> token <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// A Group is a collection of goroutines working on subtasks that are part of</span></span><br><span class="line"><span class="comment">// the same overall task.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// A zero Group is valid, has no limit on the number of active goroutines,</span></span><br><span class="line"><span class="comment">// and does not cancel on error.</span></span><br><span class="line"><span class="keyword">type</span> Group <span class="keyword">struct</span> &#123;</span><br><span class="line">    cancel <span class="function"><span class="keyword">func</span><span class="params">(error)</span></span></span><br><span class="line"></span><br><span class="line">    wg sync.WaitGroup</span><br><span class="line"></span><br><span class="line">    sem <span class="keyword">chan</span> token</span><br><span class="line"></span><br><span class="line">    errOnce sync.Once</span><br><span class="line">    err     error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">done</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> g.sem != <span class="literal">nil</span> &#123;</span><br><span class="line">        &lt;-g.sem</span><br><span class="line">    &#125;</span><br><span class="line">    g.wg.Done()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// WithContext returns a new Group and an associated Context derived from ctx.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// The derived Context is canceled the first time a function passed to Go</span></span><br><span class="line"><span class="comment">// returns a non-nil error or the first time Wait returns, whichever occurs</span></span><br><span class="line"><span class="comment">// first.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithContext</span><span class="params">(ctx context.Context)</span> <span class="params">(*Group, context.Context)</span></span> &#123;</span><br><span class="line">    ctx, cancel := withCancelCause(ctx)</span><br><span class="line">    <span class="keyword">return</span> &amp;Group&#123;cancel: cancel&#125;, ctx</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Wait blocks until all function calls from the Go method have returned, then</span></span><br><span class="line"><span class="comment">// returns the first non-nil error (if any) from them.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">Wait</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    g.wg.Wait()</span><br><span class="line">    <span class="keyword">if</span> g.cancel != <span class="literal">nil</span> &#123;</span><br><span class="line">        g.cancel(g.err)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> g.err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Go calls the given function in a new goroutine.</span></span><br><span class="line"><span class="comment">// It blocks until the new goroutine can be added without the number of</span></span><br><span class="line"><span class="comment">// active goroutines in the group exceeding the configured limit.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// The first call to return a non-nil error cancels the group's context, if the</span></span><br><span class="line"><span class="comment">// group was created by calling WithContext. The error will be returned by Wait.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">Go</span><span class="params">(f <span class="keyword">func</span>()</span> <span class="title">error</span>)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> g.sem != <span class="literal">nil</span> &#123;</span><br><span class="line">        g.sem &lt;- token&#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    g.wg.Add(<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">defer</span> g.done()</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> err := f(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            g.errOnce.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">                g.err = err</span><br><span class="line">                <span class="keyword">if</span> g.cancel != <span class="literal">nil</span> &#123;</span><br><span class="line">                    g.cancel(g.err)</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// TryGo calls the given function in a new goroutine only if the number of</span></span><br><span class="line"><span class="comment">// active goroutines in the group is currently below the configured limit.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// The return value reports whether the goroutine was started.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">TryGo</span><span class="params">(f <span class="keyword">func</span>()</span> <span class="title">error</span>) <span class="title">bool</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> g.sem != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> g.sem &lt;- token&#123;&#125;:</span><br><span class="line">            <span class="comment">// Note: this allows barging iff channels in general allow barging.</span></span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    g.wg.Add(<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">defer</span> g.done()</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> err := f(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            g.errOnce.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">                g.err = err</span><br><span class="line">                <span class="keyword">if</span> g.cancel != <span class="literal">nil</span> &#123;</span><br><span class="line">                    g.cancel(g.err)</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// SetLimit limits the number of active goroutines in this group to at most n.</span></span><br><span class="line"><span class="comment">// A negative value indicates no limit.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Any subsequent call to the Go method will block until it can add an active</span></span><br><span class="line"><span class="comment">// goroutine without exceeding the configured limit.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// The limit must not be modified while any goroutines in the group are active.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">SetLimit</span><span class="params">(n <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> n &lt; <span class="number">0</span> &#123;</span><br><span class="line">        g.sem = <span class="literal">nil</span></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(g.sem) != <span class="number">0</span> &#123;</span><br><span class="line">        <span class="built_in">panic</span>(fmt.Errorf(<span class="string">"errgroup: modify limit while %v goroutines in the group are still active"</span>, <span class="built_in">len</span>(g.sem)))</span><br><span class="line">    &#125;</span><br><span class="line">    g.sem = <span class="built_in">make</span>(<span class="keyword">chan</span> token, n)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>为 Go 1.20 及更高版本提供的 <code>withCancelCause</code> 函数实现：</p>
+<blockquote>
+<p><a href="https://github.com/golang/sync/blob/v0.8.0/errgroup/go120.go" target="_blank" rel="noopener">https://github.com/golang/sync/blob/v0.8.0/errgroup/go120.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Copyright 2023 The Go Authors. All rights reserved.</span></span><br><span class="line"><span class="comment">// Use of this source code is governed by a BSD-style</span></span><br><span class="line"><span class="comment">// license that can be found in the LICENSE file.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//go:build go1.20</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> errgroup</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"context"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">withCancelCause</span><span class="params">(parent context.Context)</span> <span class="params">(context.Context, <span class="keyword">func</span>(error)</span>)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> context.WithCancelCause(parent)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>为低于 Go 1.20 版本提供的 <code>withCancelCause</code> 函数实现：</p>
+<blockquote>
+<p><a href="https://github.com/golang/sync/blob/v0.8.0/errgroup/pre_go120.go" target="_blank" rel="noopener">https://github.com/golang/sync/blob/v0.8.0/errgroup/pre_go120.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Copyright 2023 The Go Authors. All rights reserved.</span></span><br><span class="line"><span class="comment">// Use of this source code is governed by a BSD-style</span></span><br><span class="line"><span class="comment">// license that can be found in the LICENSE file.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//go:build !go1.20</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> errgroup</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"context"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">withCancelCause</span><span class="params">(parent context.Context)</span> <span class="params">(context.Context, <span class="keyword">func</span>(error)</span>)</span> &#123;</span><br><span class="line">    ctx, cancel := context.WithCancel(parent)</span><br><span class="line">    <span class="keyword">return</span> ctx, <span class="function"><span class="keyword">func</span><span class="params">(error)</span></span> &#123; cancel() &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，<code>errgroup</code> 全部源码加起来也不到 100 行，可谓短小精悍。</p>
+<p>现在我们来分析下 <code>errgroup</code> 源码。</p>
+<p>根据包注释我们可以知道，<code>errgroup</code> 包提供了同步、错误传播和上下文取消功能，用于一组 goroutines 处理共同任务的子任务。<code>errgroup.Group</code> 与 <code>sync.WaitGroup</code> 相关，增加了处理任务返回错误的能力。</p>
+<p>为了提供以上功能，首先 <code>errgroup</code> 定义了 <code>token</code> 和 <code>Group</code> 两个结构体：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 定义一个空结构体类型 token，会作为信号进行传递，用于控制并发数</span></span><br><span class="line"><span class="keyword">type</span> token <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Group 是一组协程的集合，这些协程处理同一整体任务的子任务</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// 零值 Group 是有效的，对活动协程的数量没有限制，并且不会在出错时取消</span></span><br><span class="line"><span class="keyword">type</span> Group <span class="keyword">struct</span> &#123;</span><br><span class="line">    cancel <span class="function"><span class="keyword">func</span><span class="params">(error)</span> // 取消函数，就是 <span class="title">context</span>.<span class="title">CancelCauseFunc</span> 类型</span></span><br><span class="line"></span><br><span class="line">    wg sync.WaitGroup <span class="comment">// 内部使用了 sync.WaitGroup</span></span><br><span class="line"></span><br><span class="line">    sem <span class="keyword">chan</span> token <span class="comment">// 信号 channel，可以控制协程并发数量</span></span><br><span class="line"></span><br><span class="line">    errOnce sync.Once <span class="comment">// 确保错误仅处理一次</span></span><br><span class="line">    err     error     <span class="comment">// 记录子协程集中返回的第一个错误</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>token</code> 被定义为空结构体，用来传递信号，这也是 Go 中空结构体的惯用法。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>你可以在我的另一篇文章<a href="https://jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/" target="_blank" rel="noopener">《Go 中空结构体惯用法，我帮你总结全了！》</a>中查看空结构体的更多用法。</p>
+</blockquote>
+<p><code>Group</code> 是 <code>errgroup</code> 包提供的唯一公开结构体，其关联的方法承载了所有功能。</p>
+<p><code>cancel</code> 属性为一个函数，上下文取消时会被调用，其实就是 <code>context.CancelCauseFunc</code> 类型，调用 <code>errgroup.WithContext</code> 时被赋值。</p>
+<p><code>wg</code> 属性即为 <code>sync.WaitGroup</code>，承担并发控制的主逻辑,<code>errgroup.Go</code> 和 <code>errgroup.TryGo</code> 内部并发控制逻辑都会代理给 <code>sync.WaitGroup</code>。</p>
+<p><code>sem</code>属性是 <code>token</code> 类型的 <code>channel</code>，用于限制并发数量，调用 <code>errgroup.SetLimit</code> 是被赋值。</p>
+<p><code>err</code> 会记录所有 goroutine 中出现的第一个错误，由<code>errOnce</code> 确保错误错误仅处理一次，所以后面再出现更多的错误都会被忽略。</p>
+<p>接下来我们先看 <code>errgroup.SetLimit</code> 方法定义：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// SetLimit 限制该 Group 中活动的协程数量最多为 n，负值表示没有限制</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// 任何后续对 Go 方法的调用都将阻塞，直到可以在不超过限额的情况下添加活动协程</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// 在 Group 中存在任何活动的协程时，限制不得修改</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">SetLimit</span><span class="params">(n <span class="keyword">int</span>)</span></span> &#123; <span class="comment">// 传进来的 n 就是 channel 长度，以此来限制协程的并发数量</span></span><br><span class="line">    <span class="keyword">if</span> n &lt; <span class="number">0</span> &#123; <span class="comment">// 这里检查如果小于 0 则不限制协程并发数量。此外，也不要将其设置为 0，会产生死锁</span></span><br><span class="line">        g.sem = <span class="literal">nil</span></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(g.sem) != <span class="number">0</span> &#123; <span class="comment">// 如果存在活动的协程，调用此方法将产生 panic</span></span><br><span class="line">        <span class="built_in">panic</span>(fmt.Errorf(<span class="string">"errgroup: modify limit while %v goroutines in the group are still active"</span>, <span class="built_in">len</span>(g.sem)))</span><br><span class="line">    &#125;</span><br><span class="line">    g.sem = <span class="built_in">make</span>(<span class="keyword">chan</span> token, n)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>errgroup.SetLimit</code> 方法可以限制并发属性，其内部逻辑很简单，不过要注意在调用 <code>errgroup.Go</code> 或 <code>errgroup.TryGo</code> 方法前调用 <code>errgroup.SetLimit</code>，以防程序出现 <code>panic</code>。</p>
+<p>然后看下主逻辑 <code>errgroup.Go</code> 方法实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Go 会在新的协程中调用给定的函数</span></span><br><span class="line"><span class="comment">// 它会阻塞，直到可以在不超过配置的活跃协程数量限制的情况下添加新的协程</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// 首次返回非 nil 错误的调用会取消该 Group 的上下文（context），如果该 context 是通过调用 WithContext 创建的，该错误将由 Wait 返回</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">Go</span><span class="params">(f <span class="keyword">func</span>()</span> <span class="title">error</span>)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> g.sem != <span class="literal">nil</span> &#123; <span class="comment">// 这个是限制并发数的信号通道</span></span><br><span class="line">        g.sem &lt;- token&#123;&#125; <span class="comment">// 如果超过了配置的活跃协程数量限制，向 channel 发送 token 会阻塞</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    g.wg.Add(<span class="number">1</span>) <span class="comment">// 转发给 sync.WaitGroup.Add(1)，将活动协程数加一</span></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">defer</span> g.done() <span class="comment">// 当一个协程完成时，调用此方法，内部会将调用转发给 sync.WaitGroup.Done()</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> err := f(); err != <span class="literal">nil</span> &#123; <span class="comment">// f() 就是我们要执行的任务</span></span><br><span class="line">            g.errOnce.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; <span class="comment">// 仅执行一次，即只处理一次错误，所以会记录第一个非 nil 的错误，与协程启动顺序无关</span></span><br><span class="line">                g.err = err          <span class="comment">// 记录错误</span></span><br><span class="line">                <span class="keyword">if</span> g.cancel != <span class="literal">nil</span> &#123; <span class="comment">// 如果 cancel 不为 nil，则调用取消函数，并设置 cause</span></span><br><span class="line">                    g.cancel(g.err)</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先会检测是否使用 <code>errgroup.SetLimit</code> 方法设置了并发限制，如果有限制，则使用 <code>channel</code> 来控制并发数量。</p>
+<p>否则执行主逻辑，其实就是 <code>sync.WaitGroup</code> 的套路代码。</p>
+<p>在 <code>defer</code> 中调用了 <code>g.done()</code>，<code>done</code> 方法定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 当一个协程完成时，调用此方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">done</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 如果设置了最大并发数，则 sem 不为 nil，从 channel 中消费一个 token，表示一个协程已完成</span></span><br><span class="line">    <span class="keyword">if</span> g.sem != <span class="literal">nil</span> &#123;</span><br><span class="line">        &lt;-g.sem</span><br><span class="line">    &#125;</span><br><span class="line">    g.wg.Done() <span class="comment">// 转发给 sync.WaitGroup.Done()，将活动协程数减一</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>另外，如果某个任务返回了错误，则通过 <code>errOnce</code> 确保错误只被处理一次，处理方式就是先记录错误，然后调用 <code>cancel</code> 方法。</p>
+<p><code>cancel</code> 实际上是在 <code>errgroup.WithContext</code> 方法中赋值的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// WithContext 返回一个新的 Group 和一个从 ctx 派生的关联 Context</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// 派生的 Context 会在传递给 Go 的函数首次返回非 nil 错误或 Wait 首次返回时被取消，以先发生者为准。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithContext</span><span class="params">(ctx context.Context)</span> <span class="params">(*Group, context.Context)</span></span> &#123;</span><br><span class="line">    ctx, cancel := withCancelCause(ctx)</span><br><span class="line">    <span class="keyword">return</span> &amp;Group&#123;cancel: cancel&#125;, ctx</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里的 <code>withCancelCause</code> 有两种实现。</p>
+<p>如果 Go 版本大于等于 1.20，提供的 <code>withCancelCause</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 构建约束标识了这个文件是 Go 1.20 版本被加入的</span></span><br><span class="line"><span class="comment">//go:build go1.20</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> errgroup</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"context"</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 代理到 context.WithCancelCause</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">withCancelCause</span><span class="params">(parent context.Context)</span> <span class="params">(context.Context, <span class="keyword">func</span>(error)</span>)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> context.WithCancelCause(parent)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果 Go 版本小于 1.20，提供的 <code>withCancelCause</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//go:build !go1.20</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> errgroup</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"context"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">withCancelCause</span><span class="params">(parent context.Context)</span> <span class="params">(context.Context, <span class="keyword">func</span>(error)</span>)</span> &#123;</span><br><span class="line">    ctx, cancel := context.WithCancel(parent)</span><br><span class="line">    <span class="keyword">return</span> ctx, <span class="function"><span class="keyword">func</span><span class="params">(error)</span></span> &#123; cancel() &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为 <code>context.WithCancelCause</code> 方法是在 Go 1.20 版本加入的，你可以在 <a href="https://go.dev/doc/go1.20#contextpkgcontext" target="_blank" rel="noopener">Go 1.20 Release Notes</a> 中找到，你也可以在这个 <a href="https://cs.opensource.google/go/x/sync/+/93782cc822b6b554cb7df40332fd010f0473cbc8" target="_blank" rel="noopener"><strong>Commit: 93782cc</strong></a> 中看到 <code>withCancelCause</code> 函数变更记录。</p>
+<p>调用 <code>errgroup.Go</code> 方法启动任务后，我们会调用 <code>errgroup.Wait</code> 等待所有任务完成，其实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Wait 会阻塞，直到来自 Go 方法的所有函数调用返回，然后返回它们中的第一个非 nil 错误（如果有的话）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">Wait</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    g.wg.Wait()          <span class="comment">// 转发给 sync.WaitGroup.Wait()，等待所有协程执行完成</span></span><br><span class="line">    <span class="keyword">if</span> g.cancel != <span class="literal">nil</span> &#123; <span class="comment">// 如果 cancel 不为 nil，则调用取消函数，并设置 cause</span></span><br><span class="line">        g.cancel(g.err)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> g.err <span class="comment">// 返回错误</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>所以，最终 <code>errgroup.Wait</code> 返回的错误其实就是 <code>errgroup.Go</code> 方法中记录的第一个错误。</p>
+<p>现在，我们还剩下最后一个方法 <code>errgroup.TryGo</code> 的源码没有分析，我把源码贴在下面，并写上了详细的注释：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// TryGo 仅在 Group 中活动的协程数量低于限额时，才在新的协程中调用给定的函数</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// 返回值标识协程是否启动</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">TryGo</span><span class="params">(f <span class="keyword">func</span>()</span> <span class="title">error</span>) <span class="title">bool</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> g.sem != <span class="literal">nil</span> &#123; <span class="comment">// 如果设置了最大并发数</span></span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> g.sem &lt;- token&#123;&#125;: <span class="comment">// 可以向 channel 写入 token，说明没有达到限额，可以启动协程</span></span><br><span class="line">            <span class="comment">// Note: this allows barging iff channels in general allow barging.</span></span><br><span class="line">        <span class="keyword">default</span>: <span class="comment">// 如果超过了配置的活跃协程数量限制，会走到这个 case</span></span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 接下来的代码与 Go 中的逻辑相同</span></span><br><span class="line">    g.wg.Add(<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">defer</span> g.done()</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> err := f(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            g.errOnce.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">                g.err = err</span><br><span class="line">                <span class="keyword">if</span> g.cancel != <span class="literal">nil</span> &#123;</span><br><span class="line">                    g.cancel(g.err)</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>主逻辑与 <code>errgroup.Go</code> 方法一样，不同的是 <code>errgroup.Go</code> 方法如果达到并发限额会阻塞，而 <code>errgroup.TryGo</code> 方法在达到并发限额时直接返回 <code>false</code>。</p>
+<p><font style="color:rgb(31, 35, 40);">其实 </font><code>&lt;font style=&quot;color:rgb(31, 35, 40);&quot;&gt;errgroup.TryGo&lt;/font&gt;</code><font style="color:rgb(31, 35, 40);"> 和 </font><code>&lt;font style=&quot;color:rgb(31, 35, 40);&quot;&gt;errgroup.SetLimit&lt;/font&gt;</code><font style="color:rgb(31, 35, 40);"> 两个方法是后添加的功能，你可以在 </font><a href="https://github.com/golang/go/issues/27837" target="_blank" rel="noopener">issues/27837</a> 中看到讨论记录。</p>
+<p>至此，<code>errgroup</code> 源码就都解读完成了。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><code>errgroup</code> 是官方为我们提供的扩展库，在 <code>sync.WaitGroup</code> 基础上，增加了处理任务返回错误的能力。提供了同步、错误传播和上下文取消功能，用于一组 goroutines 处理共同任务的子任务。</p>
+<p><code>errgroup.WithContext</code> 方法可以附加取消功能，在任意一个 goroutine 返回错误时，立即取消其他正在运行的 goroutine，并在 <code>Wait</code> 方法中返回第一个非 <code>nil</code> 的错误。</p>
+<p><code>errgroup.SetLimit</code> 方法可以限制并发执行的 goroutine 数量。</p>
+<p><code>errgroup.TryGo</code> 可以尝试启动一个任务，返回值标识启动成功或失败。</p>
+<p><code>errgroup</code> 源码设计精妙，值得借鉴。</p>
+<p>此外，我在<a href="https://jianghushinian.cn/2024/10/20/go-tools-addlicense/" target="_blank" rel="noopener">《一行命令为项目文件添加开源协议头》</a>一文中介绍的工具 <a href="https://github.com/superproj/addlicense" target="_blank" rel="noopener">addlicense</a> 源码中就用到了 <code>errgroup</code>，如果你感兴趣，也可以跳转过去查看。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/x/sync/errgroup" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>一行命令为项目文件添加开源协议头：<a href="https://jianghushinian.cn/2024/10/20/go-tools-addlicense/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/10/20/go-tools-addlicense/</a></li>
+<li>Go 中空结构体惯用法，我帮你总结全了！：<a href="https://jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/</a></li>
+<li>sync.WaitGroup 文档：<a href="https://pkg.go.dev/sync@go1.23.1#WaitGroup" target="_blank" rel="noopener">https://pkg.go.dev/sync@go1.23.1#WaitGroup</a></li>
+<li>errgroup 文档：<a href="https://pkg.go.dev/golang.org/x/sync@v0.8.0/errgroup" target="_blank" rel="noopener">https://pkg.go.dev/golang.org/x/sync@v0.8.0/errgroup</a></li>
+<li>errgroup 源码：<a href="https://github.com/golang/sync/tree/v0.8.0/errgroup" target="_blank" rel="noopener">https://github.com/golang/sync/tree/v0.8.0/errgroup</a></li>
+<li>Go 1.20 Release Notes：<a href="https://go.dev/doc/go1.20#contextpkgcontext" target="_blank" rel="noopener">https://go.dev/doc/go1.20#contextpkgcontext</a></li>
+<li>Go 1.22 Release Notes：<a href="https://go.dev/doc/go1.22#language" target="_blank" rel="noopener">https://go.dev/doc/go1.22#language</a></li>
+<li>Go Wiki: X-Repositories：<a href="https://go.dev/wiki/X-Repositories" target="_blank" rel="noopener">https://go.dev/wiki/X-Repositories</a></li>
+<li>Go FAQ: What happens with closures running as goroutines：<a href="https://go.dev/doc/faq#closures_and_goroutines" target="_blank" rel="noopener">https://go.dev/doc/faq#closures_and_goroutines</a></li>
+<li>x/sync/errgroup: add TryGo and SetLimit to control concurrency #27837：<a href="https://github.com/golang/go/issues/27837" target="_blank" rel="noopener">https://github.com/golang/go/issues/27837</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/x/sync/errgroup" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/x/sync/errgroup</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2024-11-04T14:30:24.392Z" itemprop="dateUpdated">2024-11-04 22:30:24</time>
+</span><br>
+
+
+        
+        <a href="/2024/11/04/x-sync-errgroup/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/11/04/x-sync-errgroup/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/11/04/x-sync-errgroup/&title=《Go 并发控制：errgroup 详解》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/11/04/x-sync-errgroup/&title=《Go 并发控制：errgroup 详解》 — 江湖十年&source=errgroup 是 Go 官方库 x 中提供的一个非常实用的工具，用于并发执行多个 goroutine，并且方便的处理错误。
+我们知道，Go 标准库中有..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/11/04/x-sync-errgroup/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 并发控制：errgroup 详解》 — 江湖十年&url=http://www.jianghushinian.cn/2024/11/04/x-sync-errgroup/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/11/04/x-sync-errgroup/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/10/20/go-tools-addlicense/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">一行命令为项目文件添加开源协议头</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2024</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/11/04/x-sync-errgroup/&title=《Go 并发控制：errgroup 详解》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/11/04/x-sync-errgroup/&title=《Go 并发控制：errgroup 详解》 — 江湖十年&source=errgroup 是 Go 官方库 x 中提供的一个非常实用的工具，用于并发执行多个 goroutine，并且方便的处理错误。
+我们知道，Go 标准库中有..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/11/04/x-sync-errgroup/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 并发控制：errgroup 详解》 — 江湖十年&url=http://www.jianghushinian.cn/2024/11/04/x-sync-errgroup/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/11/04/x-sync-errgroup/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/11/04/x-sync-errgroup/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
