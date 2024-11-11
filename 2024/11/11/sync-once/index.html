@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 并发控制：sync.Once 详解 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="在 Go 语言的并发编程中，常常会遇到需要确保某个操作仅执行一次的场景。sync.Once 是 Go 标准库中的一个简单而强大的工具，专门用于解决这种需求。本文将深入解析 sync.Once 的使用方法和原理，帮助你更好地理解 sync.Once 在并发控制中的用法。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 并发控制：sync.Once 详解">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/11/11/sync-once/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在 Go 语言的并发编程中，常常会遇到需要确保某个操作仅执行一次的场景。sync.Once 是 Go 标准库中的一个简单而强大的工具，专门用于解决这种需求。本文将深入解析 sync.Once 的使用方法和原理，帮助你更好地理解 sync.Once 在并发控制中的用法。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-11-11T06:31:36.000Z">
+<meta property="article:modified_time" content="2024-11-11T06:36:32.900Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 并发控制：sync.Once 详解</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 并发控制：sync.Once 详解</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-11-11T06:31:36.000Z" itemprop="datePublished" class="page-time">
+  2024-11-11
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#sync-Once"><span class="post-toc-number">1.</span> <span class="post-toc-text">sync.Once</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#快速上手"><span class="post-toc-number">1.1.</span> <span class="post-toc-text">快速上手</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#详细介绍"><span class="post-toc-number">1.2.</span> <span class="post-toc-text">详细介绍</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#源码解读"><span class="post-toc-number">1.3.</span> <span class="post-toc-text">源码解读</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#sync-OnceFunc"><span class="post-toc-number">2.</span> <span class="post-toc-text">sync.OnceFunc</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#源码解读-1"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">源码解读</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用示例"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">使用示例</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#sync-OnceValue"><span class="post-toc-number">3.</span> <span class="post-toc-text">sync.OnceValue</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#源码解读-2"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">源码解读</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用示例-1"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">使用示例</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#sync-OnceValues"><span class="post-toc-number">4.</span> <span class="post-toc-text">sync.OnceValues</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#源码解读-3"><span class="post-toc-number">4.1.</span> <span class="post-toc-text">源码解读</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用示例-2"><span class="post-toc-number">4.2.</span> <span class="post-toc-text">使用示例</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">5.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-sync-once"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 并发控制：sync.Once 详解</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-11-11 14:31:36" datetime="2024-11-11T06:31:36.000Z"  itemprop="datePublished">2024-11-11</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在 Go 语言的并发编程中，常常会遇到需要确保某个操作仅执行一次的场景。<code>sync.Once</code> 是 Go 标准库中的一个简单而强大的工具，专门用于解决这种需求。本文将深入解析 <code>sync.Once</code> 的使用方法和原理，帮助你更好地理解 <code>sync.Once</code> 在并发控制中的用法。</p>
+<a id="more"></a>
+
+<h3 id="sync-Once"><a href="#sync-Once" class="headerlink" title="sync.Once"></a>sync.Once</h3><p><code>sync.Once</code> 是 Go 语言 <code>sync</code> 包中的一种同步原语。它可以确保一个操作（通常是一个函数）在程序的生命周期中<strong>只被执行一次</strong>，不论有多少 goroutine 同时调用该操作，这就保证了并发安全。</p>
+<p>根据 <code>sync.Once</code> 的特点，很容易想到它的几种常见使用场景：</p>
+<ul>
+<li><strong>单例模式</strong>：确保某个对象或配置仅初始化一次，例如使用单例模式初始化数据库连接池、配置文件加载等。</li>
+<li><strong>懒加载</strong>：在需要时才加载某些资源，且保证它们只会加载一次。</li>
+<li><strong>并发安全的初始化</strong>：当初始化过程涉及多个 goroutine 时，使用 <code>sync.Once</code> 保证初始化函数不会被重复调用。</li>
+</ul>
+<h4 id="快速上手"><a href="#快速上手" class="headerlink" title="快速上手"></a>快速上手</h4><p><code>sync.Once</code> 用法非常简单，示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> once sync.Once</span><br><span class="line">	onceBody := <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"Only once"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	done := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			once.Do(onceBody)</span><br><span class="line">			done &lt;- <span class="literal">true</span></span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		&lt;-done</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先使用 <code>var once sync.Once</code> 声明了一个 <code>sync.Once</code> 类型的变量 <code>once</code>，但不必显式初始化，这也是 <code>sync</code> 下很多包的惯用法。</p>
+<p>然后定义了一个函数 <code>onceBody</code>，接着启动 10 个 goroutine 并发调用 <code>once.Do(onceBody)</code>，最终等待所有 goroutine 执行结束并退出。</p>
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run once/main.go </span><br><span class="line">Only once</span><br></pre></td></tr></table></figure>
+
+<p>和预期一样，<code>once.Do</code> 能够保证传递给它的函数 <code>onceBody</code> 只被执行一次。</p>
+<p>其实就算不启用多个 goroutine，直接在主 goroutine 中调用多次 <code>once.Do(onceBody)</code>，也能保证只执行一次：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> once sync.Once</span><br><span class="line">	onceBody := <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"Only once"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		once.Do(onceBody)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run once/main.go </span><br><span class="line">Only once</span><br></pre></td></tr></table></figure>
+
+<p>执行结果也是一样的，仅会执行一次。</p>
+<p>至此，我们就学会了如何使用 <code>sync.Onec</code>。以上就是 <code>sync.Onec</code> 提供的全部 API 了，没错它仅对外暴露了一个 <code>Do</code> 方法。</p>
+<p>现在，我想你应该知道如何使用 <code>sync.Onec</code> 来实现单例模式了，我在另一篇文章<a href="https://jianghushinian.cn/2022/03/04/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/" target="_blank" rel="noopener">《Go 常见设计模式之单例模式》</a>中也有讲解。</p>
+<h4 id="详细介绍"><a href="#详细介绍" class="headerlink" title="详细介绍"></a>详细介绍</h4><p>我们快速上手了 <code>sync.Onec</code> 的使用方法，下面我们来看下 Go 官方是如何介绍 <code>sync.Onec</code> 的。</p>
+<p>Go <a href="https://pkg.go.dev/sync@go1.23.0#Once" target="_blank" rel="noopener">官方文档</a> 对 <code>sync.Once</code> 的介绍只有简单三句话：</p>
+<blockquote>
+<p><font style="color:rgb(32, 34, 36);">Once is an object that will perform exactly one action.</font></p>
+<p><font style="color:rgb(32, 34, 36);">A Once must not be copied after first use.</font></p>
+<p><font style="color:rgb(32, 34, 36);">In the terminology of </font><a href="https://go.dev/ref/mem" target="_blank" rel="noopener"><font style="color:rgb(32, 34, 36);">the Go memory model</font></a><font style="color:rgb(32, 34, 36);">, the return from f “synchronizes before” the return from any call of once.Do(f).</font></p>
+</blockquote>
+<p><font style="color:rgb(32, 34, 36);">意思是说：</font></p>
+<blockquote>
+<p>Once 是一个对象，它会确保某个操作<strong>只执行一次</strong>。</p>
+<p>在首次使用后，Once 对象<strong>不能被复制</strong>。</p>
+<p>根据 Go 内存模型的术语，f 函数的返回 “<font style="color:rgb(32, 34, 36);">synchronizes before</font>“ 于 once.Do(f) 的任何调用返回。</p>
+</blockquote>
+<p>首先第一句话中所说的<strong>只执行一次</strong>的特性我们已经见识过了。</p>
+<p>对于第二句话中的 Once 对象<strong>不能被复制</strong>，其实 <code>sync</code> 中很多对象都有这个特性，在我们稍后阅读源码时会有体现。</p>
+<p>而第三句话不太好理解，实际上它想表达的是，在使用 <code>sync.Once</code> 的 <code>Do</code> 方法执行 <code>f</code> 函数后，<code>f</code> 的结果会对所有调用 <code>once.Do(f)</code> 的其他 goroutine 可见。这种“先行发生”（synchronizes before）的保证意味着，<code>f</code> 的执行结果会在所有调用 <code>once.Do(f)</code> 的 goroutine 中同步，因此所有 goroutine 都能获得一致的结果。</p>
+<p>具体来说：</p>
+<ul>
+<li>当 <code>f</code> 函数在一个 goroutine 中被 <code>once.Do(f)</code> 首次调用时，<code>f</code> 会执行，并保证它的<strong>效果</strong>在内存中对其他 goroutine 可见。</li>
+<li>之后的所有 <code>once.Do(f)</code> 调用都不会重新执行 <code>f</code>，但它们会“同步” <code>f</code> 的结果，确保 <code>f</code> 的结果已经生效，并对调用它们的 goroutine 可见。</li>
+</ul>
+<p>这样，<code>sync.Once</code> 可以在多 goroutine 场景中安全地执行初始化等需要确保一次性操作的函数，而无需担心数据不一致的问题。</p>
+<p>此外我们还需要注意一点，<code>once.Do(f)</code> 接收的函数 <code>f</code> 是没有返回值，所以所说 <code>f</code> 函数的执行的<strong>效果</strong>是指它执行的<strong>副作用</strong>。</p>
+<p>如下示例就是利用 <code>f</code> 函数执行的副作用来修改变量 <code>i</code> 的值：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> once sync.Once</span><br><span class="line">	<span class="keyword">var</span> i = <span class="number">10</span></span><br><span class="line">	onceBody := <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		i *= <span class="number">2</span></span><br><span class="line">	&#125;</span><br><span class="line">	done := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			once.Do(onceBody)</span><br><span class="line">			done &lt;- <span class="literal">true</span></span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		&lt;-done</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Println(<span class="string">"i"</span>, i)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run once/main.go</span><br><span class="line">i 20</span><br></pre></td></tr></table></figure>
+
+<p><code>f</code> 函数对变量 <code>i</code> 的值影响仅有一次。</p>
+<h4 id="源码解读"><a href="#源码解读" class="headerlink" title="源码解读"></a>源码解读</h4><p>接下来我们再来看下 <code>sync.Onec</code> 源码，学习下它是如何实现的：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.0/src/sync/once.go" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/sync/once.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Copyright 2009 The Go Authors. All rights reserved.</span></span><br><span class="line"><span class="comment">// Use of this source code is governed by a BSD-style</span></span><br><span class="line"><span class="comment">// license that can be found in the LICENSE file.</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> sync</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"sync/atomic"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Once is an object that will perform exactly one action.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// A Once must not be copied after first use.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// In the terminology of [the Go memory model],</span></span><br><span class="line"><span class="comment">// the return from f “synchronizes before”</span></span><br><span class="line"><span class="comment">// the return from any call of once.Do(f).</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// [the Go memory model]: https://go.dev/ref/mem</span></span><br><span class="line"><span class="keyword">type</span> Once <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// done indicates whether the action has been performed.</span></span><br><span class="line">	<span class="comment">// It is first in the struct because it is used in the hot path.</span></span><br><span class="line">	<span class="comment">// The hot path is inlined at every call site.</span></span><br><span class="line">	<span class="comment">// Placing done first allows more compact instructions on some architectures (amd64/386),</span></span><br><span class="line">	<span class="comment">// and fewer instructions (to calculate offset) on other architectures.</span></span><br><span class="line">	done atomic.Uint32</span><br><span class="line">	m    Mutex</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Do calls the function f if and only if Do is being called for the</span></span><br><span class="line"><span class="comment">// first time for this instance of [Once]. In other words, given</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//	var once Once</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// if once.Do(f) is called multiple times, only the first call will invoke f,</span></span><br><span class="line"><span class="comment">// even if f has a different value in each invocation. A new instance of</span></span><br><span class="line"><span class="comment">// Once is required for each function to execute.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Do is intended for initialization that must be run exactly once. Since f</span></span><br><span class="line"><span class="comment">// is niladic, it may be necessary to use a function literal to capture the</span></span><br><span class="line"><span class="comment">// arguments to a function to be invoked by Do:</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//	config.once.Do(func() &#123; config.init(filename) &#125;)</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Because no call to Do returns until the one call to f returns, if f causes</span></span><br><span class="line"><span class="comment">// Do to be called, it will deadlock.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// If f panics, Do considers it to have returned; future calls of Do return</span></span><br><span class="line"><span class="comment">// without calling f.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *Once)</span> <span class="title">Do</span><span class="params">(f <span class="keyword">func</span>()</span>)</span> &#123;</span><br><span class="line">	<span class="comment">// Note: Here is an incorrect implementation of Do:</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">//	if o.done.CompareAndSwap(0, 1) &#123;</span></span><br><span class="line">	<span class="comment">//		f()</span></span><br><span class="line">	<span class="comment">//	&#125;</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// Do guarantees that when it returns, f has finished.</span></span><br><span class="line">	<span class="comment">// This implementation would not implement that guarantee:</span></span><br><span class="line">	<span class="comment">// given two simultaneous calls, the winner of the cas would</span></span><br><span class="line">	<span class="comment">// call f, and the second would return immediately, without</span></span><br><span class="line">	<span class="comment">// waiting for the first's call to f to complete.</span></span><br><span class="line">	<span class="comment">// This is why the slow path falls back to a mutex, and why</span></span><br><span class="line">	<span class="comment">// the o.done.Store must be delayed until after f returns.</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> o.done.Load() == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// Outlined slow-path to allow inlining of the fast-path.</span></span><br><span class="line">		o.doSlow(f)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *Once)</span> <span class="title">doSlow</span><span class="params">(f <span class="keyword">func</span>()</span>)</span> &#123;</span><br><span class="line">	o.m.Lock()</span><br><span class="line">	<span class="keyword">defer</span> o.m.Unlock()</span><br><span class="line">	<span class="keyword">if</span> o.done.Load() == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> o.done.Store(<span class="number">1</span>)</span><br><span class="line">		f()</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>嗯，你没看错 <code>sync.Onec</code> 的源码竟然如此简单，算上全部的注释和空行，也才仅有 78 行代码，而注释占了一大半行数。</p>
+<p>首先来看 <code>Once</code> 结构体的定义：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Once <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// done 指示操作是否已执行。</span></span><br><span class="line">	<span class="comment">// 它在结构体中位于首位（即第一个字段），因为它用于 hot path。</span></span><br><span class="line">	<span class="comment">// hot path 在每个调用点都进行了内联。</span></span><br><span class="line">	<span class="comment">// 将 done 放在首位在某些架构（如 amd64 和 386）上允许生成更紧凑的指令，</span></span><br><span class="line">	<span class="comment">// 而在其他架构上减少了指令数量（用于计算偏移量）。</span></span><br><span class="line">	done atomic.Uint32</span><br><span class="line">	m    Mutex</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Once</code> 结构体有两个属性，<code>done</code> 属性上的注释告诉我们它是有意被放在结构体第一个字段的，在某些架构能够减少 CPU 执行的指令数，以优化性能，作为 <code>hot path</code>。</p>
+<p>关于为什么放在结构体第一个字段就能优化性能，简单一句话来解释就是，第一个字段与结构体本身的指针地址是相同的，访问 <code>Once</code> 结构体无需指针偏移操作，就可以直接操作 <code>done</code> 属性。<code>hot path</code> 更多解释的细节，我在另一篇文章<a href="https://jianghushinian.cn/2024/07/07/do-you-understand-the-memory-alignment-of-structs-in-the-go/#hot-path" target="_blank" rel="noopener">《Go 语言中的结构体内存对齐你了解吗？》</a>中有所讲解，你可以跳转过去查看。</p>
+<p>另外 <code>done</code> 属性是 <code>atomic.Uint32</code> 类型，我们顺便来看下 <code>atomic.Uint32</code> 是如何定义的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// A Uint32 is an atomic uint32. The zero value is zero.</span></span><br><span class="line"><span class="keyword">type</span> Uint32 <span class="keyword">struct</span> &#123;</span><br><span class="line">	_ noCopy</span><br><span class="line">	v <span class="keyword">uint32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// noCopy may be added to structs which must not be copied</span></span><br><span class="line"><span class="comment">// after the first use.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// See https://golang.org/issues/8005#issuecomment-190753527</span></span><br><span class="line"><span class="comment">// for details.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Note that it must not be embedded, due to the Lock and Unlock methods.</span></span><br><span class="line"><span class="keyword">type</span> noCopy <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Lock is a no-op used by -copylocks checker from `go vet`.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*noCopy)</span> <span class="title">Lock</span><span class="params">()</span></span>   &#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*noCopy)</span> <span class="title">Unlock</span><span class="params">()</span></span> &#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里有一个特殊字段 <code>_ noCopy</code>，标识这个结构体不可复制，所以这也就是为什么前文中提到 Once 对象<strong>不能被复制</strong>的原因了。</p>
+<p>使用 <code>noCopy</code> 字段来标识结构体不可复制，是 Go 语言中的惯用法，我在另一篇文章<a href="https://jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/#%E6%A0%87%E8%AF%86%E7%AC%A6" target="_blank" rel="noopener">《Go 中空结构体惯用法，我帮你总结全了！》</a>中有讲解。</p>
+<p><code>Once</code> 结构体的 <code>n</code> 属性没什么好说的，就是一个互斥锁 <code>Mutex</code>。</p>
+<p>接下来看<code>Do</code> 方法的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *Once)</span> <span class="title">Do</span><span class="params">(f <span class="keyword">func</span>()</span>)</span> &#123;</span><br><span class="line">	<span class="comment">// 注意：以下是一个错误的 Do 实现：</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">//	if o.done.CompareAndSwap(0, 1) &#123;</span></span><br><span class="line">	<span class="comment">//		f()</span></span><br><span class="line">	<span class="comment">//	&#125;</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// Do 保证当它返回时，f 已完成。</span></span><br><span class="line">	<span class="comment">// 上述实现不满足该保证：</span></span><br><span class="line">    <span class="comment">// 给定有两个同时调用的情况，谁取得了 CompareAndSwap 就会执行 f，</span></span><br><span class="line">    <span class="comment">// 而第二个调用会立即返回，而不会等待第一个调用的 f 完成。</span></span><br><span class="line">	<span class="comment">// 这就是为什么慢路径需要退回到使用互斥锁 Mutex，</span></span><br><span class="line">	<span class="comment">// 并且为什么 o.done.Store 必须延迟到 f 返回之后。</span></span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span> o.done.Load() == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// 慢路径（slow-path）分离，以允许对快路径（fast-path）进行内联。</span></span><br><span class="line">		o.doSlow(f)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *Once)</span> <span class="title">doSlow</span><span class="params">(f <span class="keyword">func</span>()</span>)</span> &#123;</span><br><span class="line">	o.m.Lock()</span><br><span class="line">	<span class="keyword">defer</span> o.m.Unlock()</span><br><span class="line">	<span class="keyword">if</span> o.done.Load() == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> o.done.Store(<span class="number">1</span>)</span><br><span class="line">		f()</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，<code>Do</code> 方法内部还通过注释贴心的解释了为什么不使用 <code>o.done.CompareAndSwap(0, 1)</code> 的实现，而是使用 <code>o.done.Load()</code> + <code>Mutex</code> 的实现。</p>
+<p><code>Do</code> 方法处理两种 <code>case</code>，先是 <code>if o.done.Load() == 0</code> 的判断，这是一个 <code>fast-path</code>，如果成立，则调用 <code>o.doSlow(f)</code> 进入 <code>slow-path</code>，否则 <code>fast-path</code> 执行结束直接返回了。</p>
+<p>这里简单解释下 <code>fast-path</code> 和 <code>slow-path</code>：</p>
+<ul>
+<li><strong><code>fast-path</code></strong>：一段针对常见操作或最佳情况进行优化的代码路径。在这条路径上，通常执行步骤最少、效率最高。所以 <code>fast path</code> 通常在设计上避免了昂贵的操作（如<strong>加锁</strong>、IO 操作等）以提高性能。</li>
+<li><strong><code>slow-path</code></strong>：用于处理较为罕见或复杂的情况，通常执行步骤较多、性能较低。这类路径通常在少数情况下才会被执行，比如当代码需要处理边缘情况或复杂的操作时。</li>
+</ul>
+<p>所以说，<code>Do</code> 方法绝大多数情况下都会通过 <code>fast-path</code> 直接返回，只有第一次调用才会进入 <code>o.doSlow(f)</code> 逻辑。</p>
+<p>在 <code>doSlow</code> 方法内部，先加锁，然后再一次检查了 <code>if o.done.Load() == 0</code>。很明显这是一个 <code>Double-Check Locking</code>，保证极端情况下的并发安全。我在<a href="https://jianghushinian.cn/2022/03/04/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/#%E5%8F%8C%E9%87%8D%E9%94%81%E5%AE%9A" target="_blank" rel="noopener">《Go 常见设计模式之单例模式》</a>中有讲解如何使用 <code>Double-Check Locking</code> 来实现单例模式，感兴趣的读者可以跳转过去查看。</p>
+<p>现在，<code>sync.Once</code> 的源码就都解读完成了。</p>
+<p>当然，细心的读者可能注意到，注释中其实写了为什么要将 <code>slow-path</code> 分离出来，单独定义一个函数，目的是为了对 <code>fast-path</code> 进行内联优化。</p>
+<p>将 <code>slow-path</code> 逻辑放在单独的 <code>doSlow</code> 函数中可以使 <code>Do</code> 方法的快路径更简洁，这样还有助于 Go 编译器对 <code>fast-path</code> 进行<strong>内联优化</strong>（即直接嵌入到调用处），从而减少函数调用的开销，提高性能。</p>
+<p>我们可以来验证一下内联是否生效，示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> once</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"sync"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> once sync.Once</span><br><span class="line">	once.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="built_in">println</span>(<span class="string">"Only once"</span>)</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行 <code>go build</code> 时传入 <code>-gcflags=&#39;-m&#39;</code> 构建参数可以查看内联情况：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ go build -gcflags=<span class="string">'-m'</span> inlining/once/main.go  </span><br><span class="line"><span class="comment"># command-line-arguments</span></span><br><span class="line">inlining/once/main.go:7:10: can inline main.func1</span><br><span class="line">inlining/once/main.go:7:9: inlining call to sync.(*Once).Do</span><br><span class="line">inlining/once/main.go:7:9: inlining call to atomic.(*Uint32).Load</span><br><span class="line">inlining/once/main.go:6:6: moved to heap: once</span><br><span class="line">inlining/once/main.go:7:10: func literal does not escape</span><br></pre></td></tr></table></figure>
+
+<p>打印日志中出现 <code>inlining</code> 关键字表示 <code>main</code> 中调用 <code>sync.Once.Do</code> 方法时确实存在内联优化。</p>
+<p>作为对比，我们再来实现一个没有将 <code>slow-path</code> 分离出来的 <code>Once</code> 版本：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> sync</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">	<span class="string">"sync/atomic"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Once <span class="keyword">struct</span> &#123;</span><br><span class="line">	done atomic.Uint32</span><br><span class="line">	m    sync.Mutex</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *Once)</span> <span class="title">Do</span><span class="params">(f <span class="keyword">func</span>()</span>)</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> o.done.Load() == <span class="number">0</span> &#123;</span><br><span class="line">		o.m.Lock()</span><br><span class="line">		<span class="keyword">defer</span> o.m.Unlock()</span><br><span class="line">		<span class="keyword">if</span> o.done.Load() == <span class="number">0</span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> o.done.Store(<span class="number">1</span>)</span><br><span class="line">			f()</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> once</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"github.com/jianghushinian/blog-go-example/sync/once/inlining/myonce/sync"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> once sync.Once</span><br><span class="line">	once.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="built_in">println</span>(<span class="string">"Only once"</span>)</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行 <code>go build</code> 查看内联情况：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ go build -gcflags=<span class="string">'-m'</span> inlining/myonce/main.go</span><br><span class="line"><span class="comment"># command-line-arguments</span></span><br><span class="line">inlining/myonce/main.go:5:6: can inline main</span><br><span class="line">inlining/myonce/main.go:7:10: can inline main.func1</span><br><span class="line">inlining/myonce/main.go:6:6: moved to heap: once</span><br><span class="line">inlining/myonce/main.go:7:10: func literal does not escape</span><br></pre></td></tr></table></figure>
+
+<p>这一次编译器确实没有进行内联优化，可见 <code>doSlow</code> 函数的封装还是起了作用的。</p>
+<p><code>sync.Once</code> 就这么多功能，不过在 <a href="https://go.dev/doc/go1.21#syncpkgsync" target="_blank" rel="noopener">Go 1.21</a> 中 Go 官方又增加了三个 <code>sync.Once</code> 相关函数：<code>OnceFunc</code>、<code>OnceValue</code> 和 <code>OnceValues</code>，来增强 <code>sync.Once</code> 功能，接下来我们就依次介绍下。</p>
+<h3 id="sync-OnceFunc"><a href="#sync-OnceFunc" class="headerlink" title="sync.OnceFunc"></a>sync.OnceFunc</h3><h4 id="源码解读-1"><a href="#源码解读-1" class="headerlink" title="源码解读"></a>源码解读</h4><p>首先我们来看一下 <code>sync.OnceFunc</code> 源码实现：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.0/src/sync/oncefunc.go#L11" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/sync/oncefunc.go#L11</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// OnceFunc returns a function that invokes f only once. The returned function</span></span><br><span class="line"><span class="comment">// may be called concurrently.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// If f panics, the returned function will panic with the same value on every call.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">OnceFunc</span><span class="params">(f <span class="keyword">func</span>()</span>) <span class="title">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		once  Once</span><br><span class="line">		valid <span class="keyword">bool</span></span><br><span class="line">		p     any</span><br><span class="line">	)</span><br><span class="line">	<span class="comment">// Construct the inner closure just once to reduce costs on the fast path.</span></span><br><span class="line">	g := <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			p = <span class="built_in">recover</span>()</span><br><span class="line">			<span class="keyword">if</span> !valid &#123;</span><br><span class="line">				<span class="comment">// Re-panic immediately so on the first call the user gets a</span></span><br><span class="line">				<span class="comment">// complete stack trace into f.</span></span><br><span class="line">				<span class="built_in">panic</span>(p)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;()</span><br><span class="line">		f()</span><br><span class="line">		f = <span class="literal">nil</span>      <span class="comment">// Do not keep f alive after invoking it.</span></span><br><span class="line">		valid = <span class="literal">true</span> <span class="comment">// Set only if f does not panic.</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		once.Do(g)</span><br><span class="line">		<span class="keyword">if</span> !valid &#123;</span><br><span class="line">			<span class="built_in">panic</span>(p)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>根据 <code>OnceFunc</code> 上方的代码注释可知：</p>
+<ul>
+<li><code>OnceFunc</code> 返回一个仅调用 <code>f</code> 一次的函数。这个返回的函数可以并发调用。</li>
+<li>如果函数 <code>f</code> 执行时出现 <code>panic</code>，则返回的函数将在每次调用时会产生同样的 <code>panic</code> 值。</li>
+</ul>
+<p>可以发现，其实 <code>OnceFunc</code> 函数就是对 <code>once.Do</code> 的封装，不过显然它考虑了更多情况，使用 <code>defer</code> + <code>recover</code> 对 <code>panic</code> 进行捕获。用变量 <code>p</code> 暂存了 <code>panic</code> 信息，并且当多次调用 <code>OnceFunc</code> 返回函数时，都会重新 <code>panic</code>。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>如果你不熟悉 <code>defer</code>、<code>panic</code> 和 <code>recover</code>，我在<a href="https://jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/" target="_blank" rel="noopener">《Go 错误处理指北：Defer、Panic、Recover 三剑客》</a>一文中对这三者进行了详细讲解，供你参考。</p>
+</blockquote>
+<h4 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h4><p><code>sync.OnceFunc</code> 使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	onceBody := sync.OnceFunc(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"Only once"</span>)</span><br><span class="line">	&#125;)</span><br><span class="line">	done := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			onceBody()</span><br><span class="line">			done &lt;- <span class="literal">true</span></span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		&lt;-done</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run oncefunc/main.go                       </span><br><span class="line">Only once</span><br></pre></td></tr></table></figure>
+
+<p>如果发生 <code>panic</code> 会怎样呢，我们可以尝试一下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	onceBody := sync.OnceFunc(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"Only once"</span>)</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">5</span>; i++ &#123;</span><br><span class="line">		<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">				r := <span class="built_in">recover</span>()</span><br><span class="line">				fmt.Println(<span class="string">"recover"</span>, r)</span><br><span class="line">			&#125;()</span><br><span class="line">			onceBody()</span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ go run oncefunc/panic/main.go</span><br><span class="line">recover Only once</span><br><span class="line">recover Only once</span><br><span class="line">recover Only once</span><br><span class="line">recover Only once</span><br><span class="line">recover Only once</span><br></pre></td></tr></table></figure>
+
+<p>作为对比，如果 <code>sync.Once.Do</code> 遇到 <code>panic</code> 又会怎样呢？示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> once sync.Once</span><br><span class="line">	onceBody := <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"Only once"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">5</span>; i++ &#123;</span><br><span class="line">		<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">				r := <span class="built_in">recover</span>()</span><br><span class="line">				fmt.Println(<span class="string">"recover"</span>, r)</span><br><span class="line">			&#125;()</span><br><span class="line">			once.Do(onceBody)</span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ go run once/panic/main.go</span><br><span class="line">recover Only once</span><br><span class="line">recover &lt;nil&gt;</span><br><span class="line">recover &lt;nil&gt;</span><br><span class="line">recover &lt;nil&gt;</span><br><span class="line">recover &lt;nil&gt;</span><br></pre></td></tr></table></figure>
+
+<p>由此可见，可以认为 <code>sync.OnceFunc</code> 是比 <code>sync.Once.Do</code> 更好用的接口，它帮我们考虑了函数 <code>f</code> 发生 <code>panic</code> 情况，所以可以考虑优先使用这个实现。</p>
+<h3 id="sync-OnceValue"><a href="#sync-OnceValue" class="headerlink" title="sync.OnceValue"></a>sync.OnceValue</h3><h4 id="源码解读-2"><a href="#源码解读-2" class="headerlink" title="源码解读"></a>源码解读</h4><p>我们再来看下 <code>sync.OnceValue</code> 源码实现：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.0/src/sync/oncefunc.go#L43" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/sync/oncefunc.go#L43</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// OnceValue returns a function that invokes f only once and returns the value</span></span><br><span class="line"><span class="comment">// returned by f. The returned function may be called concurrently.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// If f panics, the returned function will panic with the same value on every call.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">OnceValue</span>[<span class="title">T</span> <span class="title">any</span>]<span class="params">(f <span class="keyword">func</span>()</span> <span class="title">T</span>) <span class="title">func</span><span class="params">()</span> <span class="title">T</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		once   Once</span><br><span class="line">		valid  <span class="keyword">bool</span></span><br><span class="line">		p      any</span><br><span class="line">		result T</span><br><span class="line">	)</span><br><span class="line">	g := <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			p = <span class="built_in">recover</span>()</span><br><span class="line">			<span class="keyword">if</span> !valid &#123;</span><br><span class="line">				<span class="built_in">panic</span>(p)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;()</span><br><span class="line">		result = f()</span><br><span class="line">		f = <span class="literal">nil</span></span><br><span class="line">		valid = <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">T</span></span> &#123;</span><br><span class="line">		once.Do(g)</span><br><span class="line">		<span class="keyword">if</span> !valid &#123;</span><br><span class="line">			<span class="built_in">panic</span>(p)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> result</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，与 <code>OnceFunc</code> 不同的是 <code>OnceValue</code> 使用了泛型，<code>OnceValue</code> 接收的函数 <code>f</code> 是带有返回值的，并且它返回的函数也带有返回值。</p>
+<p>也就是说，相较于 <code>OnceFunc</code>，<code>OnceValue</code> 相当于是进化版，它接收的 <code>f</code> 函数签名不同，可以支持返回一个值，而其他的地方与 <code>OnceFunc</code> 实现并无区别，内部也只是多了一个使用 <code>result T</code> 记录返回值的逻辑。</p>
+<h4 id="使用示例-1"><a href="#使用示例-1" class="headerlink" title="使用示例"></a>使用示例</h4><p><code>sync.OnceValue</code> 使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	once := sync.OnceValue(<span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">		sum := <span class="number">0</span></span><br><span class="line">		<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">1000</span>; i++ &#123;</span><br><span class="line">			sum += i</span><br><span class="line">		&#125;</span><br><span class="line">		fmt.Println(<span class="string">"Computed once:"</span>, sum)</span><br><span class="line">		<span class="keyword">return</span> sum</span><br><span class="line">	&#125;)</span><br><span class="line">	done := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">const</span> want = <span class="number">499500</span></span><br><span class="line">			got := once()</span><br><span class="line">			<span class="keyword">if</span> got != want &#123;</span><br><span class="line">				fmt.Println(<span class="string">"want"</span>, want, <span class="string">"got"</span>, got)</span><br><span class="line">			&#125;</span><br><span class="line">			done &lt;- <span class="literal">true</span></span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		&lt;-done</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run oncevalue/main.go </span><br><span class="line">Computed once: 499500</span><br></pre></td></tr></table></figure>
+
+<h3 id="sync-OnceValues"><a href="#sync-OnceValues" class="headerlink" title="sync.OnceValues"></a>sync.OnceValues</h3><h4 id="源码解读-3"><a href="#源码解读-3" class="headerlink" title="源码解读"></a>源码解读</h4><p>最后，我们再来看下 <code>sync.OnceValues</code> 源码实现：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.0/src/sync/oncefunc.go#L74" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/sync/oncefunc.go#L74</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// OnceValues returns a function that invokes f only once and returns the values</span></span><br><span class="line"><span class="comment">// returned by f. The returned function may be called concurrently.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// If f panics, the returned function will panic with the same value on every call.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">OnceValues</span>[<span class="title">T1</span>, <span class="title">T2</span> <span class="title">any</span>]<span class="params">(f <span class="keyword">func</span>()</span> <span class="params">(T1, T2)</span>) <span class="title">func</span><span class="params">()</span> <span class="params">(T1, T2)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		once  Once</span><br><span class="line">		valid <span class="keyword">bool</span></span><br><span class="line">		p     any</span><br><span class="line">		r1    T1</span><br><span class="line">		r2    T2</span><br><span class="line">	)</span><br><span class="line">	g := <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			p = <span class="built_in">recover</span>()</span><br><span class="line">			<span class="keyword">if</span> !valid &#123;</span><br><span class="line">				<span class="built_in">panic</span>(p)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;()</span><br><span class="line">		r1, r2 = f()</span><br><span class="line">		f = <span class="literal">nil</span></span><br><span class="line">		valid = <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="params">(T1, T2)</span></span> &#123;</span><br><span class="line">		once.Do(g)</span><br><span class="line">		<span class="keyword">if</span> !valid &#123;</span><br><span class="line">			<span class="built_in">panic</span>(p)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> r1, r2</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>OnceValues</code> 与 <code>OnceValue</code> 的唯一区别就是它支持返回两个值，<code>f</code> 函数签名也变了 <code>f func() (T1, T2)</code>，所以我们可以想到最常见的使用方式，函数 <code>f</code> 返回一个 <code>value</code> 和一个 <code>error</code>，这也是 Go 函数惯用法。</p>
+<h4 id="使用示例-2"><a href="#使用示例-2" class="headerlink" title="使用示例"></a>使用示例</h4><p><code>sync.OnceValues</code> 使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	once := sync.OnceValues(<span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"Reading file once"</span>)</span><br><span class="line">		<span class="keyword">return</span> os.ReadFile(<span class="string">"oncevalues/example_test.go"</span>)</span><br><span class="line">	&#125;)</span><br><span class="line">	done := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			data, err := once()</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				fmt.Println(<span class="string">"error:"</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line">			_ = data <span class="comment">// Ignore the data for this example</span></span><br><span class="line">			done &lt;- <span class="literal">true</span></span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		&lt;-done</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run oncevalues/main.go</span><br><span class="line">Reading file once</span><br></pre></td></tr></table></figure>
+
+<p>现在，<code>sync.Once</code> 以及它的三个相关函数我们就都讲解完成了。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><code>sync.Once</code> 是一个非常实用的同步工具，它以简洁高效的方式，确保操作只执行一次，避免了重复初始化的开销。在多 goroutine 调用场景下，它能提供可靠的并发控制，是 Go 并发编程中不可或缺的工具。常用于单例模式、懒加载、并发安全的初始化等场景。</p>
+<p>Go 1.21 还发布了几个 <code>sync.Once</code> 相关的函数 <code>sync.OnceFunc</code>、<code>sync.OnceValue</code> 和 <code>sync.OnceValues</code>，来增强 <code>sync.Once</code> 功能。</p>
+<p>我们可以发现一些规律：</p>
+<ul>
+<li><code>sync.Once.Do</code> 是 <code>sync.Once</code> 暴露的唯一接口，对于参数 <code>f</code> 函数确保仅执行一次。</li>
+<li>而 <code>sync.OnceFunc</code>、<code>sync.OnceValue</code> 和 <code>sync.OnceValues</code>，三者是对 <code>sync.Once</code> 的封装，都能实现 <code>once</code> 的功能，并且这三者对 <code>f</code> 函数产生 <code>panic</code> 的情况进行了处理，保证多次调用它们都能产生同样的 <code>panic</code>。</li>
+<li><code>sync.Once.Do</code> 和 <code>sync.OnceFunc</code> 接收的参数 <code>f</code> 函数，无参数无返回值。</li>
+<li><code>sync.OnceValue</code> 接收的参数 <code>f</code> 函数有 1 个返回值。</li>
+<li><code>sync.OnceValues</code> 接收的参数 <code>f</code> 函数有 2 个返回值。</li>
+</ul>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/sync/once" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>sync Documentation：<a href="https://pkg.go.dev/sync@go1.23.0" target="_blank" rel="noopener">https://pkg.go.dev/sync@go1.23.0</a></li>
+<li>Go 1.21 Release Notes：<a href="https://go.dev/doc/go1.21#syncpkgsync" target="_blank" rel="noopener">https://go.dev/doc/go1.21#syncpkgsync</a></li>
+<li>What does “hot path” mean in the context of sync.Once?：<a href="https://stackoverflow.com/questions/59174176/what-does-hot-path-mean-in-the-context-of-sync-once" target="_blank" rel="noopener">https://stackoverflow.com/questions/59174176/what-does-hot-path-mean-in-the-context-of-sync-once</a></li>
+<li>Go 语言中的结构体内存对齐你了解吗？：<a href="https://jianghushinian.cn/2024/07/07/do-you-understand-the-memory-alignment-of-structs-in-the-go/#hot-path" target="_blank" rel="noopener">https://jianghushinian.cn/2024/07/07/do-you-understand-the-memory-alignment-of-structs-in-the-go/#hot-path</a></li>
+<li>Go 中空结构体惯用法，我帮你总结全了！：<a href="https://jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/</a></li>
+<li>Go 错误处理指北：Defer、Panic、Recover 三剑客：<a href="https://jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/</a></li>
+<li>Go 常见设计模式之单例模式：<a href="https://jianghushinian.cn/2022/03/04/Golang-常见设计模式之单例模式/" target="_blank" rel="noopener">https://jianghushinian.cn/2022/03/04/Golang-常见设计模式之单例模式/</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/sync/once" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/sync/once</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2024-11-11T06:36:32.900Z" itemprop="dateUpdated">2024-11-11 14:36:32</time>
+</span><br>
+
+
+        
+        <a href="/2024/11/11/sync-once/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/11/11/sync-once/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/11/11/sync-once/&title=《Go 并发控制：sync.Once 详解》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/11/11/sync-once/&title=《Go 并发控制：sync.Once 详解》 — 江湖十年&source=在 Go 语言的并发编程中，常常会遇到需要确保某个操作仅执行一次的场景。sync.Once 是 Go 标准库中的一个简单而强大的工具，专门用于解决这种需求..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/11/11/sync-once/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 并发控制：sync.Once 详解》 — 江湖十年&url=http://www.jianghushinian.cn/2024/11/11/sync-once/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/11/11/sync-once/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/11/04/x-sync-errgroup/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 并发控制：errgroup 详解</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2024</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/11/11/sync-once/&title=《Go 并发控制：sync.Once 详解》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/11/11/sync-once/&title=《Go 并发控制：sync.Once 详解》 — 江湖十年&source=在 Go 语言的并发编程中，常常会遇到需要确保某个操作仅执行一次的场景。sync.Once 是 Go 标准库中的一个简单而强大的工具，专门用于解决这种需求..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/11/11/sync-once/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 并发控制：sync.Once 详解》 — 江湖十年&url=http://www.jianghushinian.cn/2024/11/11/sync-once/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/11/11/sync-once/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/11/11/sync-once/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
