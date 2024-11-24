@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 并发控制：singleflight 详解 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="singleflight 是 Go 官方扩展库 x 中提供的扩展并发原语，能够将多个并发请求合并为一个，降低服务端压力。本文就来介绍下它的用法和实现原理。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 并发控制：singleflight 详解">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="singleflight 是 Go 官方扩展库 x 中提供的扩展并发原语，能够将多个并发请求合并为一个，降低服务端压力。本文就来介绍下它的用法和实现原理。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/singleflight.png">
+<meta property="article:published_time" content="2024-11-24T02:19:57.000Z">
+<meta property="article:modified_time" content="2024-11-24T05:07:14.679Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/singleflight.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 并发控制：singleflight 详解</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 并发控制：singleflight 详解</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-11-24T02:19:57.000Z" itemprop="datePublished" class="page-time">
+  2024-11-24
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#请求合并"><span class="post-toc-number">1.</span> <span class="post-toc-text">请求合并</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#SingleFlight-使用示例"><span class="post-toc-number">2.</span> <span class="post-toc-text">SingleFlight 使用示例</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#SingleFlight-源码解析"><span class="post-toc-number">3.</span> <span class="post-toc-text">SingleFlight 源码解析</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#singleflight-Do"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">singleflight.Do</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#singleflight-DoChan"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">singleflight.DoChan</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#singleflight-doCall"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">singleflight.doCall</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#singleflight-Forget"><span class="post-toc-number">3.4.</span> <span class="post-toc-text">singleflight.Forget</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#SingleFlight-适用场景"><span class="post-toc-number">4.</span> <span class="post-toc-text">SingleFlight 适用场景</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">5.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-x-sync-singleflight"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 并发控制：singleflight 详解</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-11-24 10:19:57" datetime="2024-11-24T02:19:57.000Z"  itemprop="datePublished">2024-11-24</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p><code>singleflight</code> 是 <a href="https://pkg.go.dev/golang.org/x/sync" target="_blank" rel="noopener">Go 官方扩展库 x</a> 中提供的扩展并发原语，能够将多个并发请求合并为一个，降低服务端压力。本文就来介绍下它的用法和实现原理。</p>
+<a id="more"></a>
+
+<h3 id="请求合并"><a href="#请求合并" class="headerlink" title="请求合并"></a>请求合并</h3><p><code>singleflight</code> 主要用于<strong>抑制重复的并发调用</strong>，从而避免对同一资源进行重复操作，提升系统性能。</p>
+<p>比如，当我们有多个 goroutine 并发调用一个同一个函数时，<code>singleflight</code> 能够实现只让一个 goroutine 发起调用，其他 goroutine 则阻塞等待，当发起调用的 goroutine 返回后，<code>singleflight</code> 将结果同时返回给所有 goroutine。这样我们就减少了大量的并发调用，避免重复操作。</p>
+<p>这也是 <code>singleflight</code> 提供的唯一能力——请求合并。</p>
+<p>在 Go 后端开发中，我们很容易想到，高并发场景下缓存失效时大量请求落到 DB 的场景，正是 <code>singleflight</code> 的用武之地。</p>
+<p>如下图所示：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="singleflight.png" alt="singleflight" title="">
+                </div>
+                <div class="image-caption">singleflight</div>
+            </figure>
+
+<p>左侧图（1）中，当大量请求过来读取 Redis 缓存时，它们同时发现缓存失效，那么所有请求都会继续向下请求 MySQL 读取数据。</p>
+<p>右侧图（2）中，当所有请求都去 MySQL 读取数据时，我们可以使用 <code>singleflight</code> 合并这些请求，只保留一个请求去调用 MySQL 读取数据，然后将结果返回给所有请求。</p>
+<p>这就是 <code>singleflight</code> 的典型应用场景。</p>
+<p>现在，请你思考下 <code>singleflight</code> 和 <code>sync.Once</code> 有什么区别呢？我会在后文中揭晓答案。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>如果你对 <code>sync.Once</code> 不熟悉，可以阅读我的另一篇文章<a href="https://jianghushinian.cn/2024/11/11/sync-once/" target="_blank" rel="noopener">《Go 并发控制：sync.Once 详解》</a>。</p>
+</blockquote>
+<h3 id="SingleFlight-使用示例"><a href="#SingleFlight-使用示例" class="headerlink" title="SingleFlight 使用示例"></a>SingleFlight 使用示例</h3><p>知道了 <code>singleflight</code> 作用，想必你已经跃跃欲试要动手实践了。废话不多说，咱们直接看效果。</p>
+<p><code>singleflight</code> 使用示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"strconv"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"golang.org/x/sync/singleflight"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	cache        = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]*User) <span class="comment">// 模拟缓存</span></span><br><span class="line">	mu           sync.RWMutex             <span class="comment">// 保护缓存</span></span><br><span class="line">	requestGroup singleflight.Group       <span class="comment">// SingleFlight 实例</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	Id    <span class="keyword">int64</span></span><br><span class="line">	Name  <span class="keyword">string</span></span><br><span class="line">	Email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// GetUserFromDB 模拟从数据库获取数据</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetUserFromDB</span><span class="params">(username <span class="keyword">string</span>)</span> *<span class="title">User</span></span> &#123;</span><br><span class="line">	fmt.Printf(<span class="string">"Querying DB for key: %s\n"</span>, username)</span><br><span class="line"></span><br><span class="line">	time.Sleep(<span class="number">1</span> * time.Second) <span class="comment">// 模拟耗时操作</span></span><br><span class="line"></span><br><span class="line">	id, _ := strconv.Atoi(username[<span class="built_in">len</span>(username)<span class="number">-3</span>:])</span><br><span class="line">	fakeUser := &amp;User&#123;</span><br><span class="line">		Id:    <span class="keyword">int64</span>(id),</span><br><span class="line">		Name:  username,</span><br><span class="line">		Email: username + <span class="string">"@jianghushinian.cn"</span>,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> fakeUser</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// GetUser 获取数据，先从缓存读取，若没有命中，则从数据库查询</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetUser</span><span class="params">(key <span class="keyword">string</span>)</span> *<span class="title">User</span></span> &#123;</span><br><span class="line">	<span class="comment">// 先尝试从缓存获取</span></span><br><span class="line">	mu.RLock()</span><br><span class="line">	val, ok := cache[key]</span><br><span class="line">	mu.RUnlock()</span><br><span class="line">	<span class="keyword">if</span> ok &#123;</span><br><span class="line">		<span class="keyword">return</span> val</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Printf(<span class="string">"User %s not in cache\n"</span>, key)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 缓存未命中，使用 SingleFlight 防止重复查询</span></span><br><span class="line">	result, _, _ := requestGroup.Do(key, <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span></span> &#123;</span><br><span class="line">		<span class="comment">// 模拟从数据库获取数据</span></span><br><span class="line">		val := GetUserFromDB(key)</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 存入缓存</span></span><br><span class="line">		mu.Lock()</span><br><span class="line">		cache[key] = val</span><br><span class="line">		mu.Unlock()</span><br><span class="line"></span><br><span class="line">		<span class="keyword">return</span> val, <span class="literal">nil</span></span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> result.(*User)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">	keys := []<span class="keyword">string</span>&#123;<span class="string">"user_123"</span>, <span class="string">"user_123"</span>, <span class="string">"user_456"</span>&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 第一轮并发查询，缓存中还没有数据，使用 SingleFlight 减少 DB 查询</span></span><br><span class="line">	<span class="keyword">for</span> _, key := <span class="keyword">range</span> keys &#123;</span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(k <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> wg.Done()</span><br><span class="line">			fmt.Printf(<span class="string">"Get user for key: %s -&gt; %+v\n"</span>, k, GetUser(k))</span><br><span class="line">		&#125;(key)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	time.Sleep(<span class="number">2</span> * time.Second)</span><br><span class="line">	fmt.Println(<span class="string">"==================================="</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 第二轮并发查询，缓存中有数据，直接读取缓存，不会查询 DB</span></span><br><span class="line">	<span class="keyword">for</span> _, key := <span class="keyword">range</span> keys &#123;</span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(k <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> wg.Done()</span><br><span class="line">			fmt.Printf(<span class="string">"Get user for key: %s -&gt; %+v\n"</span>, k, GetUser(k))</span><br><span class="line">		&#125;(key)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	wg.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>简单解释下这个示例程序，我们想要模拟的就是高并发场景下缓存失效时大量请求落到 DB 的场景。</p>
+<p>在 <code>main</code> 函数中，首先声明了 <code>sync.WaitGroup</code> 变量来控制并发，<code>keys</code> 表示我们要并发查询的用户，这里以 <code>username</code> 作为查询的 <code>key</code>。接着遍历这些 <code>keys</code> 并开启新的 goroutine 来并发的查询 <code>User</code> 信息。</p>
+<p><code>GetUser</code> 会先尝试从缓存读取数据，若没有命中，再去数据库中查询。从数据库获取数据需要调用 <code>GetUserFromDB</code> 函数，不过 <code>GetUser</code> 中并没有直接去调用它，而是使用 <code>singleflight</code> 实例对象 <code>requestGroup.Do</code> 方法来调用。<code>Do</code> 方法接收两个参数，一个字符串类型的 <code>key</code> 和一个函数 <code>fn</code>，对于同一个 <code>key</code>，在并发情况下，只有一个 <code>fn</code> 正在执行。而 <code>requestGroup.Do</code> 返回的 <code>result</code> 就是函数 <code>fn</code> 的第一个返回值。在函数 <code>fn</code> 内部调用了 <code>GetUserFromDB</code> 并将从 DB 查询到的数据存入缓存 <code>cache</code> 中。</p>
+<p>我们在 <code>main</code> 函数中共发起了两轮并发查询用户信息的请求。第一轮时，缓存 <code>cache</code> 为空，所以请求会落在 DB，第二轮时，缓存 <code>cache</code> 中有数据，所以请求直接读取缓存，不会查询 DB。</p>
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">User user_456 not <span class="keyword">in</span> cache</span><br><span class="line">Querying DB <span class="keyword">for</span> key: user_456</span><br><span class="line">User user_123 not <span class="keyword">in</span> cache</span><br><span class="line">Querying DB <span class="keyword">for</span> key: user_123</span><br><span class="line">User user_123 not <span class="keyword">in</span> cache</span><br><span class="line">Get user <span class="keyword">for</span> key: user_123 -&gt; &amp;&#123;Id:123 Name:user_123 Email:user_123@jianghushinian.cn&#125;</span><br><span class="line">Get user <span class="keyword">for</span> key: user_456 -&gt; &amp;&#123;Id:456 Name:user_456 Email:user_456@jianghushinian.cn&#125;</span><br><span class="line">Get user <span class="keyword">for</span> key: user_123 -&gt; &amp;&#123;Id:123 Name:user_123 Email:user_123@jianghushinian.cn&#125;</span><br><span class="line">===================================</span><br><span class="line">Get user <span class="keyword">for</span> key: user_123 -&gt; &amp;&#123;Id:123 Name:user_123 Email:user_123@jianghushinian.cn&#125;</span><br><span class="line">Get user <span class="keyword">for</span> key: user_123 -&gt; &amp;&#123;Id:123 Name:user_123 Email:user_123@jianghushinian.cn&#125;</span><br><span class="line">Get user <span class="keyword">for</span> key: user_456 -&gt; &amp;&#123;Id:456 Name:user_456 Email:user_456@jianghushinian.cn&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，第一轮并发请求中，<code>fmt.Printf(&quot;User %s not in cache\n&quot;, key)</code> 的日志打印了 3 次，说明缓存确实为空。<code>fmt.Printf(&quot;Querying DB for key: %s\n&quot;, username)</code> 日志打印了 2 次，说明 <code>singleflight</code> 生效了，因为 3 个并发请求中，有 2 个 <code>key</code> 是一样的 <code>user_123</code>，所以 <code>singleflight</code> 合并了请求。</p>
+<p>第二轮并发请求发起时，缓存中已经存在数据，所以只会打印 <code>fmt.Printf(&quot;Get user for key: %s -&gt; %+v\n&quot;, k, GetUser(k))</code> 的日志信息。</p>
+<p>现在你应该对 <code>singleflight</code> 有一个比较直观的认识了。不过，我在这里讲解的并不够详细，如果完全没接触过 <code>singleflight</code> 这个概念，可能会有一些疑惑。没关系，接下来我将对 <code>singleflight</code> 源码进行讲解，相信看过源码后，你心中的疑惑就都能解开了。毕竟，源码之下无秘密。</p>
+<h3 id="SingleFlight-源码解析"><a href="#SingleFlight-源码解析" class="headerlink" title="SingleFlight 源码解析"></a>SingleFlight 源码解析</h3><p><code>singleflight</code> 源码中有两个核心结构体：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// call is an in-flight or completed singleflight.Do call</span></span><br><span class="line"><span class="keyword">type</span> call <span class="keyword">struct</span> &#123;</span><br><span class="line">	wg sync.WaitGroup <span class="comment">// in-flight 并发控制</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// These fields are written once before the WaitGroup is done</span></span><br><span class="line">	<span class="comment">// and are only read after the WaitGroup is done.</span></span><br><span class="line">	val <span class="keyword">interface</span>&#123;&#125; <span class="comment">// 记录 fn 返回值</span></span><br><span class="line">	err error       <span class="comment">// 记录 fn 返回的 error</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// These fields are read and written with the singleflight</span></span><br><span class="line">	<span class="comment">// mutex held before the WaitGroup is done, and are read but</span></span><br><span class="line">	<span class="comment">// not written after the WaitGroup is done.</span></span><br><span class="line">	dups  <span class="keyword">int</span>             <span class="comment">// 记录从缓存中获取 fn 返回值的次数</span></span><br><span class="line">	chans []<span class="keyword">chan</span>&lt;- Result <span class="comment">// 提供给 DoChan 方法用于传递 fn 的返回值</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Group represents a class of work and forms a namespace in</span></span><br><span class="line"><span class="comment">// which units of work can be executed with duplicate suppression.</span></span><br><span class="line"><span class="keyword">type</span> Group <span class="keyword">struct</span> &#123;</span><br><span class="line">	mu sync.Mutex       <span class="comment">// protects m</span></span><br><span class="line">	m  <span class="keyword">map</span>[<span class="keyword">string</span>]*call <span class="comment">// lazily initialized</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>Group</code> 代表 <code>singleflight</code> 对象，它有两个字段，<code>mu</code> 是一个互斥锁，用于保护 <code>m</code> 的并发访问。<code>m</code> 是一个 <code>map</code>，会被延迟初始化，<code>m</code> 的键就是调用 <code>singleflight.Do</code> 时传递的第一个参数 <code>key</code>，<code>m</code> 的值是一个 <code>*call</code> 对象。</p>
+<p><code>call</code> 代表一个正在执行（<code>in-flight</code>）或已完成（<code>completed</code>）的 <code>fn</code> 函数的调用，也就是说，它会记录我们在调用 <code>singleflight.Do</code> 时传递的第二个参数 <code>fn</code> 的完整生命周期。</p>
+<p><code>Group</code> 对象提供了三个公有方法，签名如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">Do</span><span class="params">(key <span class="keyword">string</span>, fn <span class="keyword">func</span>()</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span>) <span class="params">(v <span class="keyword">interface</span>&#123;&#125;, err error, shared <span class="keyword">bool</span>)</span></span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">DoChan</span><span class="params">(key <span class="keyword">string</span>, fn <span class="keyword">func</span>()</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span>) &lt;-<span class="title">chan</span> <span class="title">Result</span></span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">Forget</span><span class="params">(key <span class="keyword">string</span>)</span></span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>Do</code> 方法我们见过了，它接收一个 <code>key</code> 和一个函数 <code>fn</code>，对于同一个 <code>key</code>，在并发情况下，只有一个 <code>fn</code> 正在执行，其他请求会阻塞等待。函数 <code>fn</code> 无参数，有两个返回值 <code>value</code> 和 <code>error</code>。当 <code>fn</code> 执行完成并返回，<code>Do</code> 方法会返回 <code>fn</code> 的执行结果 <code>value</code> 和 <code>error</code>，即 <code>Do</code> 方法返回值的前两个。而 <code>Do</code> 方法的最后一个返回值 <code>shared</code>，则表示返回值 <code>v</code> 是否共享给了多给调用方，即在 <code>fn</code> 执行时，有其他并发请求过来，不过它们并没有真正执行，而是等待这个 <code>fn</code> 的返回结果。</li>
+<li><code>DoChan</code> 方法其实和 <code>Do</code> 方法类似，只不过返回值变成了一个 <code>channel</code>。并发情况下对 <code>DoChan</code> 的调用不会阻塞等待第一个 <code>fn</code> 执行完成，而是直接返回 <code>channel</code>，等 <code>fn</code> 执行完成后，会将结果 <code>Result</code> 通过这个 <code>channel</code> 返回。</li>
+<li><code>Forget</code> 告知 <code>Group</code> 忘记一个 <code>key</code>，在调用 <code>Forget</code> 之后，再次调用 <code>Do</code>/<code>DoChan</code> 方法将不再等待前一个未完成的 <code>fn</code> 执行结果，而是当作一个新的请求来处理。</li>
+</ul>
+<p><code>DoChan</code> 方法的返回值中的 <code>Result</code> 类型，其实就是对 <code>Do</code> 方法返回的三个值的封装，方便在 <code>channel</code> 中传递。</p>
+<p><code>Result</code> 类型定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Result holds the results of Do, so they can be passed</span></span><br><span class="line"><span class="comment">// on a channel.</span></span><br><span class="line"><span class="keyword">type</span> Result <span class="keyword">struct</span> &#123;</span><br><span class="line">	Val    <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">	Err    error</span><br><span class="line">	Shared <span class="keyword">bool</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在我们对 <code>Group</code> 对象提供的三个方法源码依次进行讲解。</p>
+<h4 id="singleflight-Do"><a href="#singleflight-Do" class="headerlink" title="singleflight.Do"></a>singleflight.Do</h4><p>我们先看 <code>Do</code> 方法的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">Do</span><span class="params">(key <span class="keyword">string</span>, fn <span class="keyword">func</span>()</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span>) <span class="params">(v <span class="keyword">interface</span>&#123;&#125;, err error, shared <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	g.mu.Lock() <span class="comment">// 加锁，保证并发安全</span></span><br><span class="line">	<span class="keyword">if</span> g.m == <span class="literal">nil</span> &#123;</span><br><span class="line">		g.m = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]*call) <span class="comment">// 延迟初始化 m</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> c, ok := g.m[key]; ok &#123; <span class="comment">// 如果 key 已经在 map 中，即非第一个请求会进入到这个代码块</span></span><br><span class="line">		c.dups++</span><br><span class="line">		g.mu.Unlock()</span><br><span class="line">		c.wg.Wait()</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> e, ok := c.err.(*panicError); ok &#123;</span><br><span class="line">			<span class="built_in">panic</span>(e)</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> c.err == errGoexit &#123;</span><br><span class="line">			runtime.Goexit()</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> c.val, c.err, <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line">	c := <span class="built_in">new</span>(call) <span class="comment">// 当前 key 对应的第一个请求会创建一个 call 对象</span></span><br><span class="line">	c.wg.Add(<span class="number">1</span>)</span><br><span class="line">	g.m[key] = c</span><br><span class="line">	g.mu.Unlock()</span><br><span class="line"></span><br><span class="line">	g.doCall(c, key, fn) <span class="comment">// 真正去执行 fn 的方法</span></span><br><span class="line">	<span class="keyword">return</span> c.val, c.err, c.dups &gt; <span class="number">0</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Do</code> 方法内部首先会进行加锁操作，保证所有对 <code>m</code> 的操作并发安全。</p>
+<p><code>Group</code> 对象的 <code>m</code> 属性延迟到调用 <code>Do</code> 方法时才被初始化，所以 <code>Group</code> 对象其实无需实例化即可直接使用。</p>
+<p>如果 <code>key</code> 不在 <code>m</code> 中，说明是这个 <code>key</code> 的第一个请求，会为其创建一个 <code>call</code> 对象，并保存到 <code>m</code> 中。然后就交给 <code>Group.doCall</code> 来处理 <code>fn</code> 的调用了。并且 <code>call</code> 对象使用了 <code>sync.WaitGroup</code> 来控制并发调用。</p>
+<p>如果 <code>key</code> 在 <code>m</code> 中，则说明不是这个 <code>key</code> 的第一个请求，那么就可以调用 <code>c.wg.Wait()</code> 等待第一个请求完成，然后直接从 <code>call</code> 对象的 <code>val</code> 和 <code>err</code> 属性中拿到 <code>fn</code> 的返回值。在这里并没执行当前请求的 <code>fn</code>，<code>call</code> 对象上的结果是当前 <code>key</code> 的第一个请求返回的，所以就实现了类似“缓存”的效果，有效合并了多次请求调用。</p>
+<p>此外，在这里有两处错误类型判断，<code>c.err.(*panicError)</code> 和 <code>c.err == errGoexit</code>。</p>
+<p>其中 <code>panicError</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> panicError <span class="keyword">struct</span> &#123;</span><br><span class="line">	value <span class="keyword">interface</span>&#123;&#125; <span class="comment">// 记录 fn 函数的 panic 信息</span></span><br><span class="line">	stack []<span class="keyword">byte</span>      <span class="comment">// 记录发生 panic 时的异常堆栈信息</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Error implements error interface.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *panicError)</span> <span class="title">Error</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> fmt.Sprintf(<span class="string">"%v\n\n%s"</span>, p.value, p.stack)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *panicError)</span> <span class="title">Unwrap</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err, ok := p.value.(error)</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当同一个 <code>key</code> 的第一个请求函数 <code>fn</code> 调用发生了 <code>panic</code>，就会在 <code>c.err</code> 中保存一个 <code>*panicError</code> 对象，那么后续的并发请求过来，也要重新触发 <code>panic</code>。</p>
+<p>另一个错误 <code>errGoexit</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> errGoexit = errors.New(<span class="string">"runtime.Goexit was called"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>这是一个典型的 <code>Sentinel error</code>，用于标记在用户提供的 <code>fn</code> 函数内部调用了 <code>runtime.Goexit()</code> 来退出 goroutine，后续的并发请求过来，也要重新调用 <code>runtime.Goexit()</code>。</p>
+<blockquote>
+<p>NOTE:</p>
+<p><code>runtime.Goexit</code>用于终止<strong>当前</strong> goroutine（其他正在运行的协程不受影响，程序继续正常运行），不会继续执行后续代码。并且在退出前会执行当前 goroutine 的所有 <code>defer</code> 语句，确保资源被正确释放。此外 <code>runtime.Goexit()</code> 不会引发 <code>panic</code>，因此无法通过 <code>recover</code> 捕获。</p>
+</blockquote>
+<p>那么现在 <code>Do</code> 方法的工作流程就清晰了：</p>
+<ol>
+<li>请求 <code>Do(key, fn) (v, err, shared)</code> 被调用<ul>
+<li>如果 <code>key</code> 不存在：创建一个新的 <code>call</code>，执行用户函数 <code>fn</code>。</li>
+<li>如果 <code>key</code> 已存在：等待现有操作 <code>fn</code> 调用完成，复用其结果。</li>
+</ul>
+</li>
+<li><code>fn</code> 函数完成后<ul>
+<li>直接返回 <code>fn</code> 的执行结果。</li>
+<li>或者唤醒等待的重复请求，返回<code>fn</code> 的执行结果。</li>
+</ul>
+</li>
+</ol>
+<h4 id="singleflight-DoChan"><a href="#singleflight-DoChan" class="headerlink" title="singleflight.DoChan"></a>singleflight.DoChan</h4><p>接下来再看 <code>DoChan</code> 方法的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">DoChan</span><span class="params">(key <span class="keyword">string</span>, fn <span class="keyword">func</span>()</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span>) &lt;-<span class="title">chan</span> <span class="title">Result</span></span> &#123;</span><br><span class="line">	ch := <span class="built_in">make</span>(<span class="keyword">chan</span> Result, <span class="number">1</span>) <span class="comment">// 构造一个 channel 用于传递 fn 的执行结果</span></span><br><span class="line">	g.mu.Lock()                <span class="comment">// 加锁，保证并发安全</span></span><br><span class="line">	<span class="keyword">if</span> g.m == <span class="literal">nil</span> &#123;</span><br><span class="line">		g.m = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]*call) <span class="comment">// 延迟初始化 m</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> c, ok := g.m[key]; ok &#123; <span class="comment">// 如果 key 已经在 map 中</span></span><br><span class="line">		c.dups++</span><br><span class="line">		c.chans = <span class="built_in">append</span>(c.chans, ch)</span><br><span class="line">		g.mu.Unlock()</span><br><span class="line">		<span class="keyword">return</span> ch</span><br><span class="line">	&#125;</span><br><span class="line">	c := &amp;call&#123;chans: []<span class="keyword">chan</span>&lt;- Result&#123;ch&#125;&#125; <span class="comment">// 创建一个 call 对象，并初始化 chans 字段</span></span><br><span class="line">	c.wg.Add(<span class="number">1</span>)</span><br><span class="line">	g.m[key] = c</span><br><span class="line">	g.mu.Unlock()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> g.doCall(c, key, fn) <span class="comment">// 开启新的 goroutine 来执行 fn</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> ch <span class="comment">// 返回 channel 对象</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>DoChan</code> 方法的内部逻辑与 <code>Do</code> 方法类似，只不过它不会阻塞等待第一个请求执行完成，而是启动新的 goroutine 调用 <code>doCall</code> 来执行 <code>fn</code>，并返回一个 <code>channel</code> 对象。</p>
+<p>那么也就是说，<code>Do</code> 方法和 <code>DoChan</code> 方法的核心逻辑其实都是在 <code>doCall</code> 方法中了。</p>
+<h4 id="singleflight-doCall"><a href="#singleflight-doCall" class="headerlink" title="singleflight.doCall"></a>singleflight.doCall</h4><p><code>doCall</code> 方法的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">doCall</span><span class="params">(c *call, key <span class="keyword">string</span>, fn <span class="keyword">func</span>()</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span>)</span> &#123;</span><br><span class="line">	normalReturn := <span class="literal">false</span> <span class="comment">// fn 是否正常返回</span></span><br><span class="line">	recovered := <span class="literal">false</span>    <span class="comment">// fn 是否产生 panic</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 使用 double-defer 来区分 panic 或 runtime.Goexit</span></span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="comment">// 如果条件成立，则说明给定的函数 fn 内部调用了 runtime.Goexit</span></span><br><span class="line">		<span class="keyword">if</span> !normalReturn &amp;&amp; !recovered &#123;</span><br><span class="line">			c.err = errGoexit</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		g.mu.Lock()</span><br><span class="line">		<span class="keyword">defer</span> g.mu.Unlock()</span><br><span class="line">		c.wg.Done()        <span class="comment">// 通知阻塞等待的其他请求可以获取 fn 执行结果了</span></span><br><span class="line">		<span class="keyword">if</span> g.m[key] == c &#123; <span class="comment">// fn 执行完成，从 m 中删除 key 记录</span></span><br><span class="line">			<span class="built_in">delete</span>(g.m, key)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> e, ok := c.err.(*panicError); ok &#123;</span><br><span class="line">			<span class="keyword">if</span> <span class="built_in">len</span>(c.chans) &gt; <span class="number">0</span> &#123;</span><br><span class="line">				<span class="keyword">go</span> <span class="built_in">panic</span>(e) <span class="comment">// 为了防止等待 channel 的 goroutine 被永久阻塞，需要确保这个 panic 无法被 recover</span></span><br><span class="line">				<span class="keyword">select</span> &#123;&#125;   <span class="comment">// 保持当前 goroutine 不退出</span></span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				<span class="built_in">panic</span>(e)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> c.err == errGoexit &#123;</span><br><span class="line">			<span class="comment">// 当前 goroutine 正在执行 runtime.Goexit 退出流程，这里无需特殊处理</span></span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="comment">// 进入此代码块，说明 fn 正常返回</span></span><br><span class="line">			<span class="keyword">for</span> _, ch := <span class="keyword">range</span> c.chans &#123;</span><br><span class="line">				ch &lt;- Result&#123;c.val, c.err, c.dups &gt; <span class="number">0</span>&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">if</span> !normalReturn &#123;</span><br><span class="line">				<span class="keyword">if</span> r := <span class="built_in">recover</span>(); r != <span class="literal">nil</span> &#123; <span class="comment">// 进入此代码块，说明 fn 触发了 panic</span></span><br><span class="line">					c.err = newPanicError(r)</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;()</span><br><span class="line"></span><br><span class="line">		c.val, c.err = fn()</span><br><span class="line">		normalReturn = <span class="literal">true</span></span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> !normalReturn &#123;</span><br><span class="line">		recovered = <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个方法有点长，不过整体脉络是清晰的，我们拆成几个小的逻辑代码段来分析它。</p>
+<p>函数在最开始处初始化两个变量：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">normalReturn := <span class="literal">false</span></span><br><span class="line">recovered := <span class="literal">false</span></span><br></pre></td></tr></table></figure>
+
+<p><code>normalReturn</code> 如果为 <code>true</code>，则说明 <code>fn</code> 正常返回。</p>
+<p><code>recovered</code> 如果为 <code>true</code>，则说明 <code>fn</code> 执行期间发生了 <code>panic</code>。</p>
+<p>然后是一大段延迟执行的 <code>defer</code> 语句，我们先跳过它，直接来看下面的匿名立即执行函数逻辑：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">if</span> !normalReturn &#123;</span><br><span class="line">            <span class="keyword">if</span> r := <span class="built_in">recover</span>(); r != <span class="literal">nil</span> &#123;</span><br><span class="line">                c.err = newPanicError(r)</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line"></span><br><span class="line">    c.val, c.err = fn()</span><br><span class="line">    normalReturn = <span class="literal">true</span></span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure>
+
+<p>这里之所以使用一个立即执行函数，是为了执行 <code>defer</code> 语句。函数内主要逻辑就是调用 <code>fn</code> 函数，并将其结果保存到 <code>*call</code> 对象 <code>c.val</code> 和 <code>c.err</code> 两个属性中。</p>
+<p><code>fn</code> 执行成功，则标记 <code>normalReturn</code> 为 <code>true</code>，表明 <code>fn</code> 正常返回，执行期间没有发生 <code>panic</code> 或调用 <code>runtime.Goexit()</code>。</p>
+<p>如果 <code>fn</code> 内发生 <code>panic</code>，则会被 <code>defer</code> 中的 <code>recover</code> 捕获到，并使用 <code>panic</code> 信息创建一个 <code>*panicError</code> 对象保存到 <code>c.err</code> 属性中。</p>
+<p><code>newPanicError</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newPanicError</span><span class="params">(v <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	stack := debug.Stack()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// The first line of the stack trace is of the form "goroutine N [status]:"</span></span><br><span class="line">	<span class="comment">// but by the time the panic reaches Do the goroutine may no longer exist</span></span><br><span class="line">	<span class="comment">// and its status will have changed. Trim out the misleading line.</span></span><br><span class="line">	<span class="keyword">if</span> line := bytes.IndexByte(stack[:], <span class="string">'\n'</span>); line &gt;= <span class="number">0</span> &#123;</span><br><span class="line">		stack = stack[line+<span class="number">1</span>:]</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;panicError&#123;value: v, stack: stack&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里代码很简单，使用 <code>debug.Stack()</code> 获取当前 goroutine 的调用栈信息，然后截掉第一行 <code>goroutine N [status]:</code> 格式的堆栈内容，再构造一个 <code>*panicError</code> 对象并返回。</p>
+<blockquote>
+<p>NOTE:</p>
+<p><code>debug.Stack</code> 是对 <code>runtime.Stack</code> 的一个高层次的封装，直接返回<strong>当前</strong> goroutine 的调用栈信息。</p>
+</blockquote>
+<p>回忆下在 <code>Do</code> 函数中有一个错误类型断言 <code>c.err.(*panicError)</code>，错误信息就是在这里通过调用 <code>newPanicError</code> 创建并赋值给 <code>c.err</code> 的。</p>
+<p>匿名函数执行完成后，代码逻辑走到这里：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> !normalReturn &#123;</span><br><span class="line">    recovered = <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果此时 <code>normalReturn</code> 为 <code>false</code>，则执行 <code>fn</code> 时必然出现了 <code>panic</code>，所以记录 <code>recovered</code> 值为 <code>true</code>。</p>
+<p>这里之所以能这样断定 <code>fn</code> 中出现 <code>panic</code>，是因为这段逻辑与匿名的立即执行函数在同一个 goroutine 中，如果 <code>c.val, c.err = fn()</code> 这行执行成功，内部肯定没有发生 <code>panic</code> 或调用 <code>runtime.Goexit()</code>，那么 <code>normalReturn = true</code> 也必然会执行成功。而如果 <code>normalReturn</code> 为 <code>false</code>，则有可能发生 <code>panic</code> 或调用 <code>runtime.Goexit()</code>。但是如果调用 <code>runtime.Goexit()</code>，那么当前 goroutine 会立即终止，所以代码根本就不会执行到此处。既然代码能够执行到此处，且 <code>normalReturn</code> 为 <code>false</code>，就只剩一种可能，<code>fn</code> 中发生了 <code>panic</code>。</p>
+<p><code>doCall</code> 方法最后一行代码已经执行完成，接下来就要执行到顶部的 <code>defer</code> 函数中了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 使用 double-defer 来区分 panic 或 runtime.Goexit</span></span><br><span class="line"><span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 如果条件成立，则说明给定的函数 fn 内部调用了 runtime.Goexit</span></span><br><span class="line">    <span class="keyword">if</span> !normalReturn &amp;&amp; !recovered &#123;</span><br><span class="line">        c.err = errGoexit</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    g.mu.Lock()</span><br><span class="line">    <span class="keyword">defer</span> g.mu.Unlock()</span><br><span class="line">    c.wg.Done()        <span class="comment">// 通知阻塞等待的其他请求可以获取 fn 执行结果了</span></span><br><span class="line">    <span class="keyword">if</span> g.m[key] == c &#123; <span class="comment">// fn 执行完成，从 m 中删除 key 记录</span></span><br><span class="line">        <span class="built_in">delete</span>(g.m, key)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> e, ok := c.err.(*panicError); ok &#123;</span><br><span class="line">        <span class="keyword">if</span> <span class="built_in">len</span>(c.chans) &gt; <span class="number">0</span> &#123;</span><br><span class="line">            <span class="keyword">go</span> <span class="built_in">panic</span>(e) <span class="comment">// 为了防止等待 channel 的 goroutine 被永久阻塞，需要确保这个 panic 无法被 recover</span></span><br><span class="line">            <span class="keyword">select</span> &#123;&#125;   <span class="comment">// 保持当前 goroutine 不退出</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="built_in">panic</span>(e)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> c.err == errGoexit &#123;</span><br><span class="line">        <span class="comment">// 当前 goroutine 正在执行 runtime.Goexit 退出流程，这里无需特殊处理</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 进入此代码块，说明 fn 正常返回</span></span><br><span class="line">        <span class="keyword">for</span> _, ch := <span class="keyword">range</span> c.chans &#123;</span><br><span class="line">            ch &lt;- Result&#123;c.val, c.err, c.dups &gt; <span class="number">0</span>&#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>defer</code> 函数中首先对 <code>fn</code> 函数的执行结果进行了判断，如果没有正常退出，且未发生 <code>panic</code>，则说明一定是调用了 <code>runtime.Goexit()</code>。</p>
+<p>所以，这也是为什么 <code>doCall</code> 方法中共计使用了两个 <code>defer</code> 语句，就是为了对 <code>fn</code> 的三种可能执行结果进行判别。</p>
+<p><code>c.wg.Done()</code> 通知阻塞等待的其他请求可以获取 <code>fn</code> 函数的执行结果了。</p>
+<p>当 <code>fn</code> 执行完成，立即从 <code>Group.m</code> 中删除 <code>fn</code> 函数所对应的 <code>key</code>。所以，<code>singleflight</code> 只保证并发情况下，合并多个请求。如果这一轮并发结束，下次相同 <code>key</code> 发来的请求，<code>fn</code> 函数会依然会执行。所以看到此处，我想你应该能 Get 到 <code>singleflight</code> 与 <code>sync.Once</code> 的不同之处了。</p>
+<p>接下来的逻辑就有点意思了，如果 <code>c.err</code> 中记录的 <code>error</code> 是 <code>*panicError</code> 类型，则说明 <code>fn</code> 函数发生了 <code>panic</code>。那么此时需要重新触发 <code>panic</code>，让调用方感知到。这又分两种情况，如果 <code>len(c.chans) &gt; 0</code> 成立，则说明用户调用了 <code>DoChan</code> 方法，此时为了防止调用方用来等待 <code>channel</code> 的 goroutine 被永久阻塞，需要确保这个 <code>panic</code> 不能被 <code>recover</code>，所以启动了一个新的 goroutine 来执行 <code>panic(e)</code>，<code>select {}</code> 则是用来保持当前 goroutine 不被退出。另一种情况则是用户调用了 <code>Do</code> 方法，那么直接执行 <code>panic(e)</code> 即可。</p>
+<blockquote>
+<p>NOTE:</p>
+<p><code>recover</code> 只能捕获当前 goroutine 中的 <code>panic</code>，我在另一篇文章<a href="https://jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/#panic-%E5%B9%B6%E4%B8%8D%E6%98%AF%E9%83%BD%E5%8F%AF%E4%BB%A5%E8%A2%AB-recover-%E6%8D%95%E8%8E%B7" target="_blank" rel="noopener">《Go 错误处理指北：Defer、Panic、Recover 三剑客》</a>中进行了详细讲解。</p>
+</blockquote>
+<p>如果 <code>c.err == errGoexit</code> 成立，则说明 <code>fn</code> 函数内容调用了 <code>runtime.Goexit()</code>，那么无需特殊处理，当前 goroutine 会继续执行退出操作。</p>
+<p>最终代码进入 <code>else</code> 逻辑，说明 fn 正常返回，如果用户调用了 <code>DoChan</code> 方法，则 <code>c.chans</code> 有值，将 <code>fn</code> 执行结果包装成 <code>Result</code> 并通过 <code>channel</code> 通知给所有等待者。</p>
+<p>至此，<code>singleflight</code> 最核心的方法 <code>doCall</code> 就执行完成了。</p>
+<p>我们来梳理下 <code>doCall</code> 方法的工作流程：</p>
+<ol>
+<li>调用 <code>fn</code> 函数，执行 <code>fn</code> 的逻辑包裹在嵌套的匿名函数中，并处理可能产生的 <code>panic</code> 或 <code>runtime.Goexit</code>。</li>
+<li>处理返回结果，在 <code>defer</code> 方法中，区分了 <code>fn</code> 函数的正常返回、<code>panic</code> 和 <code>runtime.Goexit</code> 三种可能执行结果，并设置对应的状态和错误信息。</li>
+<li>分发 <code>fn</code> 函数的执行结果或错误信息，如果用户调用了 <code>Do</code> 方法，可以从 <code>*call</code> 对象的 <code>c.val</code> 和 <code>c.err</code> 两个属性中拿到结果，如果用户调用了 <code>DoChan</code> 方法，最终会将结果广播到所有等待的 <code>channel</code>。</li>
+</ol>
+<p><code>doCall</code> 方法代码量不大，不过其中中有两处关键点值得注意：</p>
+<ol>
+<li>双层 <code>defer</code> 设计（<code>double-defer</code>）<ul>
+<li>第一层 <code>defer</code> 用于捕获 <code>panic</code>。</li>
+<li>第二层 <code>defer</code> 则用于处理 <code>runtime.Goexit</code> 和资源释放。</li>
+</ul>
+</li>
+<li>对于 <code>panic</code> 的处理<ul>
+<li><code>*panicError</code> 中包含了错误值和堆栈信息，便于调试。</li>
+<li>通过 goroutine 执行 <code>panic(e)</code> 保证不会阻塞等待 <code>channel</code> 的调用者。</li>
+</ul>
+</li>
+</ol>
+<h4 id="singleflight-Forget"><a href="#singleflight-Forget" class="headerlink" title="singleflight.Forget"></a>singleflight.Forget</h4><p>现在还剩下最后方法没有分析了，<code>Forget</code> 方法源码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span> <span class="title">Forget</span><span class="params">(key <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	g.mu.Lock()</span><br><span class="line">	<span class="built_in">delete</span>(g.m, key)</span><br><span class="line">	g.mu.Unlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>一目了然，<code>Forget</code> 方法用于调用方主动告知 <code>Group</code> 忘记一个 <code>key</code>。</p>
+<p><code>Forget</code> 方法适用场景如下：</p>
+<ul>
+<li>长时间未完成的调用，比如某个函数执行时间过长，但业务上已经不再需要结果，此时可以通过 <code>Forget</code> 主动移除 <code>key</code>。</li>
+<li>错误请求的清理，如果某次调用由于逻辑错误进入了无效状态，直接 <code>Forget</code> 该调用，可以避免<code>fn</code> 执行结果后续被误用。</li>
+<li>重试机制，在某些场景下，你希望对同一个 <code>key</code> 发起新的调用，而不是复用之前的结果。</li>
+</ul>
+<p>不过，还是建议慎使用 <code>Forget</code>，有需要时再使用。因为如果调用时间较短且结果重要，频繁使用 <code>Forget</code> 可能导致资源浪费，<code>singleflight</code> 也就失去了意义。</p>
+<h3 id="SingleFlight-适用场景"><a href="#SingleFlight-适用场景" class="headerlink" title="SingleFlight 适用场景"></a>SingleFlight 适用场景</h3><p>现在我们对 <code>singleflight</code> 的源码进行了解析，那么 <code>singleflight</code> 的适用场景也就清晰了。</p>
+<p><code>singleflight</code> 典型使用场景如下：</p>
+<ol>
+<li><strong>缓存击穿</strong><ul>
+<li><strong>问题</strong>: 缓存中的某个热点键过期，导致大量请求同时访问后端数据库，增加系统压力。</li>
+<li><strong>解决</strong>: 使用 <code>singleflight</code> 确保在缓存重建过程中，只有一个请求会访问数据库，其他请求等待结果返回。</li>
+</ul>
+</li>
+<li><strong>远程服务调用</strong><ul>
+<li><strong>问题</strong>: 多个并发请求访问同一个远程服务时，可能造成不必要的重复调用，浪费带宽和计算资源。</li>
+<li><strong>解决</strong>: 使用 <code>singleflight</code> 使相同的请求合并为一次。</li>
+</ul>
+</li>
+<li><strong>定时任务去重</strong><ul>
+<li><strong>问题</strong>: 在分布式系统中，多个节点可能同时执行定时任务，导致重复任务执行。</li>
+<li><strong>解决</strong>: 使用 <code>singleflight</code> 确保只有一个节点执行任务，其他节点共享结果。</li>
+</ul>
+</li>
+<li><strong>消息去重</strong><ul>
+<li><strong>问题</strong>: 消息队列中可能存在重复消息的消费问题。</li>
+<li><strong>解决</strong>: 在消费端使用 <code>singleflight</code>，确保对相同消息的处理只执行一次。</li>
+</ul>
+</li>
+<li><strong>分布式锁优化</strong><ul>
+<li><strong>问题</strong>: 多个节点同时抢锁时，可能会发起大量重复的加锁尝试。</li>
+<li><strong>解决</strong>: 使用 <code>singleflight</code> 降低对分布式锁的访问压力，只允许一个请求实际去尝试加锁。</li>
+</ul>
+</li>
+</ol>
+<p><code>SingleFlight</code> 的核心作用是<strong>抑制重复的并发调用</strong>，在并发场景中，多次相同请求（由同一个 <code>key</code> 标识）过来时，让它们共享第一个调用的结果，而不是重复执行。这在<strong>读操作</strong>中尤其常见，而对于<strong>写操作</strong>，合并的需求和行为需要更慎重的对待。</p>
+<p>关于 <code>SingleFlight</code> 你认为还有那些使用场景可以分享出来，大家一起探讨学习。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><code>singleflight</code> 主要用于<strong>抑制重复的并发调用</strong>，从而避免对同一资源进行重复操作，提升系统性能。所以 <code>singleflight</code> 适用于可以合并请求的操作。</p>
+<p><code>singleflight</code> 提供了三个公有方法 <code>Do</code>、<code>DoChan</code> 和 <code>Forget</code>，<code>Do</code> 和 <code>DoChan</code> 两个方法作用相同都用来合并请求，二者的核心逻辑在 <code>doCall</code> 方法中。<code>Forget</code> 方法则用于调用方主动告知 <code>Group</code> 忘记一个 <code>key</code>。</p>
+<p><code>singleflight</code> 典型使用场景有缓存击穿、远程服务调用、任务去重、消息去重、分布式锁优化等。</p>
+<p>我在前文中留过一个思考题，<code>singleflight</code> 和 <code>sync.Once</code> 有什么区别，现在你有答案了吗？</p>
+<p><code>singleflight</code> 只用在并发场景下，同时有多个重复的请求，才能够合并请求。而当请求结束，就会执行 <code>delete(g.m, key)</code> 删除 <code>key</code>，下一次请求过来 <code>fn</code> 依然被重新执行。</p>
+<p><code>sync.Once</code> 则始终保证函数 <code>f</code> 只被调用一次。</p>
+<p>二者虽然看起来功能类似，但它们的实现原理和适用场景各不相同。</p>
+<p>此外，其实在 Go 源码中的 <code>internal</code> 包下，也有一个 <code>SingleFlight</code> 的<a href="https://github.com/golang/go/tree/go1.23.0/src/internal/singleflight" target="_blank" rel="noopener">实现</a>，与<a href="https://pkg.go.dev/golang.org/x/sync" target="_blank" rel="noopener">扩展库 x</a> 中的实现思路相同，代码更加简单，感兴趣的读者可以跳转过去查看其源码实现。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/x/sync/singleflight" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li><font style="color:rgb(33, 33, 33);">Go Wiki: X-Repositories：</font><a href="https://go.dev/wiki/X-Repositories" target="_blank" rel="noopener">https://go.dev/wiki/X-Repositories</a></li>
+<li>singleflight Documentation：<a href="https://pkg.go.dev/golang.org/x/sync@v0.9.0/singleflight" target="_blank" rel="noopener">https://pkg.go.dev/golang.org/x/sync@v0.9.0/singleflight</a></li>
+<li>singleflight GitHub 源码：<a href="https://github.com/golang/sync/tree/v0.9.0/singleflight" target="_blank" rel="noopener">https://github.com/golang/sync/tree/v0.9.0/singleflight</a></li>
+<li>Go 源码中 internal 包下的 singleflight：<a href="https://github.com/golang/go/tree/go1.23.0/src/internal/singleflight" target="_blank" rel="noopener">https://github.com/golang/go/tree/go1.23.0/src/internal/singleflight</a></li>
+<li>Go 并发控制：sync.Once 详解：<a href="https://jianghushinian.cn/2024/11/11/sync-once/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/11/11/sync-once/</a></li>
+<li>Go 错误处理指北：Defer、Panic、Recover 三剑客：<a href="https://jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/x/sync/singleflight" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/x/sync/singleflight</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2024-11-24T05:07:14.679Z" itemprop="dateUpdated">2024-11-24 13:07:14</time>
+</span><br>
+
+
+        
+        <a href="/2024/11/24/x-sync-singleflight/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/&title=《Go 并发控制：singleflight 详解》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/&title=《Go 并发控制：singleflight 详解》 — 江湖十年&source=singleflight 是 Go 官方扩展库 x 中提供的扩展并发原语，能够将多个并发请求合并为一个，降低服务端压力。本文就来介绍下它的用法和实现原理。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 并发控制：singleflight 详解》 — 江湖十年&url=http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/11/18/go-cors/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">2024 都要过完了，我不允许你在 Go 中还不会解决 CORS 跨域问题</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2024</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/&title=《Go 并发控制：singleflight 详解》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/&title=《Go 并发控制：singleflight 详解》 — 江湖十年&source=singleflight 是 Go 官方扩展库 x 中提供的扩展并发原语，能够将多个并发请求合并为一个，降低服务端压力。本文就来介绍下它的用法和实现原理。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 并发控制：singleflight 详解》 — 江湖十年&url=http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/11/24/x-sync-singleflight/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
