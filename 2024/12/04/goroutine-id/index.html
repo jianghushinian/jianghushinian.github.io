@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Go 中如果获取 goroutine 的 id？ | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="如果你使用过如 Python、Java 等主流支持并发的编程语言，那么通常都能够比较容易的获得进程和线程的 id。但是在 Go 语言，没有直接提供对多进程和多线程的支持，而是提供了 goroutine 来支持并发编程。不过在 Go 中，获取 goroutine 的 id 并不像其他编程语言那样容易，但依然有办法，本文就来介绍下如何实现。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Go 中如果获取 goroutine 的 id？">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/12/04/goroutine-id/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="如果你使用过如 Python、Java 等主流支持并发的编程语言，那么通常都能够比较容易的获得进程和线程的 id。但是在 Go 语言，没有直接提供对多进程和多线程的支持，而是提供了 goroutine 来支持并发编程。不过在 Go 中，获取 goroutine 的 id 并不像其他编程语言那样容易，但依然有办法，本文就来介绍下如何实现。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-12-04T01:13:43.000Z">
+<meta property="article:modified_time" content="2024-12-04T01:17:17.167Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Go 中如果获取 goroutine 的 id？</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Go 中如果获取 goroutine 的 id？</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-12-04T01:13:43.000Z" itemprop="datePublished" class="page-time">
+  2024-12-04
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#获取当前进程的-id"><span class="post-toc-number">1.</span> <span class="post-toc-text">获取当前进程的 id</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#获取当前-goroutine-的-id"><span class="post-toc-number">2.</span> <span class="post-toc-text">获取当前 goroutine 的 id</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用-runtime-包获取-goroutine-id"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">使用 runtime 包获取 goroutine id</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用第三方库获取-goroutine-id"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">使用第三方库获取 goroutine id</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">3.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-goroutine-id"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Go 中如果获取 goroutine 的 id？</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-12-04 09:13:43" datetime="2024-12-04T01:13:43.000Z"  itemprop="datePublished">2024-12-04</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>如果你使用过如 Python、Java 等主流支持并发的编程语言，那么通常都能够比较容易的获得进程和线程的 id。但是在 Go 语言，没有直接提供对多进程和多线程的支持，而是提供了 goroutine 来支持并发编程。不过在 Go 中，获取 goroutine 的 id 并不像其他编程语言那样容易，但依然有办法，本文就来介绍下如何实现。</p>
+<a id="more"></a>
+
+<h3 id="获取当前进程的-id"><a href="#获取当前进程的-id" class="headerlink" title="获取当前进程的 id"></a>获取当前进程的 id</h3><p>首先，虽然 Go 没有提供多进程编程，但启动 Go 程序还是会有一个进程存在的，Go 标准库提供了 <code>os.Getpid</code> 函数，可以方便的获取当前进程的 id：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/goroutine/id/pid/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/goroutine/id/pid/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 获取当前进程的 id</span></span><br><span class="line">	pid := os.Getpid()</span><br><span class="line">	fmt.Println(<span class="string">"process id:"</span>, pid)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用 <code>os.Getpid()</code> 会返回当前进程的 pid（进程 id）。</p>
+<h3 id="获取当前-goroutine-的-id"><a href="#获取当前-goroutine-的-id" class="headerlink" title="获取当前 goroutine 的 id"></a>获取当前 goroutine 的 id</h3><p>Go 并没有直接提供获取 goroutine id 的方法，因为 goroutine 的管理是由 Go 运行时（Go runtime）负责的，它并不暴露每个 goroutine 的 id。然而，有一些方法可以间接获取到与 goroutine 相关的信息。</p>
+<h4 id="使用-runtime-包获取-goroutine-id"><a href="#使用-runtime-包获取-goroutine-id" class="headerlink" title="使用 runtime 包获取 goroutine id"></a>使用 runtime 包获取 goroutine id</h4><p>虽然不能直接获取每个 goroutine 的 id，但我们可以变相的通过 <code>runtime.Stack</code> 函数来获取。</p>
+<p>实现代码如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/goroutine/id/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/goroutine/id/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"runtime"</span></span><br><span class="line">	<span class="string">"strconv"</span></span><br><span class="line">	<span class="string">"strings"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GoId</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	buf := <span class="built_in">make</span>([]<span class="keyword">byte</span>, <span class="number">32</span>)</span><br><span class="line">	n := runtime.Stack(buf, <span class="literal">false</span>)</span><br><span class="line">	idField := strings.Fields(strings.TrimPrefix(<span class="keyword">string</span>(buf[:n]), <span class="string">"goroutine "</span>))[<span class="number">0</span>]</span><br><span class="line">	id, err := strconv.Atoi(idField)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(fmt.Sprintf(<span class="string">"cannot get goroutine id: %v"</span>, err))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> id</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"main"</span>, GoId())</span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		i := i</span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> wg.Done()</span><br><span class="line">			fmt.Println(i, GoId())</span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码通过自定义的 <code>GoId</code> 函数来获取当前 goroutine 的 id，并在 <code>main</code> 函数的主 goroutine 和子 goroutines 中打印它们的 id。</p>
+<p>我们来解释下 <code>GoId</code> 函数主要逻辑的实现：</p>
+<ol>
+<li><p><code>runtime.Stack(buf, false)</code>：</p>
+<ul>
+<li><code>runtime.Stack</code> 是 <code>runtime</code> 包提供的公开函数，用于获取当前 goroutine 的堆栈信息。</li>
+<li>参数 <code>buf</code> 是一个字节数组，用来存储调用 <code>runtime.Stack()</code> 返回的堆栈信息。</li>
+<li>第二个参数是 <code>false</code>，表示我们只获取当前 goroutine 的栈信息，如果为 <code>true</code> 则是获取所有 goroutines 的栈信息。</li>
+<li><code>runtime.Stack()</code> 会将当前 goroutine 的栈信息写入 <code>buf</code> 中，<code>n</code> 是返回的字节数，表示堆栈信息的长度。</li>
+</ul>
+</li>
+<li><p><code>strings.TrimPrefix(string(buf[:n]), &quot;goroutine &quot;)</code>：</p>
+<ul>
+<li><p>将堆栈信息转为字符串并去掉前缀 <code>&quot;goroutine &quot;</code>。</p>
+</li>
+<li><p>堆栈信息的第一行格式通常如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">goroutine 1 [running]:</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>这里通过 <code>TrimPrefix</code> 去除前缀 <code>&quot;goroutine &quot;</code> 后，剩下的内容就是 goroutine 的 id 及其状态信息。</p>
+</li>
+</ul>
+</li>
+<li><p><code>idField := strings.Fields(...)[0]</code>：</p>
+<ul>
+<li><code>strings.Fields</code> 将经过 <code>TrimPrefix</code> 处理后的字符串按空格切割成一个字符串切片。</li>
+<li>从切片中获取第一个字段，这就是 goroutine 的 id，如 <code>1</code>。</li>
+</ul>
+</li>
+</ol>
+<p>如果一切顺利，<code>GoId</code> 函数最终返回当前 goroutine 的 id。</p>
+<p><code>main</code> 函数实现则比较简单，先调用 <code>GoId()</code> 打印主 goroutine 的 id，然后启动了 10 个子 goroutine 并分别打印它们的 id。</p>
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">main 1</span><br><span class="line">9 29</span><br><span class="line">0 20</span><br><span class="line">5 25</span><br><span class="line">6 26</span><br><span class="line">7 27</span><br><span class="line">8 28</span><br><span class="line">2 22</span><br><span class="line">1 21</span><br><span class="line">4 24</span><br><span class="line">3 23</span><br></pre></td></tr></table></figure>
+
+<p>这样，我们就变相的通过先获取堆栈信息，然后再从堆栈信息中进行解析的方式拿到了 goroutine 的 id。想必你也能够发现，这种实现方式性能不高，所以不到万不得已，不要轻易获取 goroutine 的 id。</p>
+<p>那么有没有更高效的方式呢？</p>
+<p>很遗憾，Go 官方没有提供。不过有第三方库帮我们实现了。</p>
+<h4 id="使用第三方库获取-goroutine-id"><a href="#使用第三方库获取-goroutine-id" class="headerlink" title="使用第三方库获取 goroutine id"></a>使用第三方库获取 goroutine id</h4><p>一个比较常用的库是 <a href="https://github.com/petermattis/goid" target="_blank" rel="noopener">https://github.com/petermattis/goid</a>，可以用来获取当前 goroutine 的 id。</p>
+<p>安装方式：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go get github.com/petermattis/goid</span><br></pre></td></tr></table></figure>
+
+<p>使用示例：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/goroutine/id/goid/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/goroutine/id/goid/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/petermattis/goid"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"main"</span>, goid.Get())</span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		i := i</span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> wg.Done()</span><br><span class="line">			fmt.Println(i, goid.Get())</span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ go run goid/main.go</span><br><span class="line">main 1</span><br><span class="line">9 43</span><br><span class="line">4 38</span><br><span class="line">5 39</span><br><span class="line">6 40</span><br><span class="line">7 41</span><br><span class="line">8 42</span><br><span class="line">1 35</span><br><span class="line">0 34</span><br><span class="line">2 36</span><br><span class="line">3 37</span><br></pre></td></tr></table></figure>
+
+<p>我们仅需要调用 <code>goid.Get()</code> 即可获取当前 goroutine 的 id。</p>
+<p><code>goid</code> 库使用了 C 和 汇编来获取 goroutine id，所以性能更好。并且 <code>goid</code> 为所有的 Go 版本都做了兼容，从项目文件名可以看出，不同 Go 版本有着不同的实现：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">$ tree goid</span><br><span class="line">goid</span><br><span class="line">├── LICENSE</span><br><span class="line">├── README.md</span><br><span class="line">├── go.mod</span><br><span class="line">├── goid.go</span><br><span class="line">├── goid_gccgo.go</span><br><span class="line">├── goid_go1.3.c</span><br><span class="line">├── goid_go1.3.go</span><br><span class="line">├── goid_go1.4.go</span><br><span class="line">├── goid_go1.4.s</span><br><span class="line">├── goid_go1.5.go</span><br><span class="line">├── goid_go1.5.s</span><br><span class="line">├── goid_slow.go</span><br><span class="line">├── goid_test.go</span><br><span class="line">├── runtime_gccgo_go1.8.go</span><br><span class="line">├── runtime_go1.23.go</span><br><span class="line">├── runtime_go1.5.go</span><br><span class="line">├── runtime_go1.6.go</span><br><span class="line">└── runtime_go1.9.go</span><br><span class="line"></span><br><span class="line">1 directory, 18 files</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>goid_go1.3.c</code> 中可以看到 C 语言版本实现如下：</p>
+<blockquote>
+<p><a href="https://github.com/petermattis/goid/blob/master/goid_go1.3.c" target="_blank" rel="noopener">https://github.com/petermattis/goid/blob/master/goid_go1.3.c</a></p>
+</blockquote>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// +build !go1.4</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;runtime.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> ·Get(int64 ret) &#123;</span><br><span class="line">    ret = g-&gt;goid;</span><br><span class="line">    USED(&amp;ret);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>goid_go1.4.s</code> 中可以看到汇编语言版本实现如下：</p>
+<blockquote>
+<p><a href="https://github.com/petermattis/goid/blob/master/goid_go1.4.s" target="_blank" rel="noopener">https://github.com/petermattis/goid/blob/master/goid_go1.4.s</a></p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;&#x2F; +build amd64 amd64p32 arm 386</span><br><span class="line">&#x2F;&#x2F; +build go1.4,!go1.5</span><br><span class="line"></span><br><span class="line">#include &quot;textflag.h&quot;</span><br><span class="line"></span><br><span class="line">#ifdef GOARCH_arm</span><br><span class="line">#define JMP B</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">TEXT ·getg(SB),NOSPLIT,$0-0</span><br><span class="line">	JMP	runtime·getg(SB)</span><br></pre></td></tr></table></figure>
+
+<p>此外，为了保证兼容性，在 <code>goid.go</code> 中还有一个 Go 语言版本实现：</p>
+<blockquote>
+<p><a href="https://github.com/petermattis/goid/blob/master/goid.go" target="_blank" rel="noopener">https://github.com/petermattis/goid/blob/master/goid.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> goid</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"bytes"</span></span><br><span class="line">	<span class="string">"runtime"</span></span><br><span class="line">	<span class="string">"strconv"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ExtractGID</span><span class="params">(s []<span class="keyword">byte</span>)</span> <span class="title">int64</span></span> &#123;</span><br><span class="line">	s = s[<span class="built_in">len</span>(<span class="string">"goroutine "</span>):]</span><br><span class="line">	s = s[:bytes.IndexByte(s, <span class="string">' '</span>)]</span><br><span class="line">	gid, _ := strconv.ParseInt(<span class="keyword">string</span>(s), <span class="number">10</span>, <span class="number">64</span>)</span><br><span class="line">	<span class="keyword">return</span> gid</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Parse the goid from runtime.Stack() output. Slow, but it works.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getSlow</span><span class="params">()</span> <span class="title">int64</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> buf [<span class="number">64</span>]<span class="keyword">byte</span></span><br><span class="line">	<span class="keyword">return</span> ExtractGID(buf[:runtime.Stack(buf[:], <span class="literal">false</span>)])</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里 Go 版本的实现同样使用 <code>runtime.Stack()</code>，并且注释也标明了这个实现比较慢。</p>
+<p>所以，如果我们真的需要获取 goroutine 的 id，那么推荐使用 <a href="https://github.com/petermattis/goid/" target="_blank" rel="noopener">goid</a>。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>在 Go 中获取当前进程的 id 可以使用 <code>os.Getpid()</code> 函数。如果要获取当前 goroutine 的 id 则要困难一些，Go 标准库没有直接提供该功能，不过我们可以变相的从 <code>runtime.Stack()</code> 返回的堆栈信息中获取，也可以使用第三方库 <a href="https://github.com/petermattis/goid/" target="_blank" rel="noopener">goid</a> 来获取。</p>
+<p>不过，你有没有想过，为什么 Go 不提供获取当前 goroutine 的 id 的功能呢？</p>
+<p>这个问题早有讨论，其实在早期的 Go 版本中提供了这样的方法，只不过后来被取消了。讨论过程你可以在这里 <a href="https://groups.google.com/g/golang-nuts/c/Nt0hVV_nqHE" target="_blank" rel="noopener">https://groups.google.com/g/golang-nuts/c/Nt0hVV_nqHE</a> 看到。</p>
+<p>总结起来就是 Go 设计故意不让用户获取 goroutine 的 id，避免滥用。所以，要不要在你的代码中使用 goroutine 的 id，你需要自定判断。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/goroutine/id" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>Re: [go-nuts] How to get current goroutine id?：<a href="https://groups.google.com/g/golang-nuts/c/Nt0hVV_nqHE" target="_blank" rel="noopener">https://groups.google.com/g/golang-nuts/c/Nt0hVV_nqHE</a></li>
+<li><font style="color:rgb(33, 33, 33);">How can I get a goroutine’s runtime ID?：</font><a href="https://stackoverflow.com/questions/75361134/how-can-i-get-a-goroutines-runtime-id" target="_blank" rel="noopener">https://stackoverflow.com/questions/75361134/how-can-i-get-a-goroutines-runtime-id</a></li>
+<li><font style="color:rgb(33, 33, 33);">如何得到goroutine 的 id?：</font><a href="https://colobu.com/2016/04/01/how-to-get-goroutine-id/" target="_blank" rel="noopener">https://colobu.com/2016/04/01/how-to-get-goroutine-id/</a></li>
+<li><font style="color:rgb(33, 33, 33);">goid GitHub 源码：</font><a href="https://github.com/petermattis/goid/" target="_blank" rel="noopener">https://github.com/petermattis/goid/</a></li>
+<li><font style="color:rgb(33, 33, 33);">runtime.Stack Documentation：</font><a href="https://pkg.go.dev/runtime@go1.23.0#Stack" target="_blank" rel="noopener">https://pkg.go.dev/runtime@go1.23.0#Stack</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/goroutine/id" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/goroutine/id</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2024-12-04T01:17:17.167Z" itemprop="dateUpdated">2024-12-04 09:17:17</time>
+</span><br>
+
+
+        
+        <a href="/2024/12/04/goroutine-id/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/12/04/goroutine-id/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/12/04/goroutine-id/&title=《在 Go 中如果获取 goroutine 的 id？》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/12/04/goroutine-id/&title=《在 Go 中如果获取 goroutine 的 id？》 — 江湖十年&source=如果你使用过如 Python、Java 等主流支持并发的编程语言，那么通常都能够比较容易的获得进程和线程的 id。但是在 Go 语言，没有直接提供对多进程..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/12/04/goroutine-id/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中如果获取 goroutine 的 id？》 — 江湖十年&url=http://www.jianghushinian.cn/2024/12/04/goroutine-id/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/12/04/goroutine-id/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/11/24/x-sync-singleflight/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 并发控制：singleflight 详解</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2024</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/12/04/goroutine-id/&title=《在 Go 中如果获取 goroutine 的 id？》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/12/04/goroutine-id/&title=《在 Go 中如果获取 goroutine 的 id？》 — 江湖十年&source=如果你使用过如 Python、Java 等主流支持并发的编程语言，那么通常都能够比较容易的获得进程和线程的 id。但是在 Go 语言，没有直接提供对多进程..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/12/04/goroutine-id/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中如果获取 goroutine 的 id？》 — 江湖十年&url=http://www.jianghushinian.cn/2024/12/04/goroutine-id/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/12/04/goroutine-id/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/12/04/goroutine-id/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
