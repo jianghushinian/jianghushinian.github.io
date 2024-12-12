@@ -1,5 +1,5 @@
 ---
-title: '在 Go 中如果获取 goroutine 的 id？'
+title: '在 Go 中如何获取 goroutine 的 id？'
 date: 2024-12-04 09:13:43
 tags:
 - Go
