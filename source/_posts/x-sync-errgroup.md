@@ -3,6 +3,7 @@ title: 'Go 并发控制：errgroup 详解'
 date: 2024-11-04 22:20:50
 tags:
 - Go
+- 并发编程
 categories:
 - Go
 ---
