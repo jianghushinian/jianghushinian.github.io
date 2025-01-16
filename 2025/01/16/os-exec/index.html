@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go os/exec 极速入门 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="os&#x2F;exec 是 Go 提供的内置包，可以用来执行外部命令或程序。比如，我们的主机上安装了 redis-server 二进制文件，那么就可以使用 os&#x2F;exec 在 Go 程序中启动 redis-server 提供服务。当然，我们也可以使用 os&#x2F;exec 执行 ls、pwd 等操作系统内置命令。本文不求内容多么深入，旨在带大家极速入门 os&#x2F;exec 的常规使用。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go os&#x2F;exec 极速入门">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/01/16/os-exec/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="os&#x2F;exec 是 Go 提供的内置包，可以用来执行外部命令或程序。比如，我们的主机上安装了 redis-server 二进制文件，那么就可以使用 os&#x2F;exec 在 Go 程序中启动 redis-server 提供服务。当然，我们也可以使用 os&#x2F;exec 执行 ls、pwd 等操作系统内置命令。本文不求内容多么深入，旨在带大家极速入门 os&#x2F;exec 的常规使用。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-01-16T15:02:20.000Z">
+<meta property="article:modified_time" content="2025-01-16T15:16:47.748Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go os/exec 极速入门</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go os/exec 极速入门</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-01-16T15:02:20.000Z" itemprop="datePublished" class="page-time">
+  2025-01-16
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#极速入门"><span class="post-toc-number">1.</span> <span class="post-toc-text">极速入门</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#运行一个命令"><span class="post-toc-number">1.1.</span> <span class="post-toc-text">运行一个命令</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#创建带有-context-的命令"><span class="post-toc-number">1.2.</span> <span class="post-toc-text">创建带有 context 的命令</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#获取命令的输出"><span class="post-toc-number">1.3.</span> <span class="post-toc-text">获取命令的输出</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#获取组合的标准输出和错误输出"><span class="post-toc-number">1.4.</span> <span class="post-toc-text">获取组合的标准输出和错误输出</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#设置标准输出和错误输出"><span class="post-toc-number">1.5.</span> <span class="post-toc-text">设置标准输出和错误输出</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用标准输入传递数据"><span class="post-toc-number">1.6.</span> <span class="post-toc-text">使用标准输入传递数据</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#设置和使用环境变量"><span class="post-toc-number">1.7.</span> <span class="post-toc-text">设置和使用环境变量</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用管道"><span class="post-toc-number">1.8.</span> <span class="post-toc-text">使用管道</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用-bash-c-执行复杂命令"><span class="post-toc-number">1.9.</span> <span class="post-toc-text">使用 bash -c 执行复杂命令</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#指定工作目录"><span class="post-toc-number">1.10.</span> <span class="post-toc-text">指定工作目录</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#捕获退出状态"><span class="post-toc-number">1.11.</span> <span class="post-toc-text">捕获退出状态</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#搜索可执行文件"><span class="post-toc-number">1.12.</span> <span class="post-toc-text">搜索可执行文件</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#功能练习"><span class="post-toc-number">2.</span> <span class="post-toc-text">功能练习</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#项目实战"><span class="post-toc-number">3.</span> <span class="post-toc-text">项目实战</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-os-exec"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go os/exec 极速入门</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-01-16 23:02:20" datetime="2025-01-16T15:02:20.000Z"  itemprop="datePublished">2025-01-16</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p><code>os/exec</code> 是 Go 提供的内置包，可以用来执行外部命令或程序。比如，我们的主机上安装了 <code>redis-server</code> 二进制文件，那么就可以使用 <code>os/exec</code> 在 Go 程序中启动 <code>redis-server</code> 提供服务。当然，我们也可以使用 <code>os/exec</code> 执行 <code>ls</code>、<code>pwd</code> 等操作系统内置命令。本文不求内容多么深入，旨在带大家极速入门 <code>os/exec</code> 的常规使用。</p>
+<a id="more"></a>
+
+<h3 id="极速入门"><a href="#极速入门" class="headerlink" title="极速入门"></a>极速入门</h3><p>如下是 <a href="https://pkg.go.dev/os/exec@go1.23.0#pkg-index" target="_blank" rel="noopener">os/exec</a> 包实现的 exported 结构体和方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">LookPath</span><span class="params">(file <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">string</span>, error)</span></span></span><br><span class="line"><span class="keyword">type</span> Cmd</span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="title">Command</span><span class="params">(name <span class="keyword">string</span>, arg ...<span class="keyword">string</span>)</span> *<span class="title">Cmd</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="title">CommandContext</span><span class="params">(ctx context.Context, name <span class="keyword">string</span>, arg ...<span class="keyword">string</span>)</span> *<span class="title">Cmd</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(c *Cmd)</span> <span class="title">CombinedOutput</span><span class="params">()</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(c *Cmd)</span> <span class="title">Environ</span><span class="params">()</span> []<span class="title">string</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(c *Cmd)</span> <span class="title">Output</span><span class="params">()</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(c *Cmd)</span> <span class="title">Run</span><span class="params">()</span> <span class="title">error</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(c *Cmd)</span> <span class="title">Start</span><span class="params">()</span> <span class="title">error</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(c *Cmd)</span> <span class="title">StderrPipe</span><span class="params">()</span> <span class="params">(io.ReadCloser, error)</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(c *Cmd)</span> <span class="title">StdinPipe</span><span class="params">()</span> <span class="params">(io.WriteCloser, error)</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(c *Cmd)</span> <span class="title">StdoutPipe</span><span class="params">()</span> <span class="params">(io.ReadCloser, error)</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(c *Cmd)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(c *Cmd)</span> <span class="title">Wait</span><span class="params">()</span> <span class="title">error</span></span></span><br></pre></td></tr></table></figure>
+<p><code>Cmd</code> 结构体表示一个准备或正在执行的外部命令。调用函数 <code>Command</code> 或 <code>CommandContext</code> 可以构造一个 <code>*Cmd</code> 对象。调用 <code>Run</code>、<code>Start</code>、<code>Output</code>、<code>CombinedOutput</code> 方法可以运行 <code>*Cmd</code> 对象所代表的命令。 调用 <code>Environ</code> 方法可以获取命令执行时的环境变量。调用 <code>StdinPipe</code>、<code>StdoutPipe</code>、<code>StderrPipe</code> 方法用于获取管道对象。调用 <code>Wait</code> 方法可以阻塞等待命令执行完成。调用 <code>String</code> 方法返回命令的字符串形式。<code>LookPath</code>函数用于搜索可执行文件。</p>
+<h4 id="运行一个命令"><a href="#运行一个命令" class="headerlink" title="运行一个命令"></a>运行一个命令</h4><p>使用最简单的方式运行一个命令：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"log"</span></span><br><span class="line">	<span class="string">"os/exec"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 创建一个命令</span></span><br><span class="line">	cmd := exec.Command(<span class="string">"echo"</span>, <span class="string">"Hello, World!"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 执行命令并等待命令完成</span></span><br><span class="line">	err := cmd.Run() <span class="comment">// 执行后控制台不会有任何输出</span></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command failed: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>exec.Command</code> 函数用于创建一个命令，函数第一个参数是命令的名称，后面跟一个不定常参数作为这个命令的参数，最终会传递给这个命令。</p>
+<p><code>*Cmd.Run</code> 方法会阻塞等待命令执行完成，默认情况下命令执行后控制台不会有任何输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 执行程序</span></span><br><span class="line">$ go run main.go</span><br><span class="line"><span class="comment"># 执行完成后没有任何输出</span></span><br></pre></td></tr></table></figure>
+
+<p>我们也可以在后台运行一个命令：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	cmd := exec.Command(<span class="string">"sleep"</span>, <span class="string">"3"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 执行命令（非阻塞，不会等待命令执行完成）</span></span><br><span class="line">	<span class="keyword">if</span> err := cmd.Start(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command start failed: %v"</span>, err)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">"Command running in the background..."</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 阻塞等待命令完成</span></span><br><span class="line">	<span class="keyword">if</span> err := cmd.Wait(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command wait failed: %v"</span>, err)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	log.Println(<span class="string">"Command finished"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>实际上 <code>Run</code> 方法就等于 <code>Start</code> + <code>Wait</code> 方法，如下是 <code>Run</code> 方法源码的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Cmd)</span> <span class="title">Run</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err := c.Start(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> c.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="创建带有-context-的命令"><a href="#创建带有-context-的命令" class="headerlink" title="创建带有 context 的命令"></a>创建带有 context 的命令</h4><p><code>os/exec</code> 还提供了一个 <code>exec.CommandContext</code> 构造函数可以创建一个带有 <code>context</code> 的命令。那么我们就可以利用 <code>context</code> 的特性来控制命令的执行了。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), <span class="number">100</span>*time.Millisecond)</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line"></span><br><span class="line">	cmd := exec.CommandContext(ctx, <span class="string">"sleep"</span>, <span class="string">"5"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := cmd.Run(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command failed: %v\n"</span>, err) <span class="comment">// signal: killed</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">2025/01/14 23:54:20 Command failed: signal: killed</span><br><span class="line"><span class="built_in">exit</span> status 1</span><br></pre></td></tr></table></figure>
+
+<p>当命令执行超时会收到 <code>killed</code> 信号自动取消。</p>
+<h4 id="获取命令的输出"><a href="#获取命令的输出" class="headerlink" title="获取命令的输出"></a>获取命令的输出</h4><p>无论是调用 <code>*Cmd.Run</code> 还是 <code>*Cmd.Start</code> 方法，默认情况下执行命令后控制台不会得到任何输出。</p>
+<p>我们可以使用 <code>*Cmd.Output</code> 方法来执行命令，以此来获取命令的标准输出：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 创建一个命令</span></span><br><span class="line">	cmd := exec.Command(<span class="string">"echo"</span>, <span class="string">"Hello, World!"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 执行命令，并获取命令的输出，Output 内部会调用 Run 方法</span></span><br><span class="line">	output, err := cmd.Output()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command failed: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="keyword">string</span>(output)) <span class="comment">// Hello, World!</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">Hello, World!</span><br></pre></td></tr></table></figure>
+
+<h4 id="获取组合的标准输出和错误输出"><a href="#获取组合的标准输出和错误输出" class="headerlink" title="获取组合的标准输出和错误输出"></a>获取组合的标准输出和错误输出</h4><p><code>*Cmd.CombinedOutput</code> 方法能够在运行命令后，返回其组合的标准输出和标准错误输出：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 使用一个命令，既产生标准输出，也产生标准错误输出</span></span><br><span class="line">	cmd := exec.Command(<span class="string">"sh"</span>, <span class="string">"-c"</span>, <span class="string">"echo 'This is stdout'; echo 'This is stderr' &gt;&amp;2"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 获取 标准输出 + 标准错误输出 组合内容</span></span><br><span class="line">	output, err := cmd.CombinedOutput()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command execution failed: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 打印组合输出</span></span><br><span class="line">	fmt.Printf(<span class="string">"Combined Output:\n%s"</span>, <span class="keyword">string</span>(output))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">Combined Output:</span><br><span class="line">This is stdout</span><br><span class="line">This is stderr</span><br></pre></td></tr></table></figure>
+
+<h4 id="设置标准输出和错误输出"><a href="#设置标准输出和错误输出" class="headerlink" title="设置标准输出和错误输出"></a>设置标准输出和错误输出</h4><p>我们可以利用 <code>*Cmd</code> 对象的 <code>Stdout</code> 和 <code>Stderr</code> 属性，重定向标准输出和标准错误输出到当前进程：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	cmd := exec.Command(<span class="string">"ls"</span>, <span class="string">"-l"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 设置标准输出和标准错误输出到当前进程，执行后可以在控制台看到命令执行的输出</span></span><br><span class="line">	cmd.Stdout = os.Stdout</span><br><span class="line">	cmd.Stderr = os.Stderr</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := cmd.Run(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command failed: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样，使用 <code>*Cmd.Run</code> 执行命令后控制台就能看到命令执行的输出了。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">total 4824</span><br><span class="line">-rw-r--r--  1 jianghushinian  staff       12 Jan  4 10:37 demo.log</span><br><span class="line">drwxr-xr-x  3 jianghushinian  staff       96 Jan 13 09:41 examples</span><br><span class="line">-rwxr-xr-x  1 jianghushinian  staff  2453778 Jan  1 15:09 main</span><br><span class="line">-rw-r--r--  1 jianghushinian  staff     6179 Jan 15 09:13 main.go</span><br></pre></td></tr></table></figure>
+
+<h4 id="使用标准输入传递数据"><a href="#使用标准输入传递数据" class="headerlink" title="使用标准输入传递数据"></a>使用标准输入传递数据</h4><p>我们可以使用 <code>grep</code> 命令接收 <code>stdin</code> 的数据，<font style="color:rgb(77, 77, 77);">然后在其中搜索包含指定模式的文本行：</font></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	cmd := exec.Command(<span class="string">"grep"</span>, <span class="string">"hello"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 通过标准输入传递数据给命令</span></span><br><span class="line">	cmd.Stdin = bytes.NewBufferString(<span class="string">"hello world!\nhi there\n"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 获取标准输出</span></span><br><span class="line">	output, err := cmd.Output()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command failed: %v"</span>, err)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="keyword">string</span>(output)) <span class="comment">// hello world!</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以将一个 <code>io.Reader</code> 对象赋值给 <code>*Cmd.Stdin</code> 属性，来实现将数据通过 <code>stdin</code> 传递给外部命令。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">hello world!</span><br></pre></td></tr></table></figure>
+
+<p>再比如，我们还可以将打开的文件描述符传给 <code>*Cmd.Stdin</code> 属性：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	file, err := os.Open(<span class="string">"demo.log"</span>) <span class="comment">// 打开一个文件</span></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Open file failed: %v\n"</span>, err)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> file.Close()</span><br><span class="line"></span><br><span class="line">	cmd := exec.Command(<span class="string">"cat"</span>)</span><br><span class="line">	cmd.Stdin = file       <span class="comment">// 将文件作为 cat 的标准输入</span></span><br><span class="line">	cmd.Stdout = os.Stdout <span class="comment">// 获取标准输出</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := cmd.Run(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command failed: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>只要是 <code>io.Reader</code> 对象即可。</p>
+<h4 id="设置和使用环境变量"><a href="#设置和使用环境变量" class="headerlink" title="设置和使用环境变量"></a>设置和使用环境变量</h4><p><code>*Cmd</code> 的 <code>Environ</code> 方法可以获取环境变量，<code>Env</code> 属性则可以设置环境变量：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	cmd := exec.Command(<span class="string">"printenv"</span>, <span class="string">"ENV_VAR"</span>)</span><br><span class="line"></span><br><span class="line">	log.Printf(<span class="string">"ENV: %+v\n"</span>, cmd.Environ())</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 设置环境变量</span></span><br><span class="line">	cmd.Env = <span class="built_in">append</span>(cmd.Environ(), <span class="string">"ENV_VAR=HelloWorld"</span>)</span><br><span class="line"></span><br><span class="line">	log.Printf(<span class="string">"ENV: %+v\n"</span>, cmd.Environ())</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 获取输出</span></span><br><span class="line">	output, err := cmd.Output()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command failed: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="keyword">string</span>(output)) <span class="comment">// HelloWorld</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码输出结果与执行环境相关，我就不演示执行结果了，你可以自行尝试。</p>
+<p>不过最终的 <code>output</code> 输出结果一定是 <code>HelloWorld</code>。</p>
+<h4 id="使用管道"><a href="#使用管道" class="headerlink" title="使用管道"></a>使用管道</h4><p><code>os/exec</code> 支持管道功能，<code>*Cmd</code> 对象提供的 <code>StdinPipe</code>、<code>StdoutPipe</code>、<code>StderrPipe</code> 三个方法用于获取管道对象。故名思义，三者分别对应标准输入、标准输出、标准错误输出的管道对象。</p>
+<p><font style="color:rgb(0, 0, 0);">使用示例如下：</font></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 命令中使用了管道</span></span><br><span class="line">	cmdEcho := exec.Command(<span class="string">"echo"</span>, <span class="string">"hello world\nhi there"</span>)</span><br><span class="line"></span><br><span class="line">	outPipe, err := cmdEcho.StdoutPipe()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command failed: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 注意，这里不能使用 Run 方法阻塞等待，应该使用非阻塞的 Start 方法</span></span><br><span class="line">	<span class="keyword">if</span> err := cmdEcho.Start(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command failed: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	cmdGrep := exec.Command(<span class="string">"grep"</span>, <span class="string">"hello"</span>)</span><br><span class="line">	cmdGrep.Stdin = outPipe</span><br><span class="line">	output, err := cmdGrep.Output()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command failed: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="keyword">string</span>(output)) <span class="comment">// hello world</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先创建一个用于执行 <code>echo</code> 命令的 <code>*Cmd</code> 对象 <code>cmdEcho</code>，并调用它的 <code>StdoutPipe</code> 方法获得标准输出管道对象 <code>outPipe</code>；然后调用 <code>Start</code> 方法非阻塞的方式执行 <code>echo</code> 命令；接着创建一个用于执行 <code>grep</code> 命令的 <code>*Cmd</code> 对象 <code>cmdGrep</code>，将 <code>cmdEcho</code> 的标准输出管道对象赋值给 <code>cmdGrep.Stdin</code> 作为标准输入，这样，两个命令就通过管道串联起来了；最终通过 <code>cmdGrep.Output</code> 方法拿到 <code>cmdGrep</code> 命令的标准输出。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">hello world</span><br></pre></td></tr></table></figure>
+
+<h4 id="使用-bash-c-执行复杂命令"><a href="#使用-bash-c-执行复杂命令" class="headerlink" title="使用 bash -c 执行复杂命令"></a>使用 <code>bash -c</code> 执行复杂命令</h4><p>如果你不想使用 <code>os/exec</code> 提供的管道功能，那么在命令中直接使用管道符 <code>|</code>，也可以实现同样功能。</p>
+<p>不过此时就需要使用 <code>sh -c</code> 或者 <code>bash -c</code> 等 Shell 命令来解析执行更复杂的命令了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 命令中使用了管道</span></span><br><span class="line">	cmd := exec.Command(<span class="string">"bash"</span>, <span class="string">"-c"</span>, <span class="string">"echo 'hello world\nhi there' | grep hello"</span>)</span><br><span class="line"></span><br><span class="line">	output, err := cmd.Output()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command failed: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="keyword">string</span>(output)) <span class="comment">// hello world</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码中的管道功能同样生效。</p>
+<h4 id="指定工作目录"><a href="#指定工作目录" class="headerlink" title="指定工作目录"></a>指定工作目录</h4><p>可以通过指定 <code>*Cmd</code> 对象的的 <code>Dir</code> 属性来指定工作目录：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	cmd := exec.Command(<span class="string">"cat"</span>, <span class="string">"demo.log"</span>)</span><br><span class="line">	cmd.Stdout = os.Stdout <span class="comment">// 获取标准输出</span></span><br><span class="line">	cmd.Stderr = os.Stderr <span class="comment">// 获取错误输出</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// cmd.Dir = "/tmp" // 指定绝对目录</span></span><br><span class="line">	cmd.Dir = <span class="string">"."</span> <span class="comment">// 指定相对目录</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := cmd.Run(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command failed: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="捕获退出状态"><a href="#捕获退出状态" class="headerlink" title="捕获退出状态"></a>捕获退出状态</h4><p>上面讲解了很多执行命令相关操作，但其实还有一个很重要的点没有讲到，就是如何捕获外部命令执行后的退出状态码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 查看一个不存在的目录</span></span><br><span class="line">	cmd := exec.Command(<span class="string">"ls"</span>, <span class="string">"/nonexistent"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 运行命令</span></span><br><span class="line">	err := cmd.Run()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 检查退出状态</span></span><br><span class="line">	<span class="keyword">var</span> exitError *exec.ExitError</span><br><span class="line">	<span class="keyword">if</span> errors.As(err, &amp;exitError) &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Process PID: %d exit code: %d"</span>, exitError.Pid(), exitError.ExitCode()) <span class="comment">// 打印 pid 和退出码</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里执行 <code>ls</code> 命令来查看一个不存在的目录 <code>/nonexistent</code>，程序退出状态码必然不为 <code>0</code>。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">2025/01/15 23:31:44 Process PID: 78328 <span class="built_in">exit</span> code: 1</span><br><span class="line"><span class="built_in">exit</span> status 1</span><br></pre></td></tr></table></figure>
+
+<h4 id="搜索可执行文件"><a href="#搜索可执行文件" class="headerlink" title="搜索可执行文件"></a>搜索可执行文件</h4><p>最后要介绍的函数就只剩一个 <code>LookPath</code> 了，它用来搜索可执行文件。</p>
+<p>搜索一个存在的命令：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	path, err := exec.LookPath(<span class="string">"ls"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(<span class="string">"installing ls is in your future"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Printf(<span class="string">"ls is available at %s\n"</span>, path)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"> $ go run main.go</span><br><span class="line">ls is available at /bin/ls</span><br></pre></td></tr></table></figure>
+
+<p>搜索一个不存在的命令：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	path, err := exec.LookPath(<span class="string">"lsx"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Printf(<span class="string">"ls is available at %s\n"</span>, path)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">2025/01/15 23:37:45 <span class="built_in">exec</span>: <span class="string">"lsx"</span>: executable file not found <span class="keyword">in</span> <span class="variable">$PATH</span></span><br><span class="line"><span class="built_in">exit</span> status 1</span><br></pre></td></tr></table></figure>
+
+<h3 id="功能练习"><a href="#功能练习" class="headerlink" title="功能练习"></a>功能练习</h3><p>介绍完了 <code>os/exec</code> 常用的方法和函数，我们现在来做一个小练习，使用 <code>os/exec</code> 来执行外部命令 <code>ls -l /var/log/*.log</code>。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	cmd := exec.Command(<span class="string">"ls"</span>, <span class="string">"-l"</span>, <span class="string">"/var/log/*.log"</span>)</span><br><span class="line"></span><br><span class="line">	output, err := cmd.CombinedOutput() <span class="comment">// 获取标准输出和错误输出</span></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command failed: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="keyword">string</span>(output))</span><br><span class="line"><span class="comment">// &#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">2025/01/16 09:15:52 Command failed: <span class="built_in">exit</span> status 1</span><br><span class="line"><span class="built_in">exit</span> status 1</span><br></pre></td></tr></table></figure>
+
+<p>执行报错了，这里的错误码为 <code>1</code>，但错误信息并不明确。</p>
+<p>这个报错其实是因为 <code>os/exec</code> 默认不支持通配符参数导致的，<code>exec.Command</code> 不支持直接在参数中使用 Shell 通配符（如 <code>*</code>），因为它不会通过 Shell 来解析命令，而是直接调用底层的程序。</p>
+<p>要解决这个问题，可以通过显式调用 Shell（例如 <code>bash</code> 或 <code>sh</code>），让 Shell 来解析通配符。</p>
+<p>比如使用 <code>bash -c</code> 执行通配符命令 <code>ls -l /var/log/*.log</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 使用 bash -c 来解析通配符</span></span><br><span class="line">    cmd := exec.Command(<span class="string">"bash"</span>, <span class="string">"-c"</span>, <span class="string">"ls -l /var/log/*.log"</span>)</span><br><span class="line"></span><br><span class="line">    output, err := cmd.CombinedOutput() <span class="comment">// 获取标准输出和错误输出</span></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Fatalf(<span class="string">"Command failed: %v"</span>, err)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    fmt.Println(<span class="keyword">string</span>(output))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">-rw-r--r--  1 root  wheel         0 Oct  7 21:20 /var/<span class="built_in">log</span>/alf.log</span><br><span class="line">-rw-r--r--  1 root  wheel     11936 Jan 13 11:36 /var/<span class="built_in">log</span>/fsck_apfs.log</span><br><span class="line">-rw-r--r--  1 root  wheel       334 Jan 13 11:36 /var/<span class="built_in">log</span>/fsck_apfs_error.log</span><br><span class="line">-rw-r--r--  1 root  wheel     19506 Jan 11 18:04 /var/<span class="built_in">log</span>/fsck_hfs.log</span><br><span class="line">-rw-r--r--@ 1 root  wheel  21015342 Jan 16 09:02 /var/<span class="built_in">log</span>/install.log</span><br><span class="line">-rw-r--r--  1 root  wheel      1502 Nov  5 09:44 /var/<span class="built_in">log</span>/shutdown_monitor.log</span><br><span class="line">-rw-r-----@ 1 root  admin      3779 Jan 16 08:59 /var/<span class="built_in">log</span>/system.log</span><br><span class="line">-rw-r-----  1 root  admin    187332 Jan 16 09:05 /var/<span class="built_in">log</span>/wifi.log</span><br></pre></td></tr></table></figure>
+
+<p>此外，我们还可以用 Go 标准库提供的 <code>filepath.Glob</code> 来手动解析通配符：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 匹配通配符路径</span></span><br><span class="line">	files, err := filepath.Glob(<span class="string">"/var/log/*.log"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Glob failed: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(files) == <span class="number">0</span> &#123;</span><br><span class="line">		log.Println(<span class="string">"No matching files found"</span>)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 将匹配到的文件传给 ls 命令</span></span><br><span class="line">	args := <span class="built_in">append</span>([]<span class="keyword">string</span>&#123;<span class="string">"-l"</span>&#125;, files...)</span><br><span class="line">	cmd := exec.Command(<span class="string">"ls"</span>, args...)</span><br><span class="line"></span><br><span class="line">	cmd.Stdout = os.Stdout</span><br><span class="line">	cmd.Stderr = os.Stderr</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := cmd.Run(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Command failed: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>filepath.Glob</code> 函数会返回模式匹配的文件名列表，如果不匹配则返回 <code>nil</code>。这样，我们就可以先解析文件名列表，再交给 <code>exec.Command</code> 来执行 <code>ls</code> 命令了。</p>
+<h3 id="项目实战"><a href="#项目实战" class="headerlink" title="项目实战"></a>项目实战</h3><p>虽然我们现在入门了 <code>os/exec</code> 包，不过还没在实际项目中使用过，本小节就来看下 <code>os/exec</code> 在真实项目中的应用。</p>
+<p>我在「<a href="https://jianghushinian.cn/2025/01/08/go-tempredis/" target="_blank" rel="noopener">超简单！用 Go 启动 Redis 实例</a>」一文中<font style="color:rgb(33, 33, 33);">介绍了一款可以用</font>来启动 <code>redis-server</code> 的开源库 <code>github.com/stvp/tempredis</code>。现在，我来带你深入 <code>tempredis</code> 的源码探究其实现原理，也让你体会下 <code>os/exec</code> 的实际应用。</p>
+<p><code>tempredis</code> 源码实现非常简单，核心源码只有两个文件 <a href="https://github.com/stvp/tempredis/blob/master/tempredis.go" target="_blank" rel="noopener">tempredis.go</a> 和 <a href="https://github.com/stvp/tempredis/blob/master/config.go" target="_blank" rel="noopener">config.go</a>。</p>
+<p><code>config.go</code> 源码如下：</p>
+<blockquote>
+<p><a href="https://github.com/stvp/tempredis/blob/master/config.go" target="_blank" rel="noopener">https://github.com/stvp/tempredis/blob/master/config.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Config is a key-value map of Redis config settings.</span></span><br><span class="line"><span class="keyword">type</span> Config <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c Config)</span> <span class="title">Socket</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> c[<span class="string">"unixsocket"</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里定义了一个 <code>Config</code> 结构体用于保存配置信息，实际上就是一个 <code>map</code>。<code>Socket</code> 方法返回 <code>unixsocket</code> 这个 <code>key</code> 所对应的 <code>value</code>。</p>
+<p>接下来我们来分析 <code>tempredis.go</code> 源码：</p>
+<blockquote>
+<p><a href="https://github.com/stvp/tempredis/blob/master/tempredis.go" target="_blank" rel="noopener">https://github.com/stvp/tempredis/blob/master/tempredis.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Server encapsulates the configuration, starting, and stopping of a single</span></span><br><span class="line"><span class="comment">// redis-server process that is reachable via a local Unix socket.</span></span><br><span class="line"><span class="keyword">type</span> Server <span class="keyword">struct</span> &#123;</span><br><span class="line">	dir       <span class="keyword">string</span></span><br><span class="line">	config    Config</span><br><span class="line">	cmd       *exec.Cmd</span><br><span class="line">	stdout    io.Reader</span><br><span class="line">	stdoutBuf bytes.Buffer</span><br><span class="line">	stderr    io.Reader</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先，这里定义了一个结构体 <code>Server</code> 用于表示 <code>redis-server</code> 服务器对象。可以发现，其内部包含了 <code>*exec.Cmd</code> 类型属性 <code>cmd</code>，这是 <code>Server</code> 结构体的核心所在。</p>
+<p>接下来看下 <code>Start</code> 函数的定义：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Start initiates a new redis-server process configured with the given</span></span><br><span class="line"><span class="comment">// configuration. redis-server will listen on a temporary local Unix socket. An</span></span><br><span class="line"><span class="comment">// error is returned if redis-server is unable to successfully start for any</span></span><br><span class="line"><span class="comment">// reason.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Start</span><span class="params">(config Config)</span> <span class="params">(server *Server, err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> config == <span class="literal">nil</span> &#123;</span><br><span class="line">		config = Config&#123;&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	dir, err := ioutil.TempDir(os.TempDir(), <span class="string">"tempredis"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> _, ok := config[<span class="string">"unixsocket"</span>]; !ok &#123;</span><br><span class="line">		config[<span class="string">"unixsocket"</span>] = fmt.Sprintf(<span class="string">"%s/%s"</span>, dir, <span class="string">"redis.sock"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> _, ok := config[<span class="string">"port"</span>]; !ok &#123;</span><br><span class="line">		config[<span class="string">"port"</span>] = <span class="string">"0"</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	server = &amp;Server&#123;</span><br><span class="line">		dir:    dir,</span><br><span class="line">		config: config,</span><br><span class="line">	&#125;</span><br><span class="line">	err = server.start()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> server, err</span><br><span class="line">	&#125;</span><br><span class="line">	err = server.ready()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> server, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> server, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Start</code> 函数用于根据给定的配置 <code>Config</code> 创建并启动 <code>Server</code>。</p>
+<p>实例化的 <code>server</code> 对象就是上面介绍的 <code>Server</code> 结构体，这里通过 <code>server.start()</code> 来启动 Redis 服务，并通过 <code>server.ready()</code> 来阻塞判断服务是否启动成功。</p>
+<p><code>start</code> 方法定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span> <span class="title">start</span><span class="params">()</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> s.cmd != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"redis-server has already been started"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	s.cmd = exec.Command(<span class="string">"redis-server"</span>, <span class="string">"-"</span>)</span><br><span class="line"></span><br><span class="line">	stdin, _ := s.cmd.StdinPipe()</span><br><span class="line">	s.stdout, _ = s.cmd.StdoutPipe()</span><br><span class="line">	s.stderr, _ = s.cmd.StderrPipe()</span><br><span class="line"></span><br><span class="line">	err = s.cmd.Start()</span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">		err = writeConfig(s.config, stdin)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，这里构造的核心命令就是 <code>exec.Command(&quot;redis-server&quot;, &quot;-&quot;)</code>，并将其赋值给 <code>s.cmd</code> 属性；然后分别记录了几个管道对象；接着调用 <code>s.cmd.Start()</code> 来执行命令；并通过 <code>writeConfig(s.config, stdin)</code> 将配置信息传递给标准输入供 <code>redis-server -</code> 命令读取使用。</p>
+<p><code>writeConfig</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">writeConfig</span><span class="params">(config Config, w io.WriteCloser)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> key, value := <span class="keyword">range</span> config &#123;</span><br><span class="line">		<span class="keyword">if</span> value == <span class="string">""</span> &#123;</span><br><span class="line">			value = <span class="string">"\"\""</span></span><br><span class="line">		&#125;</span><br><span class="line">		_, err = fmt.Fprintf(w, <span class="string">"%s %s\n"</span>, key, value)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> w.Close()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接着我们再来看下 <code>ready</code> 方法的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span> <span class="title">ready</span><span class="params">()</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	c := <span class="built_in">make</span>(<span class="keyword">chan</span> error, <span class="number">1</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="comment">// Block until Redis is ready to accept connections.</span></span><br><span class="line">		c &lt;- s.waitFor()</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> err := &lt;-c:</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	<span class="keyword">case</span> &lt;-time.After(<span class="number">1</span> * time.Second):</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"timed out awaiting startup"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里启动一个新的 goroutine 调用 <code>s.waitFor()</code> 来阻塞等待 Redis 服务准备就绪，并将结果通过 <code>channel</code> 传递给主 goroutine，主 goroutine 会等待 Redis 服务准备就绪或超时退出。</p>
+<p><code>waitFor</code> 方法实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	<span class="comment">// ready is the string redis-server prints to stdout after starting</span></span><br><span class="line">	<span class="comment">// successfully.</span></span><br><span class="line">	ready = []<span class="keyword">string</span>&#123;</span><br><span class="line">		<span class="string">"The server is now ready to accept connections"</span>,</span><br><span class="line">		<span class="string">"Ready to accept connections"</span>,</span><br><span class="line">	&#125;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// waitFor blocks until redis-server is ready</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span> <span class="title">waitFor</span><span class="params">()</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> line <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line">	scanner := bufio.NewScanner(s.stdout)</span><br><span class="line">	<span class="keyword">for</span> scanner.Scan() &#123;</span><br><span class="line">		line = scanner.Text()</span><br><span class="line">		fmt.Fprintf(&amp;s.stdoutBuf, <span class="string">"%s\n"</span>, line)</span><br><span class="line">		<span class="keyword">for</span> _, s := <span class="keyword">range</span> ready &#123;</span><br><span class="line">			<span class="keyword">if</span> strings.Contains(line, s) &#123;</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	err = scanner.Err()</span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">		err = io.EOF</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里的源码实现比较有意思，就是通过读取执行 <code>redis-server</code> 命令后，捕获到的标准输出中的字符串内容，来判断是否匹配 <code>ready</code> 变量中的字符串，以此来识别 <code>redis-server</code> 是否启动成功。在 Redis 7.2 版本之前，启动成功会在控制台输出 <code>The server is now ready to accept connections</code>，在 Redis 7.2 版本及以后，启动成功会在控制台输出 <code>Ready to accept connections</code>。</p>
+<p>就是这样，有些我们以为可能需要写很多代码才能支持的功能，源码实现竟然如此朴素。</p>
+<p><code>Server</code> 对象也实现了 <code>Socket</code> 方法，不过仅仅是 <code>Config.Socket</code> 方法的代理：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Socket returns the full path to the local redis-server Unix socket.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span> <span class="title">Socket</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> s.config.Socket()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>还记得在 <code>Server.start</code> 方法中会将管道对象记录到 <code>Server</code> 对象中吗？</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">s.stdout, _ = s.cmd.StdoutPipe()</span><br><span class="line">s.stderr, _ = s.cmd.StderrPipe()</span><br></pre></td></tr></table></figure>
+
+<p>如下就是二者被使用的地方：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Stdout blocks until redis-server returns and then returns the full stdout</span></span><br><span class="line"><span class="comment">// output.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span> <span class="title">Stdout</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	io.Copy(&amp;s.stdoutBuf, s.stdout)</span><br><span class="line">	<span class="keyword">return</span> s.stdoutBuf.String()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Stderr blocks until redis-server returns and then returns the full stdout</span></span><br><span class="line"><span class="comment">// output.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span> <span class="title">Stderr</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	bytes, _ := ioutil.ReadAll(s.stderr)</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">string</span>(bytes)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这两个方法分别用来阻塞等待返回 <code>redis-server</code> 执行后的标准输出和标准错误输出。</p>
+<p>它们二者在实现上有所差别，因为 <code>*Server.waitFor</code> 中其实已经消费了 <code>stdout</code>，所以会将其暂存到 <code>*Server.stdoutBuf</code> 属性中。</p>
+<p>最后用于关闭 <code>redis-server</code> 的两个方法源码实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Term gracefully shuts down redis-server. It returns an error if redis-server</span></span><br><span class="line"><span class="comment">// fails to terminate.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span> <span class="title">Term</span><span class="params">()</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> s.signalAndCleanup(syscall.SIGTERM)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Kill forcefully shuts down redis-server. It returns an error if redis-server</span></span><br><span class="line"><span class="comment">// fails to die.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span> <span class="title">Kill</span><span class="params">()</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> s.signalAndCleanup(syscall.SIGKILL)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span> <span class="title">signalAndCleanup</span><span class="params">(sig syscall.Signal)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	s.cmd.Process.Signal(sig)</span><br><span class="line">	_, err := s.cmd.Process.Wait()</span><br><span class="line">	os.RemoveAll(s.dir)</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里通过 <code>s.cmd.Process.Signal(sig)</code> 为进程发送信号，<code>*Cmd.Process</code> 属性是 <code>*os.Process</code> 类型，实际上 <code>Cmd</code> 对象是底层类型 <code>*os.Process</code> 和 <code>*os.ProcessState</code> 的封装。我们暂且不必深究更底层的实现，只需要知道 <code>*Cmd.Process</code> 代表了命令执行的进行对象，调用 <code>Signal</code> 方法可以为进程发送信号，调用 <code>Wait</code> 方法会阻塞等待进程执行完成。</p>
+<p>至此，<code>tempredis</code> 包的源码就都讲解完成了。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><code>os/exec</code> 是 Go 语言内置包，用于运行一个外部命令。我向你介绍了它的常用方法，算是带你一起入个门。并且我们还一起阅读了第三方包 tempredis 的源码，以此来学习在工程实践中如何使用 <code>os/exec</code>。</p>
+<p>此外，你还需要注意，调用 <code>*Cmd</code> 的 <code>Run</code>、<code>Start</code>、<code>Output</code>、<code>CombinedOutput</code> 方法执行外部命令以后，这个对象就无法重复使用了，即一个命令不能被执行多次，否则将得到 <code>exec: already started</code> 报错信息。</p>
+<p>对 <code>os/exec</code> 的入门讲解就到这里，如果你还想进行更深入的探索，可以参考官方文档及其源码。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/os/exec" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>os/exec Documentation：<a href="https://pkg.go.dev/os/exec@go1.23.0" target="_blank" rel="noopener">https://pkg.go.dev/os/exec@go1.23.0</a></li>
+<li>tempredis Documentation：<a href="https://pkg.go.dev/github.com/stvp/tempredis" target="_blank" rel="noopener">https://pkg.go.dev/github.com/stvp/tempredis</a></li>
+<li>tempredis GitHub 源码：<a href="https://github.com/stvp/tempredis" target="_blank" rel="noopener">https://github.com/stvp/tempredis</a></li>
+<li><font style="color:rgb(31, 35, 40);">Distributed mutual exclusion lock using Redis for Go：</font><a href="https://github.com/go-redsync/redsync" target="_blank" rel="noopener">https://github.com/go-redsync/redsync</a></li>
+<li>Install Redis：<a href="https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/" target="_blank" rel="noopener">https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/os/exec" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/os/exec</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-01-16T15:16:47.748Z" itemprop="dateUpdated">2025-01-16 23:16:47</time>
+</span><br>
+
+
+        
+        <a href="/2025/01/16/os-exec/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/01/16/os-exec/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/01/16/os-exec/&title=《Go os/exec 极速入门》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/01/16/os-exec/&title=《Go os/exec 极速入门》 — 江湖十年&source=os/exec 是 Go 提供的内置包，可以用来执行外部命令或程序。比如，我们的主机上安装了 redis-server 二进制文件，那么就可以使用 os/..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/01/16/os-exec/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go os/exec 极速入门》 — 江湖十年&url=http://www.jianghushinian.cn/2025/01/16/os-exec/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/01/16/os-exec/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/01/08/go-tempredis/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">超简单！用 Go 启动 Redis 实例</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2025</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/01/16/os-exec/&title=《Go os/exec 极速入门》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/01/16/os-exec/&title=《Go os/exec 极速入门》 — 江湖十年&source=os/exec 是 Go 提供的内置包，可以用来执行外部命令或程序。比如，我们的主机上安装了 redis-server 二进制文件，那么就可以使用 os/..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/01/16/os-exec/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go os/exec 极速入门》 — 江湖十年&url=http://www.jianghushinian.cn/2025/01/16/os-exec/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/01/16/os-exec/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/01/16/os-exec/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
