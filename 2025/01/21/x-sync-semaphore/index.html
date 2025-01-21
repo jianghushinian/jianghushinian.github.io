@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 并发控制：semaphore 详解 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,并发编程">
+    <meta name="description" content="今天我们来介绍一个 Go 官方库 x 提供的扩展并发原语 semaphore，译为“信号量”。因为它就像一个信号一样控制多个 goroutine 之间协作。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 并发控制：semaphore 详解">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/01/21/x-sync-semaphore/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="今天我们来介绍一个 Go 官方库 x 提供的扩展并发原语 semaphore，译为“信号量”。因为它就像一个信号一样控制多个 goroutine 之间协作。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-01-21T15:33:45.000Z">
+<meta property="article:modified_time" content="2025-01-21T15:46:42.529Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="并发编程">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 并发控制：semaphore 详解</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 并发控制：semaphore 详解</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-01-21T15:33:45.000Z" itemprop="datePublished" class="page-time">
+  2025-01-21
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#概念讲解"><span class="post-toc-number">1.</span> <span class="post-toc-text">概念讲解</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#源码解读"><span class="post-toc-number">2.</span> <span class="post-toc-text">源码解读</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用示例"><span class="post-toc-number">3.</span> <span class="post-toc-text">使用示例</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-x-sync-semaphore"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 并发控制：semaphore 详解</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-01-21 23:33:45" datetime="2025-01-21T15:33:45.000Z"  itemprop="datePublished">2025-01-21</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>今天我们来介绍一个 <a href="https://go.dev/wiki/X-Repositories" target="_blank" rel="noopener">Go 官方库 x</a> 提供的扩展并发原语 <code>semaphore</code>，译为“信号量”。因为它就像一个信号一样控制多个 goroutine 之间协作。</p>
+<a id="more"></a>
+
+<h3 id="概念讲解"><a href="#概念讲解" class="headerlink" title="概念讲解"></a>概念讲解</h3><p>我先简单介绍下信号量的概念，为不熟悉的读者作为补充知识。</p>
+<p>一个生活中的例子：假设一个餐厅总共有 10 张餐桌，每来 1 位顾客占用 1 张餐桌，那么同一时间共计可以有 10 人在就餐，超过 10 人则需要排队等位；如果有 1 位顾客就餐完成，则可以让排队等待的第 1 位顾客来就餐。</p>
+<p>如果加入信号量，则可以这样理解：</p>
+<ul>
+<li>10 个餐桌是有限的资源，<strong>即信号量初始值为 10</strong>。</li>
+<li>当顾客进入餐厅，如果餐桌有空，顾客可以被分配 1 个餐桌，<strong>信号量的值减 1</strong>。</li>
+<li>如果没有空餐桌，顾客需要排队等待，直到有空餐桌为止（<strong>信号量值为 0 时</strong>，新的顾客必须等待）。</li>
+<li>有顾客就餐完成后，餐桌空出，<strong>信号量的值加 1</strong>，新的顾客（排队等待中的顾客，或者无人排队时新来的顾客）可以被分配餐桌。</li>
+</ul>
+<p>这就是信号量的应用场景，信号量帮助管理餐桌的数量，确保餐厅在任何时刻不会接待超过可容纳的顾客数量。</p>
+<p>如果放在 Go 程序中，我们就可以使用信号量来实现任务池的功能，控制有限个 goroutine 来并发执行任务。这个我们放在后面来实现，先看下 <code>semaphore</code> 源码是如何实现的。</p>
+<h3 id="源码解读"><a href="#源码解读" class="headerlink" title="源码解读"></a>源码解读</h3><p>我们可以在 <code>semaphore</code> 文档中看到其定义和实现的 exported 方法：</p>
+<blockquote>
+<p><a href="https://pkg.go.dev/golang.org/x/sync@v0.10.0/semaphore#pkg-index" target="_blank" rel="noopener">https://pkg.go.dev/golang.org/x/sync@v0.10.0/semaphore#pkg-index</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Weighted</span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="title">NewWeighted</span><span class="params">(n <span class="keyword">int64</span>)</span> *<span class="title">Weighted</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(s *Weighted)</span> <span class="title">Acquire</span><span class="params">(ctx context.Context, n <span class="keyword">int64</span>)</span> <span class="title">error</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(s *Weighted)</span> <span class="title">Release</span><span class="params">(n <span class="keyword">int64</span>)</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(s *Weighted)</span> <span class="title">TryAcquire</span><span class="params">(n <span class="keyword">int64</span>)</span> <span class="title">bool</span></span></span><br></pre></td></tr></table></figure>
+
+<p><code>semaphore.Weighted</code> 是一个结构体表示信号量对象，<code>NewWeighted</code> 是它的构造函数，用于实例化一个包含 <code>n</code> 个资源的信号量对象，即信号量的初始值为 <code>n</code>。</p>
+<p>它实现了 3 个方法，分别是：</p>
+<ul>
+<li><code>Acquire</code>：用来请求 <code>n</code> 个资源，即对信号量的值进行减 <code>n</code> 操作。如果资源不足，则阻塞等待，直到有足够的资源数，或者 <code>ctx</code> 被取消。</li>
+<li><code>Release</code>：用来释放 <code>n</code> 个资源，即对信号量的值进行加 <code>n</code> 操作。</li>
+<li><code>TryAcquire</code>：用来请求 <code>n</code> 个资源，即对信号量的值进行减 <code>n</code> 操作。与 <code>Acquire</code> 不同的是，<code>TryAcquire</code> 不会阻塞等待，成功返回 <code>true</code>，失败返回 <code>false</code>。</li>
+</ul>
+<p>现在，你是否能将 <code>semaphore.Weighted</code> 对象和它实现的几个方法与前文中餐厅就餐的例子对应上了呢？</p>
+<p>接下来我们看一下 <code>Weighted</code> 结构体是如何定义的：</p>
+<blockquote>
+<p><a href="https://github.com/golang/sync/blob/v0.9.0/semaphore/semaphore.go" target="_blank" rel="noopener">https://github.com/golang/sync/blob/v0.9.0/semaphore/semaphore.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Weighted 信号量结构体</span></span><br><span class="line"><span class="keyword">type</span> Weighted <span class="keyword">struct</span> &#123;</span><br><span class="line">	size    <span class="keyword">int64</span>      <span class="comment">// 资源总数量</span></span><br><span class="line">	cur     <span class="keyword">int64</span>      <span class="comment">// 当前已经使用的资源数</span></span><br><span class="line">	mu      sync.Mutex <span class="comment">// 互斥锁，保证对其他属性的操作并发安全</span></span><br><span class="line">	waiters list.List  <span class="comment">// 等待者队列，使用列表实现</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Weighted</code> 结构体包含 4 个字段：</p>
+<ul>
+<li><code>size</code> 是资源总数。在餐厅的例子中就是 10 张餐桌。</li>
+<li><code>cur</code> 记录了当前已经使用的资源数。在餐厅的例子中就是已经被顾客占用的餐桌数，<code>size - cur</code> 就是剩余资源数，即空餐桌数。</li>
+<li><code>mu</code> 是互斥锁，用于保证对其他属性的操作是并发安全的。</li>
+<li><code>waiters</code> 是等待者队列，记录所有排队的等待者。在餐厅的例子中，当 10 张餐桌都被占满，新来的顾客就要进入等待者队列。</li>
+</ul>
+<p>构造函数 <code>NewWeighted</code> 实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewWeighted 构造一个信号量对象</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewWeighted</span><span class="params">(n <span class="keyword">int64</span>)</span> *<span class="title">Weighted</span></span> &#123;</span><br><span class="line">	w := &amp;Weighted&#123;size: n&#125;</span><br><span class="line">	<span class="keyword">return</span> w</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此外，<code>semaphore</code> 包还为等待者定义了一个结构体 <code>waiter</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 等待者结构体</span></span><br><span class="line"><span class="keyword">type</span> waiter <span class="keyword">struct</span> &#123;</span><br><span class="line">	n     <span class="keyword">int64</span>           <span class="comment">// 请求资源数</span></span><br><span class="line">	ready <span class="keyword">chan</span>&lt;- <span class="keyword">struct</span>&#123;&#125; <span class="comment">// 当获取到资源时被关闭，用于唤醒当前等待者</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>waiter</code> 结构体包含 2 个字段：</p>
+<ul>
+<li><code>n</code> 记录了当前等待者请求的资源数。</li>
+<li><code>ready</code> 是一个 <code>channel</code> 类型，当资源满足，<code>ready</code> 会被 <code>close</code> 掉，等待者就会被唤醒。</li>
+</ul>
+<p>稍后你将看到它的用处。</p>
+<p>我们回过头来看下 <code>Weighted</code> 结构体的第一个方法 <code>Acquire</code> 的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Acquire 请求 n 个资源</span></span><br><span class="line"><span class="comment">// 如果资源不足，则阻塞等待，直到有足够的资源数，或者 ctx 被取消</span></span><br><span class="line"><span class="comment">// 成功返回 nil，失败返回 ctx.Err() 并且不改变资源数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Weighted)</span> <span class="title">Acquire</span><span class="params">(ctx context.Context, n <span class="keyword">int64</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	done := ctx.Done()</span><br><span class="line"></span><br><span class="line">	s.mu.Lock() <span class="comment">// 加锁保证并发安全</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 如果在分配资源前 ctx 已经取消，则直接返回 ctx.Err()</span></span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> &lt;-done:</span><br><span class="line">		s.mu.Unlock()</span><br><span class="line">		<span class="keyword">return</span> ctx.Err()</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 如果资源数足够，且不存在其他等待者，则请求资源成功，将 cur 加上 n，并返回</span></span><br><span class="line">	<span class="keyword">if</span> s.size-s.cur &gt;= n &amp;&amp; s.waiters.Len() == <span class="number">0</span> &#123;</span><br><span class="line">		s.cur += n</span><br><span class="line">		s.mu.Unlock()</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 如果请求的资源数大于资源总数，不可能满足，则阻塞等待 ctx 取消，并返回 ctx.Err()</span></span><br><span class="line">	<span class="keyword">if</span> n &gt; s.size &#123;</span><br><span class="line">		<span class="comment">// Don't make other Acquire calls block on one that's doomed to fail.</span></span><br><span class="line">		s.mu.Unlock()</span><br><span class="line">		&lt;-done</span><br><span class="line">		<span class="keyword">return</span> ctx.Err()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 资源不够或者存在其他等待者，则继续执行</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 加入等待队列</span></span><br><span class="line">	ready := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)    <span class="comment">// 创建一个 channel 作为一个属性记录到等待者对象 waiter 中，用于后续通知其唤醒</span></span><br><span class="line">	w := waiter&#123;n: n, ready: ready&#125; <span class="comment">// 构造一个等待者对象 waiter</span></span><br><span class="line">	elem := s.waiters.PushBack(w)   <span class="comment">// 将 waiter 追加到等待者队列</span></span><br><span class="line">	s.mu.Unlock()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 使用 select 实现阻塞等待</span></span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> &lt;-done: <span class="comment">// 检查 ctx 是否被取消</span></span><br><span class="line">		s.mu.Lock()</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> &lt;-ready: <span class="comment">// 检查当前 waiter 是否被唤醒</span></span><br><span class="line">			<span class="comment">// 进入这里，说明是 ctx 被取消后 waiter 被唤醒</span></span><br><span class="line">			s.cur -= n        <span class="comment">// 那么就当作 waiter 没有被唤醒，将请求的资源数还回去</span></span><br><span class="line">			s.notifyWaiters() <span class="comment">// 通知等待队列，检查队列中下一个 waiter 资源数是否满足</span></span><br><span class="line">		<span class="keyword">default</span>: <span class="comment">// 将当前 waiter 从等待者队列中移除</span></span><br><span class="line">			isFront := s.waiters.Front() == elem <span class="comment">// 当前 waiter 是否为第一个等待者</span></span><br><span class="line">			s.waiters.Remove(elem)               <span class="comment">// 从队列中移除</span></span><br><span class="line">			<span class="comment">// 如果当前 waiter 是队列中第一个等待者，并且还有剩余的资源数</span></span><br><span class="line">			<span class="keyword">if</span> isFront &amp;&amp; s.size &gt; s.cur &#123;</span><br><span class="line">				s.notifyWaiters() <span class="comment">// 通知等待队列，检查队列中下一个 waiter 资源数是否满足</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		s.mu.Unlock()</span><br><span class="line">		<span class="keyword">return</span> ctx.Err()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">case</span> &lt;-ready: <span class="comment">// 被唤醒</span></span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> &lt;-done: <span class="comment">// 再次检查 ctx 是否被取消</span></span><br><span class="line">			<span class="comment">// 进入这里，说明 waiter 被唤醒后 ctx 却被取消了，当作未被唤醒来处理</span></span><br><span class="line">			s.Release(n) <span class="comment">// 释放资源</span></span><br><span class="line">			<span class="keyword">return</span> ctx.Err()</span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span> <span class="comment">// 成功返回 nil</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这是 <code>Weighted</code> 结构体实现最为复杂的一个方法，不过我在代码中写了非常详细的注释，来帮助你理解。</p>
+<p><code>Acquire</code> 主要逻辑为：</p>
+<ul>
+<li>先检查 <code>ctx</code> 是否被取消，如果在分配资源前 <code>ctx</code> 已经取消，则直接返回 <code>ctx.Err()</code>。</li>
+<li>检查当前剩余资源数是否满足请求的资源数，如果资源数足够，且不存在其他等待者，则请求资源成功，将 <code>cur</code> 加上 <code>n</code>，并返回。</li>
+<li>校验请求的资源数是否合法，如果请求的资源数大于资源总数，则不可能被满足，此时会阻塞等待 <code>ctx</code> 被取消，并返回 <code>ctx.Err()</code>。</li>
+<li>如果目前资源不够，或者存在其他等待者，则代码将继续执行，进入阻塞等待逻辑：<ul>
+<li>首先构造一个等待者对象 <code>waiter</code>，并将其加入等待者队列。</li>
+<li>接着，使用 <code>select</code> 实现阻塞等待。此时又分两种情况，<code>ctx</code> 被取消，或者 <code>waiter</code> 被唤醒。<ul>
+<li>如果是 <code>ctx</code> 被取消，还会再检查一下 <code>waiter</code> 是否被唤醒，如果被唤醒，<strong>则还是以 <code>ctx</code> 被取消为准</strong>，会当作 <code>waiter</code> 没有被唤醒，将请求的资源数还回去，并调用 <code>s.notifyWaiters()</code> 通知等待者队列，检查队列中下一个 <code>waiter</code> 资源数是否满足；如果没被唤醒，则将当前 <code>waiter</code> 从等待者队列中移除，如果当前 <code>waiter</code> 是队列中第一个等待者，并且还有剩余的资源数，则还会调用 <code>s.notifyWaiters()</code> 通知等待者队列，检查队列中下一个 <code>waiter</code> 资源数是否满足。</li>
+<li>如果是 <code>waiter</code> 被唤醒，还会再检查一下 <code>ctx</code> 是否被取消，如果被取消，<strong>则以 <code>ctx</code> 被取消为准</strong>，会调用 <code>s.Release(n)</code> 释放掉当前 <code>waiter</code> 请求的资源；如果没被取消，则返回 <code>nil</code> 表示请求资源成功。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>那么接下来，我们看看释放资源的 <code>Release</code> 方法逻辑：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Release 释放 n 个资源</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Weighted)</span> <span class="title">Release</span><span class="params">(n <span class="keyword">int64</span>)</span></span> &#123;</span><br><span class="line">	s.mu.Lock() <span class="comment">// 加锁保证并发安全</span></span><br><span class="line">	s.cur -= n  <span class="comment">// 释放资源</span></span><br><span class="line">	<span class="keyword">if</span> s.cur &lt; <span class="number">0</span> &#123;</span><br><span class="line">		s.mu.Unlock()</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"semaphore: released more than held"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	s.notifyWaiters() <span class="comment">// 通知等待队列，检查队列中下一个 waiter 资源数是否满足</span></span><br><span class="line">	s.mu.Unlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里的逻辑就简单多了，首先执行 <code>s.cur -= n</code> 减少当前已经使用的资源数，即这一步就是释放资源操作。注意这里还对<code>s.cur</code> 是否小于 0 进行了判断，所以使用时一定是申请多少资源就释放多少资源，不要用错。接着同样调用 <code>s.notifyWaiters()</code> 通知等待者队列，检查队列中下一个 <code>waiter</code> 资源数是否满足。</p>
+<p>现在，是时候看看 <code>notifyWaiters</code> 方法是如何实现的了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 检查队列中下一个 waiter 资源数是否满足</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Weighted)</span> <span class="title">notifyWaiters</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 循环检查下一个 waiter 请求的资源数是否满足，满足则出队，不满足则终止循环</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		next := s.waiters.Front() <span class="comment">// 获取队首元素</span></span><br><span class="line">		<span class="keyword">if</span> next == <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">break</span> <span class="comment">// 没有 waiter 了，队列为空终止循环</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		w := next.Value.(waiter)</span><br><span class="line">		<span class="keyword">if</span> s.size-s.cur &lt; w.n &#123; <span class="comment">// 当前 waiter 资源数不满足，退出循环</span></span><br><span class="line">			<span class="comment">// 不继续查找队列中后续 waiter 请求资源是否满足，避免产生饥饿</span></span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 资源数满足，唤醒 waiter</span></span><br><span class="line">		s.cur += w.n           <span class="comment">// 记录使用的资源数</span></span><br><span class="line">		s.waiters.Remove(next) <span class="comment">// 从队列中移除 waiter</span></span><br><span class="line">		<span class="built_in">close</span>(w.ready)         <span class="comment">// 利用关闭 channel 的操作，来唤醒 waiter</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>notifyWaiters</code> 方法内部的核心逻辑是：循环检查下一个 <code>waiter</code> 请求的资源数是否满足，满足则出队，不满足则终止循环。</p>
+<p>可以发现，<code>next</code> 是队首元素，所以说等待者队列是先进先出（<code>FIFO</code>）的。</p>
+<p>这里还有一个要注意的点是，当前 <code>waiter</code> 资源数不满足时，直接退出循环，而不再继续查找队列中后续 <code>waiter</code> 请求资源是否满足。比如当前可用资源数为 5，等待者队列中有两个等待者 <code>waiter1</code> 和 <code>waiter2</code>，<code>waiter1</code> 请求的资源数是 10，<code>waiter2</code> 请求的资源数是 1，此时就会退出循环，<code>waiter1</code> 和 <code>waiter2</code> 都继续等待，而不会先将资源分配给 <code>waiter2</code>。这样做是为了避免之后的 <code>waiter3</code>、<code>waiter4</code>… 总是比 <code>waiter1</code> 请求的资源数小，而导致 <code>waiter1</code> 长时间阻塞，从而产生饥饿。</p>
+<p><code>Weighted</code> 还有最后一个方法 <code>TryAcquire</code> 我们一起来看看是如何实现的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// TryAcquire 尝试请求 n 个资源</span></span><br><span class="line"><span class="comment">// 不阻塞，成功返回 true，失败返回 false 并且不改变资源数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Weighted)</span> <span class="title">TryAcquire</span><span class="params">(n <span class="keyword">int64</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	s.mu.Lock() <span class="comment">// 加锁保证并发安全</span></span><br><span class="line">	<span class="comment">// 剩余资源数足够，且不存在其他等待者，则请求资源成功</span></span><br><span class="line">	success := s.size-s.cur &gt;= n &amp;&amp; s.waiters.Len() == <span class="number">0</span></span><br><span class="line">	<span class="keyword">if</span> success &#123;</span><br><span class="line">		s.cur += n <span class="comment">// 记录当前已经使用的资源数</span></span><br><span class="line">	&#125;</span><br><span class="line">	s.mu.Unlock()</span><br><span class="line">	<span class="keyword">return</span> success</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个方法实现也很简单，就是检查剩余资源数是否足够，且不存在其他等待者，如果满足，则请求资源成功，增加当前已经使用的资源数 <code>s.cur += n</code>，然后返回 <code>true</code>，否则返回 <code>false</code>。</p>
+<p>至此，<code>semaphore</code> 包的源码就讲解完成了。</p>
+<h3 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h3><p>熟悉了 <code>semaphore</code> 包的源码，那么如何使用就不在话下了。如下是 <code>semaphore</code> 包文档中提供的 <code>worker pool</code> 模式示例，演示如何使用信号量来限制并行任务中运行的 goroutine 数量。代码如下：</p>
+<blockquote>
+<p><a href="https://pkg.go.dev/golang.org/x/sync@v0.10.0/semaphore#example-package-WorkerPool" target="_blank" rel="noopener">https://pkg.go.dev/golang.org/x/sync@v0.10.0/semaphore#example-package-WorkerPool</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"context"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"log"</span></span><br><span class="line">	<span class="string">"runtime"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"golang.org/x/sync/semaphore"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	ctx := context.TODO()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		maxWorkers = runtime.GOMAXPROCS(<span class="number">0</span>)                    <span class="comment">// worker pool 支持的最大 worker 数量，取当前机器 CPU 核心数</span></span><br><span class="line">		sem        = semaphore.NewWeighted(<span class="keyword">int64</span>(maxWorkers)) <span class="comment">// 信号量，资源总数即为最大 worker 数量</span></span><br><span class="line">		out        = <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="number">32</span>)                          <span class="comment">// 总任务数量</span></span><br><span class="line">	)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 一次最多启动 maxWorkers 数量个 goroutine 计算输出</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="keyword">range</span> out &#123;</span><br><span class="line">		<span class="comment">// 当最大工作数 maxWorkers 个 goroutine 正在执行时，Acquire 会阻塞直到其中一个 goroutine 完成</span></span><br><span class="line">		<span class="keyword">if</span> err := sem.Acquire(ctx, <span class="number">1</span>); err != <span class="literal">nil</span> &#123; <span class="comment">// 请求资源</span></span><br><span class="line">			log.Printf(<span class="string">"Failed to acquire semaphore: %v"</span>, err)</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 开启新的 goroutine 执行计算任务</span></span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(i <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> sem.Release(<span class="number">1</span>)         <span class="comment">// 任务执行完成后释放资源</span></span><br><span class="line">			out[i] = collatzSteps(i + <span class="number">1</span>) <span class="comment">// 执行 Collatz 步骤计算</span></span><br><span class="line">		&#125;(i)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 获取所有的 tokens 以等待全部 goroutine 执行完成</span></span><br><span class="line">	<span class="keyword">if</span> err := sem.Acquire(ctx, <span class="keyword">int64</span>(maxWorkers)); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Printf(<span class="string">"Failed to acquire semaphore: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Println(out)</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// collatzSteps computes the number of steps to reach 1 under the Collatz</span></span><br><span class="line"><span class="comment">// conjecture. (See https://en.wikipedia.org/wiki/Collatz_conjecture.)</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">collatzSteps</span><span class="params">(n <span class="keyword">int</span>)</span> <span class="params">(steps <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> n &lt;= <span class="number">0</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"nonpositive input"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> ; n &gt; <span class="number">1</span>; steps++ &#123;</span><br><span class="line">		<span class="keyword">if</span> steps &lt; <span class="number">0</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(<span class="string">"too many steps"</span>)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> n%<span class="number">2</span> == <span class="number">0</span> &#123;</span><br><span class="line">			n /= <span class="number">2</span></span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">const</span> maxInt = <span class="keyword">int</span>(^<span class="keyword">uint</span>(<span class="number">0</span>) &gt;&gt; <span class="number">1</span>)</span><br><span class="line">		<span class="keyword">if</span> n &gt; (maxInt<span class="number">-1</span>)/<span class="number">3</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(<span class="string">"overflow"</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		n = <span class="number">3</span>*n + <span class="number">1</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> steps</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码利用信号量（<code>semaphore</code>）实现一个工作池（<code>worker pool</code>），来限制最大并发协程（<code>goroutine</code>）数。</p>
+<p>通过 <code>runtime.GOMAXPROCS(0)</code> 可以获取当前机器 CPU 核心数（比如在我的 Apple M1 Pro 机器中这个值是 10），以此作为 <code>worker pool</code> 支持的最大 <code>worker</code> 数量，这也是信号量的资源总数。<code>out</code> 切片长度为 32，即总任务数为 32。使用 <code>for</code> 循环来开启新的 goroutine 执行计算任务 <code>collatzSteps(i + 1)</code>，不过在开启新的 goroutine 前，会调用 <code>sem.Acquire(ctx, 1)</code> 向 <code>worker pool</code> 申请一个资源，当最大工作数 <code>maxWorkers</code> 个 goroutine 正在执行时，<code>Acquire</code> 会阻塞直到其中一个 goroutine 完成，任务执行完成后在 <code>defer</code> 语句中调用 <code>sem.Release(1)</code> 释放资源。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>关于计算任务 <code>collatzSteps</code> 我们其实不必深究，只需要知道这是一个耗时任务即可。简单来说，Collatz Conjecture 是一个数学猜想，提出了一个看似简单的整数序列规则，对于任意正整数 <code>n</code> 执行操作，如果 <code>n</code> 是偶数，则将 <code>n</code> 除以 2，如果 <code>n</code> 是奇数，则将 <code>n</code> 乘以 3 再加 1（即 <code>3n + 1</code>），反复执行这些操作后，最终所有整数都将达到 1。<code>collatzSteps</code> 函数实现了计算在 Collatz 猜想下一个正整数 <code>n</code> 需要多少步才能达到 1。如果你实在感兴趣可以点击链接 <a href="https://en.wikipedia.org/wiki/Collatz_conjecture" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Collatz_conjecture</a> 了解一下。</p>
+</blockquote>
+<p>值得注意的是，在 <code>for</code> 循环提交完所有任务后，使用 <code>sem.Acquire(ctx, int64(maxWorkers))</code> 获取了信号量中全部资源，这样就能够确保所有任务执行完成后才会退出，它的作用类似 <code>sync.WaitGroup.Wait()</code>。</p>
+<p>那么接下来我们使用 <code>sync.WaitGroup</code> 来实现同样的功能：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/x/sync/semaphore/waitgroup/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/x/sync/semaphore/waitgroup/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		maxWorkers = runtime.GOMAXPROCS(<span class="number">0</span>)           <span class="comment">// 获取系统可用的最大 CPU 核心数</span></span><br><span class="line">		out        = <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="number">32</span>)                 <span class="comment">// 存储 Collatz 结果</span></span><br><span class="line">		wg         sync.WaitGroup                    <span class="comment">// 用于等待 goroutine 完成</span></span><br><span class="line">		sem        = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, maxWorkers) <span class="comment">// 用于限制最大并发数</span></span><br><span class="line">	)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="keyword">range</span> out &#123;</span><br><span class="line">		<span class="comment">// 通过 sem 管理并发，确保最多只有 maxWorkers 个 goroutine 同时执行</span></span><br><span class="line">		sem &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125; <span class="comment">// 如果 sem 已满，这里会阻塞，直到有空闲槽位</span></span><br><span class="line"></span><br><span class="line">		<span class="comment">// 增加 WaitGroup 计数</span></span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(i <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> wg.Done()          <span class="comment">// goroutine 完成时，减少 WaitGroup 计数</span></span><br><span class="line">			<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; &lt;-sem &#125;() <span class="comment">// goroutine 完成时，从 sem 中释放一个槽位</span></span><br><span class="line"></span><br><span class="line">			<span class="comment">// 执行 Collatz 步骤计算</span></span><br><span class="line">			out[i] = collatzSteps(i + <span class="number">1</span>)</span><br><span class="line">		&#125;(i)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 等待所有 goroutine 完成</span></span><br><span class="line">	wg.Wait()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 输出结果</span></span><br><span class="line">	fmt.Println(out)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在对比一下使用 <code>sync.WaitGroup</code> 和 <code>semaphore</code> 实现的代码，是否能加深你对信号量这一功能的理解呢？</p>
+<p>最后，我们再来留个作业，请使用 <code>errgroup</code> 实现一遍这个示例程序。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>如果你对 <code>sync.WaitGroup</code> 或 <code>errgroup</code> 不熟悉，可以参考我的文章「<a href="https://jianghushinian.cn/2024/12/23/sync-waitgroup/" target="_blank" rel="noopener">Go 并发控制：sync.WaitGroup 详解</a>」和「<a href="https://jianghushinian.cn/2024/11/04/x-sync-errgroup/" target="_blank" rel="noopener">Go 并发控制：errgroup 详解</a>」。</p>
+</blockquote>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文对 Go 中的扩展并发原语 <code>semaphore</code> 进行了讲解，并带你看了其源码的实现，以及介绍了如何使用。</p>
+<p>不知道你有没有发现，在初始化 <code>semaphore</code> 时，传递的 <code>n</code> 如果为 1，那么这个信号量其实就相当于互斥锁 <code>sync.Mutex</code>。</p>
+<p><code>semaphore</code> 可以用来实现 <code>worker pool</code> 模式，并且使用套路或场景与 <code>sync.WaitGroup</code> 也比较相似，你可以对比学习。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/x/sync/semaphore" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>Go 并发控制：sync.WaitGroup 详解：<a href="https://jianghushinian.cn/2024/12/23/sync-waitgroup/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/12/23/sync-waitgroup/</a></li>
+<li>Go 并发控制：errgroup 详解：<a href="https://jianghushinian.cn/2024/11/04/x-sync-errgroup/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/11/04/x-sync-errgroup/</a></li>
+<li>semaphore Documentation：<a href="https://pkg.go.dev/golang.org/x/sync@v0.10.0/semaphore" target="_blank" rel="noopener">https://pkg.go.dev/golang.org/x/sync@v0.10.0/semaphore</a></li>
+<li>semaphore GitHub 源码：<a href="https://github.com/golang/sync/blob/v0.9.0/semaphore/semaphore.go" target="_blank" rel="noopener">https://github.com/golang/sync/blob/v0.9.0/semaphore/semaphore.go</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/x/sync/semaphore" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/x/sync/semaphore</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-01-21T15:46:42.529Z" itemprop="dateUpdated">2025-01-21 23:46:42</time>
+</span><br>
+
+
+        
+        <a href="/2025/01/21/x-sync-semaphore/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/01/21/x-sync-semaphore/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/" rel="tag">并发编程</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/01/21/x-sync-semaphore/&title=《Go 并发控制：semaphore 详解》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/01/21/x-sync-semaphore/&title=《Go 并发控制：semaphore 详解》 — 江湖十年&source=今天我们来介绍一个 Go 官方库 x 提供的扩展并发原语 semaphore，译为“信号量”。因为它就像一个信号一样控制多个 goroutine 之间协作。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/01/21/x-sync-semaphore/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 并发控制：semaphore 详解》 — 江湖十年&url=http://www.jianghushinian.cn/2025/01/21/x-sync-semaphore/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/01/21/x-sync-semaphore/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/01/16/os-exec/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go os/exec 极速入门</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2025</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/01/21/x-sync-semaphore/&title=《Go 并发控制：semaphore 详解》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/01/21/x-sync-semaphore/&title=《Go 并发控制：semaphore 详解》 — 江湖十年&source=今天我们来介绍一个 Go 官方库 x 提供的扩展并发原语 semaphore，译为“信号量”。因为它就像一个信号一样控制多个 goroutine 之间协作。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/01/21/x-sync-semaphore/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 并发控制：semaphore 详解》 — 江湖十年&url=http://www.jianghushinian.cn/2025/01/21/x-sync-semaphore/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/01/21/x-sync-semaphore/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/01/21/x-sync-semaphore/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
