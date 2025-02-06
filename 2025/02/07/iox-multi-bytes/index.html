@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Go 中如何将 [][]byte 转为 io.Reader ？ | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="起因：在春节前的某一天，我在 ekit 项目的交流群里看到大明老师发了这样一条消息：  各位大佬，问个小问题，有咩有谁用过 [][]byte 转为 io.Reader 的东西？我以前搞过一次，但是我忘了是我手搓了一个实现，还是用的开源的，还是SDK 自带的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Go 中如何将 [][]byte 转为 io.Reader ？">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="起因：在春节前的某一天，我在 ekit 项目的交流群里看到大明老师发了这样一条消息：  各位大佬，问个小问题，有咩有谁用过 [][]byte 转为 io.Reader 的东西？我以前搞过一次，但是我忘了是我手搓了一个实现，还是用的开源的，还是SDK 自带的">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/multi-bytes.png">
+<meta property="article:published_time" content="2025-02-06T16:30:31.000Z">
+<meta property="article:modified_time" content="2025-02-06T16:41:24.623Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/multi-bytes.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Go 中如何将 [][]byte 转为 io.Reader ？</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Go 中如何将 [][]byte 转为 io.Reader ？</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-02-06T16:30:31.000Z" itemprop="datePublished" class="page-time">
+  2025-02-07
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#思路设计"><span class="post-toc-number">1.</span> <span class="post-toc-text">思路设计</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#代码实现"><span class="post-toc-number">2.</span> <span class="post-toc-text">代码实现</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">3.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-iox-multi-bytes"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Go 中如何将 [][]byte 转为 io.Reader ？</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-02-07 00:30:31" datetime="2025-02-06T16:30:31.000Z"  itemprop="datePublished">2025-02-07</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>起因：在春节前的某一天，我在 <a href="https://github.com/ecodeclub/ekit" target="_blank" rel="noopener">ekit</a> 项目的交流群里看到大明老师发了这样一条消息：</p>
+<blockquote>
+<p>各位大佬，问个小问题，有咩有谁用过 [][]byte 转为 io.Reader 的东西？我以前搞过一次，但是我忘了是我手搓了一个实现，还是用的开源的，还是SDK 自带的</p>
+</blockquote>
+<a id="more"></a>
+
+<p>并且大明老师还为此开了一个 <a href="https://github.com/ecodeclub/ekit/issues/271" target="_blank" rel="noopener">issue</a>。</p>
+<p>看到这条消息，我想起了我在对 Go 还不太熟悉时，曾写过一个 <code>io.MultiReader</code> 的实现（当时写完了我才知道原来 Go 中自带了 <code>io.MultiReader</code>），想必应该有相似之处，于是就尝试写了一个出来。</p>
+<p>不过当我写完时发现已经有人提交了代码，于是我就没把它当回事，也没有写测试代码进行测试，就放一边了。春节假期闲来无事，我忽然想起来这件事，就看了下对应的 <a href="https://github.com/ecodeclub/ekit/pull/272" target="_blank" rel="noopener">pr</a>，发现提交 pr 的作者和我的实现思路不太一样。不过，虽然这个功能很小，既然我也实现了，就补齐下单元测试，发出来供参考，顺便写（水）一篇文章 :)。</p>
+<h3 id="思路设计"><a href="#思路设计" class="headerlink" title="思路设计"></a>思路设计</h3><p>首先我设计了如下结构体：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> MultiBytes <span class="keyword">struct</span> &#123;</span><br><span class="line">	data  [][]<span class="keyword">byte</span> <span class="comment">// 存储数据的嵌套切片</span></span><br><span class="line">	index <span class="keyword">int</span>      <span class="comment">// 当前读/写到的外层切片索引，data[index]</span></span><br><span class="line">	pos   <span class="keyword">int</span>      <span class="comment">// 当前读/写到的切片所处理到的位置下标，data[index][pos]</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>有了这个结构体，那么就可以设计 <code>MultiBytes</code> 的整体实现思路了。</p>
+<p>首先，我们需要一个构造函数 <code>NewMultiBytes</code> 来创建 <code>MultiBytes</code> 对象。其次，则要实现 <code>io.Reader</code> 接口。最后，我们也可以顺便实现一下 <code>io.Write</code> 接口。</p>
+<p><code>MultiBytes</code> 支持的函数和方法设计如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> MultiBytes</span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="title">NewMultiBytes</span><span class="params">(data [][]<span class="keyword">byte</span>)</span> *<span class="title">MultiBytes</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(b *MultiBytes)</span> <span class="title">Read</span><span class="params">(p []<span class="keyword">byte</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(b *MultiBytes)</span> <span class="title">Write</span><span class="params">(p []<span class="keyword">byte</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>基于此，我为每个方法画了一个流程图，你可以参考下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="multi-bytes.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>流程图中包含了每个方法内部的主体逻辑。</p>
+<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><p>既然有了结构体和方法签名，那么就可以依次实现所有方法了。</p>
+<p>首先是构造函数 <code>NewMultiBytes</code> 的实现：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/iox/multi_bytes.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/iox/multi_bytes.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewMultiBytes 构造一个 MultiBytes</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewMultiBytes</span><span class="params">(data [][]<span class="keyword">byte</span>)</span> *<span class="title">MultiBytes</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;MultiBytes&#123;</span><br><span class="line">		data: data,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这没什么好说的，就是根据给定的 <code>data</code> 初始化了一个 <code>*MultiBytes</code> 对象，<code>index</code> 和 <code>pod</code> 都为默认值 0。</p>
+<p>接着是 <code>Read</code> 方法的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Read 实现 io.Reader 接口，从 data 中读取数据到 p</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *MultiBytes)</span> <span class="title">Read</span><span class="params">(p []<span class="keyword">byte</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 如果 p 是空的，直接返回</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(p) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 所有数据都已读完</span></span><br><span class="line">	<span class="keyword">if</span> b.index &gt;= <span class="built_in">len</span>(b.data) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, io.EOF</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	n := <span class="number">0</span> <span class="comment">// 记录已读取的字节数</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> n &lt; <span class="built_in">len</span>(p) &#123;</span><br><span class="line">		<span class="comment">// 如果当前切片已经读完，则切换到下一个切片</span></span><br><span class="line">		<span class="keyword">if</span> b.pos &gt;= <span class="built_in">len</span>(b.data[b.index]) &#123;</span><br><span class="line">			b.index++</span><br><span class="line">			b.pos = <span class="number">0</span></span><br><span class="line">			<span class="comment">// 如果所有切片都已读完，退出循环</span></span><br><span class="line">			<span class="keyword">if</span> b.index &gt;= <span class="built_in">len</span>(b.data) &#123;</span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 从当前切片读取数据</span></span><br><span class="line">		bytes := b.data[b.index]</span><br><span class="line">		cnt := <span class="built_in">copy</span>(p[n:], bytes[b.pos:])</span><br><span class="line">		b.pos += cnt</span><br><span class="line">		n += cnt</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 未读取到数据且已经读到结尾</span></span><br><span class="line">	<span class="keyword">if</span> n == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, io.EOF</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> n, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Read</code> 方法就是按照流程图中的整体脉络实现的。需要强调的一点是，程序最后还有一个 <code>if n == 0</code> 的判断，如果成立，返回 <code>io.EOF</code>。这是为了处理 <code>data</code> 中嵌套的内部切片为空的情况，比如当 <code>data</code> 值为 <code>[][]byte{[]byte{}}</code> 这种情况时，程序就会走到这个分支。</p>
+<p>然后是 <code>Write</code> 方法的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Write 实现 io.Writer 接口，将数据追加到 data 中</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *MultiBytes)</span> <span class="title">Write</span><span class="params">(p []<span class="keyword">byte</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 如果 p 是空的，直接返回</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(p) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建副本以避免外部修改影响数据</span></span><br><span class="line">	clone := <span class="built_in">make</span>([]<span class="keyword">byte</span>, <span class="built_in">len</span>(p))</span><br><span class="line">	<span class="built_in">copy</span>(clone, p)</span><br><span class="line">	b.data = <span class="built_in">append</span>(b.data, clone)</span><br><span class="line">	<span class="keyword">return</span> <span class="built_in">len</span>(p), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>值得注意的是，在 <code>Write</code> 方法实现中，对 <code>p</code> 进行了拷贝，生成新的副本，目的是防止用户在调用 <code>Write(p)</code> 以后，随意修改 <code>p</code> 的值而影响 <code>MultiBytes</code> 对象内部的 <code>data</code>。</p>
+<p>最后，如果你不嫌麻烦，还可以增加如下两行代码，以检查 <code>MultiBytes</code> 是否实现了  <code>io.Reader</code> 和 <code>io.Write</code> 接口：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> _ io.Reader = (*MultiBytes)(<span class="literal">nil</span>)</span><br><span class="line"><span class="keyword">var</span> _ io.Writer = (*MultiBytes)(<span class="literal">nil</span>)</span><br></pre></td></tr></table></figure>
+
+<p>至此，能够将 <code>[][]byte</code> 转为 <code>io.Reader</code> 的 <code>MultiBytes</code> 实现完成。</p>
+<p>我们可以简单测试一下效果。</p>
+<p>示例代码：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/iox/examples/multi_bytes.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/iox/examples/multi_bytes.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/jianghushinian/blog-go-example/iox"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	mb := iox.NewMultiBytes([][]<span class="keyword">byte</span>&#123;[]<span class="keyword">byte</span>(<span class="string">"Hello, World!\n"</span>)&#125;)</span><br><span class="line">	_, _ = mb.Write([]<span class="keyword">byte</span>(<span class="string">"你好，世界！"</span>))</span><br><span class="line">	p := <span class="built_in">make</span>([]<span class="keyword">byte</span>, <span class="number">32</span>)</span><br><span class="line">	_, _ = mb.Read(p)</span><br><span class="line">	fmt.Println(<span class="keyword">string</span>(p))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run examples/multi_bytes.go</span><br><span class="line">Hello, World!</span><br><span class="line">你好，世界！</span><br></pre></td></tr></table></figure>
+
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文带大家实现了一个能够将 <code>[][]byte</code> 转为 <code>io.Reader</code> 的 <code>MultiBytes</code>，代码逻辑并不复杂，不过一些细节还是需要注意。</p>
+<p>你还可以点击<a href="https://github.com/jianghushinian/blog-go-example/blob/main/iox/multi_bytes_test.go" target="_blank" rel="noopener">这里</a>查看更多的单元测试，如果你在使用过程中，发现任何 bug，欢迎交流。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/blob/main/iox/multi_bytes.go" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>ekit issue：<a href="https://github.com/ecodeclub/ekit/issues/271" target="_blank" rel="noopener">https://github.com/ecodeclub/ekit/issues/271</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/blob/main/iox/multi_bytes.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/iox/multi_bytes.go</a></li>
+<li>本文 GitHub 测试代码：<a href="https://github.com/jianghushinian/blog-go-example/blob/main/iox/multi_bytes_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/iox/multi_bytes_test.go</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-06T16:41:24.623Z" itemprop="dateUpdated">2025-02-07 00:41:24</time>
+</span><br>
+
+
+        
+        <a href="/2025/02/07/iox-multi-bytes/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/&title=《在 Go 中如何将 [][]byte 转为 io.Reader ？》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/&title=《在 Go 中如何将 [][]byte 转为 io.Reader ？》 — 江湖十年&source=起因：在春节前的某一天，我在 ekit 项目的交流群里看到大明老师发了这样一条消息：
+
+各位大佬，问个小问题，有咩有谁用过 [][]byte 转为 io...." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中如何将 [][]byte 转为 io.Reader ？》 — 江湖十年&url=http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/01/30/2025-spring-festival-magic/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">用 Go 语言还原 2025 刘谦春晚魔术！</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2025</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/&title=《在 Go 中如何将 [][]byte 转为 io.Reader ？》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/&title=《在 Go 中如何将 [][]byte 转为 io.Reader ？》 — 江湖十年&source=起因：在春节前的某一天，我在 ekit 项目的交流群里看到大明老师发了这样一条消息：
+
+各位大佬，问个小问题，有咩有谁用过 [][]byte 转为 io...." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中如何将 [][]byte 转为 io.Reader ？》 — 江湖十年&url=http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/02/07/iox-multi-bytes/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
