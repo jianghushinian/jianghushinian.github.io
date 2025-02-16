@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 并发编程：如何实现一个并发安全的 map | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,并发编程">
+    <meta name="description" content="上周发布的文章「Go 并发控制：sync.Map 详解」有读者反馈说我写的太难了，上来就挑战源码，对新手不够友好。所以这篇文章算作补充，从入门到进阶的顺序讲解一下在 Go 中如何自己实现一个并发安全的 map。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 并发编程：如何实现一个并发安全的 map">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/02/16/concurrent-map/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="上周发布的文章「Go 并发控制：sync.Map 详解」有读者反馈说我写的太难了，上来就挑战源码，对新手不够友好。所以这篇文章算作补充，从入门到进阶的顺序讲解一下在 Go 中如何自己实现一个并发安全的 map。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-02-16T06:22:57.000Z">
+<meta property="article:modified_time" content="2025-02-16T06:26:36.230Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="并发编程">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 并发编程：如何实现一个并发安全的 map</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 并发编程：如何实现一个并发安全的 map</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-02-16T06:22:57.000Z" itemprop="datePublished" class="page-time">
+  2025-02-16
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#内置-map"><span class="post-toc-number">1.</span> <span class="post-toc-text">内置 map</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#实现并发安全-map"><span class="post-toc-number">2.</span> <span class="post-toc-text">实现并发安全 map</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#分片-map"><span class="post-toc-number">3.</span> <span class="post-toc-text">分片 map</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#符合-Go-哲学的并发安全-map？"><span class="post-toc-number">4.</span> <span class="post-toc-text">符合 Go 哲学的并发安全 map？</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#如何选择"><span class="post-toc-number">5.</span> <span class="post-toc-text">如何选择</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">6.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-concurrent-map"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 并发编程：如何实现一个并发安全的 map</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-02-16 14:22:57" datetime="2025-02-16T06:22:57.000Z"  itemprop="datePublished">2025-02-16</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>上周发布的文章「<a href="https://jianghushinian.cn/2025/02/10/sync-map/" target="_blank" rel="noopener">Go 并发控制：sync.Map 详解</a>」有读者反馈说我写的太难了，上来就挑战源码，对新手不够友好。所以这篇文章算作补充，从入门到进阶的顺序讲解一下在 Go 中如何自己实现一个并发安全的 <code>map</code>。</p>
+<a id="more"></a>
+
+<h3 id="内置-map"><a href="#内置-map" class="headerlink" title="内置 map"></a>内置 map</h3><p>首先，我们来测试一下 Go 语言内置 <code>map</code> 并发安全性，示例如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// <span class="doctag">NOTE:</span> Go 内置 map 不支持并发读写</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	m := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 并发读写 map</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			m[<span class="string">"k"</span>] = <span class="number">1</span></span><br><span class="line">			fmt.Println(<span class="string">"set k:"</span>, <span class="number">1</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			v, _ := m[<span class="string">"k"</span>]</span><br><span class="line">			fmt.Println(<span class="string">"read k:"</span>, v)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">select</span> &#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里开了两个 goroutine 分别用来读写 <code>map</code> 对象变量 <code>m</code>，并且每个 goroutine 中都采用无限循环来不停的读写 <code>m</code>，这样就会造成大量并发操作。程序最后使用空的 <code>select{}</code> 语句来实现阻塞。</p>
+<p>执行示例代码，你将得到 <code>panic</code>，输出日志太长我就不贴出来了，主要报错信息为 <code>fatal error: concurrent map read and map write</code>。这提示我们存在并发读写 <code>map</code> 的操作，所以说 Go 内置 <code>map</code> 不是并发安全的。</p>
+<h3 id="实现并发安全-map"><a href="#实现并发安全-map" class="headerlink" title="实现并发安全 map"></a>实现并发安全 map</h3><p>要实现 <code>map</code> 的并发安全，我们首先想到的就是互斥锁 <code>sync.Mutex</code>。不过 Go 语言还在 <code>sync.Mutex</code> 的基础上提供了读写锁 <code>sync.RWMutex</code>，能够更大的程度的提升<strong>读多写少场景</strong>的并发性能，所以我们选用读写锁来实现并发安全的 <code>map</code>。</p>
+<p>实现实例如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map/mutex_map.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map/mutex_map.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> RWMutexMap <span class="keyword">struct</span> &#123;</span><br><span class="line">	rw sync.RWMutex</span><br><span class="line">	m  <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewRWMutexMap</span><span class="params">()</span> *<span class="title">RWMutexMap</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;RWMutexMap&#123;</span><br><span class="line">		m: <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span>),</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *RWMutexMap)</span> <span class="title">Set</span><span class="params">(key <span class="keyword">string</span>, v <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	m.rw.Lock()</span><br><span class="line">	<span class="keyword">defer</span> m.rw.Unlock()</span><br><span class="line">	m.m[key] = v</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *RWMutexMap)</span> <span class="title">Get</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">int</span>, <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	m.rw.RLock()</span><br><span class="line">	<span class="keyword">defer</span> m.rw.RUnlock()</span><br><span class="line">	v, ok := m.m[key]</span><br><span class="line">	<span class="keyword">return</span> v, ok</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *RWMutexMap)</span> <span class="title">Del</span><span class="params">(key <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	m.rw.Lock()</span><br><span class="line">	<span class="keyword">defer</span> m.rw.Unlock()</span><br><span class="line">	<span class="built_in">delete</span>(m.m, key)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里我们定义 <code>RWMutexMap</code> 结构用来表示并发安全的 <code>map</code>，其包含两个属性，字段 <code>rw</code> 即为读写锁，用来保证并发安全，<code>m</code> 字段就是普通的 <code>map</code>，用来存取数据。</p>
+<p><code>Set</code> 方法和 <code>Del</code> 方法属于写操作，所以在修改 <code>m</code> 字段数据时都加了写锁 <code>m.rw.Lock()</code>，并在操作完成后释放写锁 <code>defer m.rw.Unlock()</code>。而 <code>Get</code> 方法属于读操作，所以在获取 <code>m</code> 字段数据时加了读锁 <code>m.rw.RLock()</code>，并在获取完成后释放读锁 <code>defer m.rw.RUnlock()</code>。</p>
+<p>这里有必要解释一下读锁和写锁的区别：</p>
+<p>写锁就是互斥锁，不可以被多个 goroutine 同时持有，比如在调用写锁 <code>m.rw.Lock()</code> 时，如果有读锁或写锁已经被其他 goroutine 持有，则当前 goroutine 会被阻塞。</p>
+<p>读锁类似可重入锁，多个 goroutine 可以同时持有读锁，比如在调用读锁 <code>m.rw.RLock()</code> 时，如果有其他 goroutine 也持有读锁，则当前 goroutine 还可以继续获取这把读锁，但此时如果有 goroutine 尝试获取写锁则会被阻塞。</p>
+<p>所以说读写锁对读多写少的场景更加适用，读写锁允许多个 goroutine 同时持有读锁，但只允许一个 goroutine 持有写锁。</p>
+<p>此时，我们可以写出同样的测试代码，来测试这个使用读写锁实现的并发安全 <code>map</code> 的效果：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map/mutex_map_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map/mutex_map_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// <span class="doctag">NOTE:</span> 这个测试不会终止</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestRWMutexMap</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	m := NewRWMutexMap()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 并发读写 map</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			m.Set(<span class="string">"k"</span>, <span class="number">1</span>)</span><br><span class="line">			fmt.Println(<span class="string">"set k:"</span>, <span class="number">1</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			v, _ := m.Get(<span class="string">"k"</span>)</span><br><span class="line">			fmt.Println(<span class="string">"read k:"</span>, v)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">select</span> &#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个示例不会终止，会交替打印 <code>read</code> 和 <code>set</code> 的日志。</p>
+<p>没错，实现一个并发安全的 <code>map</code> 就是如此的简单，这么一对比，<code>sync.Map</code> 的实现确实很复杂。</p>
+<h3 id="分片-map"><a href="#分片-map" class="headerlink" title="分片 map"></a>分片 map</h3><p>我们知道加锁会使程序的性能急剧下降，读写锁能够在读多写少的场景中降低互斥锁对性能的影响。那么我们实现的并发安全 <code>map</code> 是否还有可优化空间呢？答案是肯定的。</p>
+<p>我们可以采用分片的思想，将一个大的 <code>map</code> 拆成多个更小的 <code>map</code>，然后让每个小 <code>map</code> 持有各自的锁，以此来减小锁的粒度，减少并发情况下加锁的次数。</p>
+<p>实现示例如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map/sharding_map.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map/sharding_map.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"hash/maphash"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> seed = maphash.MakeSeed()</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">hashKey</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="title">uint64</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> maphash.String(seed, key)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> ShardingMap <span class="keyword">struct</span> &#123;</span><br><span class="line">	locks  []sync.RWMutex</span><br><span class="line">	shards []<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewShardingMap</span><span class="params">(size <span class="keyword">int</span>)</span> *<span class="title">ShardingMap</span></span> &#123;</span><br><span class="line">	sm := &amp;ShardingMap&#123;</span><br><span class="line">		locks:  <span class="built_in">make</span>([]sync.RWMutex, size),</span><br><span class="line">		shards: <span class="built_in">make</span>([]<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span>, size),</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; size; i++ &#123;</span><br><span class="line">		sm.shards[i] = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> sm</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *ShardingMap)</span> <span class="title">getShardIdx</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="title">uint64</span></span> &#123;</span><br><span class="line">	hash := hashKey(key)</span><br><span class="line">	<span class="keyword">return</span> hash % <span class="keyword">uint64</span>(<span class="built_in">len</span>(m.shards))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *ShardingMap)</span> <span class="title">Set</span><span class="params">(key <span class="keyword">string</span>, value <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	idx := m.getShardIdx(key)</span><br><span class="line">	m.locks[idx].Lock()</span><br><span class="line">	<span class="keyword">defer</span> m.locks[idx].Unlock()</span><br><span class="line">	m.shards[idx][key] = value</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *ShardingMap)</span> <span class="title">Get</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">int</span>, <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	idx := m.getShardIdx(key)</span><br><span class="line">	m.locks[idx].RLock()</span><br><span class="line">	<span class="keyword">defer</span> m.locks[idx].RUnlock()</span><br><span class="line">	value, ok := m.shards[idx][key]</span><br><span class="line">	<span class="keyword">return</span> value, ok</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *ShardingMap)</span> <span class="title">Del</span><span class="params">(key <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	idx := m.getShardIdx(key)</span><br><span class="line">	m.locks[idx].Lock()</span><br><span class="line">	<span class="keyword">defer</span> m.locks[idx].Unlock()</span><br><span class="line">	<span class="built_in">delete</span>(m.shards[idx], key)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>ShardingMap</code> 表示一个采用分片机制的并发安全 <code>map</code>，它有两个属性 <code>locks</code> 和 <code>shards</code>，它们都是切片类型，<code>locks</code> 用来保存每个分片的读写锁，<code>shards</code> 用来保存每个分片的数据。</p>
+<p>通过函数 <code>NewShardingMap</code> 可以创建一个 <code>ShardingMap</code> 对象，它接收一个参数 <code>size</code> 用来初始化分片数量，即 <code>locks</code> 和 <code>shards</code> 的切片长度。在构造 <code>ShardingMap</code> 对象时会为 <code>shards</code> 中的每个 <code>map</code> 进行初始化，而由于 <code>sync.RWMutex</code> 零值可用，所以不必对 <code>locks</code> 中的每把读写锁进行初始化操作。</p>
+<p><code>getShardIdx</code> 方法非常重要，会被所有方法使用，它可以计算给定 <code>key</code> 所在的分片索引。首先它调用辅助函数 <code>hashKey</code> 对给定 <code>key</code> 计算出一个 <code>hash</code> 值，然后用这个 <code>hash</code> 值对分片长度做取模运算，这样就能得到一个值必然会落到某个分片的索引。这也是分片 <code>map</code> 的精髓所在，给定一个 <code>key</code> 为其计算一个分片索引值，然后将其存入对应的分片，这个过程不用加锁。如果 <code>hashKey</code> 函数实现的足够好，那么每个分片中分布的数据量也是比较均匀的。</p>
+<p>接下来就是 <code>map</code> 的基本操作方法 <code>Set</code>、<code>Get</code> 和 <code>Del</code> 的实现了，它们内部都会先调用 <code>m.getShardIdx(key)</code> 获取分片索引，然后对指定的分片进行加锁，最后再操作对应分片中的数据。这样，当多个 goroutine 并发读写 <code>map</code> 时，只要对应的 <code>key</code> 不在同一个分片中，那么就能降低加锁次数，从而提升程序性能。只有对应的 <code>key</code> 计算后在同一个分片中，多个 goroutine 之间才需要抢锁。</p>
+<p>看到这，你应该能够想到，如果我们要用 <code>map</code> 存储大量数据，则使用分片机制的并发安全 <code>map</code> 实现效果更好。</p>
+<h3 id="符合-Go-哲学的并发安全-map？"><a href="#符合-Go-哲学的并发安全-map？" class="headerlink" title="符合 Go 哲学的并发安全 map？"></a>符合 Go 哲学的并发安全 map？</h3><p>文章写到这里，其实 Go 中常见的实现并发安全 <code>map</code> 的方式基本就介绍完了。不过，这时候好像缺了点什么，Go 并发之道大家可是更推荐使用 channel 而非互斥锁，那么我们何不用 channel 来实现一个符合 Go 哲学的并发安全 <code>map</code> 呢？</p>
+<p>实现示例如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map/channel_map.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map/channel_map.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> ChannelMap <span class="keyword">struct</span> &#123;</span><br><span class="line">	cmd <span class="keyword">chan</span> command</span><br><span class="line">	m   <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> command <span class="keyword">struct</span> &#123;</span><br><span class="line">	action <span class="keyword">string</span> <span class="comment">// "get", "set", "delete"</span></span><br><span class="line">	key    <span class="keyword">string</span></span><br><span class="line">	value  <span class="keyword">int</span></span><br><span class="line">	result <span class="keyword">chan</span>&lt;- result</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> result <span class="keyword">struct</span> &#123;</span><br><span class="line">	value <span class="keyword">int</span></span><br><span class="line">	ok    <span class="keyword">bool</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewChannelMap</span><span class="params">()</span> *<span class="title">ChannelMap</span></span> &#123;</span><br><span class="line">	sm := &amp;ChannelMap&#123;</span><br><span class="line">		cmd: <span class="built_in">make</span>(<span class="keyword">chan</span> command),</span><br><span class="line">		m:   <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span>),</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">go</span> sm.run()</span><br><span class="line">	<span class="keyword">return</span> sm</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *ChannelMap)</span> <span class="title">run</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> cmd := <span class="keyword">range</span> m.cmd &#123;</span><br><span class="line">		<span class="keyword">switch</span> cmd.action &#123;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">"get"</span>:</span><br><span class="line">			value, ok := m.m[cmd.key]</span><br><span class="line">			cmd.result &lt;- result&#123;value, ok&#125;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">"set"</span>:</span><br><span class="line">			m.m[cmd.key] = cmd.value</span><br><span class="line">		<span class="keyword">case</span> <span class="string">"delete"</span>:</span><br><span class="line">			<span class="built_in">delete</span>(m.m, cmd.key)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *ChannelMap)</span> <span class="title">Set</span><span class="params">(key <span class="keyword">string</span>, value <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	m.cmd &lt;- command&#123;action: <span class="string">"set"</span>, key: key, value: value&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *ChannelMap)</span> <span class="title">Get</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">int</span>, <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	res := <span class="built_in">make</span>(<span class="keyword">chan</span> result)</span><br><span class="line">	m.cmd &lt;- command&#123;action: <span class="string">"get"</span>, key: key, result: res&#125;</span><br><span class="line">	r := &lt;-res</span><br><span class="line">	<span class="keyword">return</span> r.value, r.ok</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *ChannelMap)</span> <span class="title">Del</span><span class="params">(key <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	m.cmd &lt;- command&#123;action: <span class="string">"delete"</span>, key: key&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>ChannelMap</code> 结构体表示我们用 channel 实现的并发安全 <code>map</code>，它有两个属性，<code>cmd</code> 字段是一个 <code>chan command</code> 类型用来传递操作指令和操作结果，<code>m</code> 字段用来存储 <code>map</code> 数据。</p>
+<p><code>command</code> 结构是用来在 channel 中传递信息的，<code>action</code> 表示操作指令，比如 <code>get</code>、<code>set</code> 和 <code>delete</code> 操作，<code>key</code> 用来记录我们在调用 <code>Set</code>、<code>Get</code> 和 <code>Del</code> 方法时要操作的 <code>map</code> 中的 <code>key</code>，而 <code>value</code> 则用来记录调用 <code>Set</code> 方法时指定的 <code>value</code> 值，最后一个 <code>result</code> 字段用来记录调用 <code>Set</code>、<code>Get</code> 和 <code>Del</code> 方法时返回的结果。</p>
+<p>构造函数 <code>NewChannelMap</code> 可以创建一个 <code>ChannelMap</code> 对象，其内部不仅会初始化一个 <code>ChannelMap</code> 对象，还会调用 <code>go sm.run()</code> 启动一个新的 goroutine 来执行后台任务。</p>
+<p>这个后台任务就是 <code>ChannelMap</code> 的核心所在，在 <code>run</code> 方法内部，使用 <code>for</code> 循环来不断的从 <code>m.cmd</code> 这个 channel 中获取操作指令，根据 <code>cmd.action</code> 我们能够判断出用户是调用了 <code>Set</code>、<code>Get</code> 和 <code>Del</code> 中的哪个方法，接着做相应的操作。比如如果是调用了 <code>Get</code> 方法，就使用 <code>m.m[cmd.key]</code> 从 <code>map</code> 中获取 <code>key</code> 对应的值 <code>value</code>，然后构造 <code>result</code> 对象，并将其通过 <code>cmd.result</code> 这个 channel 传递给调用方。</p>
+<p>接下来看到 <code>Set</code>、<code>Get</code> 和 <code>Del</code> 这几个方法的实现，你就能彻底理解 <code>ChannelMap</code> 的设计思路了。还是拿 <code>Get</code> 方法举例，这里先是构造了一个 <code>chan result</code> 对象用来保存结果，并将它和给定的 <code>key</code> 一起构造出一个 <code>command</code> 对象传递给 <code>m.cmd</code>。当 <code>command</code> 被传递过去后，<code>run</code> 方法内部的 <code>for</code> 循环就能拿到这个 <code>command</code> 对象了，然后将结果通过我们构造的 <code>chan result</code> 对象再传递回来，一次 <code>Get</code> 操作就完成了。</p>
+<p>其他两个方法同理，这里的核心就是通过 <code>m.cmd</code> 这个无缓冲的 channel 实现并发控制，来保证多个 goroutine 同时操作 <code>map</code> 时的并发安全。</p>
+<h3 id="如何选择"><a href="#如何选择" class="headerlink" title="如何选择"></a>如何选择</h3><p>现在，我们掌握了多种并发安全 map 的实现，比如互斥锁、读写锁、分片以及 channel 实现，还有不要忘记 Go 内置的 <code>sync.Map</code> 实现。那么，我们到底该如何选择使用哪种实现呢？</p>
+<p>我们可以对其进行一轮基准测试，来测试下不同 <code>map</code> 实现的性能差距。示例如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map/sharding_map_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map/sharding_map_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 读写次数一致</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">BenchmarkSyncMap</span><span class="params">(b *testing.B)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> m sync.Map</span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; b.N; i++ &#123;</span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(k <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> wg.Done()</span><br><span class="line">			key := fmt.Sprintf(<span class="string">"key%d"</span>, k)</span><br><span class="line">			m.Store(key, k)</span><br><span class="line">			m.Load(key)</span><br><span class="line">		&#125;(i % <span class="number">100000</span>) <span class="comment">// 使用 100000 个不同的 key</span></span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这是读写次数一致的场景下对 <code>sync.Map</code> 进行的基准测试代码，其他几种 <code>map</code> 的基准测试代码一样，我就不都贴出来了。</p>
+<p>执行示例代码，可以得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -bench=<span class="string">"Map$"</span> -benchmem -run=<span class="string">"^$"</span></span><br><span class="line">goos: darwin</span><br><span class="line">goarch: amd64</span><br><span class="line">pkg: github.com/jianghushinian/blog-go-example/sync/concurrent-map</span><br><span class="line">cpu: Intel(R) Core(TM) i5-7360U CPU @ 2.30GHz</span><br><span class="line">BenchmarkChannelMap-4             551652              2670 ns/op             478 B/op          6 allocs/op</span><br><span class="line">BenchmarkRWMutexMap-4            1000000              1474 ns/op             196 B/op          4 allocs/op</span><br><span class="line">BenchmarkMutexMap-4              2156851               571.5 ns/op            68 B/op          4 allocs/op</span><br><span class="line">BenchmarkShardingMap-4           2752004               444.5 ns/op            66 B/op          3 allocs/op</span><br><span class="line">BenchmarkSyncMap-4               1765488               618.8 ns/op           115 B/op          7 allocs/op</span><br><span class="line">PASS</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/sync/concurrent-map   10.271s</span><br></pre></td></tr></table></figure>
+
+<p>根据这轮基准测试结果我们可以发现，在读写次数一致情况下，对并发安全的 <code>map</code> 进行 <code>100000</code> 次读写操作，使用 channel 实现的 <code>map</code> 性能最差，使用分片机制实现的 <code>map</code> 性能最好。</p>
+<p>那么我们再测一测读多写少的场景。示例如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map/sharding_map_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map/sharding_map_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 读多写少</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">BenchmarkSyncMapReadHeavy</span><span class="params">(b *testing.B)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> m sync.Map</span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; b.N; i++ &#123;</span><br><span class="line">		<span class="keyword">for</span> j := <span class="number">0</span>; j &lt; <span class="number">100</span>; j++ &#123;</span><br><span class="line">			wg.Add(<span class="number">1</span>)</span><br><span class="line">			<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(k <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">				<span class="keyword">defer</span> wg.Done()</span><br><span class="line">				m.Load(<span class="keyword">string</span>(<span class="keyword">rune</span>(k)))</span><br><span class="line">			&#125;(j)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">for</span> j := <span class="number">0</span>; j &lt; <span class="number">10</span>; j++ &#123;</span><br><span class="line">			wg.Add(<span class="number">1</span>)</span><br><span class="line">			<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(k <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">				<span class="keyword">defer</span> wg.Done()</span><br><span class="line">				m.Store(<span class="keyword">string</span>(<span class="keyword">rune</span>(k)), k)</span><br><span class="line">			&#125;(j)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，可以得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -bench=<span class="string">"MapReadHeavy$"</span> -benchmem -run=<span class="string">"^$"</span></span><br><span class="line">goos: darwin</span><br><span class="line">goarch: amd64</span><br><span class="line">pkg: github.com/jianghushinian/blog-go-example/sync/concurrent-map</span><br><span class="line">cpu: Intel(R) Core(TM) i5-7360U CPU @ 2.30GHz</span><br><span class="line">BenchmarkChannelMapReadHeavy-4              8490            212698 ns/op           33944 B/op        489 allocs/op</span><br><span class="line">BenchmarkRWMutexMapReadHeavy-4             30123             37994 ns/op            5342 B/op        230 allocs/op</span><br><span class="line">BenchmarkMutexMapReadHeavy-4               33726             42250 ns/op            5352 B/op        230 allocs/op</span><br><span class="line">BenchmarkShardingMapReadHeavy-4            31478             36449 ns/op            5320 B/op        230 allocs/op</span><br><span class="line">BenchmarkSyncMapReadHeavy-4                35464             36445 ns/op            5640 B/op        250 allocs/op</span><br><span class="line">PASS</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/sync/concurrent-map   10.816s</span><br></pre></td></tr></table></figure>
+
+<p>从这一轮基准测试结果来看，依然是使用 channel 实现的 <code>map</code> 性能最差，而使用分片机制实现的 <code>map</code> 和 <code>sync.Map</code> 性能不相上下。</p>
+<p>所以，这几个并发安全 <code>map</code> 的实现该怎么选择，你心目中有了答案吗？</p>
+<p>我的答案是，不要看我的基准测试结果，很可能换一下数据量重新测试你会得到不一样的结果。更不要人云亦云，比如不要被一些网上的言论所惑，并不像有些人鼓吹的那样，Go 并发编程只用 channel，你看使用 channel 实现的并发安全 <code>map</code> 性能反而最差。我想表达的是，你应该根据你预估的数据量来跑基准测试，以你自己的基准测试结果为选择依据。即使是 channel 也不是万能的，Go 中每一种并发原语都有它的适用场景，实践才是检验真理的唯一标准。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>Go 中内置的 <code>map</code> 不是并发安全的，而 <code>map</code> 是一种很常用的类型，为此 Go 在 <code>sync</code> 包中又内置了 <code>sync.Map</code> 来支持并发安全。</p>
+<p>除此以外，我们还可以使用 Go 的并发原语自己来实现并发安全的 <code>map</code>，比如使用互斥锁、读写锁、分片机制以及 channel。每一种 <code>map</code> 的实现都有其特点和适用场景，我们应该根据自己的数据量对这些实现进行基准测试，以此来选择合适的 <code>map</code> 实现。</p>
+<p>另外，为了降低读者阅读代码时的心智负担，本文中没有介绍泛型版本的并发安全 <code>map</code> 实现。本文原理已经讲解清楚了，对于泛型版本的实现，就留作作业交给你自己去完成了。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>sync.Map Documentation：<a href="https://pkg.go.dev/sync@go1.23.0#Map" target="_blank" rel="noopener">https://pkg.go.dev/sync@go1.23.0#Map</a></li>
+<li>sync.Map GitHub 源码：<a href="https://github.com/golang/go/blob/go1.23.0/src/sync/map.go" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/sync/map.go</a></li>
+<li>Go 并发控制：sync.Map 详解：<a href="https://jianghushinian.cn/2025/02/10/sync-map/" target="_blank" rel="noopener">https://jianghushinian.cn/2025/02/10/sync-map/</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/sync/map/concurrent-map</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-16T06:26:36.230Z" itemprop="dateUpdated">2025-02-16 14:26:36</time>
+</span><br>
+
+
+        
+        <a href="/2025/02/16/concurrent-map/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/02/16/concurrent-map/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/" rel="tag">并发编程</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/02/16/concurrent-map/&title=《Go 并发编程：如何实现一个并发安全的 map》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/02/16/concurrent-map/&title=《Go 并发编程：如何实现一个并发安全的 map》 — 江湖十年&source=上周发布的文章「Go 并发控制：sync.Map 详解」有读者反馈说我写的太难了，上来就挑战源码，对新手不够友好。所以这篇文章算作补充，从入门到进阶的顺序..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/02/16/concurrent-map/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 并发编程：如何实现一个并发安全的 map》 — 江湖十年&url=http://www.jianghushinian.cn/2025/02/16/concurrent-map/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/02/16/concurrent-map/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/02/10/sync-map/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 并发控制：sync.Map 详解</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2025</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/02/16/concurrent-map/&title=《Go 并发编程：如何实现一个并发安全的 map》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/02/16/concurrent-map/&title=《Go 并发编程：如何实现一个并发安全的 map》 — 江湖十年&source=上周发布的文章「Go 并发控制：sync.Map 详解」有读者反馈说我写的太难了，上来就挑战源码，对新手不够友好。所以这篇文章算作补充，从入门到进阶的顺序..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/02/16/concurrent-map/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 并发编程：如何实现一个并发安全的 map》 — 江湖十年&url=http://www.jianghushinian.cn/2025/02/16/concurrent-map/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/02/16/concurrent-map/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/02/16/concurrent-map/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
