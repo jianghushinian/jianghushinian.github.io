@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Go 中使用 cron 执行定时任务 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="如果你曾经在 Go 中实现过定时任务，可能会发现，原生的 time.Timer 或 time.Ticker 虽然简单易用，但在复杂的场景下（如多任务调度、时区处理、任务失败重试等）往往显得力不从心。这时，一个功能强大且灵活的定时任务库就显得尤为重要。 github.com&#x2F;robfig&#x2F;cron 正是为此而生。它不仅支持标准的 crontab 表达式，还提供了秒级精度、时区设置、任务链（Job W">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Go 中使用 cron 执行定时任务">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/02/23/cron/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="如果你曾经在 Go 中实现过定时任务，可能会发现，原生的 time.Timer 或 time.Ticker 虽然简单易用，但在复杂的场景下（如多任务调度、时区处理、任务失败重试等）往往显得力不从心。这时，一个功能强大且灵活的定时任务库就显得尤为重要。 github.com&#x2F;robfig&#x2F;cron 正是为此而生。它不仅支持标准的 crontab 表达式，还提供了秒级精度、时区设置、任务链（Job W">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/02/23/cron/cron-bug.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/02/23/cron/cron.png">
+<meta property="article:published_time" content="2025-02-23T15:22:30.000Z">
+<meta property="article:modified_time" content="2025-02-23T15:31:47.016Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2025/02/23/cron/cron-bug.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Go 中使用 cron 执行定时任务</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Go 中使用 cron 执行定时任务</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-02-23T15:22:30.000Z" itemprop="datePublished" class="page-time">
+  2025-02-23
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#快速开始"><span class="post-toc-number">1.</span> <span class="post-toc-text">快速开始</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#进阶用法"><span class="post-toc-number">2.</span> <span class="post-toc-text">进阶用法</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#执行计划时间格式"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">执行计划时间格式</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#任务对象"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">任务对象</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#自定义日志"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">自定义日志</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#任务装饰器"><span class="post-toc-number">2.4.</span> <span class="post-toc-text">任务装饰器</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#进阶示例"><span class="post-toc-number">2.5.</span> <span class="post-toc-text">进阶示例</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#原理剖析"><span class="post-toc-number">3.</span> <span class="post-toc-text">原理剖析</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-cron"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Go 中使用 cron 执行定时任务</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-02-23 23:22:30" datetime="2025-02-23T15:22:30.000Z"  itemprop="datePublished">2025-02-23</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>如果你曾经在 Go 中实现过定时任务，可能会发现，原生的 <code>time.Timer</code> 或 <code>time.Ticker</code> 虽然简单易用，但在复杂的场景下（如多任务调度、时区处理、任务失败重试等）往往显得力不从心。这时，一个功能强大且灵活的定时任务库就显得尤为重要。</p>
+<p><code>github.com/robfig/cron</code> 正是为此而生。它不仅支持标准的 <code>crontab</code> 表达式，还提供了秒级精度、时区设置、任务链（Job Wrappers）等高级功能，能够轻松应对各种复杂的定时任务场景。</p>
+<a id="more"></a>
+
+<p>本文就来带大家见识下 <code>cron</code> 的用法。</p>
+<h3 id="快速开始"><a href="#快速开始" class="headerlink" title="快速开始"></a>快速开始</h3><p>我们可以使用如下命令在 Go 项目中安装 <code>cron</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go get github.com/robfig/cron/v3@master</span><br></pre></td></tr></table></figure>
+
+<p>接着我们来一起快速入门 <code>cron</code> 的使用，示例如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/tree/main/cron/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/cron/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"log"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/robfig/cron/v3"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// <span class="doctag">NOTE:</span> 基础用法</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 创建一个新的 Cron 实例</span></span><br><span class="line">	c := cron.New(cron.WithSeconds())</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 添加一个每秒执行的任务</span></span><br><span class="line">	_, err := c.AddFunc(<span class="string">"* * * * * *"</span>, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"每秒执行的任务:"</span>, time.Now().Format(<span class="string">"2006-01-02 15:04:05"</span>))</span><br><span class="line">	&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"添加任务失败: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 添加一个每 5 秒执行的任务</span></span><br><span class="line">	_, err = c.AddFunc(<span class="string">"*/5 * * * * *"</span>, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"每 5 秒执行的任务:"</span>, time.Now().Format(<span class="string">"2006-01-02 15:04:05"</span>))</span><br><span class="line">	&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"添加任务失败: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 启动 Cron</span></span><br><span class="line">	c.Start()</span><br><span class="line">	<span class="keyword">defer</span> c.Stop() <span class="comment">// 确保程序退出时停止 Cron</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 主程序等待 10 秒，以便观察任务执行</span></span><br><span class="line">	time.Sleep(<span class="number">10</span> * time.Second)</span><br><span class="line">	fmt.Println(<span class="string">"主程序结束"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个示例展示了 <code>cron</code> 的基础用法，注册了两个定时任务到 <code>cron</code> 中，并在程序启动 10 秒后退出。</p>
+<p>使用 <code>cron.New</code> 方法可以创建一个 <code>cron</code> 对象，<code>cron.WithSeconds()</code> 参数可以扩展 <code>crontab</code> 表达式语法支持到秒级别，语法规则不变。</p>
+<p><code>cron</code> 对象的 <code>AddFunc</code> 方法可以添加一个任务到 <code>cron</code> 中，它接收两个参数，第一个字符串类型的参数用来定义 <code>crontab</code> 表达式，<code>* * * * * *</code> 表示每秒执行一次，第二个参数 <code>func()</code> 就是我们要添加的任务。这里为 <code>cron</code> 对象添加了两个任务。</p>
+<p><code>cron</code> 对象的 <code>Start</code> 方法内部会创建一个新的 goroutine 并启动 <code>cron</code> 调度器，调度器可以控制所有注册进来的任务的执行，在任务的执行计划到期时运行任务。</p>
+<p><code>cron</code> 对象的 <code>Stop</code> 方法可以停止调度器。</p>
+<p>执行上述示例，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">每秒执行的任务: 2025-02-23 16:02:41</span><br><span class="line">每秒执行的任务: 2025-02-23 16:02:42</span><br><span class="line">每秒执行的任务: 2025-02-23 16:02:43</span><br><span class="line">每秒执行的任务: 2025-02-23 16:02:44</span><br><span class="line">每秒执行的任务: 2025-02-23 16:02:45</span><br><span class="line">每 5 秒执行的任务: 2025-02-23 16:02:45</span><br><span class="line">每秒执行的任务: 2025-02-23 16:02:46</span><br><span class="line">每秒执行的任务: 2025-02-23 16:02:47</span><br><span class="line">每秒执行的任务: 2025-02-23 16:02:48</span><br><span class="line">每秒执行的任务: 2025-02-23 16:02:49</span><br><span class="line">每秒执行的任务: 2025-02-23 16:02:50</span><br><span class="line">每 5 秒执行的任务: 2025-02-23 16:02:50</span><br><span class="line">主程序结束</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，我们注册到 <code>cron</code> 中的两个任务都生效了，第一个任务每秒执行一次，第二个任务每 5 秒执行一次，10 秒后程序结束并退出。</p>
+<h3 id="进阶用法"><a href="#进阶用法" class="headerlink" title="进阶用法"></a>进阶用法</h3><p>上面示例中，我们快速入门了 <code>cron</code> 的用法，下面我再将 <code>cron</code> 的常用功能进行进一步讲解。</p>
+<h4 id="执行计划时间格式"><a href="#执行计划时间格式" class="headerlink" title="执行计划时间格式"></a>执行计划时间格式</h4><p><code>cron</code> 包支持标准的 <code>crontab</code> 表达式，并且可以使用 <code>cron.WithSeconds()</code> 将其精度扩展到秒级别。</p>
+<p>并且，<code>cron</code> 还支持另一种表达式：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">@every &lt;duration&gt;</span><br></pre></td></tr></table></figure>
+
+<p>这是一种固定时间间隔的表达式，<code>@every</code> 是固定写法，中间一个空格，然后是 <code>&lt;duration&gt;</code>，<code>&lt;duration&gt;</code> 可以是任意 <code>time.ParseDuration</code> 可解析的字符串。比如 <code>@every 1h30m10s</code> 表示任务每隔 1 小时 30 分 10 秒执行一次，<code>@every 5s</code> 表示任务每隔 5 秒执行一次。</p>
+<h4 id="任务对象"><a href="#任务对象" class="headerlink" title="任务对象"></a>任务对象</h4><p><code>cron</code> 包不仅支持注册函数类型的任务，其实我们可以注册任意自定义类型的任务，只需要实现 <code>cron.Job</code> 接口即可：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Job <span class="keyword">interface</span> &#123;</span><br><span class="line">	Run()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>比如我们自定义了 <code>Job</code> 类型作为一个任务对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Job 作业对象</span></span><br><span class="line"><span class="keyword">type</span> Job <span class="keyword">struct</span> &#123;</span><br><span class="line">	name  <span class="keyword">string</span></span><br><span class="line">	count <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(j *Job)</span> <span class="title">Run</span><span class="params">()</span></span> &#123;</span><br><span class="line">	j.count++</span><br><span class="line">	<span class="keyword">if</span> j.count == <span class="number">2</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"第 2 次执行触发 panic"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> j.count == <span class="number">4</span> &#123;</span><br><span class="line">		time.Sleep(<span class="number">6</span> * time.Second)</span><br><span class="line">		log.Println(<span class="string">"第 4 次执行耗时 6s"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Printf(<span class="string">"%s: 每 5 秒执行的任务, count: %d\n"</span>, j.name, j.count)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以使用如下方式，将其注册到 cron 中：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">    spec = <span class="string">"@every 5s"</span></span><br><span class="line">    job  = &amp;Job&#123;name: <span class="string">"江湖十年"</span>&#125;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">c := cron.New(cron.WithSeconds())</span><br><span class="line">c.AddJob(spec, job)</span><br></pre></td></tr></table></figure>
+
+<p><code>cron</code> 对象的调度器会每隔 5 秒执行一次 <code>job.Run</code> 方法。</p>
+<h4 id="自定义日志"><a href="#自定义日志" class="headerlink" title="自定义日志"></a>自定义日志</h4><p><code>cron</code> 支持注册自定义的日志对象，这样 <code>cron</code> 运行期间产生的日志都会输出到我们自定义的日志中。</p>
+<p>自定义日志之需要实现 <code>cron.Logger</code> 接口即可：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Logger <span class="keyword">interface</span> &#123;</span><br><span class="line">	<span class="comment">// Info logs routine messages about cron's operation.</span></span><br><span class="line">	Info(msg <span class="keyword">string</span>, keysAndValues ...<span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">	<span class="comment">// Error logs an error condition.</span></span><br><span class="line">	Error(err error, msg <span class="keyword">string</span>, keysAndValues ...<span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如下是我们自定义的日志对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 自定义 logger</span></span><br><span class="line"><span class="keyword">type</span> cronLogger <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newCronLogger</span><span class="params">()</span> *<span class="title">cronLogger</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;cronLogger&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Info implements the cron.Logger interface.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *cronLogger)</span> <span class="title">Info</span><span class="params">(msg <span class="keyword">string</span>, keysAndValues ...any)</span></span> &#123;</span><br><span class="line">	slog.Info(msg, keysAndValues...)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Error implements the cron.Logger interface.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *cronLogger)</span> <span class="title">Error</span><span class="params">(err error, msg <span class="keyword">string</span>, keysAndValues ...any)</span></span> &#123;</span><br><span class="line">	slog.Error(msg, <span class="built_in">append</span>(keysAndValues, <span class="string">"err"</span>, err)...)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里为了演示，仅将日志转发给 <code>slog</code> 进行输出，你可以定制更多高级功能。</p>
+<p>可以这样使用日志对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建自定义日志对象</span></span><br><span class="line">logger := &amp;cronLogger&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建一个新的 Cron 实例</span></span><br><span class="line">c := cron.New(</span><br><span class="line">    cron.WithSeconds(),      <span class="comment">// 增加秒解析</span></span><br><span class="line">    cron.WithLogger(logger), <span class="comment">// 自定义日志</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<h4 id="任务装饰器"><a href="#任务装饰器" class="headerlink" title="任务装饰器"></a>任务装饰器</h4><p>我们可以在初始化 <code>cron</code> 时，为任务定义一系列的装饰器，这样当有新的任务注册进来，就能自动为其附加装饰器的所有功能。</p>
+<p><code>cron</code> 为我们提供了几个自带的装饰器：</p>
+<ul>
+<li><code>cron.Recover</code>：恢复任务执行过程中产生的 <code>panic</code>，不要让 <code>cron</code> 调度器退出。</li>
+<li><code>cron.DelayIfStillRunning</code>：如果上一次任务还未完成，那么延迟此次任务的执行时间，只有上一次任务执行完成后，才会执行下一次任务。</li>
+<li><code>cron.SkipIfStillRunning</code>：如果上一次任务还未完成，那么此次此次任务的执行。</li>
+</ul>
+<p>我们可以像这样使用任务装饰器：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建自定义日志对象</span></span><br><span class="line">logger := &amp;cronLogger&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建一个新的 Cron 实例</span></span><br><span class="line">c := cron.New(</span><br><span class="line">    cron.WithSeconds(),      <span class="comment">// 增加秒解析</span></span><br><span class="line">    cron.WithLogger(logger), <span class="comment">// 自定义日志</span></span><br><span class="line">    cron.WithChain( <span class="comment">// chain 是顺序敏感的</span></span><br><span class="line">        cron.SkipIfStillRunning(logger), <span class="comment">// 如果作业仍在运行，则跳过此次运行</span></span><br><span class="line">        cron.Recover(logger),            <span class="comment">// 恢复 panic</span></span><br><span class="line">    ),</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p><code>cron.WithChain</code> 会将所有装饰器串联起来，使其成为一条任务链，比如 <code>cron.WithChain(m1, m2)</code>，那么最终任务执行时会这样调用：<code>m1(m2(job))</code>。</p>
+<p>我们也可以实现自定义的装饰器，其函数定义格式为：<code>func(cron.Job) cron.Job</code>，你可以试着自己实现一个。</p>
+<h4 id="进阶示例"><a href="#进阶示例" class="headerlink" title="进阶示例"></a>进阶示例</h4><p>学习了 <code>cron</code> 的进阶使用，我们可以编写一个示例，体验下这些功能的用法：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/tree/main/cron/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/cron/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 自定义 logger</span></span><br><span class="line"><span class="keyword">type</span> cronLogger <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newCronLogger</span><span class="params">()</span> *<span class="title">cronLogger</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;cronLogger&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Info implements the cron.Logger interface.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *cronLogger)</span> <span class="title">Info</span><span class="params">(msg <span class="keyword">string</span>, keysAndValues ...any)</span></span> &#123;</span><br><span class="line">	slog.Info(msg, keysAndValues...)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Error implements the cron.Logger interface.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *cronLogger)</span> <span class="title">Error</span><span class="params">(err error, msg <span class="keyword">string</span>, keysAndValues ...any)</span></span> &#123;</span><br><span class="line">	slog.Error(msg, <span class="built_in">append</span>(keysAndValues, <span class="string">"err"</span>, err)...)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Job 作业对象</span></span><br><span class="line"><span class="keyword">type</span> Job <span class="keyword">struct</span> &#123;</span><br><span class="line">	name  <span class="keyword">string</span></span><br><span class="line">	count <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(j *Job)</span> <span class="title">Run</span><span class="params">()</span></span> &#123;</span><br><span class="line">	j.count++</span><br><span class="line">	<span class="keyword">if</span> j.count == <span class="number">2</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"第 2 次执行触发 panic"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> j.count == <span class="number">4</span> &#123;</span><br><span class="line">		time.Sleep(<span class="number">6</span> * time.Second)</span><br><span class="line">		log.Println(<span class="string">"第 4 次执行耗时 6s"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Printf(<span class="string">"%s: 每 5 秒执行的任务, count: %d\n"</span>, j.name, j.count)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	log.Println(<span class="string">"cron start"</span>)</span><br><span class="line">	<span class="comment">// 创建自定义日志对象</span></span><br><span class="line">	logger := &amp;cronLogger&#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建一个新的 Cron 实例</span></span><br><span class="line">	c := cron.New(</span><br><span class="line">		cron.WithSeconds(),      <span class="comment">// 增加秒解析</span></span><br><span class="line">		cron.WithLogger(logger), <span class="comment">// 自定义日志</span></span><br><span class="line">		cron.WithChain( <span class="comment">// chain 是顺序敏感的</span></span><br><span class="line">			cron.SkipIfStillRunning(logger), <span class="comment">// 如果作业仍在运行，则跳过此次运行</span></span><br><span class="line">			cron.Recover(logger),            <span class="comment">// 恢复 panic</span></span><br><span class="line">		),</span><br><span class="line">	)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		spec = <span class="string">"@every 5s"</span></span><br><span class="line">		job  = &amp;Job&#123;name: <span class="string">"江湖十年"</span>&#125;</span><br><span class="line">	)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 添加一个每 5 秒执行的任务</span></span><br><span class="line">	id, err := c.AddJob(spec, job)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"添加任务失败: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	log.Println(<span class="string">"任务 ID:"</span>, id)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 启动 Cron</span></span><br><span class="line">	c.Start()</span><br><span class="line">	<span class="keyword">defer</span> c.Stop() <span class="comment">// 确保程序退出时停止 Cron</span></span><br><span class="line"></span><br><span class="line">	time.Sleep(<span class="number">34</span> * time.Second) <span class="comment">// 确保 job 能执行 6 次</span></span><br><span class="line">	c.Remove(id)                 <span class="comment">// 从调度器中移除 job</span></span><br><span class="line">	time.Sleep(<span class="number">10</span> * time.Second) <span class="comment">// job 不会再次执行</span></span><br><span class="line">	log.Println(<span class="string">"cron done"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个示例完整的展示了进阶用法的几项功能。</p>
+<p>执行上述示例，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">2025/02/23 16:03:47 cron start</span><br><span class="line">2025/02/23 16:03:47 任务 ID: 1</span><br><span class="line">2025/02/23 16:03:47 INFO start</span><br><span class="line">2025/02/23 16:03:47 INFO schedule now=2025-02-23T16:03:47.035+08:00 entry=1 next=2025-02-23T16:03:52.000+08:00</span><br><span class="line">2025/02/23 16:03:52 INFO wake now=2025-02-23T16:03:52.000+08:00</span><br><span class="line">2025/02/23 16:03:52 INFO run now=2025-02-23T16:03:52.000+08:00 entry=1 next=2025-02-23T16:03:57.000+08:00</span><br><span class="line">江湖十年: 每 5 秒执行的任务, count: 1</span><br><span class="line">2025/02/23 16:03:57 INFO wake now=2025-02-23T16:03:57.001+08:00</span><br><span class="line">2025/02/23 16:03:57 INFO run now=2025-02-23T16:03:57.001+08:00 entry=1 next=2025-02-23T16:04:02.000+08:00</span><br><span class="line">2025/02/23 16:03:57 ERROR panic stack=<span class="string">"..."</span> err=<span class="string">"第 2 次执行触发 panic"</span></span><br><span class="line">2025/02/23 16:04:02 INFO wake now=2025-02-23T16:04:02.000+08:00</span><br><span class="line">2025/02/23 16:04:02 INFO run now=2025-02-23T16:04:02.000+08:00 entry=1 next=2025-02-23T16:04:07.000+08:00</span><br><span class="line">江湖十年: 每 5 秒执行的任务, count: 3</span><br><span class="line">2025/02/23 16:04:07 INFO wake now=2025-02-23T16:04:07.000+08:00</span><br><span class="line">2025/02/23 16:04:07 INFO run now=2025-02-23T16:04:07.000+08:00 entry=1 next=2025-02-23T16:04:12.000+08:00</span><br><span class="line">2025/02/23 16:04:12 INFO wake now=2025-02-23T16:04:12.000+08:00</span><br><span class="line">2025/02/23 16:04:12 INFO run now=2025-02-23T16:04:12.000+08:00 entry=1 next=2025-02-23T16:04:17.000+08:00</span><br><span class="line">2025/02/23 16:04:12 INFO skip</span><br><span class="line">2025/02/23 16:04:13 第 4 次执行耗时 6s</span><br><span class="line">江湖十年: 每 5 秒执行的任务, count: 4</span><br><span class="line">2025/02/23 16:04:17 INFO wake now=2025-02-23T16:04:17.001+08:00</span><br><span class="line">江湖十年: 每 5 秒执行的任务, count: 5</span><br><span class="line">2025/02/23 16:04:17 INFO run now=2025-02-23T16:04:17.001+08:00 entry=1 next=2025-02-23T16:04:22.000+08:00</span><br><span class="line">2025/02/23 16:04:21 INFO removed entry=1</span><br><span class="line">2025/02/23 16:04:31 cron <span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+<p>这里日志比较多，不过如果你耐心梳理一下，还是比较清晰的。</p>
+<p>可以看到日志中输出了 <code>第 2 次执行触发 panic</code>（日志行省略了 <code>stack</code> 信息），程序并没有退出，说明我们使用的 <code>cron.Recover(logger)</code> 装饰器生效了。</p>
+<p>并且，在打印 <code>第 4 次执行耗时 6s</code> 之前，上一行日志输出了 <code>INFO skip</code>，表示跳过了一次任务执行，说明 <code>cron.SkipIfStillRunning(logger)</code> 装饰器生效了。</p>
+<p>我们使用 <code>c.Remove(id)</code> 从调度器中移除了注册的任务后，任务没再执行。</p>
+<p>好了，<code>cron</code> 的使用示例就讲解到这里。</p>
+<p>我需要额外强调的一点是，其实 <code>cron</code> 项目存在一个 Bug，在作者的最后一次 <a href="https://github.com/robfig/cron/commit/bc59245fe10efaed9d51b56900192527ed733435" target="_blank" rel="noopener">commit</a> 中被修复。不过作者并没有为其打上新的 Tag，所以这也是为什么安装时我们需要指定 <code>@master</code> 来下载最新版本。</p>
+<p>这个 Bug 修复如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="cron-bug.png" alt="cron-bug" title="">
+                </div>
+                <div class="image-caption">cron-bug</div>
+            </figure>
+
+<p>如果你在安装 <code>cron</code> 时没有指定 <code>@master</code>，你可以尝试修改下 <code>cron.SkipIfStillRunning</code> 和 <code>cron.Recover</code> 的顺序，来看看程序执行效果。</p>
+<h3 id="原理剖析"><a href="#原理剖析" class="headerlink" title="原理剖析"></a>原理剖析</h3><p><code>cron</code> 的常见用法我们都讲解完成了，如果你想更深入的了解 <code>cron</code>，那么我这里为你简单梳理下 <code>cron</code> 的整体设计，方便你进一步学习。</p>
+<p>首先，我为你画了一张思维导图，展示了 <code>cron</code> 对象提供的所有 exported 方法：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="cron.png" alt="cron" title="">
+                </div>
+                <div class="image-caption">cron</div>
+            </figure>
+
+<p>我们最需要关注的就是创建、启动、添加任务（图中写为“作业”）和停止功能。</p>
+<p>其中 <code>Cron</code> 是一个结构体，用于管理和调度注册进来的任务，其定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Cron 核心结构体，用于调度注册进来的作业</span></span><br><span class="line"><span class="comment">// 记录作业列表（entries），可以启动、停止，并且检查运行中的作业状态</span></span><br><span class="line"><span class="keyword">type</span> Cron <span class="keyword">struct</span> &#123;</span><br><span class="line">	entries   []*Entry          <span class="comment">// 作业对象列表</span></span><br><span class="line">	chain     Chain             <span class="comment">// 装饰器链</span></span><br><span class="line">	stop      <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;     <span class="comment">// 停止信号</span></span><br><span class="line">	add       <span class="keyword">chan</span> *Entry       <span class="comment">// Cron 运行时，增加作业的 channel</span></span><br><span class="line">	remove    <span class="keyword">chan</span> EntryID      <span class="comment">// 移除指定 ID 作业的 channel</span></span><br><span class="line">	snapshot  <span class="keyword">chan</span> <span class="keyword">chan</span> []Entry <span class="comment">// 获取当前作业列表快照的 channel</span></span><br><span class="line">	running   <span class="keyword">bool</span>              <span class="comment">// 标识 Cron 是否正在运行</span></span><br><span class="line">	logger    Logger            <span class="comment">// 日志对象，Cron 会将运行的日志内容输出到 logger</span></span><br><span class="line">	runningMu sync.Mutex        <span class="comment">// 当 Cron 运行时，保护并发操作的锁</span></span><br><span class="line">	location  *time.Location    <span class="comment">// 本地时区，Cron 根据此时区计算任务执行计划</span></span><br><span class="line">	parser    ScheduleParser    <span class="comment">// 任务执行计划解析器</span></span><br><span class="line">	nextID    EntryID           <span class="comment">// 下一个要执行的作业 ID</span></span><br><span class="line">	jobWaiter sync.WaitGroup    <span class="comment">// 使用 wg 等待作业完成</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>所有添加到 <code>Cron</code> 中的任务都会保存在 <code>entries</code> 列表中。</p>
+<p><code>Entry</code> 结构体表示一个任务对象，定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// EntryID 标识 Cron 实例中的一个作业</span></span><br><span class="line"><span class="keyword">type</span> EntryID <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Entry 作业实体对象，表示一个被注册进 Cron 执行器中的作业</span></span><br><span class="line"><span class="keyword">type</span> Entry <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// ID 是作业的唯一 ID，可用于查找快照或将其删除</span></span><br><span class="line">	ID EntryID</span><br><span class="line">	<span class="comment">// Schedule 作业的执行计划，应该按照此计划来执行作业</span></span><br><span class="line">	Schedule Schedule</span><br><span class="line">	<span class="comment">// Next 下次运行作业的时间，如果 Cron 尚未启动或无法满足此作业的执行计划，则为 zero time</span></span><br><span class="line">	Next time.Time</span><br><span class="line">	<span class="comment">// Prev 是此作业的最后一次运行时间，如果从未运行，则为 zero time</span></span><br><span class="line">	Prev time.Time</span><br><span class="line">	<span class="comment">// WrappedJob 作业装饰器，为作业增加新的功能，会在 Schedule 被激活时运行</span></span><br><span class="line">	WrappedJob Job</span><br><span class="line">	<span class="comment">// Job 提交到 Cron 中的作业</span></span><br><span class="line">	Job Job</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>EntryID</code> 就是我们调用 <code>c.Remove(id)</code> 时使用的 <code>id</code>。</p>
+<p><code>Cron</code> 最核心的逻辑当然是调度逻辑，其功能主要由 <code>for...select</code> 实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> &#123;</span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> now = &lt;-timer.C:</span><br><span class="line">        <span class="comment">// 运行下一次执行时间小于当前时间的所有作业</span></span><br><span class="line">    <span class="keyword">case</span> newEntry := &lt;-c.add:</span><br><span class="line">        <span class="comment">// 有新的作业加入进来，加入调度</span></span><br><span class="line">    <span class="keyword">case</span> replyChan := &lt;-c.snapshot:</span><br><span class="line">        <span class="comment">// 获取当前作业列表</span></span><br><span class="line">    <span class="keyword">case</span> &lt;-c.stop:</span><br><span class="line">        <span class="comment">// 停止调度</span></span><br><span class="line">    <span class="keyword">case</span> id := &lt;-c.remove:</span><br><span class="line">        <span class="comment">// 移除指定 ID 的作业</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里是调度器主要逻辑，<code>for...select</code> 能够实现高效调度，并且结合 exported 方法中的互斥锁，<code>cron</code> 能够支持并发操作。</p>
+<p>以上，就是 <code>cron</code> 的设计原理。当然其具体内部实现还需要你自行研究，你可以参考我写好了中文注释的源码 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/cron/sourcecode/cron" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/cron/sourcecode/cron</a>。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><code>github.com/robfig/cron</code> 解决了复杂场景下在 Go 中执行定时任务的需求。</p>
+<p><code>cron</code> 包非常强大，它扩展了 <code>crontab</code> 表达式，支持秒级精度。任务链的功能可以为任务附加功能，这个设计跟 Gin 框架的中间件非常相似，你可以类比学习。此外我认为 <code>cron</code> 包设计比较好的一点是支持自定义日志包，这样我们可以按照自己的方式收集 <code>cron</code> 的执行日志。想要更深入的学习 <code>cron</code> 包，可以参考我画的思维导图进一步阅读其源码。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/cron" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>cron wiki: <a href="https://en.wikipedia.org/wiki/Cron" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Cron</a></li>
+<li>cron Documentation：<a href="https://pkg.go.dev/github.com/robfig/cron" target="_blank" rel="noopener">https://pkg.go.dev/github.com/robfig/cron</a></li>
+<li>cron GitHub 源码：<a href="https://github.com/robfig/cron" target="_blank" rel="noopener">https://github.com/robfig/cron</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/cron" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/cron</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-23T15:31:47.016Z" itemprop="dateUpdated">2025-02-23 23:31:47</time>
+</span><br>
+
+
+        
+        <a href="/2025/02/23/cron/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/02/23/cron/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/02/23/cron/&title=《在 Go 中使用 cron 执行定时任务》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/02/23/cron/&title=《在 Go 中使用 cron 执行定时任务》 — 江湖十年&source=如果你曾经在 Go 中实现过定时任务，可能会发现，原生的 time.Timer 或 time.Ticker 虽然简单易用，但在复杂的场景下（如多任务调度、..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/02/23/cron/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中使用 cron 执行定时任务》 — 江湖十年&url=http://www.jianghushinian.cn/2025/02/23/cron/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/02/23/cron/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/02/16/concurrent-map/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 并发编程：如何实现一个并发安全的 map</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2025</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/02/23/cron/&title=《在 Go 中使用 cron 执行定时任务》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/02/23/cron/&title=《在 Go 中使用 cron 执行定时任务》 — 江湖十年&source=如果你曾经在 Go 中实现过定时任务，可能会发现，原生的 time.Timer 或 time.Ticker 虽然简单易用，但在复杂的场景下（如多任务调度、..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/02/23/cron/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中使用 cron 执行定时任务》 — 江湖十年&url=http://www.jianghushinian.cn/2025/02/23/cron/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/02/23/cron/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/02/23/cron/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
