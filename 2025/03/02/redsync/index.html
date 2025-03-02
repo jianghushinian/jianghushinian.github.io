@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Go 中如何使用分布式锁解决并发问题？ | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,并发编程">
+    <meta name="description" content="在分布式系统中，协调多个服务实例之间的共享资源访问是一个经典的挑战。传统的单机锁（如 sync.Mutex）无法实现跨进程工作，此时就需要用到分布式锁了。本文将介绍 Go 语言生态中基于 Redis 实现的分布式锁库 redsync，并探讨其使用方法和实现原理。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Go 中如何使用分布式锁解决并发问题？">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/03/02/redsync/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在分布式系统中，协调多个服务实例之间的共享资源访问是一个经典的挑战。传统的单机锁（如 sync.Mutex）无法实现跨进程工作，此时就需要用到分布式锁了。本文将介绍 Go 语言生态中基于 Redis 实现的分布式锁库 redsync，并探讨其使用方法和实现原理。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-03-02T14:01:22.000Z">
+<meta property="article:modified_time" content="2025-03-02T14:10:36.486Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="并发编程">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Go 中如何使用分布式锁解决并发问题？</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Go 中如何使用分布式锁解决并发问题？</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-03-02T14:01:22.000Z" itemprop="datePublished" class="page-time">
+  2025-03-02
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#分布式锁"><span class="post-toc-number">1.</span> <span class="post-toc-text">分布式锁</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#为什么是-redsync"><span class="post-toc-number">1.1.</span> <span class="post-toc-text">为什么是 redsync</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#redsync-快速上手"><span class="post-toc-number">2.</span> <span class="post-toc-text">redsync 快速上手</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#配置选项"><span class="post-toc-number">3.</span> <span class="post-toc-text">配置选项</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#看门狗"><span class="post-toc-number">4.</span> <span class="post-toc-text">看门狗</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#redsync-原理"><span class="post-toc-number">5.</span> <span class="post-toc-text">redsync 原理</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#如何实现一个-Redis-分布式锁"><span class="post-toc-number">5.1.</span> <span class="post-toc-text">如何实现一个 Redis 分布式锁</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#微型分布式锁使用"><span class="post-toc-number">5.2.</span> <span class="post-toc-text">微型分布式锁使用</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">6.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-redsync"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Go 中如何使用分布式锁解决并发问题？</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-03-02 22:01:22" datetime="2025-03-02T14:01:22.000Z"  itemprop="datePublished">2025-03-02</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在分布式系统中，协调多个服务实例之间的共享资源访问是一个经典的挑战。传统的单机锁（如 <code>sync.Mutex</code>）无法实现跨进程工作，此时就需要用到分布式锁了。本文将介绍 Go 语言生态中基于 Redis 实现的分布式锁库 <code>redsync</code>，并探讨其使用方法和实现原理。</p>
+<a id="more"></a>
+
+<h3 id="分布式锁"><a href="#分布式锁" class="headerlink" title="分布式锁"></a>分布式锁</h3><p>首先我们来探讨下为什么需要分布式锁？当我们编写的程序出现资源竞争的时候，就需要使用互斥锁来保证并发安全。而我们的服务很有可能不会单机部署，而是采用多副本的集群部署方案。无论哪种方案运行程序，我们都需要合适的工具来解决并发问题。在解决单个进程间多个协程之间的并发资源抢占问题时，我们往往采用 <code>sync.Mutex</code>。而在解决多个进程间的并发资源抢占问题时，就需要采用分布式锁了，这就引出了我们今天要讲解的 <code>redsync</code>。</p>
+<h4 id="为什么是-redsync"><a href="#为什么是-redsync" class="headerlink" title="为什么是 redsync"></a>为什么是 <code>redsync</code></h4><p>在 Go 中分布式锁的开源实现有很多，为什么选择介绍和使用 <code>redsync</code> 呢？简单一句话：<code>redsync</code> 是 <a href="https://redis.io/docs/latest/develop/use/patterns/distributed-locks/" target="_blank" rel="noopener">Redis 官方</a> 唯一推荐的 Go Redis 分布式锁解决方案，遵循 <a href="https://redis.io/topics/distlock" target="_blank" rel="noopener">Redlock 算法</a>。它允许在多个独立 Redis 节点上创建高可用的锁，适用于需要强一致性的分布式场景。</p>
+<p>我们可以对比下 <code>sync.Mutex</code> 和 <code>redsync</code> 之间的区别，让你有个感性的认识。</p>
+<table>
+<thead>
+<tr>
+<th align="center">特性</th>
+<th align="center">sync.Mutex</th>
+<th align="center">redsync</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">适用范围</td>
+<td align="center">单个进程内的多个 goroutine</td>
+<td align="center">多个进程（允许跨机器）</td>
+</tr>
+<tr>
+<td align="center">依赖</td>
+<td align="center">无</td>
+<td align="center">Redis</td>
+</tr>
+<tr>
+<td align="center">性能</td>
+<td align="center">高（无网络开销）</td>
+<td align="center">较低（涉及网络通信）</td>
+</tr>
+<tr>
+<td align="center">实现复杂度</td>
+<td align="center">简单</td>
+<td align="center">较复杂（需处理网络、超时等问题）</td>
+</tr>
+<tr>
+<td align="center">典型场景</td>
+<td align="center">内存共享资源保护</td>
+<td align="center">分布式系统共享资源保护</td>
+</tr>
+</tbody></table>
+<p>二者分别适用于不同的并发场景，选择时需要根据实际需求（单机还是分布式）来决定。</p>
+<h3 id="redsync-快速上手"><a href="#redsync-快速上手" class="headerlink" title="redsync 快速上手"></a><code>redsync</code> 快速上手</h3><p><code>redsync</code> 虽然内部实现上比较复杂，但别被吓到，它的用法超级简单。</p>
+<p>示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"context"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/go-redsync/redsync/v4"</span>                  <span class="comment">// 引入 redsync 库，用于实现基于 Redis 的分布式锁</span></span><br><span class="line">	<span class="string">"github.com/go-redsync/redsync/v4/redis/goredis/v9"</span> <span class="comment">// 引入 redsync 的 goredis 连接池</span></span><br><span class="line">	goredislib <span class="string">"github.com/redis/go-redis/v9"</span>           <span class="comment">// 引入 go-redis 库，用于与 Redis 服务器通信</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 创建一个 Redis 客户端</span></span><br><span class="line">	client := goredislib.NewClient(&amp;goredislib.Options&#123;</span><br><span class="line">		Addr:     <span class="string">"localhost:36379"</span>, <span class="comment">// Redis 服务器地址</span></span><br><span class="line">		Password: <span class="string">"nightwatch"</span>,</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 使用 go-redis 客户端创建一个 redsync 连接池</span></span><br><span class="line">	pool := goredis.NewPool(client)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建一个 redsync 实例，用于管理分布式锁</span></span><br><span class="line">	rs := redsync.New(pool)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建一个名为 "test-redsync" 的互斥锁（Mutex）</span></span><br><span class="line">	mutex := rs.NewMutex(<span class="string">"test-redsync"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建一个上下文（context），一般用于控制锁的超时和取消</span></span><br><span class="line">	ctx := context.Background()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 获取锁，如果获取失败（例如锁已被其他进程持有），会返回错误</span></span><br><span class="line">	<span class="keyword">if</span> err := mutex.LockContext(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err) <span class="comment">// 如果获取锁失败，程序会 panic</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// TODO 执行业务逻辑</span></span><br><span class="line">	<span class="comment">// ...</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 释放锁，如果释放失败（例如锁已过期或不属于当前进程），会返回错误</span></span><br><span class="line">	<span class="keyword">if</span> _, err := mutex.UnlockContext(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err) <span class="comment">// 如果释放锁失败，程序会 panic</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为 <code>redsync</code> 依赖 Redis，所以我们首先需要创建一个 Redis 客户端对象 <code>client</code>，调用 <code>goredis.NewPool(client)</code> 会基于这个 <code>client</code> 创建一个 <code>redsync</code> 的连接池，有了这个连接池 <code>pool</code> 就可以调用 <code>redsync.New(pool)</code> 创建一个 <code>redsync</code> 实例来申请分布式锁了。</p>
+<p><code>redsync</code> 提供了 <code>NewMutex</code> 方法可以创建一个分布式锁，它接收一个 <code>name</code> 参数作为锁的名字，这个名字会作为 Redis 中的 <code>key</code>。</p>
+<p>拿到锁对象 <code>mutex</code> 以后，调用 <code>mutex.LockContext(ctx)</code> 就可以加锁，加锁后便可以访问竞态资源了，资源访问完成后，调用 <code>mutex.UnlockContext(ctx)</code> 便可以释放锁。</p>
+<p>可以发现，<code>redsync</code> 用法和 <code>sync.Mutex</code> 非常相似，核心就是 <code>Lock/Unlock</code> 两个操作。redsync 的使用无非多了一步连接 Redis 的过程。</p>
+<h3 id="配置选项"><a href="#配置选项" class="headerlink" title="配置选项"></a>配置选项</h3><p>不知道你有没有想过一个问题，我们在使用 <code>sync.Mutex</code> 时，如果某个 gorutine 加锁后不释放掉，那么其他 gorutine 就无法获取锁，而在分布式场景中，如果一个进程获取了 Redis 分布式锁，然后在未释放锁之前进程挂掉了，其他进程要如何获取锁呢，难道要一直等待下去吗？</p>
+<p>这里就要引出一个使用分布式锁很重要的问题，那就是一定要设置一个过期时间，这样才能保证即使拿到锁的进程挂掉了，只要锁的过期时间已到，锁也一定会被自动释放掉，只有这样，其他进程才有机会获取锁。</p>
+<p>而我们上面的示例中，之所以可以不设置锁的过期时间，原因是 <code>redsync</code> 内部设置了默认值。以下是 <code>redsync</code> 中 <code>NewMutex</code> 方法的源码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewMutex returns a new distributed mutex with given name.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *Redsync)</span> <span class="title">NewMutex</span><span class="params">(name <span class="keyword">string</span>, options ...Option)</span> *<span class="title">Mutex</span></span> &#123;</span><br><span class="line">	m := &amp;Mutex&#123;</span><br><span class="line">		name:   name,</span><br><span class="line">		expiry: <span class="number">8</span> * time.Second,</span><br><span class="line">		tries:  <span class="number">32</span>,</span><br><span class="line">		delayFunc: <span class="function"><span class="keyword">func</span><span class="params">(tries <span class="keyword">int</span>)</span> <span class="title">time</span>.<span class="title">Duration</span></span> &#123;</span><br><span class="line">			<span class="keyword">return</span> time.Duration(rand.Intn(maxRetryDelayMilliSec-minRetryDelayMilliSec)+minRetryDelayMilliSec) * time.Millisecond</span><br><span class="line">		&#125;,</span><br><span class="line">		genValueFunc:  genValue,</span><br><span class="line">		driftFactor:   <span class="number">0.01</span>,</span><br><span class="line">		timeoutFactor: <span class="number">0.05</span>,</span><br><span class="line">		quorum:        <span class="built_in">len</span>(r.pools)/<span class="number">2</span> + <span class="number">1</span>,</span><br><span class="line">		pools:         r.pools,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> _, o := <span class="keyword">range</span> options &#123;</span><br><span class="line">		o.Apply(m)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> m.shuffle &#123;</span><br><span class="line">		randomPools(m.pools)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> m</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里 <code>Mutex</code> 对象的第二个字段 <code>expiry</code> 就是分布式锁的过期时间，这里默认为设为 8 秒。<code>tries</code> 字段是获取锁的重试次数，即尝试获取锁失败 32 次以后，才会返回加锁失败，因为分布式场景下失败是很正常的情况，所以 32 次并不是一个很夸张的值。<code>delayFunc</code> 字段是每次失败后重试的间隔时间。其他字段我就不一一讲解了，绝大多数我们都用不到。</p>
+<p>根据代码我们很容易想到这几个字段是通过选项模式来设置的。</p>
+<ul>
+<li><code>WithExpiry(time.Duration)</code>：设置锁的自动过期时间（建议大于业务执行时间）。</li>
+<li><code>WithTries(int)</code>：设置最大重试次数。</li>
+<li><code>WithRetryDelay(time.Duration)</code>：设置重试间隔。</li>
+</ul>
+<p>使用示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">mutex := rs.NewMutex(<span class="string">"test-redsync"</span>,</span><br><span class="line">    redsync.WithExpiry(<span class="number">30</span>*time.Second),</span><br><span class="line">    redsync.WithTries(<span class="number">3</span>),</span><br><span class="line">    redsync.WithRetryDelay(<span class="number">500</span>*time.Millisecond),</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<h3 id="看门狗"><a href="#看门狗" class="headerlink" title="看门狗"></a>看门狗</h3><p>我们现在知道使用分布式锁一定要设置一个过期时间了，但是这会带来另外一个问题：如果我们的业务代码还没执行完，锁就过期自动释放了，那么此时另外一个进程成功拿到这把锁，也来访问竞态资源，那分布式锁不就失去意义了吗？</p>
+<p>这就引出了使用分布式锁的另一个重要问题，锁自动续期。我举一个代码示例，你就懂了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"context"</span></span><br><span class="line">	<span class="string">"log/slog"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/go-redsync/redsync/v4"</span>                  <span class="comment">// 引入 redsync 库，用于实现基于 Redis 的分布式锁</span></span><br><span class="line">	<span class="string">"github.com/go-redsync/redsync/v4/redis/goredis/v9"</span> <span class="comment">// 引入 redsync 的 goredis 连接池</span></span><br><span class="line">	goredislib <span class="string">"github.com/redis/go-redis/v9"</span>           <span class="comment">// 引入 go-redis 库，用于与 Redis 服务器通信</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 创建一个 Redis 客户端</span></span><br><span class="line">	client := goredislib.NewClient(&amp;goredislib.Options&#123;</span><br><span class="line">		Addr:     <span class="string">"localhost:36379"</span>, <span class="comment">// Redis 服务器地址</span></span><br><span class="line">		Password: <span class="string">"nightwatch"</span>,</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 使用 go-redis 客户端创建一个 redsync 连接池</span></span><br><span class="line">	pool := goredis.NewPool(client)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建一个 redsync 实例，用于管理分布式锁</span></span><br><span class="line">	rs := redsync.New(pool)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建一个名为 "test-redsync" 的互斥锁（Mutex）</span></span><br><span class="line">	mutex := rs.NewMutex(<span class="string">"test-redsync"</span>, redsync.WithExpiry(<span class="number">5</span>*time.Second))</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建一个上下文（context），一般用于控制锁的超时和取消</span></span><br><span class="line">	ctx, cancel := context.WithCancel(context.Background())</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 获取锁，如果获取失败（例如锁已被其他进程持有），会返回错误</span></span><br><span class="line">	<span class="keyword">if</span> err := mutex.LockContext(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err) <span class="comment">// 如果获取锁失败，程序会 panic</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 看门狗，实现锁自动续约</span></span><br><span class="line">	stopCh := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	ticker := time.NewTicker(<span class="number">2</span> * time.Second) <span class="comment">// 每隔 2s 续约一次</span></span><br><span class="line">	<span class="keyword">defer</span> ticker.Stop()</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> &lt;-ticker.C:</span><br><span class="line">				<span class="comment">// 续约，延长锁的过期时间</span></span><br><span class="line">				<span class="keyword">if</span> ok, err := mutex.ExtendContext(ctx); !ok || err != <span class="literal">nil</span> &#123;</span><br><span class="line">					slog.Error(<span class="string">"Failed to extend mutex"</span>, <span class="string">"err"</span>, err, <span class="string">"status"</span>, ok)</span><br><span class="line">				&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">					slog.Info(<span class="string">"Successfully extend mutex"</span>)</span><br><span class="line">				&#125;</span><br><span class="line">			<span class="keyword">case</span> &lt;-stopCh:</span><br><span class="line">				slog.Info(<span class="string">"Exiting mutex watchdog"</span>)</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 执行业务逻辑</span></span><br><span class="line">	time.Sleep(<span class="number">6</span> * time.Second)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 通知看门狗停止自动续期</span></span><br><span class="line">	stopCh &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 释放锁，如果释放失败（例如锁已过期或不属于当前进程），会返回错误</span></span><br><span class="line">	<span class="keyword">if</span> _, err := mutex.UnlockContext(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err) <span class="comment">// 如果释放锁失败，程序会 panic</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个示例延续了前文中的示例代码，你需要重点关注的是如下这部分逻辑：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 看门狗，实现锁自动续约</span></span><br><span class="line">stopCh := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">ticker := time.NewTicker(<span class="number">2</span> * time.Second) <span class="comment">// 每隔 2s 续约一次</span></span><br><span class="line"><span class="keyword">defer</span> ticker.Stop()</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> &lt;-ticker.C:</span><br><span class="line">            <span class="comment">// 续约，延长锁的过期时间</span></span><br><span class="line">            <span class="keyword">if</span> ok, err := mutex.ExtendContext(ctx); !ok || err != <span class="literal">nil</span> &#123;</span><br><span class="line">                slog.Error(<span class="string">"Failed to extend mutex"</span>, <span class="string">"err"</span>, err, <span class="string">"status"</span>, ok)</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                slog.Info(<span class="string">"Successfully extend mutex"</span>)</span><br><span class="line">            &#125;</span><br><span class="line">        <span class="keyword">case</span> &lt;-stopCh:</span><br><span class="line">            slog.Info(<span class="string">"Exiting mutex watchdog"</span>)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure>
+
+<p><code>redsync</code> 提供了 <code>mutex.ExtendContext(ctx)</code> 方法可以延长锁的过期时间。假设我们申请的分布式锁过期时间是 5 秒，而业务代码执行时间是未知的，那么我们在拿到锁以后，可以单独开启一个 goroutine 来定时延长锁的过期时间，当业务代码执行完成以后，主 goroutine 通过 <code>stopCh &lt;- struct{}{}</code> 向子 goroutine 发送停止信号，那么子 goroutine 中的 <code>&lt;-stopCh</code> case 就会收到通知，子 goroutine 便会退出，也就停止了锁自动续期。</p>
+<p>通过为分布式锁设置过期时间，再配合子 goroutine 自动续期的功能，我们就能保证，持有锁的进程挂掉时不会影响其他进程获取锁，并且还能实现业务执行完成后才释放锁。而这个实现分布式锁自动续期的程序，我们通常把它叫做“看门狗”。</p>
+<p>我再额外啰嗦一句，关于分布式锁的续期时常和间隔周期的问题，一般来说，续期的时间可以设置为等于过期时间，即锁的过期时间设为 5 秒，那么每次也只续期 5 秒，<code>redsync</code> 内部也是这么做的，至于间隔多久续期一次，这个时间肯定是要小于过期时间 5 秒的，通常设为锁过期时间的 1/3 或 1/2 都可以。</p>
+<h3 id="redsync-原理"><a href="#redsync-原理" class="headerlink" title="redsync 原理"></a><code>redsync</code> 原理</h3><p>我上面讲解的 <code>redsync</code> 用法基本上能覆盖业务开发中的大部分场景了，对于 <code>redsync</code> 更多的功能我就不过多介绍了，有了现有的知识，你遇到了问题也可以自己查阅文档学习。<br>下面我想讲点更有价值的东西，我们自己来实现一个微型的 Redis 分布式锁，以此来加深你对 <code>redsync</code> 的理解。</p>
+<h4 id="如何实现一个-Redis-分布式锁"><a href="#如何实现一个-Redis-分布式锁" class="headerlink" title="如何实现一个 Redis 分布式锁"></a>如何实现一个 Redis 分布式锁</h4><p>要基于 Redis 实现一个最小化的分布式锁，我们可以定义一个结构体 <code>MiniRedisMutex</code> 作为锁对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> MiniRedisMutex <span class="keyword">struct</span> &#123;</span><br><span class="line">	name   <span class="keyword">string</span>        <span class="comment">// 会作为分布式锁在 Redis 中的 key</span></span><br><span class="line">	expiry time.Duration <span class="comment">// 锁过期时间</span></span><br><span class="line">	conn   redis.Cmdable <span class="comment">// Redis Client</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>它仅包含必要的字段，<code>name</code> 是锁的名称，<code>expiry</code> 是分布式锁必须要有的过期时间，<code>conn</code> 用来存储 Redis 客户端连接。</p>
+<p>我们可以定义一个构造函数 <code>NewMutex</code> 来创建分布式锁对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewMutex</span><span class="params">(name <span class="keyword">string</span>, expiry time.Duration, conn redis.Cmdable)</span> *<span class="title">MiniRedisMutex</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;MiniRedisMutex&#123;name, expiry, conn&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接下来就要实现加锁和解锁这两个功能。</p>
+<p>加锁方法 <code>Lock</code> 实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *MiniRedisMutex)</span> <span class="title">Lock</span><span class="params">(ctx context.Context, value <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">bool</span>, error)</span></span> &#123;</span><br><span class="line">	reply, err := m.conn.SetNX(ctx, m.name, value, m.expiry).Result()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> reply, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Lock</code> 方法接收两个参数，<code>ctx</code> 用来控制取消，<code>value</code> 则会作为锁的值。</p>
+<p><code>Lock</code> 方法内部逻辑非常简单，直接调用 Redis 的 <code>SetNX</code> 命令来排他的设置一个键值对，锁名称 <code>name</code> 作为 Redis 的 <code>key</code>，锁的值 <code>value</code> 作为 Redis 的 <code>value</code>，并指定过期时间为 <code>expiry</code>，这就是分布式锁的加锁原理。</p>
+<p>这里有两个关键点需要你注意：</p>
+<ul>
+<li>使用 <code>SetNX</code> 命令：这里之所以使用 <code>SetNX</code> 命令而不是普通的 <code>Set</code> 命令，是因为加锁操作需要<strong>排他性</strong>。我们知道，<code>SetNX</code> 命令的全称是 <code>SET if Not eXists</code>，即通过 <code>SetNX</code> 命令设置键值对时，如果 <code>key</code> 不存在，设置其 <code>value</code>，若 <code>key</code> 已存在，则不执行任何操作。这刚好符合互斥性，是实现分布式互斥锁的关键所在。</li>
+<li><code>value</code> 唯一性：虽然 <code>SetNX</code> 命令能够实现互斥，但是 Redis 的 <code>value</code> 还是要保证唯一性。这一点我们接着往下看你就明白了。</li>
+</ul>
+<p>释放锁方法 <code>Unlock</code> 实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 释放锁的 lua 脚本，保证并发安全</span></span><br><span class="line"><span class="keyword">var</span> deleteScript = <span class="string">`</span></span><br><span class="line"><span class="string">	local val = redis.call("GET", KEYS[1])</span></span><br><span class="line"><span class="string">	if val == ARGV[1] then</span></span><br><span class="line"><span class="string">		return redis.call("DEL", KEYS[1])</span></span><br><span class="line"><span class="string">	elseif val == false then</span></span><br><span class="line"><span class="string">		return -1</span></span><br><span class="line"><span class="string">	else</span></span><br><span class="line"><span class="string">		return 0</span></span><br><span class="line"><span class="string">	end</span></span><br><span class="line"><span class="string">`</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Unlock 释放锁</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *MiniRedisMutex)</span> <span class="title">Unlock</span><span class="params">(ctx context.Context, value <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">bool</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 执行 lua 脚本，Redis 会保证其并发安全</span></span><br><span class="line">	status, err := m.conn.Eval(ctx, deleteScript, []<span class="keyword">string</span>&#123;m.name&#125;, value).Result()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> status == <span class="keyword">int64</span>(<span class="number">-1</span>) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>, ErrLockAlreadyExpired</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> status != <span class="keyword">int64</span>(<span class="number">0</span>), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在释放锁的逻辑中，我们不是简单的将指定的 Redis 键值对删除即可，而是调用 <code>m.conn.Eval</code> 方法执行了一段 lua 脚本的方式来释放锁。</p>
+<p>在这段 lua 脚本中，我们先是从 Redis 中获取指定 <code>key</code> 为 <code>m.name</code> 的键值对，然后判断其 <code>value</code> 是否等于 <code>Unlock</code> 方法传入的 <code>value</code> 参数值，如果相等，则从 Redis 中删除指定的键值对，表示释放锁，否则什么也不做。</p>
+<p>之所以要对 <code>value</code> 进行判断，是因为我们要保证这把锁是当前进程所持有的锁，而不是其他进程持有的锁。那么以什么为依据来说明这把锁是当前进程持有的呢？这就是我们要保证 <code>value</code> 唯一的原因，每个进程在加锁的时候，需要生成一个随机的 <code>value</code> 作为自己的锁的标识，那么释放时，就可以通过这个 <code>value</code> 来判断是否是自己持有的锁。而这样做的目的，是为了避免一个进程抢到锁后，还在执行业务逻辑时，锁被另外一个进程给释放了。</p>
+<p>遗憾的是，这段释放锁的逻辑，Redis 没有提供像 <code>SetNX</code> 一样的快捷命令，所以我们只能将其放在 lua 脚本中执行，才能保证并发安全。</p>
+<p>至此，一个微型的 Redis 分布式锁的核心功能咱们就讲解完成了。</p>
+<p>以下是 <code>MiniRedisMutex</code> 分布式锁完整的代码实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> miniredislock</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"context"</span></span><br><span class="line">	<span class="string">"errors"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/redis/go-redis/v9"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> ErrLockAlreadyExpired = errors.New(<span class="string">"miniredislock: failed to unlock, lock was already expired"</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// MiniRedisMutex 一个微型的 Redis 分布式锁</span></span><br><span class="line"><span class="keyword">type</span> MiniRedisMutex <span class="keyword">struct</span> &#123;</span><br><span class="line">	name   <span class="keyword">string</span>        <span class="comment">// 会作为分布式锁在 Redis 中的 key</span></span><br><span class="line">	expiry time.Duration <span class="comment">// 锁过期时间</span></span><br><span class="line">	conn   redis.Cmdable <span class="comment">// Redis Client</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewMutex 创建 Redis 分布式锁</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewMutex</span><span class="params">(name <span class="keyword">string</span>, expiry time.Duration, conn redis.Cmdable)</span> *<span class="title">MiniRedisMutex</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;MiniRedisMutex&#123;name, expiry, conn&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Lock 加锁</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *MiniRedisMutex)</span> <span class="title">Lock</span><span class="params">(ctx context.Context, value <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">bool</span>, error)</span></span> &#123;</span><br><span class="line">	reply, err := m.conn.SetNX(ctx, m.name, value, m.expiry).Result()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> reply, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 释放锁的 lua 脚本，保证并发安全</span></span><br><span class="line"><span class="keyword">var</span> deleteScript = <span class="string">`</span></span><br><span class="line"><span class="string">	local val = redis.call("GET", KEYS[1])</span></span><br><span class="line"><span class="string">	if val == ARGV[1] then</span></span><br><span class="line"><span class="string">		return redis.call("DEL", KEYS[1])</span></span><br><span class="line"><span class="string">	elseif val == false then</span></span><br><span class="line"><span class="string">		return -1</span></span><br><span class="line"><span class="string">	else</span></span><br><span class="line"><span class="string">		return 0</span></span><br><span class="line"><span class="string">	end</span></span><br><span class="line"><span class="string">`</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Unlock 释放锁</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *MiniRedisMutex)</span> <span class="title">Unlock</span><span class="params">(ctx context.Context, value <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">bool</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 执行 lua 脚本，Redis 会保证其并发安全</span></span><br><span class="line">	status, err := m.conn.Eval(ctx, deleteScript, []<span class="keyword">string</span>&#123;m.name&#125;, value).Result()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> status == <span class="keyword">int64</span>(<span class="number">-1</span>) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>, ErrLockAlreadyExpired</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> status != <span class="keyword">int64</span>(<span class="number">0</span>), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其实，这段代码的主要逻辑，都是我从 <code>redsync</code> 源码中提取出来。所以 <code>redsync</code> 其实也是这样实现的，只不过它内部增加了很多可靠性和边缘场景等逻辑代码，最核心的加锁和解锁逻辑是一样的。</p>
+<h4 id="微型分布式锁使用"><a href="#微型分布式锁使用" class="headerlink" title="微型分布式锁使用"></a>微型分布式锁使用</h4><p>下面我们来写一个示例程序，演示下如何使用这个微型的分布式锁：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">	goredislib <span class="string">"github.com/redis/go-redis/v9"</span></span><br><span class="line">	<span class="string">"golang.org/x/net/context"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/jianghushinian/blog-go-example/redsync/miniredislock"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 创建一个 Redis 客户端</span></span><br><span class="line">	client := goredislib.NewClient(&amp;goredislib.Options&#123;</span><br><span class="line">		Addr:     <span class="string">"localhost:36379"</span>, <span class="comment">// Redis 服务器地址</span></span><br><span class="line">		Password: <span class="string">"nightwatch"</span>,</span><br><span class="line">	&#125;)</span><br><span class="line">	<span class="keyword">defer</span> client.Close()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建一个名为 "test-miniredislock" 的互斥锁</span></span><br><span class="line">	mutex := miniredislock.NewMutex(<span class="string">"test-miniredislock"</span>, <span class="number">5</span>*time.Second, client)</span><br><span class="line"></span><br><span class="line">	ctx := context.Background()</span><br><span class="line">	<span class="comment">// 互斥锁的值应该是一个随机值</span></span><br><span class="line">	value := <span class="string">"random-string"</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 获取锁</span></span><br><span class="line">	_, err := mutex.Lock(ctx, value)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 执行业务逻辑</span></span><br><span class="line">	fmt.Println(<span class="string">"do something..."</span>)</span><br><span class="line">	time.Sleep(<span class="number">3</span> * time.Second)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 释放自己持有的锁</span></span><br><span class="line">	_, err = mutex.Unlock(ctx, value)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个示例的具体逻辑我就不逐行讲解了，相信你一看便懂。也希望你能够自己在本机上跑起来这段代码，真正用一下分布式锁，以此加深理解。</p>
+<p>最后我再留一个作业，你可以尝试一下实现锁的续期方法 <code>Extend</code>。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>分布式锁可以确保分布式系统中并发安全的访问竞态资源，<code>redsync</code> 作为 Go 中最流行的 Redis 分布式锁方案，非常值得我们学习和使用。</p>
+<p><code>redsync</code> 的用法非常简单，加锁和解锁操作与 <code>sync.Mutex</code> 也非常类似，没有太多的学习成本。不过，为了避免持有锁的进程挂掉时，其他进程还有机会获取锁，我们需要实现看门狗的功能。</p>
+<p>我还带你从零实现了一个微型的 Redis 分布式锁，希望你不仅会用 redsync 分布式锁，还能理解其原理，这样在自己的业务开发中，如果遇到问题，我们才能更加得心应手。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/redsync" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>Distributed Locks with Redis：<a href="https://redis.io/docs/latest/develop/use/patterns/distributed-locks/" target="_blank" rel="noopener">https://redis.io/docs/latest/develop/use/patterns/distributed-locks/</a></li>
+<li>redsync Documentation：<a href="https://pkg.go.dev/github.com/go-redsync/redsync" target="_blank" rel="noopener">https://pkg.go.dev/github.com/go-redsync/redsync</a></li>
+<li>redsync GitHub 源码：<a href="https://github.com/go-redsync/redsync" target="_blank" rel="noopener">https://github.com/go-redsync/redsync</a></li>
+<li>go-redis GitHub 源码：<a href="https://github.com/redis/go-redis" target="_blank" rel="noopener">https://github.com/redis/go-redis</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/redsync" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/redsync</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-03-02T14:10:36.486Z" itemprop="dateUpdated">2025-03-02 22:10:36</time>
+</span><br>
+
+
+        
+        <a href="/2025/03/02/redsync/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/03/02/redsync/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/" rel="tag">并发编程</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/03/02/redsync/&title=《在 Go 中如何使用分布式锁解决并发问题？》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/03/02/redsync/&title=《在 Go 中如何使用分布式锁解决并发问题？》 — 江湖十年&source=在分布式系统中，协调多个服务实例之间的共享资源访问是一个经典的挑战。传统的单机锁（如 sync.Mutex）无法实现跨进程工作，此时就需要用到分布式锁了。..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/03/02/redsync/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中如何使用分布式锁解决并发问题？》 — 江湖十年&url=http://www.jianghushinian.cn/2025/03/02/redsync/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/03/02/redsync/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/02/23/cron/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">在 Go 中使用 cron 执行定时任务</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2025</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/03/02/redsync/&title=《在 Go 中如何使用分布式锁解决并发问题？》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/03/02/redsync/&title=《在 Go 中如何使用分布式锁解决并发问题？》 — 江湖十年&source=在分布式系统中，协调多个服务实例之间的共享资源访问是一个经典的挑战。传统的单机锁（如 sync.Mutex）无法实现跨进程工作，此时就需要用到分布式锁了。..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/03/02/redsync/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中如何使用分布式锁解决并发问题？》 — 江湖十年&url=http://www.jianghushinian.cn/2025/03/02/redsync/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/03/02/redsync/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/03/02/redsync/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
