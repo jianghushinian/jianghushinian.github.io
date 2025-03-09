@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>如何基于 Go 语言设计一个简洁优雅的分布式任务系统 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,架构设计,分布式">
+    <meta name="description" content="在当今云计算与微服务盛行的时代，分布式任务系统已成为支撑大规模业务的核心基础设施。今天就来为大家分享下如何基于 Go 语言从零设计和实现一个架构简洁且扩展性强的分布式任务系统。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="如何基于 Go 语言设计一个简洁优雅的分布式任务系统">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/03/09/nightwatch/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在当今云计算与微服务盛行的时代，分布式任务系统已成为支撑大规模业务的核心基础设施。今天就来为大家分享下如何基于 Go 语言从零设计和实现一个架构简洁且扩展性强的分布式任务系统。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/03/09/nightwatch/nightwatch-component.jpg">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/03/09/nightwatch/nightwatch-architecture.jpg">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/03/09/nightwatch/nightwatch-flow.jpg">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/03/09/nightwatch/onex.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/03/09/nightwatch/onex-zsxq.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/03/09/nightwatch/wechat.png">
+<meta property="article:published_time" content="2025-03-09T14:11:21.000Z">
+<meta property="article:modified_time" content="2025-03-09T14:30:14.508Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="架构设计">
+<meta property="article:tag" content="分布式">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2025/03/09/nightwatch/nightwatch-component.jpg">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">如何基于 Go 语言设计一个简洁优雅的分布式任务系统</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">如何基于 Go 语言设计一个简洁优雅的分布式任务系统</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-03-09T14:11:21.000Z" itemprop="datePublished" class="page-time">
+  2025-03-09
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#前置概念"><span class="post-toc-number">1.</span> <span class="post-toc-text">前置概念</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#异步任务"><span class="post-toc-number">2.</span> <span class="post-toc-text">异步任务</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#分布式"><span class="post-toc-number">3.</span> <span class="post-toc-text">分布式</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#分布式任务系统"><span class="post-toc-number">4.</span> <span class="post-toc-text">分布式任务系统</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#功能介绍"><span class="post-toc-number">4.1.</span> <span class="post-toc-text">功能介绍</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#架构设计"><span class="post-toc-number">4.2.</span> <span class="post-toc-text">架构设计</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#目录结构"><span class="post-toc-number">4.3.</span> <span class="post-toc-text">目录结构</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#调用链路"><span class="post-toc-number">4.4.</span> <span class="post-toc-text">调用链路</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#代码实现"><span class="post-toc-number">4.5.</span> <span class="post-toc-text">代码实现</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">5.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-nightwatch"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">如何基于 Go 语言设计一个简洁优雅的分布式任务系统</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-03-09 22:11:21" datetime="2025-03-09T14:11:21.000Z"  itemprop="datePublished">2025-03-09</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在当今云计算与微服务盛行的时代，分布式任务系统已成为支撑大规模业务的核心基础设施。今天就来为大家分享下如何基于 Go 语言从零设计和实现一个架构简洁且扩展性强的分布式任务系统。</p>
+<a id="more"></a>
+
+<h3 id="前置概念"><a href="#前置概念" class="headerlink" title="前置概念"></a>前置概念</h3><p>本文会设计并实现一个分布式任务系统，这里我们要先明确两个概念。</p>
+<ul>
+<li>分布式：在我们将要实现的分布式任务系统中，分布式是指我们的服务可以部署多个副本，这样才能确保服务更加稳定。</li>
+<li>任务：这里的任务是指异步任务，可能是定时或需要周期性运行的任务。</li>
+</ul>
+<p>有了这两个前置概念，我们再来分析下在 Go 中如何实现分布式和如何处理异步任务。</p>
+<h3 id="异步任务"><a href="#异步任务" class="headerlink" title="异步任务"></a>异步任务</h3><p>在 Go 中，要处理异步任务有多种方式，比如原生支持的 <code>time.Sleep</code>、<code>time.Timer</code> 或 <code>time.Ticke</code>，再比如一些第三方包 <code>go-co-op/gocron/v2</code>、<code>robfig/cron/v3</code> 或 <code>bamzi/jobrunner</code> 等。本项目在调研过后决定采用 <code>robfig/cron/v3</code> 包（以下简称 <code>cron</code>）来处理异步任务，原因如下：</p>
+<ul>
+<li><code>cron</code> 是一个非常流行的包，支持标准 <code>crontab</code> 表达式（并且可精确到秒），支持时区、任务链等高级功能。</li>
+<li>提供秒级精度的任务调度。</li>
+<li>轻量级，且<font style="color:rgb(33, 33, 33);">能轻松应对各种复杂的定时任务场景</font>。</li>
+</ul>
+<p>对于 <code>cron</code> 包的使用，可以参考我的另一篇文章「<a href="https://mp.weixin.qq.com/s/bCgGnw9QYTTBuoEktTYZcw" target="_blank" rel="noopener">在 Go 中使用 cron 执行定时任务</a>」，里面有详细说明。</p>
+<h3 id="分布式"><a href="#分布式" class="headerlink" title="分布式"></a>分布式</h3><p>既然我们的任务系统是分布式的，那么必然要考虑并发安全问题。当多个副本同时读写系统资源时，很容易产生竞太问题。在分布式场景中，解决竞太问题最常用的手段当然是分布式锁。</p>
+<p>Go 中的分布式锁解决方案也很多，常见的有基于 etcd、Redis、ZooKeeper 等中间件来实现的，因为 Redis 在系统中更加常用，所以本项目采用基于 Redis 实现分布式锁的解决方案。Go 中有两个比较常用的第三方包 <code>bsm/redislock</code> 和 <code>go-redsync/redsync</code> 都是基于 Redis 的分布式锁实现。本项目在调研过后决定采用 <code>go-redsync/redsync</code> 包（以下简称 <code>redsync</code>），原因如下：</p>
+<ul>
+<li><code>redsync</code> 遵循 Redis 官方推荐的 Redlock 算法，支持多节点，容忍部分节点故障，避免单点问题。</li>
+<li>通过多数派机制确保锁的全局唯一性，降低锁冲突风险。</li>
+<li><code>redsync</code> 是 <a href="https://redis.io/docs/latest/develop/use/patterns/distributed-locks/" target="_blank" rel="noopener">Redis 官方</a> 唯一推荐的 Go Redis 分布式锁解决方案，由 Redis 社区背书，长期维护，可靠性高。</li>
+</ul>
+<p>对于 <code>redsync</code> 包的使用，可以参考我的另一篇文章「<a href="https://mp.weixin.qq.com/s/8HJXRcCoyZqeC_b6l-TD0w" target="_blank" rel="noopener">在 Go 中如何使用分布式锁解决并发问题？</a>」，里面有详细说明。</p>
+<h3 id="分布式任务系统"><a href="#分布式任务系统" class="headerlink" title="分布式任务系统"></a>分布式任务系统</h3><p>现在我们对分布式任务系统中的分布式和任务都有了明确的认识，并且找到了解决方案。那么接下来就可以设计并实现分布式任务系统了。</p>
+<h4 id="功能介绍"><a href="#功能介绍" class="headerlink" title="功能介绍"></a>功能介绍</h4><p>我们要实现的分布式任务系统叫 nightwatch，nightwatch 是守夜、值班的意思，那么这套系统的功能也就一目了然了，就是用来 24 小时不停机的执行异步任务的。</p>
+<p>nightwatch 要实现的主要功能如下：</p>
+<p>现在我们有一个系统，用户可以在 Web 页面通过表单提交一个“任务”到关系型数据库的任务表中。然后 nightwatch 系统会定时的扫描任务表，取出待执行的任务，并根据任务中的配置，到 Kubernetes 中拉起 Job 资源对象，真正的执行任务。此外，nightwatch 还会取出已经开始执行的任务，然后去 Kubernetes 中获取当前任务对应的 Job 实时状态，并回写到数据库中。直到 Kubernetes 中的 Job 执行完成（或失败），nightwatch 会标记 Job 在数据库表中的任务状态为完成（或失败）。当任务状态为完成（或失败），则任务任务终止，nightwatch 不再扫描出这种状态的数据。</p>
+<p>系统整体架构如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="nightwatch-component.jpg" alt="nightwatch-component" title="">
+                </div>
+                <div class="image-caption">nightwatch-component</div>
+            </figure>
+
+<p>nightwatch 是系统中一个非常核心的组件，用来控制任务的执行，并同步任务状态。</p>
+<h4 id="架构设计"><a href="#架构设计" class="headerlink" title="架构设计"></a>架构设计</h4><p>现在我们知道了 nightwatch 的作用，那么就可以设计其实现架构了。</p>
+<p>nightwatch 架构设计如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="nightwatch-architecture.jpg" alt="nightwatch-architecture" title="">
+                </div>
+                <div class="image-caption">nightwatch-architecture</div>
+            </figure>
+
+<p>首先，我们需要思考一个问题，分布式锁应该在何时使用？</p>
+<p>在分布式任务系统中，我们有两种方式使用分布式锁来保证并发安全。一种是在执行具体的定时任务时，多个副本之间进行竞争，谁抢到锁，谁就可以执行任务，未抢到锁的副本可以选择性的跳过此次执行周期。另一种是在 nigthwatch 启动时，就开始抢锁，多个副本之间谁抢到锁，谁就去执行任务调度，未抢到锁的副本则进行周期性的尝试抢锁操作，如果当前执行任务调度的副本被终止，那么其他副本就有机会抢到锁，并执行任务调度。</p>
+<p>这两种方式个各自有不同的使用场景，第一种方式的优势是能够实现多副本之间的负载均衡，多个副本都在工作，都有可能抢到锁并执行任务，不过这种方式不能严格控制执行任务的间隔时间，比较适合对间隔时间要求不严格的任务。第二种方式实际上只有一个副本在执行任务调度，其他副本是空载状态，是主备设计，这种方式的好处是能够严格控制任务执行的间隔时间。</p>
+<p>nigthwatch 采用第二种方式来使用分布式锁保证并发安全。所以在 nigthwatch 的架构设计中，在启动 nigthwatch 时，先将所有的定时任务注册到任务调度器中，接着就会进行抢锁操作，只有抢到锁的副本才能够执行任务调度。未抢到锁，则使用一个循环周期性的尝试抢锁，直到抢锁成功。对于抢到锁的副本，当注册的任务定时策略达到时，任务调度器就会执行任务。架构图中的 task 就是我们要实现的异步任务，也是主要业务逻辑，task 组件会从数据库表中读取任务，然后在 Kubernetes 中启动 Job，并同步数据库和 Kubernetes 资源之间的状态。</p>
+<h4 id="目录结构"><a href="#目录结构" class="headerlink" title="目录结构"></a>目录结构</h4><p>我们现在已经设计好了 nigthwatch 的架构，可以动手进行开发实现了。</p>
+<p>以下是 nigthwatch 项目的目录和文件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">$ tree nightwatch</span><br><span class="line">nightwatch <span class="comment"># 项目目录</span></span><br><span class="line">├── README.md <span class="comment"># README 文件</span></span><br><span class="line">├── assets <span class="comment"># 项目相关的资源目录</span></span><br><span class="line">│   ├── docker-compose.yaml <span class="comment"># 用于启动项目依赖的 MariaDB 和 Redis</span></span><br><span class="line">│   └── schema.sql <span class="comment"># 测试数据 SQL</span></span><br><span class="line">├── cmd <span class="comment"># 项目启动入口</span></span><br><span class="line">│   └── main.go</span><br><span class="line">├── go.mod</span><br><span class="line">├── go.sum</span><br><span class="line">├── internal <span class="comment"># 项目内部包</span></span><br><span class="line">│   ├── logger.go <span class="comment"># 定制日志</span></span><br><span class="line">│   ├── nightwatch.go <span class="comment"># nightwatch 的实现和启动入口</span></span><br><span class="line">│   └── watcher <span class="comment"># 任务接口和实现</span></span><br><span class="line">│       ├── all <span class="comment"># 任务注册入口</span></span><br><span class="line">│       │   └── all.go</span><br><span class="line">│       ├── config.go <span class="comment"># 任务配置</span></span><br><span class="line">│       ├── task <span class="comment"># 任务实现，一个可以定时同步 MariaDB 和 Kubernetes 任务状态的示例程序</span></span><br><span class="line">│       │   ├── task.go</span><br><span class="line">│       │   └── watcher.go</span><br><span class="line">│       └── watcher.go <span class="comment"># 任务接口</span></span><br><span class="line">└── pkg <span class="comment"># 项目公共包</span></span><br><span class="line">    ├── db <span class="comment"># 数据库实例</span></span><br><span class="line">    │   ├── mysql.go</span><br><span class="line">    │   └── redis.go</span><br><span class="line">    ├── meta <span class="comment"># 元信息</span></span><br><span class="line">    │   └── where.go <span class="comment"># MariaDB where 查询条件元信息封装</span></span><br><span class="line">    ├── model <span class="comment"># 任务模型</span></span><br><span class="line">    │   └── task.go</span><br><span class="line">    ├── store <span class="comment"># 数据库操作接口</span></span><br><span class="line">    │   ├── helper.go</span><br><span class="line">    │   ├── store.go</span><br><span class="line">    │   └── task.go</span><br><span class="line">    └── util <span class="comment"># 工具包</span></span><br><span class="line">        └── reflect</span><br><span class="line">            └── reflect.go</span><br><span class="line"></span><br><span class="line">14 directories, 21 files</span><br></pre></td></tr></table></figure>
+
+<p>这里主要的目录和文件我都标明了其用途，不必完全记住，你先有个印象，大概知道整个项目的结构。</p>
+<h4 id="调用链路"><a href="#调用链路" class="headerlink" title="调用链路"></a>调用链路</h4><p>为了便于你理解代码，我画了一张 nigthwatch 项目的调用链路图：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="nightwatch-flow.jpg" alt="nightwatch-flow" title="">
+                </div>
+                <div class="image-caption">nightwatch-flow</div>
+            </figure>
+
+<p>这个调用链路图指明了 nigthwatch 项目中所有目录之间的代码调用关系。根据这张图，可以看出这是一个非常简洁的架构。<code>cmd</code> 中的入口函数 <code>main</code> 会调用 <code>internal</code> 中的 <code>nigthwatch</code> 包，<code>nigthwatch</code> 是分布式系统实现的关键所在，这里实现了任务的注册和调度，<code>watcher</code> 定义了任务的接口，<code>task</code> 就是任务的具体实现，<code>task</code> 的业务逻辑中会依赖 <code>store</code> 层来读写数据库，所以 <code>store</code> 会依赖 <code>model</code> 和 <code>db</code>。</p>
+<h4 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h4><p>接下来就进入到真正的编码阶段了。</p>
+<p>首先我们需要为 nigthwatch 项目的业务设计一张任务表，建表 SQL 语句如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/assets/schema.sql" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/assets/schema.sql</a></p>
+</blockquote>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="keyword">IF</span> <span class="keyword">NOT</span> <span class="keyword">EXISTS</span> <span class="string">`task`</span> (</span><br><span class="line">  <span class="string">`id`</span> <span class="built_in">bigint</span>(<span class="number">20</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">  <span class="string">`name`</span> <span class="built_in">varchar</span>(<span class="number">45</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">''</span> <span class="keyword">COMMENT</span> <span class="string">'任务名称'</span>,</span><br><span class="line">  <span class="string">`namespace`</span> <span class="built_in">varchar</span>(<span class="number">45</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">''</span> <span class="keyword">COMMENT</span> <span class="string">'k8s namespace 名称'</span>,</span><br><span class="line">  <span class="string">`info`</span> <span class="built_in">TEXT</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'任务 k8s 相关信息'</span>,</span><br><span class="line">  <span class="string">`status`</span> <span class="built_in">varchar</span>(<span class="number">45</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">''</span> <span class="keyword">COMMENT</span> <span class="string">'任务状态'</span>,</span><br><span class="line">  <span class="string">`user_id`</span> <span class="built_in">bigint</span>(<span class="number">20</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">'0'</span> <span class="keyword">COMMENT</span> <span class="string">'用户 ID'</span>,</span><br><span class="line">  <span class="string">`created_at`</span> datetime <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  <span class="string">`updated_at`</span> datetime <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">CURRENT_TIMESTAMP</span> <span class="keyword">ON</span> <span class="keyword">UPDATE</span> <span class="keyword">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  PRIMARY <span class="keyword">KEY</span> (<span class="string">`id`</span>),</span><br><span class="line">  <span class="keyword">UNIQUE</span> <span class="keyword">KEY</span> <span class="string">`uk_name_namespace`</span> (<span class="string">`name`</span>, <span class="string">`namespace`</span>)</span><br><span class="line">) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span> <span class="keyword">DEFAULT</span> <span class="keyword">CHARSET</span>=utf8mb4 <span class="keyword">COMMENT</span>=<span class="string">'任务表'</span>;</span><br></pre></td></tr></table></figure>
+
+<p>为了简化你理解项目的成本，这里仅定义了最小需要字段。</p>
+<p>同时我们可以插入两条测试数据，用来后续项目功能的验证：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`task`</span> (<span class="string">`id`</span>, <span class="string">`name`</span>, <span class="string">`namespace`</span>, <span class="string">`info`</span>, <span class="string">`status`</span>, <span class="string">`user_id`</span>) <span class="keyword">VALUES</span> (<span class="number">1</span>, <span class="string">'demo-task-1'</span>, <span class="string">'default'</span>, <span class="string">'&#123;"image":"alpine","command":["sleep"],"args":["60"]&#125;'</span>, <span class="string">'Normal'</span>, <span class="number">1</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`task`</span> (<span class="string">`id`</span>, <span class="string">`name`</span>, <span class="string">`namespace`</span>, <span class="string">`info`</span>, <span class="string">`status`</span>, <span class="string">`user_id`</span>) <span class="keyword">VALUES</span> (<span class="number">2</span>, <span class="string">'demo-task-2'</span>, <span class="string">'demo'</span>, <span class="string">'&#123;"image":"busybox","command":["sleep"],"args":["3600"]&#125;'</span>, <span class="string">'Normal'</span>, <span class="number">2</span>);</span><br></pre></td></tr></table></figure>
+
+<p>拿 <code>ID</code> 为 <code>1</code> 的 <code>task</code> 数据举例，任务名是 <code>demo-task-1</code>，<code>namespace</code> 是 <code>default</code>，镜像是 <code>alpine</code>，执行命令是 <code>sleep</code>，命令参数是 <code>60</code>，状态为 <code>Normal</code> 表示待执行。当 nigthwatch 服务扫描到这条数据时，就会在 Kubernetes 中 <code>default</code> 这个 <code>namespace</code> 下创建一个 <code>name</code> 为 <code>demo-task-1</code> 的 Job，其启动镜像为 <code>alpine</code>，启动命令为 <code>sleep 60</code>，即睡眠 <code>60</code> 秒然后退出。</p>
+<p>现在有了数据库表和测试数据，我们来看看 nigthwatch 代码是如何实现的。</p>
+<p>入口文件 <code>cmd/main.go</code> 实现如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/cmd/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/cmd/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"flag"</span></span><br><span class="line">	<span class="string">"log/slog"</span></span><br><span class="line">	<span class="string">"path/filepath"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">	genericapiserver <span class="string">"k8s.io/apiserver/pkg/server"</span></span><br><span class="line">	<span class="string">"k8s.io/client-go/kubernetes"</span></span><br><span class="line">	<span class="string">"k8s.io/client-go/tools/clientcmd"</span></span><br><span class="line">	<span class="string">"k8s.io/client-go/util/homedir"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/jianghushinian/blog-go-example/nightwatch/internal"</span></span><br><span class="line">	<span class="string">"github.com/jianghushinian/blog-go-example/nightwatch/pkg/db"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	slog.SetLogLoggerLevel(slog.LevelDebug)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> kubecfg *<span class="keyword">string</span></span><br><span class="line">	<span class="keyword">if</span> home := homedir.HomeDir(); home != <span class="string">""</span> &#123;</span><br><span class="line">		kubecfg = flag.String(<span class="string">"kubeconfig"</span>, filepath.Join(home, <span class="string">".kube"</span>, <span class="string">"config"</span>), <span class="string">"Optional absolute path to kubeconfig"</span>)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		kubecfg = flag.String(<span class="string">"kubeconfig"</span>, <span class="string">""</span>, <span class="string">"Absolute path to kubeconfig"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	config, err := clientcmd.BuildConfigFromFlags(<span class="string">""</span>, *kubecfg)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		slog.Error(err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	config.QPS = <span class="number">50</span></span><br><span class="line">	config.Burst = <span class="number">100</span></span><br><span class="line">	clientset, err := kubernetes.NewForConfig(config)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		slog.Error(err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	cfg := nightwatch.Config&#123;</span><br><span class="line">		MySQLOptions: &amp;db.MySQLOptions&#123;</span><br><span class="line">			Host:                  <span class="string">"127.0.0.1:33306"</span>,</span><br><span class="line">			Username:              <span class="string">"root"</span>,</span><br><span class="line">			Password:              <span class="string">"nightwatch"</span>,</span><br><span class="line">			Database:              <span class="string">"nightwatch"</span>,</span><br><span class="line">			MaxIdleConnections:    <span class="number">100</span>,</span><br><span class="line">			MaxOpenConnections:    <span class="number">100</span>,</span><br><span class="line">			MaxConnectionLifeTime: time.Duration(<span class="number">10</span>) * time.Second,</span><br><span class="line">		&#125;,</span><br><span class="line">		RedisOptions: &amp;db.RedisOptions&#123;</span><br><span class="line">			Addr:         <span class="string">"127.0.0.1:36379"</span>,</span><br><span class="line">			Username:     <span class="string">""</span>,</span><br><span class="line">			Password:     <span class="string">"nightwatch"</span>,</span><br><span class="line">			Database:     <span class="number">0</span>,</span><br><span class="line">			MaxRetries:   <span class="number">3</span>,</span><br><span class="line">			MinIdleConns: <span class="number">0</span>,</span><br><span class="line">			DialTimeout:  <span class="number">5</span> * time.Second,</span><br><span class="line">			ReadTimeout:  <span class="number">3</span> * time.Second,</span><br><span class="line">			WriteTimeout: <span class="number">3</span> * time.Second,</span><br><span class="line">			PoolSize:     <span class="number">10</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">		Clientset: clientset,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	nw, err := cfg.New()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		slog.Error(err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	stopCh := genericapiserver.SetupSignalHandler()</span><br><span class="line">	nw.Run(stopCh)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为 <code>main.go</code> 非常重要，是整个程序的入口，所以我就把完整代码都贴出来了，包括 <code>import</code> 部分，这是为了让你对项目文件之间的依赖关系有一个更清晰的认知，后续讲解的其他模块我就只会贴出核心代码。</p>
+<p><code>main</code> 函数的核心功能如下：</p>
+<p>首先会初始化各种依赖包，初始化 Kubernetes <code>clientset</code> 用于后续操作 Job，初始化 MySQL 用于从中读取任务和更新任务状态，初始化 Redis 用于实现分布式锁。接着会使用这些初始化的对象创建一个配置对象 <code>nightwatch.Config</code>。然后使用 <code>cfg.New()</code> 创建一个 nightwatch 实例对象 <code>nw</code>。最后调用 <code>nw.Run(stopCh)</code> 启动服务。这里为了做优雅退出，还引用了 Kubernetes <code>genericapiserver</code> 优雅退出机制，你可以参考我的文章「<a href="https://mp.weixin.qq.com/s/UR6Rf1ewthI8qU3A7Szfzg" target="_blank" rel="noopener">Go 程序如何实现优雅退出？来看看 K8s 是怎么做的——上篇</a>」、「<a href="https://mp.weixin.qq.com/s/oztrz9WfCDnyZC6s4b__LQ" target="_blank" rel="noopener">Go 程序如何实现优雅退出？来看看 K8s 是怎么做的——下篇</a>」查看其实现原理。</p>
+<p>这里涉及到的 Kubernetes <code>clientset</code>、MySQL 和 Redis 相关的具体配置细节我就不详细讲解了，咱们还是将主要精力聚焦在 nigthwatch 的主脉络上。</p>
+<p>接下来看下 <code>cfg.New()</code> 代码实现如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/nightwatch.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/nightwatch.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// New 通过配置构造一个 nightWatch 对象</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Config)</span> <span class="title">New</span><span class="params">()</span> <span class="params">(*nightWatch, error)</span></span> &#123;</span><br><span class="line">	rdb, err := db.NewRedis(c.RedisOptions)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		slog.Error(err.Error(), <span class="string">"Failed to create Redis client"</span>)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	logger := newCronLogger()</span><br><span class="line">	runner := cron.New(</span><br><span class="line">		cron.WithSeconds(),</span><br><span class="line">		cron.WithLogger(logger),</span><br><span class="line">		cron.WithChain(cron.SkipIfStillRunning(logger), cron.Recover(logger)),</span><br><span class="line">	)</span><br><span class="line"></span><br><span class="line">	pool := goredis.NewPool(rdb)</span><br><span class="line">	lockOpts := []redsync.Option&#123;</span><br><span class="line">		redsync.WithRetryDelay(<span class="number">50</span> * time.Microsecond),</span><br><span class="line">		redsync.WithTries(<span class="number">3</span>),</span><br><span class="line">		redsync.WithExpiry(defaultExpiration),</span><br><span class="line">	&#125;</span><br><span class="line">	locker := redsync.New(pool).NewMutex(lockName, lockOpts...)</span><br><span class="line"></span><br><span class="line">	cfg, err := c.CreateWatcherConfig()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	nw := &amp;nightWatch&#123;runner: runner, locker: locker, config: cfg&#125;</span><br><span class="line">	<span class="keyword">if</span> err := nw.addWatchers(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> nw, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>*Config.New</code> 方法会通过配置信息构造一个 <code>nightWatch</code> 对象并返回。这里的 <code>runner</code> 就是异步任务调度器，使用 <code>cron</code> 包实现，用来调度和执行定时任务。并且这个方法内部还实例化了一个 <code>redsync</code> 分布式锁对象 <code>locker</code>。<code>nightWatch</code> 对象就是通过 <code>runner</code>、<code>locker</code> 和 <code>cfg</code> 来构造的。</p>
+<p>这里的核心部分是 <code>addWatchers</code> 的逻辑，其实现如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/nightwatch.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/nightwatch.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 注册所有 Watcher 实例到 nightWatch</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(nw *nightWatch)</span> <span class="title">addWatchers</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> n, w := <span class="keyword">range</span> watcher.ListWatchers() &#123;</span><br><span class="line">		<span class="keyword">if</span> err := w.Init(context.Background(), nw.config); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			slog.Error(err.Error(), <span class="string">"Failed to construct watcher"</span>, <span class="string">"watcher"</span>, n)</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		spec := watcher.Every3Seconds</span><br><span class="line">		<span class="keyword">if</span> obj, ok := w.(watcher.ISpec); ok &#123;</span><br><span class="line">			spec = obj.Spec()</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> _, err := nw.runner.AddJob(spec, w); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			slog.Error(err.Error(), <span class="string">"Failed to add job to the cron"</span>, <span class="string">"watcher"</span>, n)</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>*nightWatch.addWatchers</code> 方法用来注册所有 <code>Watcher</code> 对象到调度器 <code>runner</code> 中。</p>
+<p><code>Watcher</code> 是一个接口，定义了异步任务应该实现的方法。<code>Watcher</code> 接口定义如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/watcher/watcher.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/watcher/watcher.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Watcher <span class="keyword">interface</span> &#123;</span><br><span class="line">	Init(ctx context.Context, config *Config) error</span><br><span class="line">	cron.Job</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> ISpec <span class="keyword">interface</span> &#123;</span><br><span class="line">	Spec() <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	registryLock = <span class="built_in">new</span>(sync.Mutex)</span><br><span class="line">	registry     = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]Watcher)</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Register</span><span class="params">(watcher Watcher)</span></span> &#123;</span><br><span class="line">	registryLock.Lock()</span><br><span class="line">	<span class="keyword">defer</span> registryLock.Unlock()</span><br><span class="line"></span><br><span class="line">	name := reflectutil.StructName(watcher)</span><br><span class="line">	<span class="keyword">if</span> _, ok := registry[name]; ok &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"duplicate watcher entry: "</span> + name)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	registry[name] = watcher</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ListWatchers</span><span class="params">()</span> <span class="title">map</span>[<span class="title">string</span>]<span class="title">Watcher</span></span> &#123;</span><br><span class="line">	registryLock.Lock()</span><br><span class="line">	<span class="keyword">defer</span> registryLock.Unlock()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> registry</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，要实现一个异步任务，需要实现 <code>Init</code> 方法以及 <code>cron.Job</code> 接口。<code>cron.Job</code> 接口其实只有一个方法定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Job <span class="keyword">interface</span> &#123;</span><br><span class="line">    Run()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>只要满足 <code>Watcher</code> 接口的任务，就可以通过 <code>Register</code> 函数注册到 <code>registry</code> 中。<code>ListWatchers</code> 函数则可以返回注册到 <code>registry</code> 中全部任务。而 <code>ListWatchers</code> 函数正是在前文讲解的 <code>*nightWatch.addWatchers</code> 方法中调用的。</p>
+<p>到目前为止，任务如何被注册到 <code>nightWatch.runner</code> 的过程我们就串起来了。接下来需要关注的两个点是，调度器 <code>runner</code> 是何时启动的，以及是何时调用 <code>Register</code> 函数注册任务的。</p>
+<p>我们先来看调度器 <code>runner</code> 是何时启动的：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/nightwatch.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/nightwatch.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Run 执行异步任务，此方法会阻塞直到关闭 stopCh</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(nw *nightWatch)</span> <span class="title">Run</span><span class="params">(stopCh &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	ctx := wait.ContextForChannel(stopCh)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 循环加锁，直到加锁成功，再去启动任务</span></span><br><span class="line">	ticker := time.NewTicker(defaultExpiration + (<span class="number">5</span> * time.Second))</span><br><span class="line">	<span class="keyword">defer</span> ticker.Stop()</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		err := nw.locker.LockContext(ctx)</span><br><span class="line">		<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">			slog.Debug(<span class="string">"Successfully acquired lock"</span>, <span class="string">"lockName"</span>, lockName)</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">		slog.Debug(<span class="string">"Failed to acquire lock"</span>, <span class="string">"lockName"</span>, lockName, <span class="string">"err"</span>, err)</span><br><span class="line">		&lt;-ticker.C</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 看门狗，实现锁自动续约</span></span><br><span class="line">	ticker = time.NewTicker(extendExpiration)</span><br><span class="line">	<span class="keyword">defer</span> ticker.Stop()</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> &lt;-ticker.C:</span><br><span class="line">				<span class="keyword">if</span> ok, err := nw.locker.ExtendContext(ctx); !ok || err != <span class="literal">nil</span> &#123;</span><br><span class="line">					slog.Debug(<span class="string">"Failed to extend lock"</span>, <span class="string">"err"</span>, err, <span class="string">"status"</span>, ok)</span><br><span class="line">				&#125;</span><br><span class="line">			<span class="keyword">case</span> &lt;-ctx.Done():</span><br><span class="line">				slog.Debug(<span class="string">"Exiting lock watchdog"</span>)</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 启动定时任务</span></span><br><span class="line">	nw.runner.Start()</span><br><span class="line">	slog.Info(<span class="string">"Successfully started nightwatch server"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 阻塞等待退出信号</span></span><br><span class="line">	&lt;-stopCh</span><br><span class="line"></span><br><span class="line">	nw.stop()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>*nightWatch.Run</code> 方法中，首先会启动一个无限循环，定时执行尝试抢锁操作，直到抢锁成功。这与前文中讲解的 nightwatch 架构设计是一致的。抢到锁后，就可以执行 <code>nw.runner.Start()</code> 启动调度器，执行定时任务了。</p>
+<p>此外，在 nightwatch 架构图中没有体现的一点是，这里为分布式锁实现了看门狗机制，用来自动续约。关于 <code>redsync</code> 分布式锁的自动续约，在我的文章「<a href="https://mp.weixin.qq.com/s/8HJXRcCoyZqeC_b6l-TD0w" target="_blank" rel="noopener">在 Go 中如何使用分布式锁解决并发问题？</a>」中有详细讲解。</p>
+<p>而这个 <code>Run</code> 方法，就是在 <code>main</code> 函数中通过 <code>nw.Run(stopCh)</code> 调用的。</p>
+<p>我们还剩下一个最后要看的核心逻辑是 <code>task</code> 在何时会调用 <code>Register</code> 注册到 <code>registry</code> 变量中。</p>
+<p>还记得前文中讲解的 <code>Watcher</code> 接口么，<code>*taskWatcher</code> 实现了这个接口：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/watcher/task/watcher.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/watcher/task/watcher.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> _ watcher.Watcher = (*taskWatcher)(<span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> taskWatcher <span class="keyword">struct</span> &#123;</span><br><span class="line">	store     store.IStore</span><br><span class="line">	clientset kubernetes.Interface</span><br><span class="line"></span><br><span class="line">	wg sync.WaitGroup</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *taskWatcher)</span> <span class="title">Init</span><span class="params">(ctx context.Context, config *watcher.Config)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	w.store = config.Store</span><br><span class="line">	w.clientset = config.Clientset</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *taskWatcher)</span> <span class="title">Spec</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="string">"@every 30s"</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	watcher.Register(&amp;taskWatcher&#123;&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>taskWatcher</code> 就是 <code>task</code> 任务的具体对象，它实现了 <code>watcher.Watcher</code> 接口。可以发现，<code>Register</code> 函数是在 <code>init</code> 函数中调用的，即 <code>task</code> 包被导入时实现自动注册。</p>
+<p>task 包会在 <code>nightwatch/internal/watcher/all/all.go</code> 文件被导入：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/watcher/all/all.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/watcher/all/all.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> all</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="comment">// 触发所有 Watcher 的 init 函数进行注册</span></span><br><span class="line">	_ <span class="string">"github.com/jianghushinian/blog-go-example/nightwatch/internal/watcher/task"</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>这里以匿名包的方式导入 <code>task</code> 包。如果我们还有其他的任务实现，则同样可以参考 <code>task</code> 包的注册方式，在这里以匿名包形式导入，这也是 <code>all</code> 包名的由来，可以注册全部的任务。</p>
+<p>然后会在 <code>nightwatch</code> 中再次以匿名包的方式导入 <code>all</code> 包：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/nightwatch.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/nightwatch.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> nightwatch</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	...</span><br><span class="line">	<span class="comment">// 触发 init 函数</span></span><br><span class="line">	_ <span class="string">"github.com/jianghushinian/blog-go-example/nightwatch/internal/watcher/all"</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>我们可以总结出任务的注册流程是，<code>nightwatch</code> 包导入 <code>all</code> 包，<code>all</code> 包会导入 <code>task</code> 包，<code>task</code> 包的 <code>init</code> 函数执行就会完成注册。所以在入口文件 <code>main.go</code> 导入 <code>nightwatch</code> 包的时候，就会触发任务的注册。在调用 <code>nw.Run(stopCh)</code> 启动服务时，所有的任务已经注册完成了。</p>
+<p><code>taskWatcher</code> 对象的核心逻辑当然就是 <code>Run</code> 方法了：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/watcher/task/watcher.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/nightwatch/internal/watcher/task/watcher.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Run 运行 task watcher 任务</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *taskWatcher)</span> <span class="title">Run</span><span class="params">()</span></span> &#123;</span><br><span class="line">	w.wg.Add(<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line">	slog.Debug(<span class="string">"Current sync period is start"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// <span class="doctag">NOTE:</span> 将 Normal 状态任务在 Kubernetes 中启动</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> w.wg.Done()</span><br><span class="line">		ctx := context.Background()</span><br><span class="line"></span><br><span class="line">		_, tasks, err := w.store.Tasks().List(ctx, meta.WithFilter(<span class="keyword">map</span>[<span class="keyword">string</span>]any&#123;</span><br><span class="line">			<span class="string">"status"</span>: model.TaskStatusNormal,</span><br><span class="line">		&#125;))</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			slog.Error(err.Error(), <span class="string">"Failed to list tasks"</span>)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">		wg.Add(<span class="built_in">len</span>(tasks))</span><br><span class="line">		<span class="keyword">for</span> _, task := <span class="keyword">range</span> tasks &#123;</span><br><span class="line">			<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(task *model.Task)</span></span> &#123;</span><br><span class="line">				<span class="keyword">defer</span> wg.Done()</span><br><span class="line">				job, err := w.clientset.BatchV1().Jobs(task.Namespace).Create(ctx, toJob(task), metav1.CreateOptions&#123;&#125;)</span><br><span class="line">				<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">					slog.Error(err.Error(), <span class="string">"Failed to create job"</span>)</span><br><span class="line">					<span class="keyword">return</span></span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				task.Status = model.TaskStatusPending</span><br><span class="line">				<span class="keyword">if</span> err := w.store.Tasks().Update(ctx, task); err != <span class="literal">nil</span> &#123;</span><br><span class="line">					slog.Error(err.Error(), <span class="string">"Failed to update task status"</span>)</span><br><span class="line">					<span class="keyword">return</span></span><br><span class="line">				&#125;</span><br><span class="line">				slog.Info(<span class="string">"Successfully created job"</span>, <span class="string">"namespace"</span>, job.Namespace, <span class="string">"name"</span>, job.Name)</span><br><span class="line">			&#125;(task)</span><br><span class="line">		&#125;</span><br><span class="line">		wg.Wait()</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// <span class="doctag">NOTE:</span> 同步中间状态的任务在 Kubernetes 中的状态到表中</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> w.wg.Done()</span><br><span class="line">		ctx := context.Background()</span><br><span class="line"></span><br><span class="line">		_, tasks, err := w.store.Tasks().List(ctx, meta.WithFilterNot(<span class="keyword">map</span>[<span class="keyword">string</span>]any&#123;</span><br><span class="line">			<span class="comment">// 排除这几个状态</span></span><br><span class="line">			<span class="string">"status"</span>: []model.TaskStatus&#123;model.TaskStatusNormal, model.TaskStatusSucceeded, model.TaskStatusFailed&#125;,</span><br><span class="line">		&#125;))</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			slog.Error(err.Error(), <span class="string">"Failed to list tasks"</span>)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">		wg.Add(<span class="built_in">len</span>(tasks))</span><br><span class="line">		<span class="keyword">for</span> _, task := <span class="keyword">range</span> tasks &#123;</span><br><span class="line">			<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(task *model.Task)</span></span> &#123;</span><br><span class="line">				<span class="keyword">defer</span> wg.Done()</span><br><span class="line">				job, err := w.clientset.BatchV1().Jobs(task.Namespace).Get(ctx, task.Name, metav1.GetOptions&#123;&#125;)</span><br><span class="line">				<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">					slog.Error(err.Error(), <span class="string">"Failed to get task"</span>)</span><br><span class="line">					<span class="keyword">return</span></span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				task.Status = toTaskStatus(job)</span><br><span class="line">				<span class="keyword">if</span> err := w.store.Tasks().Update(ctx, task); err != <span class="literal">nil</span> &#123;</span><br><span class="line">					slog.Error(err.Error(), <span class="string">"Failed to update task status"</span>)</span><br><span class="line">					<span class="keyword">return</span></span><br><span class="line">				&#125;</span><br><span class="line">				slog.Info(<span class="string">"Successfully sync job status to task"</span>, <span class="string">"namespace"</span>, job.Namespace, <span class="string">"name"</span>, job.Name, <span class="string">"status"</span>, task.Status)</span><br><span class="line">			&#125;(task)</span><br><span class="line">		&#125;</span><br><span class="line">		wg.Wait()</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	w.wg.Wait()</span><br><span class="line">	slog.Debug(<span class="string">"Current sync period is complete"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Run</code> 方法就是用来实现每个 <code>watcher</code> 对象的业务逻辑。比如这里就实现了 <code>task</code> 任务的业务逻辑，它包含两个功能，在 <code>Run</code> 方法的上半部分代码中启动了第一个 goroutine 用来实现将 <code>Normal</code> 状态任务在 Kubernetes 中启动，下半部分代码中启动了第二个 goroutine 用来实现同步已运行的任务在 Kubernetes 中的 Job 状态到数据库表中。</p>
+<p>至此，nightwatch 项目就讲解完成了。我们一起实现了一个架构简洁且扩展性强的分布式任务系统。关于 nightwatch 项目中更多的代码细节你可以跳转到我的 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/nightwatch" target="_blank" rel="noopener">GitHub 仓库</a>中查看。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文带大家从技术选型到架构设计再到代码实现，一步步完成了一个简洁优雅的分布式任务系统。这套系统不仅架构简洁，扩展也非常方便，我们只需要按照 <code>task</code> 的套路实现更多的异步任务，都可以非常方便的方式注册到 nightwatch 中。</p>
+<p>我们实现的 nightwatch 项目实际上是开源项目 <a href="https://github.com/onexstack/onex" target="_blank" rel="noopener">OneX</a> 项目中 onex-nightwatch 组件的 copy 实现，其架构完全参考 onex-nightwatch 实现。本文介绍的 nightwatch 项目只是 OneX 其中的一个组件，OneX 所有源代码的质量都超级高，并且相当规范，全部都是来自一线大厂的实践经验。</p>
+<p>OneX 不仅是一个开源项目，更是一整套 Go + Kubernetes + LLMOps + MLOps 企业级落地方案，这个项目出自孔令飞老师的「<a href="https://konglingfei.com/" target="_blank" rel="noopener">云原生 AI 实战星球</a>」。</p>
+<p>OneX 项目技术栈如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="onex.png" alt="onex" title="">
+                </div>
+                <div class="image-caption">onex</div>
+            </figure>
+
+<p>OneX 项目完全开源免费，如果你想学习各种最佳实践，非常建议你深入学习这个项目。如果你觉得自己一个人学习容易放弃，或者遇到问题无法解决，想找人一起讨论，也欢迎你加入到孔令飞老师的「<a href="https://konglingfei.com/" target="_blank" rel="noopener">云原生 AI 实战星球</a>」。这里有一起进步的小伙伴，星球是围绕 OneX 打造的，里面会详细讲解 OneX 中用到的各种技术栈，极大缩短自学 OneX 项目的时间。</p>
+<p>星球刚刚上线，原价 ¥1599，现在早鸟价 <strong>¥1299</strong>，交个朋友，可以加我微信领取折扣优惠券（<strong>限时限量</strong>），星球值不值你可以自己先研究下 OneX 项目一探虚实。</p>
+<p>扫码直达星球：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="onex-zsxq.png" alt="onex-zsxq" title="">
+                </div>
+                <div class="image-caption">onex-zsxq</div>
+            </figure>
+
+<p>扫码加我微信领取星球大额优惠券（<strong>限时限量</strong>）：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="wechat.png" alt="wechat" title="">
+                </div>
+                <div class="image-caption">wechat</div>
+            </figure>
+
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/nightwatch" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>Onex 项目 GitHub 源码：<a href="https://github.com/onexstack/onex" target="_blank" rel="noopener">https://github.com/onexstack/onex</a></li>
+<li>onex-nightwatch 组件 GitHub 源码：<a href="https://github.com/onexstack/onex/tree/master/internal/nightwatch" target="_blank" rel="noopener">https://github.com/onexstack/onex/tree/master/internal/nightwatch</a></li>
+<li>在 Go 中使用 cron 执行定时任务：<a href="https://mp.weixin.qq.com/s/bCgGnw9QYTTBuoEktTYZcw" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/bCgGnw9QYTTBuoEktTYZcw</a></li>
+<li>在 Go 中如何使用分布式锁解决并发问题？：<a href="https://mp.weixin.qq.com/s/8HJXRcCoyZqeC_b6l-TD0w" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/8HJXRcCoyZqeC_b6l-TD0w</a></li>
+<li>Go 程序如何实现优雅退出？来看看 K8s 是怎么做的——上篇：<a href="https://mp.weixin.qq.com/s/UR6Rf1ewthI8qU3A7Szfzg" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/UR6Rf1ewthI8qU3A7Szfzg</a></li>
+<li>Go 程序如何实现优雅退出？来看看 K8s 是怎么做的——下篇：<a href="https://mp.weixin.qq.com/s/oztrz9WfCDnyZC6s4b__LQ" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/oztrz9WfCDnyZC6s4b__LQ</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/nightwatch" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/nightwatch</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-03-09T14:30:14.508Z" itemprop="dateUpdated">2025-03-09 22:30:14</time>
+</span><br>
+
+
+        
+        <a href="/2025/03/09/nightwatch/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/03/09/nightwatch/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag">分布式</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/" rel="tag">架构设计</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/03/09/nightwatch/&title=《如何基于 Go 语言设计一个简洁优雅的分布式任务系统》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/03/09/nightwatch/&title=《如何基于 Go 语言设计一个简洁优雅的分布式任务系统》 — 江湖十年&source=在当今云计算与微服务盛行的时代，分布式任务系统已成为支撑大规模业务的核心基础设施。今天就来为大家分享下如何基于 Go 语言从零设计和实现一个架构简洁且扩展..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/03/09/nightwatch/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《如何基于 Go 语言设计一个简洁优雅的分布式任务系统》 — 江湖十年&url=http://www.jianghushinian.cn/2025/03/09/nightwatch/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/03/09/nightwatch/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/03/02/redsync/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">在 Go 中如何使用分布式锁解决并发问题？</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2025</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/03/09/nightwatch/&title=《如何基于 Go 语言设计一个简洁优雅的分布式任务系统》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/03/09/nightwatch/&title=《如何基于 Go 语言设计一个简洁优雅的分布式任务系统》 — 江湖十年&source=在当今云计算与微服务盛行的时代，分布式任务系统已成为支撑大规模业务的核心基础设施。今天就来为大家分享下如何基于 Go 语言从零设计和实现一个架构简洁且扩展..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/03/09/nightwatch/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《如何基于 Go 语言设计一个简洁优雅的分布式任务系统》 — 江湖十年&url=http://www.jianghushinian.cn/2025/03/09/nightwatch/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/03/09/nightwatch/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/03/09/nightwatch/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
