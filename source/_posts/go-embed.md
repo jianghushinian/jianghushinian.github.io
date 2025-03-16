@@ -3,6 +3,7 @@ title: '在 Go 中如何使用 go:embed 指令嵌入静态文件'
 date: 2024-07-12 14:23:45
 tags:
 - Go
+- 编译器指令
 categories:
 - Go
 ---
