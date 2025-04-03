@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>效率工具：使用 air 热重载 Go 应用程序 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,命令行">
+    <meta name="description" content="在项目开发阶段，热重载技术非常有用，通过热重载，可以实现在无需手动干预的情况下，修改代码文件后，自动重启 Go 应用。这极大的提升了开发体验，同时也节约了我们的开发时间。本文我们一起来体验一下使用 air 热重载 Go 应用程序，提高开发效率。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="效率工具：使用 air 热重载 Go 应用程序">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/04/03/air/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在项目开发阶段，热重载技术非常有用，通过热重载，可以实现在无需手动干预的情况下，修改代码文件后，自动重启 Go 应用。这极大的提升了开发体验，同时也节约了我们的开发时间。本文我们一起来体验一下使用 air 热重载 Go 应用程序，提高开发效率。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/04/03/air/air-fly.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/04/03/air/curl-air.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/04/03/air/air-restart.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/04/03/air/curl-fly.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/04/03/air/air-restart.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/04/03/air/air-ctrl-c.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/04/03/air/air-shutting-down.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/04/03/air/air-arg.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/04/03/air/air-arg-config.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/04/03/air/air-config.png">
+<meta property="article:published_time" content="2025-04-03T09:42:36.000Z">
+<meta property="article:modified_time" content="2025-04-03T10:03:25.293Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="命令行">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2025/04/03/air/air-fly.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">效率工具：使用 air 热重载 Go 应用程序</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">效率工具：使用 air 热重载 Go 应用程序</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-04-03T09:42:36.000Z" itemprop="datePublished" class="page-time">
+  2025-04-03
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#简介"><span class="post-toc-number">1.</span> <span class="post-toc-text">简介</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#快速开始"><span class="post-toc-number">2.</span> <span class="post-toc-text">快速开始</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#安装"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">安装</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">使用</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用进阶"><span class="post-toc-number">3.</span> <span class="post-toc-text">使用进阶</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#自定义配置"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">自定义配置</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#命令行参数"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">命令行参数</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-air"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">效率工具：使用 air 热重载 Go 应用程序</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-04-03 17:42:36" datetime="2025-04-03T09:42:36.000Z"  itemprop="datePublished">2025-04-03</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在项目开发阶段，热重载技术非常有用，通过热重载，可以实现在无需手动干预的情况下，修改代码文件后，自动重启 Go 应用。这极大的提升了开发体验，同时也节约了我们的开发时间。本文我们一起来体验一下使用 air 热重载 Go 应用程序，提高开发效率。</p>
+<a id="more"></a>
+
+<h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p>air 是为 Go 应用开发设计的一款支持热重载的命令行工具。</p>
+<p>以下是 air 官方总结的特色：</p>
+<ul>
+<li>彩色的日志输出</li>
+<li>自定义构建或必要的命令</li>
+<li>支持外部子目录</li>
+<li>在 Air 启动之后，允许监听新创建的路径</li>
+<li>更棒的构建过程</li>
+</ul>
+<h3 id="快速开始"><a href="#快速开始" class="headerlink" title="快速开始"></a>快速开始</h3><p>接下来，我们就通过快速开始来体验一下 air 的便捷与强大。</p>
+<h4 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h4><p>首先我们来安装 air，命令如下。</p>
+<blockquote>
+<p>NOTE:</p>
+<p><font style="color:rgb(31, 35, 40);">建议使用 go 1.23 或更高版本</font></p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go install github.com/air-verse/air@latest</span><br></pre></td></tr></table></figure>
+
+<p>air 的安装很简单，因为是使用 Go 语言开发的，所以直接通过 <code>go install</code> 命令即可安装。</p>
+<p>这里没有特别指定安装某个具体版本，而是安装 <code>latest</code> 版本，因为这是一款开发工具，一般不太会出现 API 频繁变更的情况，所以就选择使用最新版本。</p>
+<h4 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h4><p>准备以下目录结构。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ tree -F fly</span><br><span class="line">fly/</span><br><span class="line">├── README.md</span><br><span class="line">└── main.go</span><br></pre></td></tr></table></figure>
+
+<p>现在我们来编写代码体验一下 air，<code>main.go</code> 代码如下。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"net/http"</span></span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line">	<span class="string">"os/signal"</span></span><br><span class="line">	<span class="string">"syscall"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 注册优雅退出信号</span></span><br><span class="line">	signalChan := <span class="built_in">make</span>(<span class="keyword">chan</span> os.Signal, <span class="number">1</span>)</span><br><span class="line">	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 初始化 HTTP 服务器</span></span><br><span class="line">	server := &amp;http.Server&#123;Addr: <span class="string">":8080"</span>&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 定义路由</span></span><br><span class="line">	http.HandleFunc(<span class="string">"/"</span>, <span class="function"><span class="keyword">func</span><span class="params">(w http.ResponseWriter, r *http.Request)</span></span> &#123;</span><br><span class="line">		fmt.Fprintf(w, <span class="string">"🚀 Hello Air! (PID: %d)"</span>, os.Getpid()) <span class="comment">// PID 用于验证热替换</span></span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 启动服务协程</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Printf(<span class="string">"Server started at http://localhost:8080 (PID: %d)\n"</span>, os.Getpid())</span><br><span class="line">		<span class="keyword">if</span> err := server.ListenAndServe(); err != <span class="literal">nil</span> &amp;&amp; err != http.ErrServerClosed &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"Server error: %v\n"</span>, err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 阻塞等待终止信号</span></span><br><span class="line">	&lt;-signalChan</span><br><span class="line">	fmt.Println(<span class="string">"Server shutting down..."</span>)</span><br><span class="line">	server.Close()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这是一个简单的 Web Server 程序，根路由 <code>/</code> 的处理函数中获取并返回了当前程序的 <code>pid</code>。</p>
+<p>在项目根目录 <code>fly/</code> 下直接执行 <code>air</code> 命令。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="air-fly.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>可以看到，只需要简单的 <code>air</code> 命令，我们的 Go 程序就启动起来了。</p>
+<p>打开新的终端，使用 <code>curl</code> 命令访问 <a href="http://localhost:8080" target="_blank" rel="noopener">http://localhost:8080</a>。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="curl-air.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>如图所示，我们得到了正确的响应。</p>
+<p>现在，我们尝试将根路由处理函数中的响应内容从 <code>Hello Air!</code> 改成 <code>Hello Fly!</code> 并保存程序。</p>
+<p><code>air</code> 会自动重启我们的 Web Server 程序。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="air-restart.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>重新使用 <code>curl</code> 命令访问 <a href="http://localhost:8080" target="_blank" rel="noopener">http://localhost:8080</a>。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="curl-fly.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>响应结果已经变了，并且程序的 <code>pid</code> 也发生了变化，说明 Go 程序真的被重启了。</p>
+<p>没错，air 的使用就是这么简单。</p>
+<p>那么接下来，我们再将如下内容，写入 <code>README.md</code> 中并保存文件。</p>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="section"># Air 热重载演示项目</span></span><br><span class="line"></span><br><span class="line"><span class="section">## 快速开始</span></span><br><span class="line"></span><br><span class="line"><span class="section">### 1. 安装 Air</span></span><br><span class="line"></span><br><span class="line"><span class="code">```bash</span></span><br><span class="line"><span class="code">$ go install github.com/air-verse/air@latest</span></span><br><span class="line"><span class="code">```</span></span><br><span class="line"></span><br><span class="line"><span class="section">### 2. 使用 Air</span></span><br><span class="line"></span><br><span class="line"><span class="code">```bash</span></span><br><span class="line"><span class="code">$ cd /path/to/your_project</span></span><br><span class="line"><span class="code">$ air</span></span><br><span class="line"><span class="code">```</span></span><br></pre></td></tr></table></figure>
+
+<p>可以发现，这次 <code>air</code> 并没有重启 Go 程序。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="air-restart.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>想来这也合情合理，<code>README.md</code> 文件并不是 Go 程序代码，不会影响程序执行结果，所以无需重启。</p>
+<p>不过有一种情况则需要考虑，如果我们提供一个接口，可以返回静态的 <code>README.md</code> 文件内容，那么 <code>README.md</code> 文件修改，就需要重启 Go 程序。至于如何实现，看完后文的讲解，相信你能够找到答案。</p>
+<p>现在，我们按下 <code>Ctrl + C</code> 结束进程。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="air-ctrl-c.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>细心的你也许已经发现，我们的 <code>main.go</code> 代码在实现优雅退出后会输出一条日志 <code>Server shutting down...</code>，可是现在终端中并没有输出。</p>
+<p>要如何解决这个问题呢？咱们接着往下看。</p>
+<h3 id="使用进阶"><a href="#使用进阶" class="headerlink" title="使用进阶"></a>使用进阶</h3><p>上一小节我们快速体验了 air，本小节再来看下 air 还支持哪些高级功能。</p>
+<h4 id="自定义配置"><a href="#自定义配置" class="headerlink" title="自定义配置"></a>自定义配置</h4><p>air 支持很多高级功能，这些功能都可以通过配置文件中的配置项来开启或关闭。</p>
+<p>air 的配置文件格式问 <code>toml</code>，我们有两种方式来获得 air 配置文件模板。</p>
+<p>一种是 air 官方提供了 example 配置样例，你可以在此查看 <a href="https://github.com/air-verse/air/blob/master/air_example.toml" target="_blank" rel="noopener">https://github.com/air-verse/air/blob/master/air_example.toml</a>。</p>
+<p>另外一种是使用 <code>air init</code> 命令来自动生成。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ air init</span><br><span class="line"></span><br><span class="line">  __    _   ___  </span><br><span class="line"> / /\  | | | |_) </span><br><span class="line">/_/--\ |_| |_| \_ v1.61.7, built with Go go1.24.0</span><br><span class="line"></span><br><span class="line">.air.toml file created to the current directory with the default settings</span><br></pre></td></tr></table></figure>
+
+<p>在项目根目录下执行 <code>air init</code> 后，会生成叫 <code>.air.toml</code> 的配置文件。</p>
+<p>air 的全量配置内容如下，我对其做了详细的中文注释。</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Air 热重载工具的 TOML 格式配置文件</span></span><br><span class="line"><span class="comment"># 完整文档参考：https://github.com/air-verse/air</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 工作目录</span></span><br><span class="line"><span class="comment"># 支持相对路径（.）或绝对路径，注意后续目录必须在此目录下</span></span><br><span class="line"><span class="attr">root</span> = <span class="string">"."</span></span><br><span class="line"><span class="comment"># air 执行过程中产生的临时文件存储目录</span></span><br><span class="line"><span class="attr">tmp_dir</span> = <span class="string">"tmp"</span></span><br><span class="line"></span><br><span class="line"><span class="section">[build]</span></span><br><span class="line"><span class="comment"># 构建前执行的命令列表（每项命令按顺序执行）</span></span><br><span class="line"><span class="attr">pre_cmd</span> = [<span class="string">"echo 'hello air' &gt; pre_cmd.txt"</span>]</span><br><span class="line"><span class="comment"># 主构建命令（支持常规 shell 命令或 make 工具）</span></span><br><span class="line"><span class="attr">cmd</span> = <span class="string">"go build -o ./tmp/main ."</span></span><br><span class="line"><span class="comment"># 构建后执行的命令列表（相当于按 ^C 程序终止后触发）</span></span><br><span class="line"><span class="attr">post_cmd</span> = [<span class="string">"echo 'hello air' &gt; post_cmd.txt"</span>]</span><br><span class="line"><span class="comment"># 从 `cmd` 编译生成的二进制文件路径</span></span><br><span class="line"><span class="attr">bin</span> = <span class="string">"tmp/main"</span></span><br><span class="line"><span class="comment"># 自定义运行参数（可设置环境变量）</span></span><br><span class="line"><span class="attr">full_bin</span> = <span class="string">"APP_ENV=dev APP_USER=air ./tmp/main"</span></span><br><span class="line"><span class="comment"># 传递给二进制文件的运行参数（示例将执行 './tmp/main hello world'）</span></span><br><span class="line"><span class="attr">args_bin</span> = [<span class="string">"hello"</span>, <span class="string">"world"</span>]</span><br><span class="line"><span class="comment"># 监听以下扩展名的文件变动</span></span><br><span class="line"><span class="attr">include_ext</span> = [<span class="string">"go"</span>, <span class="string">"tpl"</span>, <span class="string">"tmpl"</span>, <span class="string">"html"</span>]</span><br><span class="line"><span class="comment"># 排除监视的目录列表</span></span><br><span class="line"><span class="attr">exclude_dir</span> = [<span class="string">"assets"</span>, <span class="string">"tmp"</span>, <span class="string">"vendor"</span>, <span class="string">"frontend/node_modules"</span>]</span><br><span class="line"><span class="comment"># 指定要监视的目录（空数组表示自动检测）</span></span><br><span class="line"><span class="attr">include_dir</span> = []</span><br><span class="line"><span class="comment"># 指定要监视的特定文件（空数组表示自动检测）</span></span><br><span class="line"><span class="attr">include_file</span> = []</span><br><span class="line"><span class="comment"># 排除监视的特定文件（空数组表示不过滤）</span></span><br><span class="line"><span class="attr">exclude_file</span> = []</span><br><span class="line"><span class="comment"># 通过正则表达式排除文件（示例排除所有测试文件）</span></span><br><span class="line"><span class="attr">exclude_regex</span> = [<span class="string">"_test\\.go"</span>]</span><br><span class="line"><span class="comment"># 是否排除未修改的文件（提升性能）</span></span><br><span class="line"><span class="attr">exclude_unchanged</span> = <span class="literal">true</span></span><br><span class="line"><span class="comment"># 是否跟踪符号链接目录，允许 Air 跟踪符号链接（软链接）指向的目录/文件变化，适用于项目依赖外部符号链接资源的场景</span></span><br><span class="line"><span class="attr">follow_symlink</span> = <span class="literal">true</span></span><br><span class="line"><span class="comment"># 日志文件存储路径（位于 tmp_dir 下）</span></span><br><span class="line"><span class="attr">log</span> = <span class="string">"air.log"</span></span><br><span class="line"><span class="comment"># 是否使用轮询机制检测文件变化（替代 fsnotify），Air 默认使用的跨平台文件监控库（基于 Go 的 fsnotify 包），通过操作系统事件实时感知文件变化</span></span><br><span class="line"><span class="attr">poll</span> = <span class="literal">false</span></span><br><span class="line"><span class="comment"># 轮询检测间隔（默认最低 500ms）</span></span><br><span class="line"><span class="attr">poll_interval</span> = <span class="number">500</span> <span class="comment"># ms</span></span><br><span class="line"><span class="comment"># 文件变动后的延迟构建时间（防止高频触发）</span></span><br><span class="line"><span class="attr">delay</span> = <span class="number">0</span> <span class="comment"># ms</span></span><br><span class="line"><span class="comment"># 构建出错时是否终止旧进程</span></span><br><span class="line"><span class="attr">stop_on_error</span> = <span class="literal">true</span></span><br><span class="line"><span class="comment"># 是否发送中断信号再终止进程（Windows 不支持）</span></span><br><span class="line"><span class="attr">send_interrupt</span> = <span class="literal">false</span></span><br><span class="line"><span class="comment"># 发送中断信号后的终止延迟</span></span><br><span class="line"><span class="attr">kill_delay</span> = <span class="number">500</span> <span class="comment"># nanosecond</span></span><br><span class="line"><span class="comment"># 当程序退出时，是否重新运行二进制文件（适合 CLI 工具）</span></span><br><span class="line"><span class="attr">rerun</span> = <span class="literal">false</span></span><br><span class="line"><span class="comment"># 重新运行的时间间隔</span></span><br><span class="line"><span class="attr">rerun_delay</span> = <span class="number">500</span></span><br><span class="line"></span><br><span class="line"><span class="section">[log]</span></span><br><span class="line"><span class="comment"># 是否显示日志时间戳</span></span><br><span class="line"><span class="attr">time</span> = <span class="literal">false</span></span><br><span class="line"><span class="comment"># 仅显示主日志（过滤监控/构建/运行日志）</span></span><br><span class="line"><span class="attr">main_only</span> = <span class="literal">false</span></span><br><span class="line"><span class="comment"># 禁用所有日志输出</span></span><br><span class="line"><span class="attr">silent</span> = <span class="literal">false</span></span><br><span class="line"></span><br><span class="line"><span class="section">[color]</span></span><br><span class="line"><span class="comment"># 主日志颜色（支持 ANSI 颜色代码）</span></span><br><span class="line"><span class="attr">main</span> = <span class="string">"magenta"</span></span><br><span class="line"><span class="comment"># 文件监控日志颜色</span></span><br><span class="line"><span class="attr">watcher</span> = <span class="string">"cyan"</span></span><br><span class="line"><span class="comment"># 构建过程日志颜色</span></span><br><span class="line"><span class="attr">build</span> = <span class="string">"yellow"</span></span><br><span class="line"><span class="comment"># 运行日志颜色</span></span><br><span class="line"><span class="attr">runner</span> = <span class="string">"green"</span></span><br><span class="line"></span><br><span class="line"><span class="section">[misc]</span></span><br><span class="line"><span class="comment"># 退出时自动清理临时目录（tmp_dir）</span></span><br><span class="line"><span class="attr">clean_on_exit</span> = <span class="literal">true</span></span><br><span class="line"></span><br><span class="line"><span class="section">[screen]</span></span><br><span class="line"><span class="comment"># 重建时清空控制台界面</span></span><br><span class="line"><span class="attr">clear_on_rebuild</span> = <span class="literal">true</span></span><br><span class="line"><span class="comment"># 保留滚动历史（不清屏时有效）</span></span><br><span class="line"><span class="attr">keep_scroll</span> = <span class="literal">true</span></span><br><span class="line"></span><br><span class="line"><span class="section">[proxy]</span></span><br><span class="line"><span class="comment"># 启用浏览器实时重载功能</span></span><br><span class="line"><span class="comment"># 参考：https://github.com/air-verse/air/tree/master?tab=readme-ov-file#how-to-reload-the-browser-automatically-on-static-file-changes</span></span><br><span class="line"><span class="attr">enabled</span> = <span class="literal">true</span></span><br><span class="line"><span class="comment"># 代理服务器端口（Air 监控端口），浏览器连接到 proxy_port，Air 将请求转发到应用的真实端口 app_port</span></span><br><span class="line"><span class="attr">proxy_port</span> = <span class="number">8090</span></span><br><span class="line"><span class="comment"># 应用实际运行端口（需与业务代码端口一致）</span></span><br><span class="line"><span class="attr">app_port</span> = <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+
+<p>全量配置看起来很多，不过别被吓到。其实这些配置很好理解，并且我都写了详细的注释。</p>
+<p>我们可以发现配置项是按功能进行分类的，有如下几块配置。</p>
+<ul>
+<li>全局配置：<code>root</code> 和 <code>tmp_dir</code> 分别表示项目的工作目录和临时目录。</li>
+<li><code>build</code> 类配置：都是与构建相关的配置项。</li>
+<li><code>log</code> 类配置：与日志相关的配置项。</li>
+<li><code>color</code> 类配置：与输出颜色相关的配置项。</li>
+<li><code>misc</code> 类配置：杂项配置，其实只有一个 <code>clean_on_exit</code> 配置可以用来清理临时目录。</li>
+<li><code>screen</code> 类配置：控制台相关的配置项。</li>
+<li><code>proxy</code> 类配置：代理相关的配置项。</li>
+</ul>
+<p>其实分析完了这些配置项，你就能够发现，我们常用的配置其实也就是 <code>build</code> 配置项下的那几个，其他的等用到了再去研究不迟。</p>
+<p>我们通常可以重点关注这几个配置项：</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[build]</span></span><br><span class="line"><span class="comment"># 主构建命令（支持常规 shell 命令或 make 工具）</span></span><br><span class="line"><span class="attr">cmd</span> = <span class="string">"go build -o ./tmp/main ."</span></span><br><span class="line"><span class="comment"># 从 `cmd` 编译生成的二进制文件路径</span></span><br><span class="line"><span class="attr">bin</span> = <span class="string">"tmp/main"</span></span><br><span class="line"><span class="comment"># 自定义运行参数（可设置环境变量）</span></span><br><span class="line"><span class="attr">full_bin</span> = <span class="string">"APP_ENV=dev APP_USER=air ./tmp/main"</span></span><br><span class="line"><span class="comment"># 传递给二进制文件的运行参数（示例将执行 './tmp/main hello world'）</span></span><br><span class="line"><span class="attr">args_bin</span> = [<span class="string">"hello"</span>, <span class="string">"world"</span>]</span><br></pre></td></tr></table></figure>
+
+<p><code>cmd</code>、<code>bin</code>、<code>args_bin</code> 3 者正是对应了 Go 应用构建、执行、和传递命令行参数的功能。所以这也是最常用的 3 项配置。<code>full_bin</code> 则是高阶版的 <code>bin</code>，可以设置环境变量。</p>
+<p>这里需要注意，<code>cmd</code> 不仅支持 <code>go build</code> 构建命令，它还支持常规的 <code>shell</code> 命令和 <code>make</code> 命令，这为应用构建提供了更多的灵活性。</p>
+<p>此外 <code>misc</code> 配置项下的 <code>clean_on_exit</code> 配置也比较有用，将其设置为 <code>true</code> 可以自动清理 <code>tmp_dir</code> 目录产生的临时文件。</p>
+<p>学习了 air 的配置项，接下来我们来解决程序退出日志 <code>Server shutting down...</code> 未输出的问题。</p>
+<p>首先将以上配置信息保存在项目根目录 <code>fly/</code> 下的 <code>.air.toml</code> 文件中。</p>
+<p>接着，修改如下这两项配置。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[build]</span></span><br><span class="line">  kill_delay = "1s"</span><br><span class="line">  send_interrupt = true</span><br></pre></td></tr></table></figure>
+
+<p>开启 <code>send_interrupt</code> 配置项后，<code>air</code> 在终止我们的 Go 程序之前，会向其发送 <code>Ctrl + C</code> 信号，<code>kill_delay</code> 配置项保证 <code>air</code> 命令为 Go 程序预留足够多的退出时间，给程序优雅退出的机会。</p>
+<p>再次使用 <code>air</code> 命令启动程序。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="air-shutting-down.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>然后修改任意一行代码，我们立刻会看到重启时 <code>Server shutting down...</code> 日志被输出了。最后按下 <code>Ctrl + C</code> 结束进程，同样会得到 <code>Server shutting down...</code> 日志输出。并且等待 1s 过后 <code>air</code> 才会输出 <code>see you again~</code> 并退出。</p>
+<p>至于其他配置项，就交给你自行去探索了（思考下，现在你知道如何让 <code>air</code> 监听 <code>MarkDown</code> 文件了吗）。</p>
+<h4 id="命令行参数"><a href="#命令行参数" class="headerlink" title="命令行参数"></a>命令行参数</h4><p><code>air</code> 命令不仅支持使用配置文件来开启或关闭功能，它也支持直接通过命令行参数的方式来开启或关闭某项功能。</p>
+<p>在前文中我们已经使用过 <code>air init</code> 来创建配置文件，现在来看看 <code>air</code> 还支持哪些命令行参数。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">$  air -h  </span><br><span class="line">Usage of air:</span><br><span class="line"></span><br><span class="line">If no <span class="built_in">command</span> is provided air will start the runner with the provided flags</span><br><span class="line"></span><br><span class="line">Commands:</span><br><span class="line">  init  creates a .air.toml file with default settings to the current directory</span><br><span class="line"></span><br><span class="line">Flags:</span><br><span class="line">  -build.args_bin string</span><br><span class="line">        Add additional arguments when running binary (bin/full_bin).</span><br><span class="line">  ...</span><br><span class="line">  -c string</span><br><span class="line">        config path</span><br><span class="line">  ...</span><br><span class="line">  -v    show version</span><br></pre></td></tr></table></figure>
+
+<p>执行 <code>air -h</code> 或 <code>air --help</code> 即可查看命令行帮助信息。篇幅所限，这里省略了大部分输出。</p>
+<p>不过根据现有的输出内容我们不难发现，<code>air</code> 可以使用 <code>-c</code> 参数指定配置文件（默认读取执行命令的当前目录下 <code>.air.toml</code> 配置文件）；<code>-v</code> 参数可以输出版本；<code>-build.args_bin</code> 的作用实际上与配置文件中 <code>[build]</code> 分类下 <code>args_bin</code> 配置项相同。</p>
+<p>根据帮助信息的输出内容我们可以总结出，实际上 <code>air</code> 所支持的命令就是配置文件中所有的配置项对应的功能。所以学习完 <code>air</code> 的配置文件，再来看 <code>air</code> 的命令行参数几乎没有学习成本。</p>
+<p>那么现在，我们还有最后一个问题需要解决，既然 <code>air</code> 即支持命令行参数，又支持配置文件，那么如果同时设置二者，谁的优先级更高呢？</p>
+<p>我们一起来做一个实验，修改 Go 程序的 <code>main.go</code> 文件，在 <code>main</code> 函数的第一行加上如下代码。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fmt.Printf(<span class="string">"args[1]: %v\n"</span>, os.Args[<span class="number">1</span>])</span><br></pre></td></tr></table></figure>
+
+<p>这行代码可以打印 Go 程序接收到的第一个命令行参数。</p>
+<p>执行 <code>air -build.args_bin xxx</code> 命令启动程序。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="air-arg.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>在输出日志中可以看到，我们顺利得到了命令行参数 <code>xxx</code>。</p>
+<p>接下来我们修改 <code>.air.toml</code> 中如下配置 项。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[build]</span></span><br><span class="line">  args_bin = ["yyy"]</span><br></pre></td></tr></table></figure>
+
+<p>现在我们执行 <code>air -build.args_bin xxx -c .air.toml</code> 命令启动程序。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="air-arg-config.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>这一次，我们既指定了命令行参数 <code>-build.args_bin xxx</code>，又指定了配置文件 <code>-c .air.toml</code>。根据输出日志可以发现，<code>air</code> 的命令行参数优先级高于配置文件。</p>
+<p>这一结论符合直觉，也符合绝大多数 Go 命令行程序的设定，我们可以作为经验记下来。</p>
+<p>那么现在如果直接使用 <code>air -c .air.toml</code> 命令启动程序。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="air-config.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>输出结果已经不言自明了。</p>
+<p>对于 <code>air</code> 命令行参数的讲解就到这里，其他参数读者可以自行尝试。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>在开发阶段使用热重载技术，可以提高我们的开发效率和提升开发体验。</p>
+<p>air 是使用 Go 语言编写的一款强大的热重载工具，使用起来非常便捷，只需要一个简单的 <code>air</code> 命令即可启动。air 支持通过配置文件或命令行参数来开启或关闭某项功能。推荐使用 air 来热重载你的 Go 应用程序。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/air/fly" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>air GitHub 源码：<a href="https://github.com/air-verse/air" target="_blank" rel="noopener">https://github.com/air-verse/air</a></li>
+<li>air Documentation：<a href="https://github.com/air-verse/air/blob/master/README-zh_cn.md" target="_blank" rel="noopener">https://github.com/air-verse/air/blob/master/README-zh_cn.md</a></li>
+<li>air 配置文件示例：<a href="https://github.com/air-verse/air/blob/master/air_example.toml" target="_blank" rel="noopener">https://github.com/air-verse/air/blob/master/air_example.toml</a></li>
+<li>06 | 项目初始化（下）：给新项目添加初始文件：<a href="https://articles.zsxq.com/id_0z7eii1hgsp0.html" target="_blank" rel="noopener">https://articles.zsxq.com/id_0z7eii1hgsp0.html</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/air/fly" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/air/fly</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2025/04/03/air/" target="_blank" rel="noopener">https://jianghushinian.cn/2025/04/03/air/</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-04-03T10:03:25.293Z" itemprop="dateUpdated">2025-04-03 18:03:25</time>
+</span><br>
+
+
+        
+        <a href="/2025/04/03/air/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/04/03/air/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%91%BD%E4%BB%A4%E8%A1%8C/" rel="tag">命令行</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/04/03/air/&title=《效率工具：使用 air 热重载 Go 应用程序》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/04/03/air/&title=《效率工具：使用 air 热重载 Go 应用程序》 — 江湖十年&source=在项目开发阶段，热重载技术非常有用，通过热重载，可以实现在无需手动干预的情况下，修改代码文件后，自动重启 Go 应用。这极大的提升了开发体验，同时也节约了..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/04/03/air/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《效率工具：使用 air 热重载 Go 应用程序》 — 江湖十年&url=http://www.jianghushinian.cn/2025/04/03/air/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/04/03/air/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/03/29/k8s-aggregate-error/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">使用 K8s Aggregate 聚合你的错误列表</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2025</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/04/03/air/&title=《效率工具：使用 air 热重载 Go 应用程序》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/04/03/air/&title=《效率工具：使用 air 热重载 Go 应用程序》 — 江湖十年&source=在项目开发阶段，热重载技术非常有用，通过热重载，可以实现在无需手动干预的情况下，修改代码文件后，自动重启 Go 应用。这极大的提升了开发体验，同时也节约了..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/04/03/air/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《效率工具：使用 air 热重载 Go 应用程序》 — 江湖十年&url=http://www.jianghushinian.cn/2025/04/03/air/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/04/03/air/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/04/03/air/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
