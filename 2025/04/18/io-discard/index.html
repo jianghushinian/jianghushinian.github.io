@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 语言中你不知道的 io.Discard 妙用 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="在 Go 语言中，io.Discard 是一个实现了 io.Writer 接口的特殊变量，用于丢弃所有写入的数据。 io.Discard 在 Go 1.15 及之前版本中是放在 io&#x2F;ioutil 包中实现的。而在 Go 1.16 版本，得以正式转正，被实现在 io 包中。本文我们来一起学习下 io.Discard 的实现及使用场景。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 语言中你不知道的 io.Discard 妙用">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/04/18/io-discard/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在 Go 语言中，io.Discard 是一个实现了 io.Writer 接口的特殊变量，用于丢弃所有写入的数据。 io.Discard 在 Go 1.15 及之前版本中是放在 io&#x2F;ioutil 包中实现的。而在 Go 1.16 版本，得以正式转正，被实现在 io 包中。本文我们来一起学习下 io.Discard 的实现及使用场景。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-04-18T08:28:01.000Z">
+<meta property="article:modified_time" content="2025-04-18T08:32:54.234Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 语言中你不知道的 io.Discard 妙用</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 语言中你不知道的 io.Discard 妙用</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-04-18T08:28:01.000Z" itemprop="datePublished" class="page-time">
+  2025-04-18
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用示例"><span class="post-toc-number">1.</span> <span class="post-toc-text">使用示例</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#源码解读"><span class="post-toc-number">2.</span> <span class="post-toc-text">源码解读</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Go-1-15-及之前版本"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">Go 1.15 及之前版本</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Go-1-16-及之后版本"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">Go 1.16 及之后版本</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#实践案例"><span class="post-toc-number">3.</span> <span class="post-toc-text">实践案例</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Go-源码中的应用"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">Go 源码中的应用</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Kubernetes-源码中的应用"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">Kubernetes 源码中的应用</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-io-discard"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 语言中你不知道的 io.Discard 妙用</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-04-18 16:28:01" datetime="2025-04-18T08:28:01.000Z"  itemprop="datePublished">2025-04-18</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在 Go 语言中，<code>io.Discard</code> 是一个实现了 <code>io.Writer</code> 接口的<strong>特殊变量</strong>，用于丢弃所有写入的数据。 <code>io.Discard</code> 在 Go 1.15 及之前版本中是放在 <code>io/ioutil</code> 包中实现的。而在 Go 1.16 版本，得以正式转正，被实现在 <code>io</code> 包中。本文我们来一起学习下 <code>io.Discard</code> 的实现及使用场景。</p>
+<a id="more"></a>
+
+<h3 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h3><p>假如我们有一个 Web Server 程序，它提供了 HTTP Get 请求的健康检查接口 <code>/healthz</code>，调用后返回 HTTP 200 状态码和类似 <code>{&quot;timestamp&quot;:&quot;2025-04-17 23:42:15&quot;}</code> 格式的 Body 数据。</p>
+<p>其实大多数情况下，我们想检查这个 Web Server 是否健康，只需检查 <code>/healthz</code> 接口响应的状态码为 200 即可，而不必关心返回内容。</p>
+<p>如果使用 Go 程序来做健康检查，那么就可以使用 <code>io.Discard</code> 丢弃响应体内容，实现代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">healthCheck</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 发送健康检查请求</span></span><br><span class="line">	resp, err := http.Get(<span class="string">"http://127.0.0.1:5555/healthz"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(fmt.Sprintf(<span class="string">"请求失败: %v"</span>, err))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> resp.Body.Close() <span class="comment">// 确保连接回收</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 丢弃响应体</span></span><br><span class="line">	_, _ = io.Copy(io.Discard, resp.Body)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 状态码校验</span></span><br><span class="line">	<span class="keyword">if</span> resp.StatusCode != http.StatusOK &#123;</span><br><span class="line">		<span class="built_in">panic</span>(fmt.Sprintf(<span class="string">"非预期状态码: %d"</span>, resp.StatusCode))</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">"健康检查通过"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里使用了 <code>io.Copy(io.Discard, resp.Body)</code> 将响应体内容复制到 <code>io.Discard</code> 进行丢弃。你可能会问，不丢弃 <code>resp.Body</code> 会有什么后果吗？</p>
+<p>如果不丢弃 <code>resp.Body</code>，那么 <code>defer resp.Body.Close()</code> 还是能够确保 <code>resp.Body</code> 被正确关闭，不会导致资源泄露。</p>
+<p>不过，如果我们主动清空 <code>resp.Body</code> 的内容，则会带来一个额外的好处，会使当前这个 HTTP 请求的底层 TCP 连接能够被复用，从而更加有效的利用资源。</p>
+<p>如下是 <code>http.Get(url)</code> 这个函数调用流程中涉及的核心代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Get</span><span class="params">(url <span class="keyword">string</span>)</span> <span class="params">(resp *Response, err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> DefaultClient.Get(url)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Client)</span> <span class="title">Get</span><span class="params">(url <span class="keyword">string</span>)</span> <span class="params">(resp *Response, err error)</span></span> &#123;</span><br><span class="line">	req, err := NewRequest(<span class="string">"GET"</span>, url, <span class="literal">nil</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> c.Do(req)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Client)</span> <span class="title">Do</span><span class="params">(req *Request)</span> <span class="params">(*Response, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> c.do(req)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Client)</span> <span class="title">do</span><span class="params">(req *Request)</span> <span class="params">(retres *Response, reterr error)</span></span> &#123;</span><br><span class="line">	...</span><br><span class="line"></span><br><span class="line">			<span class="comment">// Close the previous response's body. But</span></span><br><span class="line">			<span class="comment">// read at least some of the body so if it's</span></span><br><span class="line">			<span class="comment">// small the underlying TCP connection will be</span></span><br><span class="line">			<span class="comment">// re-used. No need to check for errors: if it</span></span><br><span class="line">			<span class="comment">// fails, the Transport won't reuse it anyway.</span></span><br><span class="line">			<span class="keyword">const</span> maxBodySlurpSize = <span class="number">2</span> &lt;&lt; <span class="number">10</span></span><br><span class="line">			<span class="keyword">if</span> resp.ContentLength == <span class="number">-1</span> || resp.ContentLength &lt;= maxBodySlurpSize &#123;</span><br><span class="line">				io.CopyN(io.Discard, resp.Body, maxBodySlurpSize)</span><br><span class="line">			&#125;</span><br><span class="line">			resp.Body.Close()</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>请求调用流程是：<code>http.Get(url)</code> =&gt; <code>DefaultClient.Get(url)</code> =&gt; <code>c.Do(req)</code> =&gt; <code>c.do(req)</code>。</p>
+<p>在 <code>c.do</code> 方法中，有这么一段注释值得我们注意：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Close the previous response's body. But</span></span><br><span class="line"><span class="comment">// 关闭前一个响应的 body。但</span></span><br><span class="line"><span class="comment">// read at least some of the body so if it's</span></span><br><span class="line"><span class="comment">// 至少读取部分响应体数据，这样当响应体较小时</span></span><br><span class="line"><span class="comment">// small the underlying TCP connection will be</span></span><br><span class="line"><span class="comment">// 底层 TCP 连接会被复用。</span></span><br><span class="line"><span class="comment">// re-used. No need to check for errors: if it</span></span><br><span class="line"><span class="comment">// 无需检查错误：若操作失败，</span></span><br><span class="line"><span class="comment">// fails, the Transport won't reuse it anyway.</span></span><br><span class="line"><span class="comment">// Transport 也不会复用该连接。</span></span><br></pre></td></tr></table></figure>
+
+<p>也就是说当我们调用 <code>http.Get(url)</code> 发起 HTTP 请求后，如果操作失败或未读取 Body，那么 Transport 是不会复用 TCP 连接的。如果读取 Body 后再关闭连接，那么 Transport 就会复用底层  TCP  连接。</p>
+<p>结合这段注释和代码，可以发现，其实 <code>http.Get(url)</code> 内部也会使用 <code>io.CopyN(io.Discard, resp.Body, maxBodySlurpSize)</code> 这种形式丢弃响应体，从而复用 TCP 连接。</p>
+<p>看来 <code>io.Discard</code> 还是一个比较有用的工具。</p>
+<h3 id="源码解读"><a href="#源码解读" class="headerlink" title="源码解读"></a>源码解读</h3><p>你是否会好奇 <code>io.Discard</code> 是如何实现的呢？</p>
+<p>其实它的实现非常简单，接下来，我们就从源码的角度来更加深入的学习 <code>io.Discard</code>。</p>
+<h4 id="Go-1-15-及之前版本"><a href="#Go-1-15-及之前版本" class="headerlink" title="Go 1.15 及之前版本"></a>Go 1.15 及之前版本</h4><p>我在前文中说过 <code>io.Discard</code> 在 Go 1.15 及之前版本中，是存放在 <code>io/ioutil</code> 包的，其代码如下：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.15.15/src/io/ioutil/ioutil.go#L158" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.15.15/src/io/ioutil/ioutil.go#L158</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> devNull <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// devNull implements ReaderFrom as an optimization so io.Copy to</span></span><br><span class="line"><span class="comment">// ioutil.Discard can avoid doing unnecessary work.</span></span><br><span class="line"><span class="keyword">var</span> _ io.ReaderFrom = devNull(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Write 实现 io.Writer 接口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(devNull)</span> <span class="title">Write</span><span class="params">(p []<span class="keyword">byte</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="built_in">len</span>(p), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// WriteString 实现 io.StringWriter 接口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(devNull)</span> <span class="title">WriteString</span><span class="params">(s <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="built_in">len</span>(s), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> blackHolePool = sync.Pool&#123;</span><br><span class="line">	New: <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">interface</span></span>&#123;&#125; &#123;</span><br><span class="line">		b := <span class="built_in">make</span>([]<span class="keyword">byte</span>, <span class="number">8192</span>)</span><br><span class="line">		<span class="keyword">return</span> &amp;b</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ReadFrom 实现 io.ReadFrom 接口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(devNull)</span> <span class="title">ReadFrom</span><span class="params">(r io.Reader)</span> <span class="params">(n <span class="keyword">int64</span>, err error)</span></span> &#123;</span><br><span class="line">	bufp := blackHolePool.Get().(*[]<span class="keyword">byte</span>)</span><br><span class="line">	readSize := <span class="number">0</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		readSize, err = r.Read(*bufp)</span><br><span class="line">		n += <span class="keyword">int64</span>(readSize)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			blackHolePool.Put(bufp)</span><br><span class="line">			<span class="keyword">if</span> err == io.EOF &#123;</span><br><span class="line">				<span class="keyword">return</span> n, <span class="literal">nil</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Discard is an io.Writer on which all Write calls succeed</span></span><br><span class="line"><span class="comment">// without doing anything.</span></span><br><span class="line"><span class="keyword">var</span> Discard io.Writer = devNull(<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<p>通过 <code>var Discard io.Writer = devNull(0)</code> 这行代码我们知道，<code>io.Discard</code> 是一个变量，并且实现了 <code>io.Writer</code> 接口，其类型为 <code>devNull</code>，而 <code>devNull</code> 的底层类型是 <code>int</code> 类型。</p>
+<p>从 Go 1.15 版本中 <code>io.Discard</code> 的类型名称可以看出，其对标的正是 Linux/Unix 系统中的 <code>/dev/null</code>。在 Linux/Unix 系统中，<code>/dev/null</code> 是一个“黑洞”，用于实现静默丢弃数据。它是一个特殊的设备文件，向它写入的任何数据都会被系统所丢弃，读取它时则立即返回文件结束（EOF）。</p>
+<p>如下是一个在 Makefile 命令中使用 <code>/dev/null</code> 的示例。</p>
+<blockquote>
+<p><a href="https://github.com/onexstack/miniblog/blob/master/scripts/make-rules/golang.mk#L32" target="_blank" rel="noopener">https://github.com/onexstack/miniblog/blob/master/scripts/make-rules/golang.mk#L32</a></p>
+</blockquote>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">go.build.verify:</span></span><br><span class="line">	@if ! which go &amp;&gt;/dev/null; then echo <span class="string">"Cannot found go compile tool. Please install go tool first."</span>; exit 1; fi</span><br></pre></td></tr></table></figure>
+
+<p>这里使用 <code>&amp;&gt;/dev/null</code> 将 <code>which go</code> 执行的输出进行丢弃。</p>
+<p>当执行 <code>make go.build.verify</code> 时，如果在系统中未安装 Go，则会报错并以状态码 1 退出，输出 <code>Cannot found go compile tool. Please install go tool first.</code>，如果安装了 Go，则正常退出。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>此 Makefile 代码片段来源于 onexstack 技术栈中的开源项目 <a href="https://github.com/onexstack/miniblog/tree/master" target="_blank" rel="noopener">miniblog</a>，miniblog 是一个小而美的 Go 实战项目，入门但不简单。</p>
+<p>你可以在这里 <a href="https://t.zsxq.com/1979HJ45x" target="_blank" rel="noopener">https://t.zsxq.com/1979HJ45x</a> 看到 miniblog 项目的教程。</p>
+</blockquote>
+<p>Go 语言中 <code>io.Discard</code> 的行为正是模拟了 <code>/dev/null</code> 的特性。</p>
+<p><code>io.Discard</code> 实现的 <code>io.Writer</code> 接口非常简单，在 <code>Write</code> 方法中什么也没做，直接返回了 <code>len(p), nil</code>，即写入数据长度和无任何错误。<code>io.Discard</code> 就是以这么朴素的方式实现了数据的丢弃。</p>
+<p><code>io.Discard</code> 实现的 <code>WriteString</code> 方法同样如此，此方法用来实现 <code>io.StringWriter</code> 接口。</p>
+<p>此外，<code>io.Discard</code> 还实现了 <code>io.ReadFrom</code> 接口，实现这个接口的方法内部逻辑不再只有一行代码，不过我们先不急着研究它，放在下一小结讲解 Go 1.16 及之后版本的 <code>io.Discard</code> 源码部分。</p>
+<h4 id="Go-1-16-及之后版本"><a href="#Go-1-16-及之后版本" class="headerlink" title="Go 1.16 及之后版本"></a>Go 1.16 及之后版本</h4><p>在 Go 1.16 及之后版本中 <code>io.Discard</code> 的实现迁移到了 <code>io</code> 中，其代码如下：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.24.0/src/io/io.go#L639" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.24.0/src/io/io.go#L639</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Discard 是一个 [io.Writer] 接口的实现，所有写入调用都会成功但不会执行任何实际操作</span></span><br><span class="line"><span class="keyword">var</span> Discard Writer = discard&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// discard 是一个空结构体实现</span></span><br><span class="line"><span class="keyword">type</span> discard <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// discard 实现了 io.ReaderFrom 接口作为性能优化手段，使得通过 io.Copy 向 io.Discard 拷贝数据时能避免冗余操作</span></span><br><span class="line"><span class="keyword">var</span> _ ReaderFrom = discard&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Write 实现 io.Writer 接口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(discard)</span> <span class="title">Write</span><span class="params">(p []<span class="keyword">byte</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="built_in">len</span>(p), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// WriteString 实现 io.StringWriter 接口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(discard)</span> <span class="title">WriteString</span><span class="params">(s <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="built_in">len</span>(s), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用 sync.Pool 构建缓冲池</span></span><br><span class="line"><span class="keyword">var</span> blackHolePool = sync.Pool&#123;</span><br><span class="line">	New: <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">any</span></span> &#123;</span><br><span class="line">		b := <span class="built_in">make</span>([]<span class="keyword">byte</span>, <span class="number">8192</span>) <span class="comment">// 8KB 缓冲池</span></span><br><span class="line">		<span class="keyword">return</span> &amp;b               <span class="comment">// 返回指针对象</span></span><br><span class="line">	&#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ReadFrom 实现 io.ReadFrom 接口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(discard)</span> <span class="title">ReadFrom</span><span class="params">(r Reader)</span> <span class="params">(n <span class="keyword">int64</span>, err error)</span></span> &#123;</span><br><span class="line">	bufp := blackHolePool.Get().(*[]<span class="keyword">byte</span>) <span class="comment">// 从池中获取缓冲区</span></span><br><span class="line">	readSize := <span class="number">0</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		readSize, err = r.Read(*bufp) <span class="comment">// 读取数据到缓冲区</span></span><br><span class="line">		n += <span class="keyword">int64</span>(readSize)          <span class="comment">// 累加丢弃的字节数</span></span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			blackHolePool.Put(bufp) <span class="comment">// 用后归还缓冲池</span></span><br><span class="line">			<span class="keyword">if</span> err == EOF &#123;         <span class="comment">// 正常结束</span></span><br><span class="line">				<span class="keyword">return</span> n, <span class="literal">nil</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> <span class="comment">// 异常出错</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>io.Discard</code> 的主要逻辑并没有改变，有趣的是，它从之前的 <code>devNull</code> 类型改成了 <code>discard</code> 类型。<code>devNull</code> 底层是 <code>int</code> 类型，而 <code>discard</code> 则是空结构体。至于为什么要改成空结构体，你可以在我的文章《<a href="https://mp.weixin.qq.com/s/Qi0RrRyHLx8Q4SmhQeb-uQ" target="_blank" rel="noopener">Go 中空结构体惯用法，我帮你总结全了！</a>》中找到答案。</p>
+<p>在这里，我详细解释下 <code>ReadFrom</code> 方法的实现。</p>
+<p>首先，这里使用 <code>sync.Pool</code> 构建了一个缓冲池 <code>blackHolePool</code>，<code>sync.Pool</code> 的 <code>New</code> 方法返回一个 8KB 大小的缓冲对象，当我们调用 <code>blackHolePool.Get()</code> 时，就可以从缓冲池中获取对象 <code>&amp;b</code>。所以 <code>bufp</code> 是通过 <code>sync.Pool</code> 分配的 8KB 固定长度切片（<code>make([]byte, 8192)</code>）。通过 <code>sync.Pool</code> 复用 8KB 切片，避免频繁内存分配，能够降低 Go GC 的压力。</p>
+<blockquote>
+<p>注意：</p>
+<p>在使用 <code>sync.Pool</code> 时，New 属性所对应的构造函数应该返回指针类型对象 <code>&amp;b</code> 这在 <code>sync.Pool</code> 官方示例中也有提到 <a href="https://pkg.go.dev/sync@go1.24.0#example-Pool" target="_blank" rel="noopener">https://pkg.go.dev/sync@go1.24.0#example-Pool</a></p>
+</blockquote>
+<p>接着，在 <code>for</code> 循环中，每次调用 <code>r.Read(*bufp)</code> 时，数据会从 <code>bufp</code> 切片的起始位置开始填充（这会覆盖前一次循环中缓冲区的内容）。这里会累加丢弃的字节数，用于最终返回。</p>
+<p>对于 <code>bufp</code> 对象，用后需要归还到缓冲池中，以便下次使用，所以需要调用 <code>sync.Pool</code> 对象的 <code>Put</code> 方法进行归还。</p>
+<p>如果 <code>r.Read</code> 返回 <code>EOF</code> 则终止循环，返回累计丢弃的字节数 <code>n</code>。如果返回其他类型错误，则直接返回 <code>err</code> 和已经读取的字节数。</p>
+<p><code>io.Discard</code> 之所以要实现 <code>ReadFrom</code> 方法，其实是为了支持与 <code>io.Copy</code> 协同工作。</p>
+<p>当使用 <code>io.Copy(io.Discard, src)</code> 丢弃数据时，<code>io.Copy</code> 会优先调用 <code>ReadFrom</code> 方法。</p>
+<p><code>io.Copy</code> 实现源码如下：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.24.0/src/io/io.go#L387" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.24.0/src/io/io.go#L387</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Copy</span><span class="params">(dst Writer, src Reader)</span> <span class="params">(written <span class="keyword">int64</span>, err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> copyBuffer(dst, src, <span class="literal">nil</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">copyBuffer</span><span class="params">(dst Writer, src Reader, buf []<span class="keyword">byte</span>)</span> <span class="params">(written <span class="keyword">int64</span>, err error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// If the reader has a WriteTo method, use it to do the copy.</span></span><br><span class="line">	<span class="comment">// Avoids an allocation and a copy.</span></span><br><span class="line">	<span class="keyword">if</span> wt, ok := src.(WriterTo); ok &#123;</span><br><span class="line">		<span class="keyword">return</span> wt.WriteTo(dst)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// Similarly, if the writer has a ReadFrom method, use it to do the copy.</span></span><br><span class="line">	<span class="keyword">if</span> rf, ok := dst.(ReaderFrom); ok &#123;</span><br><span class="line">		<span class="keyword">return</span> rf.ReadFrom(src)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> buf == <span class="literal">nil</span> &#123;</span><br><span class="line">		size := <span class="number">32</span> * <span class="number">1024</span></span><br><span class="line">		<span class="keyword">if</span> l, ok := src.(*LimitedReader); ok &amp;&amp; <span class="keyword">int64</span>(size) &gt; l.N &#123;</span><br><span class="line">			<span class="keyword">if</span> l.N &lt; <span class="number">1</span> &#123;</span><br><span class="line">				size = <span class="number">1</span></span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				size = <span class="keyword">int</span>(l.N)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		buf = <span class="built_in">make</span>([]<span class="keyword">byte</span>, size)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		nr, er := src.Read(buf)</span><br><span class="line">		<span class="keyword">if</span> nr &gt; <span class="number">0</span> &#123;</span><br><span class="line">			nw, ew := dst.Write(buf[<span class="number">0</span>:nr])</span><br><span class="line">			<span class="keyword">if</span> nw &lt; <span class="number">0</span> || nr &lt; nw &#123;</span><br><span class="line">				nw = <span class="number">0</span></span><br><span class="line">				<span class="keyword">if</span> ew == <span class="literal">nil</span> &#123;</span><br><span class="line">					ew = errInvalidWrite</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			written += <span class="keyword">int64</span>(nw)</span><br><span class="line">			<span class="keyword">if</span> ew != <span class="literal">nil</span> &#123;</span><br><span class="line">				err = ew</span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> nr != nw &#123;</span><br><span class="line">				err = ErrShortWrite</span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> er != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> er != EOF &#123;</span><br><span class="line">				err = er</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> written, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>io.Copy</code> 的核心实现逻辑遵循 “优先调用高效接口 =&gt; 动态适配缓冲区 =&gt; 循环读写兜底” 的分层策略。其核心步骤如下：</p>
+<ol>
+<li>如果 <code>src</code> 对象实现了 <code>WriterTo</code> 接口（如 <code>*os.File</code>、<code>*bytes.Buffer</code> 等），则直接调用 <code>wt.WriteTo(dst)</code> 将数据写入 <code>dst</code>，这样可以利用系统底层的零拷贝机制。</li>
+<li>如果 <code>dst</code> 对象实现了 <code>ReaderFrom</code> 接口（如 <code>*os.File</code>、<code>*net.TCPConn</code> 等），则直接调用 <code>rf.ReadFrom(src)</code> 从 <code>src</code> 读取内容到 <code>dst</code>，让目标对象自主控制数据读取逻辑。</li>
+<li>默认缓冲区大小设为  32KB，如果 <code>src</code> 对象是 <code>*LimitedReader</code> 类型，则动态调整缓冲区大小，避免内存浪费。</li>
+<li>最终实现循环读写逻辑，调用 <code>src.Read(buf)</code> 从 <code>src</code> 读取数据到 <code>buf</code>，然后调用 <code>dst.Write(buf[0:nr])</code> 从 <code>buf</code> 将数据写入 <code>dst</code>。</li>
+</ol>
+<p>而 <code>io.Copy</code> 内部之所以考虑了这么多种场景，正是为了灵活性和性能优化所考虑的，比如 <code>*os.File.WriterTo</code> 方法实现了零拷贝，这样可以将性能优化到极致。</p>
+<p><code>io.Copy</code> 设计思想可以总结为下表：</p>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>优化目标</th>
+<th>技术手段</th>
+<th>性能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>接口优先</td>
+<td>零拷贝、减少内存操作</td>
+<td>检查是否实现 <code>WriterTo</code>/<code>ReaderFrom</code> 接口</td>
+<td>高</td>
+</tr>
+<tr>
+<td>缓冲区动态适配</td>
+<td>平衡内存与系统调用开销</td>
+<td>按需分配缓冲区大小</td>
+<td>中</td>
+</tr>
+<tr>
+<td>循环读写兜底</td>
+<td>通用性、错误处理完备性</td>
+<td>默认缓冲区大小，循环读写</td>
+<td>低</td>
+</tr>
+</tbody></table>
+<p>那么 <code>io.Discard</code> 实现 <code>ReadFrom</code> 方法的目的其实也就不言自明了，核心目的是通过优化数据读取和丢弃的流程，提升性能并减少资源消耗。</p>
+<h3 id="实践案例"><a href="#实践案例" class="headerlink" title="实践案例"></a>实践案例</h3><p>现在我们学习了 <code>io.Discard</code> 源码，可以继续来探索一下，<code>io.Discard</code> 更加真实的实践案例。</p>
+<h4 id="Go-源码中的应用"><a href="#Go-源码中的应用" class="headerlink" title="Go 源码中的应用"></a>Go 源码中的应用</h4><p>首先我们来看一下 <code>io.Discard</code> 在 Go 源码中如何应用？</p>
+<p>我们知道，Go 语言在 <code>os</code> 包中，为我们提供了 <code>os.Stat</code> 函数，用于获取文件或目录元数据信息，其作用与 Linux/Unix 系统调用 <code>stat</code> 类似，但设计上更符合 Go 语言的接口规范。</p>
+<p>如下是 <code>os.Stat</code> 函数使用示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">filesize</span><span class="params">(name <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">int64</span>, error)</span></span> &#123;</span><br><span class="line">	fi, err := os.Stat(name)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> os.IsNotExist(err) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="number">0</span>, errors.New(<span class="string">"文件不存在"</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, fmt.Errorf(<span class="string">"读取文件失败: %w"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> fi.Size(), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用 <code>fi = os.Stat(name)</code> 可以通过文件路径 <code>name</code> 获取文件系统对象的元数据对象 <code>fi</code>，然后通过 <code>fi.Size()</code> 可以得到文件大小。</p>
+<p><code>os.Stat</code> 用法非常简单，通常 Go 内置包的函数或方法都会有完整的单元测试，那么 <code>os.Stat</code> 如何 Go 源码是如何测试其正确性的呢？测试代码如下：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.24.0/src/os/os_test.go#L180" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.24.0/src/os/os_test.go#L180</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestStat</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	t.Parallel()</span><br><span class="line"></span><br><span class="line">	path := sfdir + <span class="string">"/"</span> + sfname</span><br><span class="line">	dir, err := Stat(path)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		t.Fatal(<span class="string">"stat failed:"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> !equal(sfname, dir.Name()) &#123;</span><br><span class="line">		t.Error(<span class="string">"name should be "</span>, sfname, <span class="string">"; is"</span>, dir.Name())</span><br><span class="line">	&#125;</span><br><span class="line">	filesize := size(path, t)</span><br><span class="line">	<span class="keyword">if</span> dir.Size() != filesize &#123;</span><br><span class="line">		t.Error(<span class="string">"size should be"</span>, filesize, <span class="string">"; is"</span>, dir.Size())</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个单元测试用例中调用了 <code>filesize := size(path, t)</code> 来获取文件大小，然后与 <code>dir.Size()</code> 进行比较，以此来判断通过 <code>os.Stat</code> 获取的文件大小是否正确。</p>
+<p>而这个 <code>size</code> 函数实现如下：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.24.0/src/os/os_test.go#L133" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.24.0/src/os/os_test.go#L133</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">size</span><span class="params">(name <span class="keyword">string</span>, t *testing.T)</span> <span class="title">int64</span></span> &#123;</span><br><span class="line">	file, err := Open(name)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		t.Fatal(<span class="string">"open failed:"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err := file.Close(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			t.Error(err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">	n, err := io.Copy(io.Discard, file)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		t.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> n</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>size</code> 函数使用 <code>n, err := io.Copy(io.Discard, file)</code> 来丢弃 <code>file</code> 中的内容，并将返回值 <code>n</code> 作为文件大小。</p>
+<p>这便是 <code>io.Discard</code> 包在 Go 源码中的应用。</p>
+<h4 id="Kubernetes-源码中的应用"><a href="#Kubernetes-源码中的应用" class="headerlink" title="Kubernetes 源码中的应用"></a>Kubernetes 源码中的应用</h4><p>接着我们再来看一下 <code>io.Discard</code> 在 Kubernetes 源码中如何应用？</p>
+<p>我们知道，Kubernetes 在 Pod 的生命周期中为容器提供了 <code>postStart</code> 启动钩子和 <code>preStop</code> 停止钩子。比如我们可以像如下方式，在容器创建后，将当前 Pod 运行的服务上报到注册中心：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">lifecycle:</span></span><br><span class="line">  <span class="attr">postStart:</span></span><br><span class="line">    <span class="attr">httpGet:</span></span><br><span class="line">      <span class="attr">path:</span> <span class="string">/register?ip=$&#123;POD_IP&#125;&amp;port=8080</span></span><br><span class="line">      <span class="attr">port:</span> <span class="number">8848</span>  <span class="comment"># 注册中心端口</span></span><br><span class="line">      <span class="attr">host:</span> <span class="string">service.default.svc.cluster.local</span></span><br><span class="line">      <span class="attr">scheme:</span> <span class="string">HTTP</span></span><br></pre></td></tr></table></figure>
+
+<p>我们可以更进一步，从源码的角度看一下 <code>postStart</code> 内部的执行逻辑。</p>
+<p>为了方便，我们可以从单元测试开始读起，在 kubelet 源码中找到 <code>TestRunHandlerHttpsFailureFallback</code> 测试函数：</p>
+<blockquote>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/v1.31.0/pkg/kubelet/lifecycle/handlers_test.go#L727" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.31.0/pkg/kubelet/lifecycle/handlers_test.go#L727</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestRunHandlerHttpsFailureFallback</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    handlerRunner := NewHandlerRunner(srv.Client(), &amp;fakeContainerCommandRunner&#123;&#125;, fakePodStatusProvider, recorder).(*handlerRunner)</span><br><span class="line">	...</span><br><span class="line">	container := v1.Container&#123;</span><br><span class="line">		Name: containerName,</span><br><span class="line">		Lifecycle: &amp;v1.Lifecycle&#123;</span><br><span class="line">			PostStart: &amp;v1.LifecycleHandler&#123;</span><br><span class="line">				HTTPGet: &amp;v1.HTTPGetAction&#123;</span><br><span class="line">					<span class="comment">// set the scheme to https to ensure it falls back to HTTP.</span></span><br><span class="line">					Scheme: <span class="string">"https"</span>,</span><br><span class="line">					Host:   <span class="string">"127.0.0.1"</span>,</span><br><span class="line">					Port:   intstr.FromString(port),</span><br><span class="line">					Path:   <span class="string">"bar"</span>,</span><br><span class="line">					HTTPHeaders: []v1.HTTPHeader&#123;</span><br><span class="line">						&#123;</span><br><span class="line">							Name:  <span class="string">"Authorization"</span>,</span><br><span class="line">							Value: <span class="string">"secret"</span>,</span><br><span class="line">						&#125;,</span><br><span class="line">					&#125;,</span><br><span class="line">				&#125;,</span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">	pod := v1.Pod&#123;&#125;</span><br><span class="line">	...</span><br><span class="line">	pod.Spec.Containers = []v1.Container&#123;container&#125;</span><br><span class="line">	msg, err := handlerRunner.Run(ctx, containerID, &amp;pod, &amp;container, container.Lifecycle.PostStart)</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在这里，首先通过 <code>NewHandlerRunner</code> 函数构造了一个用来处理容器生命周期函数的 <code>Handler</code> 对象 <code>handlerRunner</code>。</p>
+<p>接下来创建的 <code>container</code> 中实现了 <code>postStart</code> 钩子，通过 HTTP Get 方式，访问 <code>https://127.0.0.1:port/bar</code> 地址。在 Pod 准备就绪后，调用 <code>handlerRunner.Run</code> 方法来处理容器生命周期函数。</p>
+<p><code>Run</code> 方法实现如下：</p>
+<blockquote>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/v1.31.0/pkg/kubelet/lifecycle/handlers.go#L70" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.31.0/pkg/kubelet/lifecycle/handlers.go#L70</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hr *handlerRunner)</span> <span class="title">Run</span><span class="params">(ctx context.Context, containerID kubecontainer.ContainerID, pod *v1.Pod, container *v1.Container, handler *v1.LifecycleHandler)</span> <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> handler.Exec != <span class="literal">nil</span>:</span><br><span class="line">		...</span><br><span class="line">	<span class="keyword">case</span> handler.HTTPGet != <span class="literal">nil</span>:</span><br><span class="line">		err := hr.runHTTPHandler(ctx, pod, container, handler, hr.eventRecorder)</span><br><span class="line">		<span class="keyword">var</span> msg <span class="keyword">string</span></span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			msg = fmt.Sprintf(<span class="string">"HTTP lifecycle hook (%s) for Container %q in Pod %q failed - error: %v"</span>, handler.HTTPGet.Path, container.Name, format.Pod(pod), err)</span><br><span class="line">			klog.V(<span class="number">1</span>).ErrorS(err, <span class="string">"HTTP lifecycle hook for Container in Pod failed"</span>, <span class="string">"path"</span>, handler.HTTPGet.Path, <span class="string">"containerName"</span>, container.Name, <span class="string">"pod"</span>, klog.KObj(pod))</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> msg, err</span><br><span class="line">	<span class="keyword">case</span> handler.Sleep != <span class="literal">nil</span>:</span><br><span class="line">		...</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		...</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，如果是  HTTP Get 类型的钩子，会调用 <code>hr.runHTTPHandler</code> 进一步处理。</p>
+<p><code>runHTTPHandler</code> 方法实现如下：</p>
+<blockquote>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/v1.31.0/pkg/kubelet/lifecycle/handlers.go#L143" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.31.0/pkg/kubelet/lifecycle/handlers.go#L143</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hr *handlerRunner)</span> <span class="title">runHTTPHandler</span><span class="params">(ctx context.Context, pod *v1.Pod, container *v1.Container, handler *v1.LifecycleHandler, eventRecorder record.EventRecorder)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	...</span><br><span class="line">	req, err := httpprobe.NewRequestForHTTPGetAction(handler.HTTPGet, container, podIP, <span class="string">"lifecycle"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	resp, err := hr.httpDoer.Do(req)</span><br><span class="line">	discardHTTPRespBody(resp)</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里通过 <code>httpprobe.NewRequestForHTTPGetAction</code> 构造一个 <code>HTTP</code> 请求对象，然后交给 <code>hr.httpDoer.Do(req)</code> 去执行，接下来重点来了，这里会调用 <code>discardHTTPRespBody(resp)</code> 函数。根据这个函数的命名，我们也能大概猜测到它是用来干什么的。</p>
+<p><code>discardHTTPRespBody</code> 函数实现如下：</p>
+<blockquote>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/v1.31.0/pkg/kubelet/lifecycle/handlers.go#L199" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.31.0/pkg/kubelet/lifecycle/handlers.go#L199</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">discardHTTPRespBody</span><span class="params">(resp *http.Response)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> resp == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Ensure the response body is fully read and closed</span></span><br><span class="line">	<span class="comment">// before we reconnect, so that we reuse the same TCP</span></span><br><span class="line">	<span class="comment">// connection.</span></span><br><span class="line">	<span class="keyword">defer</span> resp.Body.Close()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> resp.ContentLength &lt;= maxRespBodyLength &#123;</span><br><span class="line">		io.Copy(io.Discard, &amp;io.LimitedReader&#123;R: resp.Body, N: maxRespBodyLength&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，这里与我在文章开头说演示的示例思想完全相同，在 <code>defer</code> 语句中关闭 <code>resp.Body</code>，并主动使用 <code>io.Copy(io.Discard, ...)</code> 来丢弃 <code>resp.Body</code>。</p>
+<p>并且注释写的也很明确，确保读完响应体内容并关闭，能够实现复用 TCP 连接。</p>
+<p>这便是 <code>io.Discard</code> 包在 Kubernetes 源码中的应用。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><code>io.Discard</code> 虽然是 Go 提供的一个很小的功能点，但其有自己的妙用所在。<code>io.Discard</code> 对标的是 Linux/Unix 系统中的 <code>/dev/null</code> 文件，我们可以使用它来实现静默丢弃数据。</p>
+<p>我带你分别阅读了 <code>io.Discard</code> 在 Go 1.15 及之前版本以及在 Go 1.16 及之后版本中的实现。即使是这样一个小功能点，Go 在升级时也做了优化，使用空结构体替代了 <code>int</code> 的实现。</p>
+<p>我还举了两个实践案例，来带你体会 <code>io.Discard</code> 的真实使用场景。</p>
+<p>Go 中的 <code>os</code> 包在单元测试中，利用 <code>io.Discard</code> 来计算文件大小。我们在日常的开发中也可以思考一下在哪些单元测试场景中可以使用 <code>io.Discard</code>。</p>
+<p>Kubernetes 在 kubelet 中使用 <code>io.Discard</code> 来丢弃 HTTP 响应体，以此达到复用底层 TCP 连接的目的。</p>
+<p>你还知道 <code>io.Discard</code> 有哪些用法，欢迎告诉我咱们一起交流讨论。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/io/discard" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>Go 旧版 io.Discard 源码实现：<a href="https://github.com/golang/go/blob/go1.15.15/src/io/ioutil/ioutil.go#L158" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.15.15/src/io/ioutil/ioutil.go#L158</a></li>
+<li>Go 新版 io.Discard 源码实现：<a href="https://github.com/golang/go/blob/go1.24.0/src/io/io.go#L387" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.24.0/src/io/io.go#L387</a></li>
+<li>Go os 包 io.Discard 使用示例：<a href="https://github.com/golang/go/blob/go1.24.0/src/os/os_test.go#L133" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.24.0/src/os/os_test.go#L133</a></li>
+<li>Kubernetes io.Discard 使用示例：<a href="https://github.com/kubernetes/kubernetes/blob/v1.31.0/pkg/kubelet/lifecycle/handlers.go#L199" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.31.0/pkg/kubelet/lifecycle/handlers.go#L199</a></li>
+<li>sync.Pool 使用文档：<a href="https://pkg.go.dev/sync@go1.24.0#example-Pool" target="_blank" rel="noopener">https://pkg.go.dev/sync@go1.24.0#example-Pool</a></li>
+<li>onexstack miniblog 项目：<a href="https://github.com/onexstack/miniblog" target="_blank" rel="noopener">https://github.com/onexstack/miniblog</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/io/discard" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/io/discard</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2025/04/18/io-discard" target="_blank" rel="noopener">https://jianghushinian.cn/2025/04/18/io-discard</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-04-18T08:32:54.234Z" itemprop="dateUpdated">2025-04-18 16:32:54</time>
+</span><br>
+
+
+        
+        <a href="/2025/04/18/io-discard/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/04/18/io-discard/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/04/18/io-discard/&title=《Go 语言中你不知道的 io.Discard 妙用》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/04/18/io-discard/&title=《Go 语言中你不知道的 io.Discard 妙用》 — 江湖十年&source=在 Go 语言中，io.Discard 是一个实现了 io.Writer 接口的特殊变量，用于丢弃所有写入的数据。 io.Discard 在 Go 1.1..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/04/18/io-discard/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 语言中你不知道的 io.Discard 妙用》 — 江湖十年&url=http://www.jianghushinian.cn/2025/04/18/io-discard/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/04/18/io-discard/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/04/13/automaxprocs/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">使用 Uber automaxprocs 正确设置 Go 程序线程数</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2025</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/04/18/io-discard/&title=《Go 语言中你不知道的 io.Discard 妙用》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/04/18/io-discard/&title=《Go 语言中你不知道的 io.Discard 妙用》 — 江湖十年&source=在 Go 语言中，io.Discard 是一个实现了 io.Writer 接口的特殊变量，用于丢弃所有写入的数据。 io.Discard 在 Go 1.1..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/04/18/io-discard/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 语言中你不知道的 io.Discard 妙用》 — 江湖十年&url=http://www.jianghushinian.cn/2025/04/18/io-discard/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/04/18/io-discard/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/04/18/io-discard/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
