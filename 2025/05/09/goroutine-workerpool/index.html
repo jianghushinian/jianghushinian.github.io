@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Go 语言中如何实现协程池 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="如果你熟悉 Java、Python 等编程语言，那么你一定听说或者使用过进程池或线程池。因为进程和线程不是越多越好，过多的进程或线程可能造成资源浪费和性能下降。所以池化技术在这些主流编程语言中非常流行，可以有效控制并发场景下资源使用量。 而 Go 语言则没有提供多进程和多线程的支持，仅提供了协程（goroutine）的概念。在 Go 中开启 goroutine 的成本非常低，以至于我们在绝大多数情">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Go 语言中如何实现协程池">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="如果你熟悉 Java、Python 等编程语言，那么你一定听说或者使用过进程池或线程池。因为进程和线程不是越多越好，过多的进程或线程可能造成资源浪费和性能下降。所以池化技术在这些主流编程语言中非常流行，可以有效控制并发场景下资源使用量。 而 Go 语言则没有提供多进程和多线程的支持，仅提供了协程（goroutine）的概念。在 Go 中开启 goroutine 的成本非常低，以至于我们在绝大多数情">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/workerpool.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/dispatch.png">
+<meta property="article:published_time" content="2025-05-09T15:00:42.000Z">
+<meta property="article:modified_time" content="2025-05-09T15:25:06.095Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/workerpool.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Go 语言中如何实现协程池</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Go 语言中如何实现协程池</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-05-09T15:00:42.000Z" itemprop="datePublished" class="page-time">
+  2025-05-09
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用示例"><span class="post-toc-number">1.</span> <span class="post-toc-text">使用示例</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#源码解读"><span class="post-toc-number">2.</span> <span class="post-toc-text">源码解读</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">3.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-goroutine-workerpool"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Go 语言中如何实现协程池</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-05-09 23:00:42" datetime="2025-05-09T15:00:42.000Z"  itemprop="datePublished">2025-05-09</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>如果你熟悉 Java、Python 等编程语言，那么你一定听说或者使用过进程池或线程池。因为进程和线程不是越多越好，过多的进程或线程可能造成资源浪费和性能下降。所以池化技术在这些主流编程语言中非常流行，可以有效控制并发场景下资源使用量。</p>
+<p>而 Go 语言则没有提供多进程和多线程的支持，仅提供了协程（goroutine）的概念。在 Go 中开启 goroutine 的成本非常低，以至于我们在绝大多数情况下开启 goroutine 时根本无需考虑协程数量，所以也就很少有人提及 Go 的协程池化技术。不过使用场景少，不代表完全没用。通过协程池我们可以来掌控资源使用量，降低协程泄漏风险。</p>
+<a id="more"></a>
+
+<p><a href="https://github.com/gammazero/workerpool" target="_blank" rel="noopener">gammazero/workerpool</a> 就是用来实现协程池的 Go 包，本文我们一起来学习一下其使用方法，并深入其源码来探究下如何实现一个 Go 协程池。</p>
+<h3 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h3><p>workerpool 直译过来是工作池，在 Go 中就是指代协程池。workerpool 的用法非常简单，示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/gammazero/workerpool"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	wp := workerpool.New(<span class="number">2</span>)</span><br><span class="line">	requests := []<span class="keyword">string</span>&#123;<span class="string">"alpha"</span>, <span class="string">"beta"</span>, <span class="string">"gamma"</span>, <span class="string">"delta"</span>, <span class="string">"epsilon"</span>&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> _, r := <span class="keyword">range</span> requests &#123;</span><br><span class="line">		wp.Submit(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"%s: Handling request: %s\n"</span>, time.Now().Format(time.RFC3339), r)</span><br><span class="line">			time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	wp.StopWait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>workerpool.New(2)</code> 表示我们创建了一个容量为 2 的协程池，即同一时刻最多只会有 2 个 goroutine 正在执行。<code>wp.Submit()</code> 用来提交一个任务，任务类型为无参数和返回值的函数 <code>func()</code>，这里我们在 <code>for</code> 循环中提交了 5 个任务。调用 <code>wp.StopWait()</code> 可以等待所有已提交的任务执行完成。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">2025-05-08T23:40:16+08:00: Handling request: alpha</span><br><span class="line">2025-05-08T23:40:16+08:00: Handling request: beta</span><br><span class="line">2025-05-08T23:40:17+08:00: Handling request: gamma</span><br><span class="line">2025-05-08T23:40:17+08:00: Handling request: delta</span><br><span class="line">2025-05-08T23:40:18+08:00: Handling request: epsilon</span><br></pre></td></tr></table></figure>
+
+<p>不过这里的输出内容并不是一下子全部输出完成的，而是两行两行的输出。</p>
+<p>根据打印的时间可以发现，是先输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">2025-05-08T23:40:16+08:00: Handling request: alpha</span><br><span class="line">2025-05-08T23:40:16+08:00: Handling request: beta</span><br></pre></td></tr></table></figure>
+
+<p>接着等待 1s 再输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">2025-05-08T23:40:17+08:00: Handling request: gamma</span><br><span class="line">2025-05-08T23:40:17+08:00: Handling request: delta</span><br></pre></td></tr></table></figure>
+
+<p>再次等待 1s 最后输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">2025-05-08T23:40:18+08:00: Handling request: epsilon</span><br></pre></td></tr></table></figure>
+
+<p>这个输出结果符合预期，也就是说同一时刻最多只会有 2 个 goroutine 正在执行。</p>
+<h3 id="源码解读"><a href="#源码解读" class="headerlink" title="源码解读"></a>源码解读</h3><p>workerpool 用法非常简单，接下来我们一起看看其实现原理。</p>
+<p>下图是 workerpool 源码中实现的全部功能：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="workerpool.png" alt="workerpool" title="">
+                </div>
+                <div class="image-caption">workerpool</div>
+            </figure>
+
+<p><code>WorkerPool</code> 是一个结构体，源码中围绕这个结构体定义了很多函数或方法。这些函数或方法你不必死记硬背，先有一个宏观上的认知，接下来我将带你深入学习其中的核心方法。</p>
+<p><code>WorkerPool</code> 结构体完整定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// WorkerPool 是 Go 协程的集合池，用于确保同时处理请求的协程数量严格受控于预设的上限值</span></span><br><span class="line"><span class="keyword">type</span> WorkerPool <span class="keyword">struct</span> &#123;</span><br><span class="line">	maxWorkers   <span class="keyword">int</span>                 <span class="comment">// 最大工作协程数</span></span><br><span class="line">	taskQueue    <span class="keyword">chan</span> <span class="function"><span class="keyword">func</span><span class="params">()</span>         // 任务提交队列</span></span><br><span class="line">	workerQueue  <span class="keyword">chan</span> <span class="function"><span class="keyword">func</span><span class="params">()</span>         // 工作协程消费队列</span></span><br><span class="line">	stoppedChan  <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;       <span class="comment">// 停止完成通知通道</span></span><br><span class="line">	stopSignal   <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;       <span class="comment">// 停止信号通道</span></span><br><span class="line">	waitingQueue deque.Deque[<span class="function"><span class="keyword">func</span><span class="params">()</span>] // 等待队列（双端队列）</span></span><br><span class="line">	stopLock     sync.Mutex          <span class="comment">// 停止操作互斥锁</span></span><br><span class="line">	stopOnce     sync.Once           <span class="comment">// 控制只停止一次</span></span><br><span class="line">	stopped      <span class="keyword">bool</span>                <span class="comment">// 是否已经停止</span></span><br><span class="line">	waiting      <span class="keyword">int32</span>               <span class="comment">// 等待队列中任务计数</span></span><br><span class="line">	wait         <span class="keyword">bool</span>                <span class="comment">// 协程池退出时是否等待已入队任务执行完成</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里属性很多，其中有 3 个属性是需要我们重点关注的，<code>taskQueue</code>、<code>workerQueue</code> 以及 <code>waitingQueue</code>，这三者分别代表任务提交队列、工作队列和等待队列。稍后我将通过一个流程图来讲解任务在这 3 个队列中的传递流程，现在我们一起来看一下 <code>WorkerPool</code> 的构造函数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// New 创建并启动协程池</span></span><br><span class="line"><span class="comment">// maxWorkers 参数指定可以并发执行任务的最大工作协程数。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(maxWorkers <span class="keyword">int</span>)</span> *<span class="title">WorkerPool</span></span> &#123;</span><br><span class="line">	<span class="comment">// 至少有一个 worker</span></span><br><span class="line">	<span class="keyword">if</span> maxWorkers &lt; <span class="number">1</span> &#123;</span><br><span class="line">		maxWorkers = <span class="number">1</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 实例化协程池对象</span></span><br><span class="line">	pool := &amp;WorkerPool&#123;</span><br><span class="line">		maxWorkers:  maxWorkers,</span><br><span class="line">		taskQueue:   <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="function"><span class="keyword">func</span><span class="params">()</span>),</span></span><br><span class="line">		workerQueue: <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="function"><span class="keyword">func</span><span class="params">()</span>),</span></span><br><span class="line">		stopSignal:  <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;),</span><br><span class="line">		stoppedChan: <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;),</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 启动任务调度器</span></span><br><span class="line">	<span class="keyword">go</span> pool.dispatch()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> pool</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>New</code> 函数创建一个指定容量的协程池对象 <code>WorkerPool</code>，我们已经在使用示例中见过其用法了。这里逻辑还是比较简单的，仅接收一个参数，并初始化了几个必要的属性。</p>
+<p>值得注意的是，这里通过开启新的 goroutine 的方式启动了 <code>dispatch()</code> 方法，这个方法是协程池最核心的逻辑，用来实现任务的调度执行。</p>
+<p>为此，我画了一张流程图，来分析 <code>WorkerPool</code> 最核心的任务派发流程：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="dispatch.png" alt="任务派发流程" title="">
+                </div>
+                <div class="image-caption">任务派发流程</div>
+            </figure>
+
+<p>图中涉及两个方法，其中 <code>Submit()</code> 方法用于提交一个任务到协程池，<code>dispatch</code> 方法则用于派发任务到 goroutine 中去执行。<code>dispatch</code> 方法内部有一个无限循环，实现任务实时派发执行。这个 <code>for</code> 无限循环中控制着任务在 3 个队列中的流转和工作协程数量。</p>
+<p>只要通过 <code>Submit()</code> 方法提交任务，就一定会进入任务提交队列 <code>taskQueue</code> 中，而 <code>taskQueue</code> 是一个通过 <code>make(chan func())</code> 初始化的无缓冲的 channel，所以任务不会在里面停留，要么通过链路 ② 下发到等待队列 <code>waitingQueue</code> 中，要么通过链路 ④ 下发到工作队列 <code>workerQueue</code> 中。最终具体会下发到哪里，是 <code>dispatch</code> 方法中的 <code>for</code> 循环逻辑来决定的。</p>
+<p><code>dispatch</code> 的 <code>for</code> 循环中会处理任务分发，核心逻辑有两个部分，包含两种处理模式：</p>
+<ul>
+<li>队列优先模式：在 <code>for</code> 循环中，会优先判断等待队列 <code>waitingQueue</code> 是否为空，如果不为空，则进入队列优先模式。<ol>
+<li>此时会优先从等待队列对头取出任务，然后交给工作队列 <code>workerQueue</code>，协程池中的工作协程（worker）就会不停的从 <code>workerQueue</code> 中拿到任务并执行。</li>
+<li>如果此时刚好还有新的任务被提交，则新提交的任务自动进入等待队列尾部。</li>
+<li>任务从提交到执行的流程是 ① ② ③。</li>
+</ol>
+</li>
+<li>直通模式：等待队列完全清空后，程序自动切换到直通模式。<ol>
+<li>此时等待队列 <code>workerQueue</code> 已经清空，如果有新任务提交进来，可以直接交给工作队列 <code>workerQueue</code>，让工作协程（worker）来执行。</li>
+<li>如果此时工作协程数量达到了协程池的上限，则将任务提交到等待队列 <code>waitingQueue</code> 中。</li>
+<li>任务从提交到执行的流程是 ① ④。</li>
+</ol>
+</li>
+</ul>
+<p>以上就是协程池 <code>dispatch</code> 方法的核心调度流程。</p>
+<p>接下来，我将对 <code>WorkerPool</code> 核心代码进行一一解读，以此来从微观上更加细致的理解协程池的设计。</p>
+<p><code>Submit</code> 方法实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Submit 将任务函数提交到工作池队列等待执行，不会等待任务执行完成</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *WorkerPool)</span> <span class="title">Submit</span><span class="params">(task <span class="keyword">func</span>()</span>)</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> task != <span class="literal">nil</span> &#123;</span><br><span class="line">		p.taskQueue &lt;- task</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个方法非常简单，就是将任务提交到 <code>taskQueue</code> 队列中。</p>
+<p>接下来我们看下是最核心也是最复杂的方法 <code>dispatch</code> 是如何实现的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 任务派发，循环的将下一个排队中的任务发送给可用的工作协程（worker）执行</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *WorkerPool)</span> <span class="title">dispatch</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="built_in">close</span>(p.stoppedChan)            <span class="comment">// 保证调度器退出时关闭停止通知通道</span></span><br><span class="line">	timeout := time.NewTimer(idleTimeout) <span class="comment">// 创建 2 秒周期的空闲检测定时器</span></span><br><span class="line">	<span class="keyword">var</span> workerCount <span class="keyword">int</span>                   <span class="comment">// 当前活跃 worker 计数器</span></span><br><span class="line">	<span class="keyword">var</span> idle <span class="keyword">bool</span>                         <span class="comment">// 空闲状态标识</span></span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup                 <span class="comment">// 用于等待所有 worker 完成</span></span><br><span class="line"></span><br><span class="line">Loop:</span><br><span class="line">	<span class="keyword">for</span> &#123; <span class="comment">// 主循环处理任务分发</span></span><br><span class="line"></span><br><span class="line">		<span class="comment">// 队列优先模式：优先检测等待队列</span></span><br><span class="line">		<span class="keyword">if</span> p.waitingQueue.Len() != <span class="number">0</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> !p.processWaitingQueue() &#123;</span><br><span class="line">				<span class="keyword">break</span> Loop <span class="comment">// 等待队列为空，退出循环</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 直通模式：开始处理提交上来的新任务</span></span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> task, ok := &lt;-p.taskQueue: <span class="comment">// 接收到新任务</span></span><br><span class="line">			<span class="keyword">if</span> !ok &#123; <span class="comment">// 协程池停止时会关闭任务通道，如果 !ok 说明协程池已停止，退出循环</span></span><br><span class="line">				<span class="keyword">break</span> Loop</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> p.workerQueue &lt;- task: <span class="comment">// 尝试派发任务</span></span><br><span class="line">			<span class="keyword">default</span>: <span class="comment">// 没有空闲的 worker，无法立即派发任务</span></span><br><span class="line">				<span class="keyword">if</span> workerCount &lt; p.maxWorkers &#123; <span class="comment">// 如果协程池中的活跃协程数量小于最大值，那么创建一个新的协程（worker）来执行任务</span></span><br><span class="line">					wg.Add(<span class="number">1</span>)</span><br><span class="line">					<span class="keyword">go</span> worker(task, p.workerQueue, &amp;wg) <span class="comment">// 创建新的 worker 执行任务</span></span><br><span class="line">					workerCount++                       <span class="comment">// worker 记数加 1</span></span><br><span class="line">				&#125; <span class="keyword">else</span> &#123; <span class="comment">// 已达协程池容量上限</span></span><br><span class="line">					p.waitingQueue.PushBack(task)                              <span class="comment">// 将任务提交到等待队列</span></span><br><span class="line">					atomic.StoreInt32(&amp;p.waiting, <span class="keyword">int32</span>(p.waitingQueue.Len())) <span class="comment">// 原子更新等待计数</span></span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			idle = <span class="literal">false</span> <span class="comment">// 标记为非空闲</span></span><br><span class="line">		<span class="keyword">case</span> &lt;-timeout.C: <span class="comment">// 空闲超时处理</span></span><br><span class="line">			<span class="comment">// 在一个空闲超时周期内，存在空闲的 workers，那么停止一个 worker</span></span><br><span class="line">			<span class="keyword">if</span> idle &amp;&amp; workerCount &gt; <span class="number">0</span> &#123;</span><br><span class="line">				<span class="keyword">if</span> p.killIdleWorker() &#123; <span class="comment">// 回收一个 worker</span></span><br><span class="line">					workerCount-- <span class="comment">// worker 计数减 1</span></span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			idle = <span class="literal">true</span>                <span class="comment">// 标记为空闲</span></span><br><span class="line">			timeout.Reset(idleTimeout) <span class="comment">// 复用定时器</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> p.wait &#123; <span class="comment">// 调用了 StopWait() 方法，需要运行等待队列中的任务，直至队列清空</span></span><br><span class="line">		p.runQueuedTasks()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 终止所有 worker</span></span><br><span class="line">	<span class="keyword">for</span> workerCount &gt; <span class="number">0</span> &#123;</span><br><span class="line">		p.workerQueue &lt;- <span class="literal">nil</span> <span class="comment">// 发送终止信号给 worker</span></span><br><span class="line">		workerCount--        <span class="comment">// worker 计数减 1，直至为 0 退出循环</span></span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait() <span class="comment">// 阻塞等待所有 worker 完成</span></span><br><span class="line"></span><br><span class="line">	timeout.Stop() <span class="comment">// 停止定时器</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个方法代码量稍微有点多，不过结合我上面画的流程图，其实也好理解。我在代码注释中也标出了两种任务处理模式：等待队列优先模式和直通模式。</p>
+<p>我们先看等待队列优先模式：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 队列优先模式：优先检测等待队列</span></span><br><span class="line"><span class="keyword">if</span> p.waitingQueue.Len() != <span class="number">0</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> !p.processWaitingQueue() &#123;</span><br><span class="line">        <span class="keyword">break</span> Loop <span class="comment">// 协程池已经停止</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">continue</span> <span class="comment">// 队列不为空则继续下一轮循环</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果等待队列不为空，则优先处理等待队列。<code>p.processWaitingQueue</code> 方法实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 处理等待队列</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *WorkerPool)</span> <span class="title">processWaitingQueue</span><span class="params">()</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> task, ok := &lt;-p.taskQueue: <span class="comment">// 接收到新任务</span></span><br><span class="line">		<span class="keyword">if</span> !ok &#123; <span class="comment">// 协程池停止时会关闭任务通道，如果 !ok 说明协程池已停止，返回 false，不再继续处理</span></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">		&#125;</span><br><span class="line">		p.waitingQueue.PushBack(task) <span class="comment">// 将新任务加入等待队列队尾</span></span><br><span class="line">	<span class="keyword">case</span> p.workerQueue &lt;- p.waitingQueue.Front(): <span class="comment">// 从等待队列队头获取任务并放入工作队列</span></span><br><span class="line">		p.waitingQueue.PopFront() <span class="comment">// 任务已经开始处理，所以要从等待队列中移除任务</span></span><br><span class="line">	&#125;</span><br><span class="line">	atomic.StoreInt32(&amp;p.waiting, <span class="keyword">int32</span>(p.waitingQueue.Len())) <span class="comment">// 原子修改等待队列中任务计数</span></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个方法中有两个 case 需要处理：</p>
+<ol>
+<li>接收到新任务，直接加入到等待队列 <code>waitingQueue</code> 的队尾。</li>
+<li>从等待队列 <code>waitingQueue</code> 的队头获取任务并放入工作队列 <code>workerQueue</code>。</li>
+</ol>
+<p>这与前文流程图中的讲解吻合。</p>
+<p>任务交给工作队列 <code>workerQueue</code> 以后，谁来处理 <code>workerQueue</code> 中的任务呢？我们接着往下看直通模式的代码。</p>
+<p>直通模式的代码中同样使用 select 多路复用，将逻辑分成了两个 case 来处理：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 直通模式：开始处理提交上来的新任务</span></span><br><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line"><span class="keyword">case</span> task, ok := &lt;-p.taskQueue: <span class="comment">// 接收到新任务</span></span><br><span class="line">    ...</span><br><span class="line"><span class="keyword">case</span> &lt;-timeout.C: <span class="comment">// 空闲超时处理</span></span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>两个 case 分别实现任务执行和空闲超时处理。</p>
+<p>我们先来看处理任务的 case：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> task, ok := &lt;-p.taskQueue: <span class="comment">// 接收到新任务</span></span><br><span class="line">    <span class="keyword">if</span> !ok &#123; <span class="comment">// 协程池停止时会关闭任务通道，如果 !ok 说明协程池已停止，退出循环</span></span><br><span class="line">        <span class="keyword">break</span> Loop</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> p.workerQueue &lt;- task: <span class="comment">// 尝试派发任务</span></span><br><span class="line">    <span class="keyword">default</span>: <span class="comment">// 没有空闲的 worker，无法立即派发任务</span></span><br><span class="line">        <span class="keyword">if</span> workerCount &lt; p.maxWorkers &#123; <span class="comment">// 如果协程池中的活跃协程数量小于最大值，那么创建一个新的协程（worker）来执行任务</span></span><br><span class="line">            wg.Add(<span class="number">1</span>)</span><br><span class="line">            <span class="keyword">go</span> worker(task, p.workerQueue, &amp;wg) <span class="comment">// 创建新的 worker 执行任务</span></span><br><span class="line">            workerCount++                       <span class="comment">// worker 记数加 1</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123; <span class="comment">// 已达协程池容量上限</span></span><br><span class="line">            p.waitingQueue.PushBack(task)                              <span class="comment">// 将任务提交到等待队列</span></span><br><span class="line">            atomic.StoreInt32(&amp;p.waiting, <span class="keyword">int32</span>(p.waitingQueue.Len())) <span class="comment">// 原子更新等待计数</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    idle = <span class="literal">false</span> <span class="comment">// 标记为非空闲</span></span><br></pre></td></tr></table></figure>
+
+<p>直通模式下，有新的任务提交进来，首先会尝试直接将其加入工作队列 <code>workerQueue</code> 中，如果任务下发失败，则说明当前时刻没有空闲的工作协程（worker），无法立即派发任务。那么继续比较当前正在执行的工作协程数量（workerCount）和协程池大小（maxWorkers），如果协程池中的活跃协程数量小于最大值，那么创建一个新的协程（worker）来执行任务。否则，说明正在执行的工作协程数量已达协程池容量上限，那么将任务提交到等待队列 <code>waitingQueue</code> 中。那么下一次 <code>for</code> 循环执行的时候，检测到 <code>waitingQueue</code> 中有任务，就会优先处理 <code>waitingQueue</code>。这也就实现了两种模式的切换。</p>
+<p>我们再来看下工作协程 <code>worker</code> 是如何执行任务的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 工作协程，执行任务并在收到 nil 信号时停止</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">worker</span><span class="params">(task <span class="keyword">func</span>()</span>, <span class="title">workerQueue</span> <span class="title">chan</span> <span class="title">func</span><span class="params">()</span>, <span class="title">wg</span> *<span class="title">sync</span>.<span class="title">WaitGroup</span>)</span> &#123;</span><br><span class="line">	<span class="keyword">for</span> task != <span class="literal">nil</span> &#123; <span class="comment">// 循环执行任务，直至接收到终止信号 nil</span></span><br><span class="line">		task()               <span class="comment">// 执行任务</span></span><br><span class="line">		task = &lt;-workerQueue <span class="comment">// 接收新任务</span></span><br><span class="line">	&#125;</span><br><span class="line">	wg.Done() <span class="comment">// 标记 worker 完成</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，这里使用 <code>for</code> 循环来不停的执行提交过来的任务，直至从 <code>workerQueue</code> 中接收到终止信号 <code>nil</code>。那么这个终止信号是何时下发的呢？往下看你马上能找到答案。</p>
+<p>接下来我们看一下直通模式的另外一个 case 逻辑：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> &lt;-timeout.C: <span class="comment">// 空闲超时处理</span></span><br><span class="line">    <span class="comment">// 在一个空闲超时周期内，存在空闲的 workers，那么停止一个 worker</span></span><br><span class="line">    <span class="keyword">if</span> idle &amp;&amp; workerCount &gt; <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> p.killIdleWorker() &#123; <span class="comment">// 回收一个 worker</span></span><br><span class="line">            workerCount-- <span class="comment">// worker 计数减 1</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    idle = <span class="literal">true</span>                <span class="comment">// 标记为空闲</span></span><br><span class="line">    timeout.Reset(idleTimeout) <span class="comment">// 复用定时器</span></span><br></pre></td></tr></table></figure>
+
+<p>这里使用定时器来管理超过特定时间，未收到任务，需要关闭空闲的工作协程（worker）。</p>
+<p>关闭 <code>worker</code> 的方法是 <code>p.killIdleWorker</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 停止一个空闲 worker</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *WorkerPool)</span> <span class="title">killIdleWorker</span><span class="params">()</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> p.workerQueue &lt;- <span class="literal">nil</span>: <span class="comment">// 发送终止信号给工作协程（worker）</span></span><br><span class="line">		<span class="comment">// Sent kill signal to worker.</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="comment">// No ready workers. All, if any, workers are busy.</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里正是通过给 <code>workerQueue</code> 发送 <code>nil</code> 来作为终止信号，以此来实现通知 <code>worker</code> 退出的。</p>
+<p>看完了 <code>Submit</code> 和 <code>dispatch</code> 方法源码，你现在是否对协程池有了更深入的认知呢？你可以再回顾一下我在前文中画的任务调度流程图，加深印象。</p>
+<p>workerpool 的源码就讲解到这里，其他方法实现其实都比较简单，就交给你自己去探索了。你可以参考我的中文注释版源码：<a href="https://github.com/jianghushinian/blog-go-example/blob/main/goroutine/workerpool/workerpool.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/goroutine/workerpool/workerpool.go</a>。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>协程池作为 Go 中不那么常用的技术，依然有其存在的价值，本文介绍的 workerpool 项目是一个协程池的实现。</p>
+<p>workerpool 用法非常简单，仅需要通过 <code>workerpool.New(n)</code> 函数既可创建一个大小为 <code>n</code> 的协程池，之后通过 <code>wp.Submit(task)</code> 既可以提交任务到协程池。</p>
+<p>workerpool 内部提供了 3 个队列来对任务进行派发调度，任务提交队列 <code>taskQueue</code> 和工作队列 <code>workQueue</code> 都是使用 channel 实现的，并且无缓冲，真正带有缓冲效果的队列是等待队列 <code>WaitingQueue</code>，这个是真正的队列实现，采用双端队列，而非 channel，并且不限制队列长度。也就是说，无论排队多少个任务，workerpool 都不会阻止新任务的提交。所以，我们在创建协程池时需要设置一个合理的大小限制，以防止等待队列无限增长，任务很长一段时间都得不到执行。</p>
+<p>此外，workerpool 内部虽然会维护一个协程池，但超过一定空闲时间没有任务提交过来，工作协程是会关闭的，之后新任务进来再次启动新的协程，因为启动新协程开销小，所以没长久驻留协程。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/goroutine/workerpool" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>workerpool GitHub 源码：<a href="https://github.com/gammazero/workerpool" target="_blank" rel="noopener">https://github.com/gammazero/workerpool</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/blob/main/goroutine/workerpool/workerpool.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/goroutine/workerpool/workerpool.go</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2025/05/09/goroutine-workerpool/" target="_blank" rel="noopener">https://jianghushinian.cn/2025/05/09/goroutine-workerpool/</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-05-09T15:25:06.095Z" itemprop="dateUpdated">2025-05-09 23:25:06</time>
+</span><br>
+
+
+        
+        <a href="/2025/05/09/goroutine-workerpool/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/&title=《在 Go 语言中如何实现协程池》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/&title=《在 Go 语言中如何实现协程池》 — 江湖十年&source=如果你熟悉 Java、Python 等编程语言，那么你一定听说或者使用过进程池或线程池。因为进程和线程不是越多越好，过多的进程或线程可能造成资源浪费和性能..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 语言中如何实现协程池》 — 江湖十年&url=http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/04/26/best-programmers/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">我所认识的最优秀的程序员</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2025</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/&title=《在 Go 语言中如何实现协程池》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/&title=《在 Go 语言中如何实现协程池》 — 江湖十年&source=如果你熟悉 Java、Python 等编程语言，那么你一定听说或者使用过进程池或线程池。因为进程和线程不是越多越好，过多的进程或线程可能造成资源浪费和性能..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 语言中如何实现协程池》 — 江湖十年&url=http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/05/09/goroutine-workerpool/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
