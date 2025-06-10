@@ -494,6 +494,7 @@ func UserID(ctx context.Context) string {
 + Go 中空结构体惯用法，我帮你总结全了！：[https://mp.weixin.qq.com/s/Qi0RrRyHLx8Q4SmhQeb-uQ](https://mp.weixin.qq.com/s/Qi0RrRyHLx8Q4SmhQeb-uQ)
 + Go 并发控制：context 源码解读：[https://mp.weixin.qq.com/s/wPXzISELBc33vjvxPvQY5w](https://mp.weixin.qq.com/s/wPXzISELBc33vjvxPvQY5w)
 + Golang Tip #37: Using Unexported Empty Struct as Context Key：[https://x.com/func25/status/1763897057511899516](https://x.com/func25/status/1763897057511899516)
++ Go Concurrency Patterns: [https://go.dev/blog/context](https://go.dev/blog/context#package-userip)
 + OneX GitHub 源码：[https://github.com/onexstack/onex](https://github.com/onexstack/onex)
 + 简洁架构设计：如何设计一个合理的软件架构？：[https://mp.weixin.qq.com/s/sYT4IhDoklGWZQ9btSB-qw](https://mp.weixin.qq.com/s/sYT4IhDoklGWZQ9btSB-qw)
 + 本文 GitHub 示例代码：[https://github.com/jianghushinian/blog-go-example/tree/main/struct/empty/context-key](https://github.com/jianghushinian/blog-go-example/tree/main/struct/empty/context-key)
