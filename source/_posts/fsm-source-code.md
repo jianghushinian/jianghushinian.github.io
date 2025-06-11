@@ -56,11 +56,11 @@ type FSM struct {
 
 我们知道，有限状态机中最重要的三个特征如下：
 
-+ <font style="color:rgb(33, 33, 33);">状态（state）个数是有限的。</font>
-+ <font style="color:rgb(33, 33, 33);">任意一个时刻，只处于其中一种状态。</font>
-+ <font style="color:rgb(33, 33, 33);">某种条件下（触发某种 event），会从一种状态转变（transition）为另一种状态。</font>
++ 状态（state）个数是有限的。
++ 任意一个时刻，只处于其中一种状态。
++ 某种条件下（触发某种 event），会从一种状态转变（transition）为另一种状态。
 
-<font style="color:rgb(33, 33, 33);">所以，</font>`<font style="color:rgb(33, 33, 33);">FSM</font>`<font style="color:rgb(33, 33, 33);"> 结构体中一定包含与这些特征有关的字段。</font>
+所以，FSM 结构体中一定包含与这些特征有关的字段。
 
 `current` 表示状态机的当前状态。
 
