@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>使用 testing/synctest 测试并发代码 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,单元测试">
+    <meta name="description" content="大家好，我是江湖十年。 Go 1.25 发布有段时间了，随之带来了正式版本的并发测试包 testing&#x2F;synctest，今天就来通过这篇文章向大家介绍一下在 Go 中如何测试并发代码，本文翻译自 Go 官方博客。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用 testing&#x2F;synctest 测试并发代码">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/09/05/testing-synctest/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="大家好，我是江湖十年。 Go 1.25 发布有段时间了，随之带来了正式版本的并发测试包 testing&#x2F;synctest，今天就来通过这篇文章向大家介绍一下在 Go 中如何测试并发代码，本文翻译自 Go 官方博客。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-09-05T04:03:35.000Z">
+<meta property="article:modified_time" content="2025-09-05T04:07:49.900Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="单元测试">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">使用 testing/synctest 测试并发代码</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">使用 testing/synctest 测试并发代码</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-09-05T04:03:35.000Z" itemprop="datePublished" class="page-time">
+  2025-09-05
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#测试并发程序很困难"><span class="post-toc-number">1.</span> <span class="post-toc-text">测试并发程序很困难</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#testing-synctest-包简介"><span class="post-toc-number">2.</span> <span class="post-toc-text">testing&#x2F;synctest 包简介</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#测试时间"><span class="post-toc-number">3.</span> <span class="post-toc-text">测试时间</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#阻塞和气泡"><span class="post-toc-number">4.</span> <span class="post-toc-text">阻塞和气泡</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#互斥锁"><span class="post-toc-number">4.1.</span> <span class="post-toc-text">互斥锁</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Channels"><span class="post-toc-number">4.2.</span> <span class="post-toc-text">Channels</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#IO"><span class="post-toc-number">4.3.</span> <span class="post-toc-text">IO</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#气泡生命周期"><span class="post-toc-number">5.</span> <span class="post-toc-text">气泡生命周期</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#测试网络代码"><span class="post-toc-number">6.</span> <span class="post-toc-text">测试网络代码</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#实验状态"><span class="post-toc-number">7.</span> <span class="post-toc-text">实验状态</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-testing-synctest"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">使用 testing/synctest 测试并发代码</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-09-05 12:03:35" datetime="2025-09-05T04:03:35.000Z"  itemprop="datePublished">2025-09-05</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>大家好，我是江湖十年。</p>
+<p>Go 1.25 发布有段时间了，随之带来了正式版本的并发测试包 <code>testing/synctest</code>，今天就来通过这篇文章向大家介绍一下在 Go 中如何测试并发代码，本文翻译自 Go 官方博客。</p>
+<a id="more"></a>
+
+<blockquote>
+<p>原文地址：<a href="https://go.dev/blog/synctest" target="_blank" rel="noopener">https://go.dev/blog/synctest</a></p>
+</blockquote>
+<p><em>戴米安·尼尔</em><br><em>2025 年 2 月 19 日</em></p>
+<p>Go 语言的一个标志性特性是内置的并发支持。Goroutines 和 channels 是编写并发程序的简单且有效的原语。</p>
+<p>然而，测试并发程序可能很困难且容易出错。</p>
+<p>在 Go 1.24 中，我们引入了一个新的、实验性的 <a href="https://pkg.go.dev/testing/synctest" target="_blank" rel="noopener">testing/synctest</a> 包来支持测试并发代码。本文将解释这项实验背后的动机，演示如何使用 <code>synctest</code> 包，并讨论其未来的发展潜力。</p>
+<p>在 Go 1.24 中，<code>testing/synctest</code> 包处于实验阶段，不受 Go 兼容性承诺的约束。它默认不可见。要使用它，请在环境变量中设置 <code>GOEXPERIMENT=synctest</code> 来编译你的代码。</p>
+<h3 id="测试并发程序很困难"><a href="#测试并发程序很困难" class="headerlink" title="测试并发程序很困难"></a>测试并发程序很困难</h3><p>首先，让我们考虑一个简单的例子。</p>
+<p><code>context.AfterFunc</code> 函数会在上下文取消后在其自己的 goroutine 中调用一个函数。以下是 <code>AfterFunc</code> 的一个可能的测试：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestAfterFunc</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">    ctx, cancel := context.WithCancel(context.Background())</span><br><span class="line"></span><br><span class="line">    calledCh := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;) <span class="comment">// closed when AfterFunc is called</span></span><br><span class="line">    context.AfterFunc(ctx, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="built_in">close</span>(calledCh)</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// <span class="doctag">TODO:</span> Assert that the AfterFunc has not been called.</span></span><br><span class="line"></span><br><span class="line">    cancel()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// <span class="doctag">TODO:</span> Assert that the AfterFunc has been called.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们希望在这个测试中检查两个条件：在上下文取消之前没有调用该函数，以及在上下文取消之后调用了该函数。</p>
+<p>在并发系统中检查反向结果是有困难的。我们可以很容易的测试该函数尚未被调用，但如何检查它不会被调用呢？</p>
+<p>一种常见的方法是等待一段时间后，再得出事件不会发生的结论。让我们尝试在测试中引入一个辅助函数来实现这个操作。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// funcCalled reports whether the function was called.</span></span><br><span class="line">funcCalled := <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> &lt;-calledCh:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">    <span class="keyword">case</span> &lt;-time.After(<span class="number">10</span> * time.Millisecond):</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> funcCalled() &#123;</span><br><span class="line">    t.Fatalf(<span class="string">"AfterFunc function called before context is canceled"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">cancel()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> !funcCalled() &#123;</span><br><span class="line">    t.Fatalf(<span class="string">"AfterFunc function not called after context is canceled"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个测试很慢：10 毫秒并不是很长的时间，但经过多次测试就会累积起来。</p>
+<p>这个测试也不稳定：10 毫秒在高速计算机中已经是很长的时间，但在共享和过载的 <a href="https://en.wikipedia.org/wiki/Continuous_integration" target="_blank" rel="noopener">CI</a> 系统上看到持续几秒钟的停顿并不罕见。</p>
+<p>我们可以通过牺牲速度来减少测试的不稳定性，或者通过牺牲稳定性来减少测试的速度，但我们无法让测试既快速又稳定。</p>
+<h3 id="testing-synctest-包简介"><a href="#testing-synctest-包简介" class="headerlink" title="testing/synctest 包简介"></a>testing/synctest 包简介</h3><p><code>testing/synctest</code> 包解决了这个问题。它允许我们将这个测试改写成简单、快速且可靠的形式，而无需对被测试的代码进行任何修改。</p>
+<p>该包只包含两个函数：<code>Run</code> 和 <code>Wait</code>。</p>
+<p><code>Run</code> 在一个新的 goroutine 中调用一个函数。这个 goroutine 和它启动的所有 goroutine 都存在于一个隔离的环境中，我们称之为“气泡”（bubble）。<code>Wait</code> 会等待当前 goroutine 所在气泡中的每一个 goroutine 都阻塞在气泡内的另一个 goroutine 上。</p>
+<p>让我们使用 <code>testing/synctest</code> 包重写上面的测试。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestAfterFunc</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">    synctest.Run(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        ctx, cancel := context.WithCancel(context.Background())</span><br><span class="line"></span><br><span class="line">        funcCalled := <span class="literal">false</span></span><br><span class="line">        context.AfterFunc(ctx, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">            funcCalled = <span class="literal">true</span></span><br><span class="line">        &#125;)</span><br><span class="line"></span><br><span class="line">        synctest.Wait()</span><br><span class="line">        <span class="keyword">if</span> funcCalled &#123;</span><br><span class="line">            t.Fatalf(<span class="string">"AfterFunc function called before context is canceled"</span>)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        cancel()</span><br><span class="line"></span><br><span class="line">        synctest.Wait()</span><br><span class="line">        <span class="keyword">if</span> !funcCalled &#123;</span><br><span class="line">            t.Fatalf(<span class="string">"AfterFunc function not called after context is canceled"</span>)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这与我们最初的测试几乎相同，但是我们将测试包装在 <code>synctest.Run</code> 调用中，并且在断言该函数是否已被调用之前调用 <code>synctest.Wait</code>。</p>
+<p><code>Wait</code> 函数等待调用者气泡中的所有 goroutine 阻塞。当它返回时，我们知道 <code>context</code> 包要么调用了该函数，要么在我们采取进一步行动之前不会调用它。</p>
+<p>该测试现在既快速又稳定。</p>
+<p>测试也更简单了：我们用布尔值替换了 <code>calledCh</code> 通道（<code>channel</code>）。之前我们需要使用 <code>channel</code> 来避免测试 goroutine 和 <code>AfterFunc</code> goroutine 之间的数据竞争，但 <code>Wait</code> 函数现在提供了这种同步功能。</p>
+<p>竞争检测器能够理解 <code>Wait</code> 调用，并且此测试在使用 <code>-race</code> 选项运行时能够通过。如果我们移除第二个 <code>Wait</code> 调用，竞争检测器就能在测试中正确报告数据竞争。</p>
+<h3 id="测试时间"><a href="#测试时间" class="headerlink" title="测试时间"></a>测试时间</h3><p>并发代码通常与时间有关。</p>
+<p>测试与时间相关的代码可能很困难。正如我们在上面看到的，在测试中使用真实时间会导致测试缓慢且不稳定。使用虚拟时间（fake time）则需要避免使用 <code>test</code> 包中的函数，并将被测代码设计为支持使用可选的虚拟时钟（fake clock）。</p>
+<p><code>testing/synctest</code> 包使测试使用时间的代码变得更加简单。</p>
+<p><code>Run</code> 启动的气泡中的 Goroutines 使用虚拟时钟。在气泡内，<code>time</code> 包中的函数会操作这个虚拟时钟。当所有 goroutines 都被阻塞时，气泡中的时间会向前推进。</p>
+<p>为了演示，让我们为 <a href="https://go.dev/pkg/context#WithTimeout" target="_blank" rel="noopener">context.WithTimeout</a> 函数写一个测试，<code>WithTimeout</code> 会创建一个子 context，并在到达给定的超时时间后过期。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestWithTimeout</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">    synctest.Run(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">const</span> timeout = <span class="number">5</span> * time.Second</span><br><span class="line">        ctx, cancel := context.WithTimeout(context.Background(), timeout)</span><br><span class="line">        <span class="keyword">defer</span> cancel()</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Wait just less than the timeout.</span></span><br><span class="line">        time.Sleep(timeout - time.Nanosecond)</span><br><span class="line">        synctest.Wait()</span><br><span class="line">        <span class="keyword">if</span> err := ctx.Err(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            t.Fatalf(<span class="string">"before timeout, ctx.Err() = %v; want nil"</span>, err)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Wait the rest of the way until the timeout.</span></span><br><span class="line">        time.Sleep(time.Nanosecond)</span><br><span class="line">        synctest.Wait()</span><br><span class="line">        <span class="keyword">if</span> err := ctx.Err(); err != context.DeadlineExceeded &#123;</span><br><span class="line">            t.Fatalf(<span class="string">"after timeout, ctx.Err() = %v; want DeadlineExceeded"</span>, err)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们编写这个测试就像使用真实时间一样。唯一的区别是我们将测试函数包装在 <code>synctest.Run</code>，并在每次 <code>time.Sleep</code> 调用后调用 <code>synctest.Wait</code> 来等待 context 包的计时器运行完毕。</p>
+<h3 id="阻塞和气泡"><a href="#阻塞和气泡" class="headerlink" title="阻塞和气泡"></a>阻塞和气泡</h3><p><code>testing/synctest</code>中的一个关键概念是气泡被_持久阻塞（durably blocked）_。当气泡中的每一个 goroutine 都被阻塞时，就会发生这种情况，并且只能由气泡中的另一个 goroutine 解除阻塞。</p>
+<p>当气泡被持久阻塞时：</p>
+<ul>
+<li>如果有未完成的 <code>Wait</code> 调用，它将返回。</li>
+<li>否则，时间将向前推进到下一个可以解除 goroutine 阻塞的时间（如果有）。</li>
+<li>否则，气泡就会陷入僵局并且 <code>Run</code> 会陷入恐慌（<code>panics</code>）。</li>
+</ul>
+<p>如果任何 goroutine 被阻塞，则气泡不会被持久阻塞，但可能会被气泡外的某些事件唤醒。</p>
+<p>持久阻塞 goroutine 操作的完整列表是：</p>
+<ul>
+<li>在 <code>nil channel</code>上发送或接收</li>
+<li>在同一气泡内创建的 <code>channel</code> 上发送或接收被阻塞</li>
+<li>一个 <code>select</code> 语句，其中每个 <code>case</code> 都持久阻塞</li>
+<li><code>time.Sleep</code></li>
+<li><code>sync.Cond.Wait</code></li>
+<li><code>sync.WaitGroup.Wait</code></li>
+</ul>
+<h4 id="互斥锁"><a href="#互斥锁" class="headerlink" title="互斥锁"></a>互斥锁</h4><p>操作 <code>sync.Mutex</code> 不会持久阻塞。</p>
+<p>函数获取全局互斥锁是很常见的。例如，<code>reflect</code> 包中的许多函数使用由互斥锁保护的全局缓存。如果 <code>synctest</code> 气泡中的 goroutine 在获取气泡外的 goroutine 持有的互斥锁时阻塞，则它不会被持久阻塞——它会阻塞，但会被其气泡外部的 goroutine 解除阻塞。</p>
+<p>由于互斥锁通常不会长时间保持，因此我们只是将它们排除在 <code>testing/synctest</code> 的考虑之外。</p>
+<h4 id="Channels"><a href="#Channels" class="headerlink" title="Channels"></a>Channels</h4><p>在气泡中创建的 Channels 与在外部创建的行为不同。</p>
+<p>仅当 Channel 是在气泡中创建的时，Channel 操作才会持久阻塞。在气泡外操作在气泡内部创建的 channel 会导致气泡 <code>panics</code>。</p>
+<p>这些规则确保 goroutine 仅在其气泡内的 goroutine 中通信时才会被持久阻塞。</p>
+<h4 id="IO"><a href="#IO" class="headerlink" title="IO"></a>IO</h4><p>外部 I/O 作（例如从网络连接读取）不会持久阻塞。</p>
+<p>网络读取可能会被来自气泡外部的写入解除阻塞，甚至可能来自其他进程。即使网络连接的唯一写入者也在同一个气泡中，运行时也无法区分等待更多数据到达的连接和内核已接收数据并正在传递数据的连接。</p>
+<p>使用 <code>synctest</code> 测试网络服务器或客户端通常需要提供虚拟网络（fake network）实现。例如，<a href="https://go.dev/pkg/net#Pipe" target="_blank" rel="noopener">net.Pipe</a> 函数创建一个网络对，使用内存中网络连接并可用于同步测试的连接器。</p>
+<h3 id="气泡生命周期"><a href="#气泡生命周期" class="headerlink" title="气泡生命周期"></a>气泡生命周期</h3><p><code>Run</code> 函数在新气泡中启动一个 goroutine。当气泡中的每个 goroutine 都退出时，它会返回。如果气泡被持久阻塞并且无法随着时间推进而解锁，它就会产生 <code>panics</code>。</p>
+<p>在 <code>Run</code> 返回之前，气泡中的每个 goroutine 都退出的要求意味着测试在完成之前必须小心清理任何后台 goroutine。</p>
+<h3 id="测试网络代码"><a href="#测试网络代码" class="headerlink" title="测试网络代码"></a>测试网络代码</h3><p>让我们看下另外一个例子，这次使用 <code>testing/synctest</code> 包来测试网络程序。 对于此示例，我们将测试 <code>net/http</code> 包对状态码为 <code>100 Continue</code> 的响应处理。</p>
+<p>发送请求的 HTTP 客户端可以包含“<code>Expect: 100-continue</code>”请求头，以告诉服务器客户端有其他数据要发送。服务器随后可能会返回 <code>100 Continue</code> 信息响应，请求客户端继续发送剩余数据，或者返回其他状态码，告知客户端不再需要该内容。例如，上传大文件的客户端可能会使用此功能在发送文件之前确认服务器是否愿意接受该文件。</p>
+<p>我们的测试将确认，在发送“<code>Expect: 100-continue</code>”请求头时，HTTP 客户端不会在服务器请求之前发送请求的内容，并且在收到 <code>100 Continue</code> 响应后确实发送了内容。</p>
+<p>通常，通信客户端和服务器的测试可以使用环回网络（loopback network）连接。然而，在使用 <code>testing/synctest</code> 时，我们通常希望使用虚拟的网络连接来检测网络上所有 goroutine 是否被阻塞。我们将通过创建一个 <code>http.Transport</code>（一个 HTTP 客户端）来开始此测试，该客户端使用由 <a href="https://go.dev/pkg/net#Pipe" target="_blank" rel="noopener">net.Pipe</a> 创建的内存网络连接。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Test</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">    synctest.Run(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        srvConn, cliConn := net.Pipe()</span><br><span class="line">        <span class="keyword">defer</span> srvConn.Close()</span><br><span class="line">        <span class="keyword">defer</span> cliConn.Close()</span><br><span class="line">        tr := &amp;http.Transport&#123;</span><br><span class="line">            DialContext: <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context, network, address <span class="keyword">string</span>)</span> <span class="params">(net.Conn, error)</span></span> &#123;</span><br><span class="line">                <span class="keyword">return</span> cliConn, <span class="literal">nil</span></span><br><span class="line">            &#125;,</span><br><span class="line">            <span class="comment">// Setting a non-zero timeout enables "Expect: 100-continue" handling.</span></span><br><span class="line">            <span class="comment">// Since the following test does not sleep,</span></span><br><span class="line">            <span class="comment">// we will never encounter this timeout,</span></span><br><span class="line">            <span class="comment">// even if the test takes a long time to run on a slow machine.</span></span><br><span class="line">            ExpectContinueTimeout: <span class="number">5</span> * time.Second,</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们通过此传输发送一个设置了“<code>Expect: 100-continue</code>”头的请求。该请求会在一个新的 goroutine 中发送，因为它要到测试结束才会完成。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">body := <span class="string">"request body"</span></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    req, _ := http.NewRequest(<span class="string">"PUT"</span>, <span class="string">"http://test.tld/"</span>, strings.NewReader(body))</span><br><span class="line">    req.Header.Set(<span class="string">"Expect"</span>, <span class="string">"100-continue"</span>)</span><br><span class="line">    resp, err := tr.RoundTrip(req)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        t.Errorf(<span class="string">"RoundTrip: unexpected error %v"</span>, err)</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        resp.Body.Close()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure>
+
+<p>我们读取客户端发送的请求头。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">req, err := http.ReadRequest(bufio.NewReader(srvConn))</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    t.Fatalf(<span class="string">"ReadRequest: %v"</span>, err)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在我们来到了测试的核心。我们想断言客户端还不会发送请求正文。</p>
+<p>我们启动一个新的 goroutine，将发送到服务器的 <code>body</code> 复制到 <code>strings.Builder</code> 中，等待气泡中的所有 goroutine 阻塞，并验证我们尚未从 <code>body</code> 中读取到任何内容。</p>
+<p>如果我们忘记了 <code>synctest.Wait</code>调用，竞争检测器将正确地检测到数据竞争，但有了 <code>Wait</code>，这是安全的。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> gotBody strings.Builder</span><br><span class="line"><span class="keyword">go</span> io.Copy(&amp;gotBody, req.Body)</span><br><span class="line">synctest.Wait()</span><br><span class="line"><span class="keyword">if</span> got := gotBody.String(); got != <span class="string">""</span> &#123;</span><br><span class="line">    t.Fatalf(<span class="string">"before sending 100 Continue, unexpectedly read body: %q"</span>, got)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们向客户端写入“<code>100 Continue</code>”响应并验证它现在是否发送请求正文。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">srvConn.Write([]<span class="keyword">byte</span>(<span class="string">"HTTP/1.1 100 Continue\r\n\r\n"</span>))</span><br><span class="line">synctest.Wait()</span><br><span class="line"><span class="keyword">if</span> got := gotBody.String(); got != body &#123;</span><br><span class="line">    t.Fatalf(<span class="string">"after sending 100 Continue, read body %q, want %q"</span>, got, body)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后，我们发送“<code>200 OK</code>”响应以结束请求。</p>
+<p>我们在本次测试中启动了多个 goroutine。<code>synctest.Run</code> 调用将等待所有 goroutine 退出后再返回。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">        srvConn.Write([]<span class="keyword">byte</span>(<span class="string">"HTTP/1.1 200 OK\r\n\r\n"</span>))</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此测试可以轻松扩展以测试其他行为，例如验证如果服务器未要求则不发送请求 <code>body</code>，或者如果服务器在超时内未响应则发送请求 <code>body</code>。</p>
+<h3 id="实验状态"><a href="#实验状态" class="headerlink" title="实验状态"></a>实验状态</h3><p>我们在 Go 1.24 中引入一个试验性的包 <a href="https://go.dev/pkg/testing/synctest" target="_blank" rel="noopener">testing/synctest</a> 。根据反馈和使用经验，我们可能会发布包含或不包含任何修改的软件包，继续进行实验，或者在 Go 的未来版本中将其移除。</p>
+<p>默认情况下，该包不可见。要使用它，请在您的环境中设置 <code>GOEXPERIMENT=synctest</code> 并编译代码。</p>
+<p>我们期待您的反馈！如果您尝试使用了 <code>testing/synctest</code>，请在 <a href="https://go.dev/issue/67434" target="_blank" rel="noopener">go.dev/issue/67434</a> 上报告您的体验，无论是正面的还是负面的。</p>
+<p>原文完。</p>
+<p>希望此文能对你有所启发。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/synctest" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>Testing concurrent code with testing/synctest：<a href="https://go.dev/blog/synctest" target="_blank" rel="noopener">https://go.dev/blog/synctest</a></li>
+<li>testing/synctest Documentation：<a href="https://pkg.go.dev/testing/synctest" target="_blank" rel="noopener">https://pkg.go.dev/testing/synctest</a></li>
+<li>Go 1.24 Release Notes：<a href="https://go.dev/doc/go1.24" target="_blank" rel="noopener">https://go.dev/doc/go1.24</a></li>
+<li>Go 1.25 Release Notes：<a href="https://go.dev/doc/go1.25" target="_blank" rel="noopener">https://go.dev/doc/go1.25</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/synctest" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/test/synctest</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2025/09/05/testing-synctest/" target="_blank" rel="noopener">https://jianghushinian.cn/2025/09/05/testing-synctest/</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-09-05T04:07:49.900Z" itemprop="dateUpdated">2025-09-05 12:07:49</time>
+</span><br>
+
+
+        
+        <a href="/2025/09/05/testing-synctest/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/09/05/testing-synctest/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95/" rel="tag">单元测试</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/09/05/testing-synctest/&title=《使用 testing/synctest 测试并发代码》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/09/05/testing-synctest/&title=《使用 testing/synctest 测试并发代码》 — 江湖十年&source=大家好，我是江湖十年。
+Go 1.25 发布有段时间了，随之带来了正式版本的并发测试包 testing/synctest，今天就来通过这篇文章向大家介绍一..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/09/05/testing-synctest/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用 testing/synctest 测试并发代码》 — 江湖十年&url=http://www.jianghushinian.cn/2025/09/05/testing-synctest/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/09/05/testing-synctest/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/08/22/container-aware-gomaxprocs/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 1.25 终于迎来了容器感知 GOMAXPROCS</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2025</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/09/05/testing-synctest/&title=《使用 testing/synctest 测试并发代码》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/09/05/testing-synctest/&title=《使用 testing/synctest 测试并发代码》 — 江湖十年&source=大家好，我是江湖十年。
+Go 1.25 发布有段时间了，随之带来了正式版本的并发测试包 testing/synctest，今天就来通过这篇文章向大家介绍一..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/09/05/testing-synctest/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用 testing/synctest 测试并发代码》 — 江湖十年&url=http://www.jianghushinian.cn/2025/09/05/testing-synctest/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/09/05/testing-synctest/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/09/05/testing-synctest/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
