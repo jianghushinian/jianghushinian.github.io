@@ -31,7 +31,7 @@ categories:
 #### 安装
 
 ```bash
-go get github.com/modelcontextprotocol/go-sdk/mcp@v1.0.0
+$ go get github.com/modelcontextprotocol/go-sdk/mcp@v1.0.0
 ```
 
 #### 创建一个 MCP 服务器
