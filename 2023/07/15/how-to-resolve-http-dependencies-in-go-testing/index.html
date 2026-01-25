@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Go 语言单元测试中如何解决 HTTP 网络依赖问题 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,Test">
+    <meta name="description" content="在开发 Web 应用程序时，确保 HTTP 功能的正确性是至关重要的。然而，由于 Web 应用程序通常涉及到与外部依赖的交互，编写 HTTP 请求和响应的有效测试变得具有挑战性。在进行单元测试时，我们必须思考如何解决被测程序的外部依赖问题。 因此，在 Go 语言中，我们需要找到一种可靠的方法来测试 HTTP 请求和响应。本文将探讨在 Go 中进行 HTTP 应用测试时，如何解决应用程序的依赖问题，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Go 语言单元测试中如何解决 HTTP 网络依赖问题">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在开发 Web 应用程序时，确保 HTTP 功能的正确性是至关重要的。然而，由于 Web 应用程序通常涉及到与外部依赖的交互，编写 HTTP 请求和响应的有效测试变得具有挑战性。在进行单元测试时，我们必须思考如何解决被测程序的外部依赖问题。 因此，在 Go 语言中，我们需要找到一种可靠的方法来测试 HTTP 请求和响应。本文将探讨在 Go 中进行 HTTP 应用测试时，如何解决应用程序的依赖问题，">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-07-15T12:57:35.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:13.018Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="Test">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Go 语言单元测试中如何解决 HTTP 网络依赖问题</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Go 语言单元测试中如何解决 HTTP 网络依赖问题</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-07-15T12:57:35.000Z" itemprop="datePublished" class="page-time">
+  2023-07-15
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#HTTP-Server-测试"><span class="post-toc-number">1.</span> <span class="post-toc-text">HTTP Server 测试</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#HTTP-Client-测试"><span class="post-toc-number">2.</span> <span class="post-toc-text">HTTP Client 测试</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">3.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-how-to-resolve-http-dependencies-in-go-testing"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Go 语言单元测试中如何解决 HTTP 网络依赖问题</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-07-15 20:57:35" datetime="2023-07-15T12:57:35.000Z"  itemprop="datePublished">2023-07-15</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在开发 Web 应用程序时，确保 HTTP 功能的正确性是至关重要的。然而，由于 Web 应用程序通常涉及到与外部依赖的交互，编写 HTTP 请求和响应的有效测试变得具有挑战性。在进行单元测试时，我们必须思考如何解决被测程序的外部依赖问题。</p>
+<p>因此，在 Go 语言中，我们需要找到一种可靠的方法来测试 HTTP 请求和响应。本文将探讨在 Go 中进行 HTTP 应用测试时，如何解决应用程序的依赖问题，以确保我们能够编写出可靠的测试用例。</p>
+<a id="more"></a>
+
+<h3 id="HTTP-Server-测试"><a href="#HTTP-Server-测试" class="headerlink" title="HTTP Server 测试"></a>HTTP Server 测试</h3><p>首先，我们来看下，站在 HTTP Server 端的角度，如何编写应用程序的测试代码。</p>
+<p>假设我们有一个 HTTP Server 对外提供服务，代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"encoding/json"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"io"</span></span><br><span class="line">	<span class="string">"net/http"</span></span><br><span class="line">	<span class="string">"strconv"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/julienschmidt/httprouter"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	ID   <span class="keyword">int</span>    <span class="string">`json:"id"`</span></span><br><span class="line">	Name <span class="keyword">string</span> <span class="string">`json:"name"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> users = []User&#123;</span><br><span class="line">	&#123;ID: <span class="number">1</span>, Name: <span class="string">"user1"</span>&#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateUserHandler</span><span class="params">(w http.ResponseWriter, r *http.Request, _ httprouter.Params)</span></span> &#123;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetUserHandler</span><span class="params">(w http.ResponseWriter, r *http.Request, ps httprouter.Params)</span></span> &#123;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">setupRouter</span><span class="params">()</span> *<span class="title">httprouter</span>.<span class="title">Router</span></span> &#123;</span><br><span class="line">	router := httprouter.New()</span><br><span class="line">	router.POST(<span class="string">"/users"</span>, CreateUserHandler)</span><br><span class="line">	router.GET(<span class="string">"/users/:id"</span>, GetUserHandler)</span><br><span class="line">	<span class="keyword">return</span> router</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	router := setupRouter()</span><br><span class="line">	_ = http.ListenAndServe(<span class="string">":8000"</span>, router)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个服务监听 <code>8000</code> 端口，分别提供了两个 HTTP 接口：</p>
+<p><code>POST /users</code> 用来创建用户。</p>
+<p><code>GET /users/:id</code> 用来获取指定 ID 对应的用户信息。</p>
+<p>为了保证业务的正确性，我们需要对 <code>CreateUserHandler</code> 和 <code>GetUserHandler</code> 这两个 Handler 进行单元测试。</p>
+<p>我们先来看下用于创建用户的 <code>CreateUserHandler</code> 函数是如何定义的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateUserHandler</span><span class="params">(w http.ResponseWriter, r *http.Request, _ httprouter.Params)</span></span> &#123;</span><br><span class="line">	w.Header().Set(<span class="string">"Content-Type"</span>, <span class="string">"application/json"</span>)</span><br><span class="line"></span><br><span class="line">	body, err := io.ReadAll(r.Body)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		w.WriteHeader(http.StatusBadRequest)</span><br><span class="line">		_, _ = fmt.Fprintf(w, <span class="string">`&#123;"msg":"%s"&#125;`</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; _ = r.Body.Close() &#125;()</span><br><span class="line"></span><br><span class="line">	u := User&#123;&#125;</span><br><span class="line">	<span class="keyword">if</span> err := json.Unmarshal(body, &amp;u); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		w.WriteHeader(http.StatusInternalServerError)</span><br><span class="line">		_, _ = fmt.Fprintf(w, <span class="string">`&#123;"msg":"%s"&#125;`</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	u.ID = users[<span class="built_in">len</span>(users)<span class="number">-1</span>].ID + <span class="number">1</span></span><br><span class="line">	users = <span class="built_in">append</span>(users, u)</span><br><span class="line"></span><br><span class="line">	w.WriteHeader(http.StatusCreated)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在这个 Handler 中，首先写入响应头 <code>Content-Type: application/json</code>，表示创建用户的响应内容为 JSON 格式。</p>
+<p>接着从请求体 <code>r.Body</code> 中读取客户端提交的用户信息。</p>
+<p>如果读取请求体失败，则写入响应状态码 <code>400</code>，表示客户端提交的用户信息有误，并返回 JSON 错误响应。</p>
+<p>接着，使用 <code>json.Unmarshal</code> 对请求体进行 JSON 解码，将数据填入 <code>User</code> 结构体中。</p>
+<p>如果 JSON 解码失败，则写入响应状态码 <code>500</code>，表示服务端出现了错误，并返回 JSON 错误响应。</p>
+<p>最终，将新创建的用户信息保存到 <code>users</code> 切片中，并写入响应状态码 <code>201</code>，表示用户创建成功。注意，根据 RESTful 规范，这里并不需要返回响应体。</p>
+<p>下面，我们来分析下如何对这个 Handler 函数编写单元测试代码。</p>
+<p>首先，我们思考下 <code>CreateUserHandler</code> 这个函数都有哪些外部依赖？</p>
+<p>从函数参数来看，我们需要一个用来表示 HTTP 响应的 <code>http.ResponseWriter</code>，一个用来表示 HTTP 请求的 <code>*http.Request</code>，以及一个用来记录 HTTP 请求路由参数的 <code>httprouter.Params</code>。</p>
+<p>在函数内部，则依赖了全局变量 <code>users</code>。</p>
+<p>知道了这些外部依赖，那么，我们如何编写单元测试才能解决这些外部依赖呢？</p>
+<p>最直接的办法，就是启动这个 Web Server，然后在单元测试代码中对 <code>POST /users</code> 接口发送一个 HTTP 请求，之后判断程序的 HTTP 响应结果以及 <code>users</code> 变量中的数据，来验证 <code>CreateUserHandler</code> 函数的正确性。</p>
+<p>但这种做法显然超出了单元测试的范畴，更像是在做集成测试。单元测试的一个主要特征就是要隔离外部依赖，使用<code>测试替身</code>来替换依赖。</p>
+<p>所以，我们应该想办法来制作<code>测试替身</code>。</p>
+<p>我们先从最简单的 <code>users</code> 变量开始，想办法在测试过程中替换掉 <code>users</code>。</p>
+<p><code>users</code> 仅是一个切片变量，用来保存用户数据，我们可以编写一个函数，将其内容替换成测试数据，代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">setupTestUser</span><span class="params">()</span> <span class="title">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">	defaultUsers := users</span><br><span class="line">	users = []User&#123;</span><br><span class="line">		&#123;ID: <span class="number">1</span>, Name: <span class="string">"test-user1"</span>&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		users = defaultUsers</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>setupTestUser</code> 函数内部为全局变量 <code>users</code> 进行了重新赋值，并返回一个匿名函数，这个匿名函数可以将 <code>users</code> 变量值恢复。</p>
+<p>在测试期间可以这样使用：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestCreateUserHandler</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	cleanup := setupTestUser()</span><br><span class="line">	<span class="keyword">defer</span> cleanup()</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在测试最开始时调用 <code>setupTestUser</code> 来初始化测试数据，使用 <code>defer</code> 语句实现测试函数退出时恢复 <code>users</code> 数据。</p>
+<p>接下来，我们需要构造一个表示 HTTP 响应的 <code>http.ResponseWriter</code>。</p>
+<p>幸运的是，这并不需要费多少力气，Go 语言官方早就想到了这个诉求，为我们提供了 <code>net/http/httptest</code> 标准库，这个库实现了一些专门用来进行网络测试的实用工具。</p>
+<p>构造一个测试用的 HTTP 响应对象仅需一行代码就能完成：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">w := httptest.NewRecorder()</span><br></pre></td></tr></table></figure>
+
+<p>得到的 <code>w</code> 变量实现了 <code>http.ResponseWriter</code> 接口，可以直接传递给 Handler 函数。</p>
+<p>要想构造一个表示 HTTP 请求的 <code>*http.Request</code> 对象，同样非常简单：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">body := strings.NewReader(<span class="string">`&#123;"name": "user2"&#125;`</span>)</span><br><span class="line">req := httptest.NewRequest(<span class="string">"POST"</span>, <span class="string">"/users"</span>, body)</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>httptest.NewRequest</code> 创建的 <code>req</code> 变量正是 <code>*http.Request</code> 类型，它包含了请求方法、路径、请求体。</p>
+<p>现在，我们只差一个用来记录 HTTP 请求路由参数的 <code>httprouter.Params</code> 类型对象没有构造了。</p>
+<p><code>httprouter.Params</code> 是由 <code>httprouter</code> 这个第三方包提供的，<code>httprouter</code> 是一个高性能的 HTTP 路由，兼容 <code>net/http</code> 标准库。</p>
+<p>它提供了 <code>(*httprouter.Router).ServeHTTP</code> 方法，可以调用请求对应的 Handler 函数。即可以根据请求对象 <code>*http.Request</code>，自动调用 <code>CreateUserHandler</code> 函数。</p>
+<p>在调用 Handler 函数时，<code>httprouter</code> 会解析请求中的路由参数保存在 <code>httprouter.Params</code> 对象中并传给 Handler，所以这个对象无需我们手动构造。</p>
+<p>现在，单元测试函数的逻辑就清晰了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestCreateUserHandler</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	cleanup := setupTestUser()</span><br><span class="line">	<span class="keyword">defer</span> cleanup()</span><br><span class="line"></span><br><span class="line">	w := httptest.NewRecorder()</span><br><span class="line"></span><br><span class="line">	body := strings.NewReader(<span class="string">`&#123;"name": "user2"&#125;`</span>)</span><br><span class="line">	req := httptest.NewRequest(<span class="string">"POST"</span>, <span class="string">"/users"</span>, body)</span><br><span class="line"></span><br><span class="line">	router := setupRouter()</span><br><span class="line">	router.ServeHTTP(w, req)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>根据前文的讲解，我们构造了单元测试所需的依赖项。</p>
+<p><code>setupRouter()</code> 返回 <code>*httprouter.Router</code> 对象，当代码执行到 <code>router.ServeHTTP(w, req)</code> 时，就会根据传递的 <code>req</code> 参数，自动调用与之匹配的 Handler，即被测试函数 <code>CreateUserHandler</code>。</p>
+<p>接下来，我们要做的就是判断 <code>CreateUserHandler</code> 函数执行后的结果是否正确。</p>
+<p>完整单元测试代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"encoding/json"</span></span><br><span class="line">	<span class="string">"net/http/httptest"</span></span><br><span class="line">	<span class="string">"strings"</span></span><br><span class="line">	<span class="string">"testing"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/stretchr/testify/assert"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestCreateUserHandler</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	cleanup := setupTestUser()</span><br><span class="line">	<span class="keyword">defer</span> cleanup()</span><br><span class="line"></span><br><span class="line">	w := httptest.NewRecorder()</span><br><span class="line"></span><br><span class="line">	body := strings.NewReader(<span class="string">`&#123;"name": "user2"&#125;`</span>)</span><br><span class="line">	req := httptest.NewRequest(<span class="string">"POST"</span>, <span class="string">"/users"</span>, body)</span><br><span class="line"></span><br><span class="line">	router := setupRouter()</span><br><span class="line">	router.ServeHTTP(w, req)</span><br><span class="line"></span><br><span class="line">	assert.Equal(t, <span class="number">201</span>, w.Code)</span><br><span class="line">	assert.Equal(t, <span class="string">"application/json"</span>, w.Header().Get(<span class="string">"Content-Type"</span>))</span><br><span class="line">	assert.Equal(t, <span class="string">""</span>, w.Body.String())</span><br><span class="line"></span><br><span class="line">	assert.Equal(t, <span class="number">2</span>, <span class="built_in">len</span>(users))</span><br><span class="line">	u2, _ := json.Marshal(users[<span class="number">1</span>])</span><br><span class="line">	assert.Equal(t, <span class="string">`&#123;"id":2,"name":"user2"&#125;`</span>, <span class="keyword">string</span>(u2))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里引入了第三方包 <a href="https://github.com/stretchr/testify" target="_blank" rel="noopener">testify</a> 用来进行断言操作，<code>assert.Equal</code> 能够判断两个对象是否相等，这可以简化代码，不再需要使用 <code>if</code> 来判断了。更多关于 <code>testify</code> 包的使用，可以查看<a href="https://pkg.go.dev/github.com/stretchr/testify" target="_blank" rel="noopener">官方文档</a>。</p>
+<p>我们首先断言了响应状态码是否为 <code>201</code>。</p>
+<p>接着又断言了响应头的 <code>Content-Type</code> 字段是否为 <code>application/json</code>。</p>
+<p>然后判断了响应内容是否为空。</p>
+<p>最后，通过 <code>users</code> 中的值来判断用户信息是否保存正确。</p>
+<p>使用 <code>go test</code> 来执行测试函数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -v -run=<span class="string">"TestCreateUserHandler"</span> . </span><br><span class="line">=== RUN   TestCreateUserHandler</span><br><span class="line">--- PASS: TestCreateUserHandler (0.00s)</span><br><span class="line">PASS</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/http/server      0.544s</span><br></pre></td></tr></table></figure>
+
+<p>测试通过。</p>
+<p>至此，我们成功为 <code>CreateUserHandler</code> 函数编写了一个单元测试。</p>
+<p>不过，这个单元测试仅覆盖了正常逻辑，<code>CreateUserHandler</code> 方法返回 <code>400</code> 和 <code>500</code> 两种状态码的逻辑没有被测试覆盖，这两种场景就留做作业你自己来完成吧。</p>
+<p>接下来，我们再为获取用户信息的函数 <code>GetUserHandler</code> 编写一个单元测试。</p>
+<p>先来看下 <code>GetUserHandler</code> 函数的定义：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetUserHandler</span><span class="params">(w http.ResponseWriter, r *http.Request, ps httprouter.Params)</span></span> &#123;</span><br><span class="line">	userID, _ := strconv.Atoi(ps[<span class="number">0</span>].Value)</span><br><span class="line">	w.Header().Set(<span class="string">"Content-Type"</span>, <span class="string">"application/json"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> _, u := <span class="keyword">range</span> users &#123;</span><br><span class="line">		<span class="keyword">if</span> u.ID == userID &#123;</span><br><span class="line">			user, _ := json.Marshal(u)</span><br><span class="line">			_, _ = w.Write(user)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	w.WriteHeader(http.StatusNotFound)</span><br><span class="line">	_, _ = w.Write([]<span class="keyword">byte</span>(<span class="string">`&#123;"msg":"notfound"&#125;`</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>获取用户信息的逻辑，相对简单一点。</p>
+<p>首先从 HTTP 请求的路径参数中获取用户 ID。</p>
+<p>然后判断这个 ID 对应的用户信息是否存在，如果存在就返回用户信息。</p>
+<p>不存在，则写入 <code>404</code> 状态码，并返回 <code>notfound</code> 信息。</p>
+<p>有了前文对 <code>CreateUserHandler</code> 函数编写测试的经验，想必如何对 <code>GetUserHandler</code> 函数进行测试你已经轻车熟路了。</p>
+<p>以下是我为其编写的测试代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestGetUserHandler</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	cleanup := setupTestUser()</span><br><span class="line">	<span class="keyword">defer</span> cleanup()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">type</span> want <span class="keyword">struct</span> &#123;</span><br><span class="line">		code <span class="keyword">int</span></span><br><span class="line">		body <span class="keyword">string</span></span><br><span class="line">	&#125;</span><br><span class="line">	tests := []<span class="keyword">struct</span> &#123;</span><br><span class="line">		name <span class="keyword">string</span></span><br><span class="line">		args <span class="keyword">int</span></span><br><span class="line">		want want</span><br><span class="line">	&#125;&#123;</span><br><span class="line">		&#123;</span><br><span class="line">			name: <span class="string">"get test-user1"</span>,</span><br><span class="line">			args: <span class="number">1</span>,</span><br><span class="line">			want: want&#123;</span><br><span class="line">				code: <span class="number">200</span>,</span><br><span class="line">				body: <span class="string">`&#123;"id":1,"name":"test-user1"&#125;`</span>,</span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line">		&#123;</span><br><span class="line">			name: <span class="string">"get user not found"</span>,</span><br><span class="line">			args: <span class="number">2</span>,</span><br><span class="line">			want: want&#123;</span><br><span class="line">				code: <span class="number">404</span>,</span><br><span class="line">				body: <span class="string">`&#123;"msg":"notfound"&#125;`</span>,</span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	router := setupRouter()</span><br><span class="line">	<span class="keyword">for</span> _, tt := <span class="keyword">range</span> tests &#123;</span><br><span class="line">		t.Run(tt.name, <span class="function"><span class="keyword">func</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">			req := httptest.NewRequest(<span class="string">"GET"</span>, fmt.Sprintf(<span class="string">"/users/%d"</span>, tt.args), <span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line">			w := httptest.NewRecorder()</span><br><span class="line">			router.ServeHTTP(w, req)</span><br><span class="line"></span><br><span class="line">			assert.Equal(t, tt.want.code, w.Code)</span><br><span class="line">			assert.Equal(t, tt.want.body, w.Body.String())</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>获取用户信息的单元测试代码，在测试执行开始，同样使用 <code>setupTestUser</code> 函数来初始化测试数据，并使用 <code>defer</code> 来完成数据恢复。</p>
+<p>这次为了提高测试覆盖率，我对 <code>GetUserHandler</code> 函数的正常响应以及返回 <code>404</code> 状态码的异常响应场景都进行了测试。</p>
+<p>这里使用了表格测试，不了解表格测试的读者，可以查看我的另一篇文章<a href="https://jianghushinian.cn/2023/07/09/how-to-write-testing-in-go/" target="_blank" rel="noopener">《在 Go 中如何编写测试代码》</a>。</p>
+<p>除了使用表格测试的形式，其他测试逻辑与 <code>CreateUserHandler</code> 的单元测试逻辑基本相同，我就不过多介绍了。</p>
+<p>使用 <code>go test</code> 来执行测试函数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -v -run=<span class="string">"TestGetUserHandler"</span> .</span><br><span class="line">=== RUN   TestGetUserHandler</span><br><span class="line">=== RUN   TestGetUserHandler/get_test-user1</span><br><span class="line">=== RUN   TestGetUserHandler/get_user_not_found</span><br><span class="line">--- PASS: TestGetUserHandler (0.00s)</span><br><span class="line">    --- PASS: TestGetUserHandler/get_test-user1 (0.00s)</span><br><span class="line">    --- PASS: TestGetUserHandler/get_user_not_found (0.00s)</span><br><span class="line">PASS</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/http/server      0.516s</span><br></pre></td></tr></table></figure>
+
+<p>表格测试的两个用例都通过了测试。</p>
+<h3 id="HTTP-Client-测试"><a href="#HTTP-Client-测试" class="headerlink" title="HTTP Client 测试"></a>HTTP Client 测试</h3><p>接下来，我们来看下，站在 HTTP Client 端的角度，如何编写应用程序的测试代码。</p>
+<p>假设我们有一个进程监控程序，能够检测某个进程是否正在执行，如果进程退出，就发送一条消息通知到飞书群。</p>
+<p>代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"bytes"</span></span><br><span class="line">	<span class="string">"encoding/json"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"log"</span></span><br><span class="line">	<span class="string">"net/http"</span></span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line">	<span class="string">"strconv"</span></span><br><span class="line">	<span class="string">"syscall"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">monitor</span><span class="params">(pid <span class="keyword">int</span>)</span> <span class="params">(*Result, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="comment">// 检查进程是否存在</span></span><br><span class="line">		err := syscall.Kill(pid, <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Printf(<span class="string">"Process %d exited\n"</span>, pid)</span><br><span class="line">			webhook := os.Getenv(<span class="string">"WEBHOOK"</span>)</span><br><span class="line">			<span class="keyword">return</span> sendFeishu(fmt.Sprintf(<span class="string">"Process %d exited"</span>, pid), webhook)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		log.Printf(<span class="string">"Process %d is running\n"</span>, pid)</span><br><span class="line">		time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(os.Args) != <span class="number">2</span> &#123;</span><br><span class="line">		log.Println(<span class="string">"Usage: ./monitor &lt;pid&gt;"</span>)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	pid, err := strconv.Atoi(os.Args[<span class="number">1</span>])</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Printf(<span class="string">"Invalid pid: %s\n"</span>, os.Args[<span class="number">1</span>])</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	result, err := monitor(pid)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line">	log.Println(result)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个程序可以通过 <code>./monitor &lt;pid&gt;</code> 形式启动。</p>
+<p><code>monitor</code> 函数内部有一个循环，会根据传递进来的进程 PID 不断的来检测对应进程是否存在。</p>
+<p>如果不存在，则说明进程已经停止，然后调用 <code>sendFeishu</code> 函数发送消息通知到指定的飞书 <code>webhook</code> 地址。</p>
+<p><code>monitor</code> 函数会将 <code>sendFeishu</code> 函数的返回结果原样返回。</p>
+<p><code>sendFeishu</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Message <span class="keyword">struct</span> &#123;</span><br><span class="line">	Content <span class="keyword">struct</span> &#123;</span><br><span class="line">		Text <span class="keyword">string</span> <span class="string">`json:"text"`</span></span><br><span class="line">	&#125; <span class="string">`json:"content"`</span></span><br><span class="line">	MsgType <span class="keyword">string</span> <span class="string">`json:"msg_type"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Result <span class="keyword">struct</span> &#123;</span><br><span class="line">	StatusCode    <span class="keyword">int</span>    <span class="string">`json:"StatusCode"`</span></span><br><span class="line">	StatusMessage <span class="keyword">string</span> <span class="string">`json:"StatusMessage"`</span></span><br><span class="line">	Code          <span class="keyword">int</span>    <span class="string">`json:"code"`</span></span><br><span class="line">	Data          any    <span class="string">`json:"data"`</span></span><br><span class="line">	Msg           <span class="keyword">string</span> <span class="string">`json:"msg"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sendFeishu</span><span class="params">(content, webhook <span class="keyword">string</span>)</span> <span class="params">(*Result, error)</span></span> &#123;</span><br><span class="line">	msg := Message&#123;</span><br><span class="line">		Content: <span class="keyword">struct</span> &#123;</span><br><span class="line">			Text <span class="keyword">string</span> <span class="string">`json:"text"`</span></span><br><span class="line">		&#125;&#123;</span><br><span class="line">			Text: content,</span><br><span class="line">		&#125;,</span><br><span class="line">		MsgType: <span class="string">"text"</span>,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	body, _ := json.Marshal(msg)</span><br><span class="line">	resp, err := http.Post(webhook, <span class="string">"application/json"</span>, bytes.NewReader(body))</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; _ = resp.Body.Close() &#125;()</span><br><span class="line"></span><br><span class="line">	result := <span class="built_in">new</span>(Result)</span><br><span class="line">	<span class="keyword">if</span> err := json.NewDecoder(resp.Body).Decode(result); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> result.Code != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"code: %d, error: %s"</span>, result.Code, result.Msg)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> result, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>sendFeishu</code> 函数能够将传递进来的消息发送到指定的 <code>webhook</code> 地址。</p>
+<p>至于内部具体逻辑，我们并不需要关心，只当作第三方包来使用即可，仅需要知道它最终会返回 <code>*Result</code> 对象。</p>
+<p>现在我们需要对 <code>monitor</code> 函数进行测试。</p>
+<p>我们同样需要先分析下 <code>monitor</code> 函数的外部依赖是什么。</p>
+<p>首先 <code>monitor</code> 函数的参数 <code>pid</code> 是一个 <code>int</code> 类型，不难构造。</p>
+<p><code>monitor</code> 函数内部调用了 <code>sendFeishu</code> 函数，并且将 <code>sendFeishu</code> 的返回结果原样返回，所以 <code>sendFeishu</code> 函数是一个外部依赖。</p>
+<p>另外，传递个给 <code>sendFeishu</code> 函数的 <code>webhook</code> 地址是从环境变量中获取的，这也算是一个外部依赖。</p>
+<p>所以要测试 <code>monitor</code> 函数，我们需要使用<code>测试替身</code>来解决这两个外部依赖项。</p>
+<p>对于环境变量的依赖很好解决，Go 提供了 <code>os.Setenv</code> 可以在程序中动态设置环境变量的值。</p>
+<p>对于另一个依赖项 <code>sendFeishu</code> 函数，它又依赖了 <code>webhook</code> 地址所对应的 HTTP Server。</p>
+<p>所以我们需要解决 HTTP Server 的依赖问题。</p>
+<p>针对 HTTP Server，Go 标准库 <code>net/http/httptest</code> 同样提供了对应工具。</p>
+<p>我们可以使用 <code>httptest.NewServer</code> 创建一个测试用的 HTTP Server：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newTestServer</span><span class="params">()</span> *<span class="title">httptest</span>.<span class="title">Server</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> httptest.NewServer(http.HandlerFunc(<span class="function"><span class="keyword">func</span><span class="params">(w http.ResponseWriter, r *http.Request)</span></span> &#123;</span><br><span class="line">		w.Header().Set(<span class="string">"Content-Type"</span>, <span class="string">"application/json"</span>)</span><br><span class="line"></span><br><span class="line">		<span class="keyword">switch</span> r.RequestURI &#123;</span><br><span class="line">		<span class="keyword">case</span> <span class="string">"/success"</span>:</span><br><span class="line">			_, _ = fmt.Fprintf(w, <span class="string">`&#123;"StatusCode":0,"StatusMessage":"success","code":0,"data":&#123;&#125;,"msg":"success"&#125;`</span>)</span><br><span class="line">		<span class="keyword">case</span> <span class="string">"/error"</span>:</span><br><span class="line">			_, _ = fmt.Fprintf(w, <span class="string">`&#123;"code":19001,"data":&#123;&#125;,"msg":"param invalid: incoming webhook access token invalid"&#125;`</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>newTestServer</code> 函数返回一个用于测试的 HTTP Server 对象。</p>
+<p>在 <code>newTestServer</code> 函数内部，定义了两个路由 <code>/success</code> 和 <code>/error</code>，分别来处理成功响应和失败响应两种情况。</p>
+<p>与前文介绍的 <code>setupTestUser</code> 函数一样，我们需要在测试程序开始执行时准备测试数据，即启动这个测试用的 HTTP Server，在测试程序执行完成后清理数据，即关闭 HTTP Server。</p>
+<p>不过，这次我们不再使用 <code>setupTestUser</code> 函数结合 <code>defer cleanup()</code> 的方式，而是换种方式来实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> ts *httptest.Server</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestMain</span><span class="params">(m *testing.M)</span></span> &#123;</span><br><span class="line">	ts = newTestServer()</span><br><span class="line">	m.Run()</span><br><span class="line">	ts.Close()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先我们定义了一个全局变量 <code>ts</code>，用来保存测试用的 HTTP Server 对象。</p>
+<p>然后在 <code>TestMain</code> 函数中调用 <code>newTestServer</code> 函数为 <code>ts</code> 变量赋值。</p>
+<p>接下来执行 <code>m.Run()</code> 方法。</p>
+<p>最终调用 <code>ts.Close()</code> 关闭 HTTP Server。</p>
+<p><code>TestMain</code> 函数名不是随意取的，而是 Go 单元测试中的一个约定名称，它相当于 <code>main</code> 函数，在使用 <code>go test</code> 命令执行所有测试用例前，会优先执行 <code>TestMain</code> 函数。</p>
+<p>在 <code>TestMain</code> 函数中调用 <code>m.Run()</code>，<code>(*testing.M).Run()</code> 方法会执行全部的测试用例。</p>
+<p>当所有测试用例执行完成后，代码才会执行到 <code>ts.Close()</code>。</p>
+<p>所以，相较于 <code>setupTestUser</code> 函数在每个测试函数内部都要调用一次的用法，<code>TestMain</code> 函数更加省力。不过这也决定了二者适用场景不同。<code>TestMain</code> 函数粒度更大，作用于全部测试用例，<code>setupTestUser</code> 函数只作用于单个测试函数。</p>
+<p>现在，我们已经解决了 <code>monitor</code> 函数的依赖项问题。</p>
+<p>为其编写的单元测试如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Test_monitor</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	<span class="keyword">type</span> args <span class="keyword">struct</span> &#123;</span><br><span class="line">		pid     <span class="keyword">int</span></span><br><span class="line">		webhook <span class="keyword">string</span></span><br><span class="line">	&#125;</span><br><span class="line">	tests := []<span class="keyword">struct</span> &#123;</span><br><span class="line">		name    <span class="keyword">string</span></span><br><span class="line">		args    args</span><br><span class="line">		want    *Result</span><br><span class="line">		wantErr error</span><br><span class="line">	&#125;&#123;</span><br><span class="line">		&#123;</span><br><span class="line">			name: <span class="string">"process exited and send feishu success"</span>,</span><br><span class="line">			args: args&#123;</span><br><span class="line">				pid:     <span class="number">10000000</span>,</span><br><span class="line">				webhook: ts.URL + <span class="string">"/success"</span>,</span><br><span class="line">			&#125;,</span><br><span class="line">			want: &amp;Result&#123;</span><br><span class="line">				StatusCode:    <span class="number">0</span>,</span><br><span class="line">				StatusMessage: <span class="string">"success"</span>,</span><br><span class="line">				Code:          <span class="number">0</span>,</span><br><span class="line">				Data:          <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;),</span><br><span class="line">				Msg:           <span class="string">"success"</span>,</span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line">		&#123;</span><br><span class="line">			name: <span class="string">"process exited and send feishu error"</span>,</span><br><span class="line">			args: args&#123;</span><br><span class="line">				pid:     <span class="number">20000000</span>,</span><br><span class="line">				webhook: ts.URL + <span class="string">"/error"</span>,</span><br><span class="line">			&#125;,</span><br><span class="line">			wantErr: errors.New(<span class="string">"code: 19001, error: param invalid: incoming webhook access token invalid"</span>),</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> _, tt := <span class="keyword">range</span> tests &#123;</span><br><span class="line">		t.Run(tt.name, <span class="function"><span class="keyword">func</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">			_ = os.Setenv(<span class="string">"WEBHOOK"</span>, tt.args.webhook)</span><br><span class="line"></span><br><span class="line">			got, err := monitor(tt.args.pid)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">if</span> tt.wantErr == <span class="literal">nil</span> || err.Error() != tt.wantErr.Error() &#123;</span><br><span class="line">					t.Errorf(<span class="string">"monitor() error = %v, wantErr %v"</span>, err, tt.wantErr)</span><br><span class="line">					<span class="keyword">return</span></span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> !reflect.DeepEqual(got, tt.want) &#123;</span><br><span class="line">				t.Errorf(<span class="string">"monitor() got = %v, want %v"</span>, got, tt.want)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里同样采用表格测试的方式，有两个测试用例，一个用于测试被检测程序退出后发送飞书消息成功的情况，一个用于测试被检测程序退出后发送飞书消息失败的情况。</p>
+<p>测试用例中 <code>pid</code> 被设置为很大的值，已经超过了 Linux 系统允许的最大 <code>pid</code> 值，所以检测结果一定是程序已经退出。</p>
+<p>由于被检测程序不退出的情况，<code>monitor</code> 函数会一直循环检测，逻辑比较简单，就没有对这个逻辑编写测试用例。</p>
+<p>使用 <code>go test</code> 来执行测试函数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -v -run=<span class="string">"^Test_monitor$"</span> .</span><br><span class="line">=== RUN   Test_monitor</span><br><span class="line">=== RUN   Test_monitor/process_exited_and_send_feishu_success</span><br><span class="line">2023/07/15 13:27:46 Process 10000000 exited</span><br><span class="line">=== RUN   Test_monitor/process_exited_and_send_feishu_error</span><br><span class="line">2023/07/15 13:27:46 Process 20000000 exited</span><br><span class="line">--- PASS: Test_monitor (0.00s)</span><br><span class="line">    --- PASS: Test_monitor/process_exited_and_send_feishu_success (0.00s)</span><br><span class="line">    --- PASS: Test_monitor/process_exited_and_send_feishu_error (0.00s)</span><br><span class="line">PASS</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/http/client      0.166s</span><br></pre></td></tr></table></figure>
+
+<p>测试通过。</p>
+<p>以上，我们通过 <code>net/http/httptest</code> 提供的测试工具，在本地启动了一个测试 HTTP Server，来解决被测试代码依赖外部 HTTP 服务的问题。</p>
+<p>有时候，我们不想真正的在本地启动一个 HTTP Server，或者无法做到这一点。</p>
+<p>那么，我们还有另一种方案来解决这个问题，可以使用 <code>gock</code> 来模拟 HTTP 服务。</p>
+<p><code>gock</code> 是 Go 社区中的一个第三方包，虽然不在本地启动一个 HTTP Server，但是它能够拦截所有被 mock 的 HTTP 请求。所以，我们能够利用 <code>gock</code> 拦截 <code>sendFeishu</code> 函数发送给 <code>webhook</code> 地址的请求，然后返回 mock 数据。这样，就可以使用 mock 的方式来解决依赖外部 HTTP 服务的问题。</p>
+<p>使用 <code>gock</code> 编写的单元测试代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line">	<span class="string">"testing"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/h2non/gock"</span></span><br><span class="line">	<span class="string">"github.com/stretchr/testify/assert"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Test_monitor_by_gock</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> gock.Off() <span class="comment">// Flush pending mocks after test execution</span></span><br><span class="line"></span><br><span class="line">	gock.New(<span class="string">"http://localhost:8080"</span>).</span><br><span class="line">		Post(<span class="string">"/webhook"</span>).</span><br><span class="line">		Reply(<span class="number">200</span>).</span><br><span class="line">		JSON(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;</span><br><span class="line">			<span class="string">"StatusCode"</span>:    <span class="number">0</span>,</span><br><span class="line">			<span class="string">"StatusMessage"</span>: <span class="string">"success"</span>,</span><br><span class="line">			<span class="string">"Code"</span>:          <span class="number">0</span>,</span><br><span class="line">			<span class="string">"Data"</span>:          <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;),</span><br><span class="line">			<span class="string">"Msg"</span>:           <span class="string">"success"</span>,</span><br><span class="line">		&#125;)</span><br><span class="line"></span><br><span class="line">	_ = os.Setenv(<span class="string">"WEBHOOK"</span>, <span class="string">"http://localhost:8080/webhook"</span>)</span><br><span class="line">	got, err := monitor(<span class="number">30000000</span>)</span><br><span class="line">	assert.NoError(t, err)</span><br><span class="line">	assert.Equal(t, &amp;Result&#123;</span><br><span class="line">		StatusCode:    <span class="number">0</span>,</span><br><span class="line">		StatusMessage: <span class="string">"success"</span>,</span><br><span class="line">		Code:          <span class="number">0</span>,</span><br><span class="line">		Data:          <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;),</span><br><span class="line">		Msg:           <span class="string">"success"</span>,</span><br><span class="line">	&#125;, got)</span><br><span class="line"></span><br><span class="line">	assert.True(t, gock.IsDone())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先，在测试函数的开始，使用 <code>defer</code> 延迟调用 <code>gock.Off()</code>，可以保证在测试完成后刷新挂起的 mock，即还原被 mock 对象的初始状态。</p>
+<p>然后，我们使用 <code>gock.New()</code> 对 <code>http://localhost:8080</code> 这个 URL 进行 mock，这样 <code>gock</code> 会拦截测试过程中所有发送到这个地址的 HTTP 请求。</p>
+<p><code>gock.New()</code> 支持链式调用，<code>.Post(&quot;/webhook&quot;)</code> 表示拦截对 <code>/webhook</code> 这个 URL 的 POST 请求。</p>
+<p><code>.Reply(200)</code> 表示针对这个请求，返回 <code>200</code> 状态码。</p>
+<p><code>.JSON(...)</code> 即为返回的 JSON 格式响应内容。</p>
+<p>接着，我们将 <code>webhook</code> 地址设置为 <code>http://localhost:8080/webhook</code>，这样，在调用 <code>sendFeishu</code> 函数时发送的请求就会被拦截，并返回上一步中的 <code>.JSON(...)</code> 内容。</p>
+<p>之后就是调用 <code>monitor</code> 函数，并断言测试结果是否正确。</p>
+<p>最后，调用 <code>assert.True(t, gock.IsDone())</code> 来验证已经没有挂起的 mock 了。</p>
+<p>使用 <code>go test</code> 来执行测试函数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -v -run=<span class="string">"^Test_monitor_by_gock$"</span> .</span><br><span class="line">=== RUN   Test_monitor_by_gock</span><br><span class="line">2023/07/15 13:28:22 Process 30000000 exited</span><br><span class="line">--- PASS: Test_monitor_by_gock (0.00s)</span><br><span class="line">PASS</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/http/client      0.574s</span><br></pre></td></tr></table></figure>
+
+<p>单元测试执行通过。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文向大家介绍了在 Go 中编写单元测试时，如何解决 HTTP 外部依赖的问题。</p>
+<p>我们分别站在 HTTP 服务端和 HTTP 客户端两个角度，使用 <code>net/http/httptest</code> 标准库和 <code>gock</code> 第三方库来实现<code>测试替身</code>解决 HTTP 外部依赖。</p>
+<p>并且分别介绍了使用 <code>setupTestUser</code> + <code>defer cleanup()</code> 以及 <code>TestMain</code> 两种形式，来做测试准备和清理工作。二者作用于不同粒度，需要根据测试需要进行选择。</p>
+<p>本文完整代码示例我放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/http" target="_blank" rel="noopener">GitHub</a> 上，欢迎点击查看。</p>
+<p>希望此文能对你有所帮助。</p>
+<p><strong>联系我</strong></p>
+<ul>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客地址：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+<p><strong>参考</strong></p>
+<ul>
+<li>Go testing 文档：<a href="https://pkg.go.dev/net/http/httptest" target="_blank" rel="noopener">https://pkg.go.dev/net/http/httptest</a></li>
+<li>Testify 源码：<a href="https://github.com/stretchr/testify" target="_blank" rel="noopener">https://github.com/stretchr/testify</a></li>
+<li>gock 源码：<a href="https://github.com/h2non/gock" target="_blank" rel="noopener">https://github.com/h2non/gock</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:13.018Z" itemprop="dateUpdated">2025-02-15 09:45:13</time>
+</span><br>
+
+
+        
+        <a href="/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Test/" rel="tag">Test</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/&title=《在 Go 语言单元测试中如何解决 HTTP 网络依赖问题》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/&title=《在 Go 语言单元测试中如何解决 HTTP 网络依赖问题》 — 江湖十年&source=在开发 Web 应用程序时，确保 HTTP 功能的正确性是至关重要的。然而，由于 Web 应用程序通常涉及到与外部依赖的交互，编写 HTTP 请求和响应的..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 语言单元测试中如何解决 HTTP 网络依赖问题》 — 江湖十年&url=http://www.jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">在 Go 语言单元测试中如何解决 MySQL 存储依赖问题</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/07/09/how-to-write-testing-in-go/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">在 Go 中如何编写测试代码</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/&title=《在 Go 语言单元测试中如何解决 HTTP 网络依赖问题》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/&title=《在 Go 语言单元测试中如何解决 HTTP 网络依赖问题》 — 江湖十年&source=在开发 Web 应用程序时，确保 HTTP 功能的正确性是至关重要的。然而，由于 Web 应用程序通常涉及到与外部依赖的交互，编写 HTTP 请求和响应的..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 语言单元测试中如何解决 HTTP 网络依赖问题》 — 江湖十年&url=http://www.jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Go 中使用 sqlx 替代 database/sql 操作数据库 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,SQL">
+    <meta name="description" content="sqlx 是 Go 语言中一个流行的第三方包，它提供了对 Go 标准库 database&#x2F;sql 的扩展，旨在简化和改进 Go 语言中使用 SQL 的体验，并提供了更加强大的数据库交互功能。sqlx 保留了 database&#x2F;sql 接口不变，是 database&#x2F;sql 的超集，这使得将现有项目中使用的 database&#x2F;sql 替换为 sqlx 变得相当轻松。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Go 中使用 sqlx 替代 database&#x2F;sql 操作数据库">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="sqlx 是 Go 语言中一个流行的第三方包，它提供了对 Go 标准库 database&#x2F;sql 的扩展，旨在简化和改进 Go 语言中使用 SQL 的体验，并提供了更加强大的数据库交互功能。sqlx 保留了 database&#x2F;sql 接口不变，是 database&#x2F;sql 的超集，这使得将现有项目中使用的 database&#x2F;sql 替换为 sqlx 变得相当轻松。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-06-15T14:39:37.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:13.267Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="SQL">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Go 中使用 sqlx 替代 database/sql 操作数据库</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Go 中使用 sqlx 替代 database/sql 操作数据库</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-06-15T14:39:37.000Z" itemprop="datePublished" class="page-time">
+  2023-06-15
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#安装"><span class="post-toc-number">1.</span> <span class="post-toc-text">安装</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#sqlx-类型设计"><span class="post-toc-number">2.</span> <span class="post-toc-text">sqlx 类型设计</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#准备"><span class="post-toc-number">3.</span> <span class="post-toc-text">准备</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#连接数据库"><span class="post-toc-number">4.</span> <span class="post-toc-text">连接数据库</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#声明模型"><span class="post-toc-number">5.</span> <span class="post-toc-text">声明模型</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#执行-SQL-命令"><span class="post-toc-number">6.</span> <span class="post-toc-text">执行 SQL 命令</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#执行-SQL-查询"><span class="post-toc-number">7.</span> <span class="post-toc-text">执行 SQL 查询</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Queryx"><span class="post-toc-number">7.1.</span> <span class="post-toc-text">Queryx</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#QueryRowx"><span class="post-toc-number">7.2.</span> <span class="post-toc-text">QueryRowx</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Get"><span class="post-toc-number">7.3.</span> <span class="post-toc-text">Get</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Select"><span class="post-toc-number">7.4.</span> <span class="post-toc-text">Select</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#sqlx-In"><span class="post-toc-number">7.5.</span> <span class="post-toc-text">sqlx.In</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用具名参数"><span class="post-toc-number">8.</span> <span class="post-toc-text">使用具名参数</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#事务"><span class="post-toc-number">9.</span> <span class="post-toc-text">事务</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#预处理语句"><span class="post-toc-number">10.</span> <span class="post-toc-text">预处理语句</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#不安全的扫描"><span class="post-toc-number">11.</span> <span class="post-toc-text">不安全的扫描</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Scan-变体"><span class="post-toc-number">12.</span> <span class="post-toc-text">Scan 变体</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#控制字段名称映射"><span class="post-toc-number">13.</span> <span class="post-toc-text">控制字段名称映射</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">14.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-using-sqlx-instead-of-database-sql-for-database-operations-in-go"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Go 中使用 sqlx 替代 database/sql 操作数据库</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-06-15 22:39:37" datetime="2023-06-15T14:39:37.000Z"  itemprop="datePublished">2023-06-15</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p><a href="github.com/jmoiron/sqlx">sqlx</a> 是 Go 语言中一个流行的第三方包，它提供了对 Go 标准库 <code>database/sql</code> 的扩展，旨在简化和改进 Go 语言中使用 SQL 的体验，并提供了更加强大的数据库交互功能。<code>sqlx</code> 保留了 <code>database/sql</code> 接口不变，是 <code>database/sql</code> 的超集，这使得将现有项目中使用的 <code>database/sql</code> 替换为 <code>sqlx</code> 变得相当轻松。</p>
+<a id="more"></a>
+
+<p>本文重点讲解 <code>sqlx</code> 在 <code>database/sql</code> 基础上扩展的功能，对于 <code>database/sql</code> 已经支持的功能则不会详细讲解。如果你对 <code>database/sql</code> 不熟悉，可以查看我的另一篇文章<a href="https://jianghushinian.cn/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/" target="_blank" rel="noopener">《在 Go 中如何使用 database/sql 来操作数据库》</a>。</p>
+<h3 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h3><p><code>sqlx</code> 安装方式同 Go 语言中其他第三方包一样：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go get github.com/jmoiron/sqlx</span><br></pre></td></tr></table></figure>
+
+<h3 id="sqlx-类型设计"><a href="#sqlx-类型设计" class="headerlink" title="sqlx 类型设计"></a>sqlx 类型设计</h3><p><code>sqlx</code> 的设计与 <code>database/sql</code> 差别不大，编码风格较为统一，参考 <code>database/sql</code> 标准库，<code>sqlx</code> 提供了如下几种与之对应的数据类型：</p>
+<ul>
+<li><code>sqlx.DB</code>：类似于 <code>sql.DB</code>，表示数据库对象，可以用来操作数据库。</li>
+<li><code>sqlx.Tx</code>：类似于 <code>sql.Tx</code>，事务对象。</li>
+<li><code>sqlx.Stmt</code>：类似于 <code>sql.Stmt</code>，预处理 SQL 语句。</li>
+<li><code>sqlx.NamedStmt</code>：对 <code>sqlx.Stmt</code> 的封装，支持具名参数。</li>
+<li><code>sqlx.Rows</code>：类似于 <code>sql.Rows</code>，<code>sqlx.Queryx</code> 的返回结果。</li>
+<li><code>sqlx.Row</code>：类似于 <code>sql.Row</code>，<code>sqlx.QueryRowx</code> 的返回结果。</li>
+</ul>
+<p>以上类型与 <code>database/sql</code> 提供的对应类型在功能上区别不大，但 <code>sqlx</code> 为这些类型提供了更友好的方法。</p>
+<h3 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h3><p>为了演示 <code>sqlx</code> 用法，我准备了如下 MySQL 数据库表：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DROP</span> <span class="keyword">TABLE</span> <span class="keyword">IF</span> <span class="keyword">EXISTS</span> <span class="string">`user`</span>;</span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`user`</span> (</span><br><span class="line">  <span class="string">`id`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">  <span class="string">`name`</span> <span class="built_in">varchar</span>(<span class="number">50</span>) <span class="keyword">DEFAULT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'用户名'</span>,</span><br><span class="line">  <span class="string">`email`</span> <span class="built_in">varchar</span>(<span class="number">255</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">''</span> <span class="keyword">COMMENT</span> <span class="string">'邮箱'</span>,</span><br><span class="line">  <span class="string">`age`</span> <span class="built_in">tinyint</span>(<span class="number">4</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">'0'</span> <span class="keyword">COMMENT</span> <span class="string">'年龄'</span>,</span><br><span class="line">  <span class="string">`birthday`</span> datetime <span class="keyword">DEFAULT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'生日'</span>,</span><br><span class="line">  <span class="string">`salary`</span> <span class="built_in">varchar</span>(<span class="number">128</span>) <span class="keyword">DEFAULT</span> <span class="literal">NULL</span> <span class="keyword">COMMENT</span> <span class="string">'薪水'</span>,</span><br><span class="line">  <span class="string">`created_at`</span> datetime <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  <span class="string">`updated_at`</span> datetime <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">CURRENT_TIMESTAMP</span> <span class="keyword">ON</span> <span class="keyword">UPDATE</span> <span class="keyword">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  PRIMARY <span class="keyword">KEY</span> (<span class="string">`id`</span>),</span><br><span class="line">  <span class="keyword">UNIQUE</span> <span class="keyword">KEY</span> <span class="string">`u_email`</span> (<span class="string">`email`</span>)</span><br><span class="line">) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span> <span class="keyword">DEFAULT</span> <span class="keyword">CHARSET</span>=utf8 <span class="keyword">COMMENT</span>=<span class="string">'用户表'</span>;</span><br></pre></td></tr></table></figure>
+
+<p>你可以使用 MySQL 命令行或图形化工具创建这张表。</p>
+<h3 id="连接数据库"><a href="#连接数据库" class="headerlink" title="连接数据库"></a>连接数据库</h3><p>使用 <code>sqlx</code> 连接数据库：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"database/sql"</span></span><br><span class="line">	<span class="string">"log"</span></span><br><span class="line"></span><br><span class="line">	_ <span class="string">"github.com/go-sql-driver/mysql"</span></span><br><span class="line">	<span class="string">"github.com/jmoiron/sqlx"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		db  *sqlx.DB</span><br><span class="line">		err error</span><br><span class="line">		dsn = <span class="string">"user:password@tcp(127.0.0.1:3306)/demo?charset=utf8mb4&amp;parseTime=true&amp;loc=Local"</span></span><br><span class="line">	)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 1. 使用 sqlx.Open 连接数据库</span></span><br><span class="line">	db, err = sqlx.Open(<span class="string">"mysql"</span>, dsn)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 2. 使用 sqlx.Open 变体方法 sqlx.MustOpen 连接数据库，如果出现错误直接 panic</span></span><br><span class="line">	db = sqlx.MustOpen(<span class="string">"mysql"</span>, dsn)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 3. 如果已经有了 *sql.DB 对象，则可以使用 sqlx.NewDb 连接数据库，得到 *sqlx.DB 对象</span></span><br><span class="line">	sqlDB, err := sql.Open(<span class="string">"mysql"</span>, dsn)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line">	db = sqlx.NewDb(sqlDB, <span class="string">"mysql"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 4. 使用 sqlx.Connect 连接数据库，等价于 sqlx.Open + db.Ping</span></span><br><span class="line">	db, err = sqlx.Connect(<span class="string">"mysql"</span>, dsn)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 5. 使用 sqlx.Connect 变体方法 sqlx.MustConnect 连接数据库，如果出现错误直接 panic</span></span><br><span class="line">	db = sqlx.MustConnect(<span class="string">"mysql"</span>, dsn)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>sqlx</code> 中我们可以通过以上 5 种方式连接数据库。</p>
+<p><code>sqlx.Open</code> 对标 <code>sql.Open</code> 方法，返回 <code>*sqlx.DB</code> 类型。</p>
+<p><code>sqlx.MustOpen</code> 与 <code>sqlx.Open</code> 一样会返回 <code>*sqlx.DB</code> 实例，但如果遇到错误则会 <code>panic</code>。</p>
+<p><code>sqlx.NewDb</code> 支持从一个 <code>database/sql</code> 包的 <code>*sql.DB</code> 对象创建一个新的 <code>*sqlx.DB</code> 类型，并且需要指定驱动名称。</p>
+<p>使用前 3 种方式连接数据库并不会立即与数据库建立连接，连接将会在合适的时候延迟建立。为了确保能够正常连接数据库，往往需要调用 <code>db.Ping()</code> 方法进行验证：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ctx := context.Background()</span><br><span class="line"><span class="keyword">if</span> err := db.PingContext(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">	log.Fatal(err)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>sqlx</code> 提供的 <code>sqlx.Connect</code> 方法就是用来简化这一操作的，它等价于 <code>sqlx.Open</code> + <code>db.Ping</code> 两个方法，其定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Connect</span><span class="params">(driverName, dataSourceName <span class="keyword">string</span>)</span> <span class="params">(*DB, error)</span></span> &#123;</span><br><span class="line">	db, err := Open(driverName, dataSourceName)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	err = db.Ping()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		db.Close()</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> db, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>sqlx.MustConnect</code> 方法在 <code>sqlx.Connect</code> 方法的基础上，提供了遇到错误立即 <code>panic</code> 的功能。看到 <code>sqlx.MustConnect</code> 方法的定义你就明白了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">MustConnect</span><span class="params">(driverName, dataSourceName <span class="keyword">string</span>)</span> *<span class="title">DB</span></span> &#123;</span><br><span class="line">	db, err := Connect(driverName, dataSourceName)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> db</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以后当你遇见 <code>MustXxx</code> 类似方法名时就应该想到，其功能往往等价于 <code>Xxx</code> 方法，不过在其内部实现中，遇到 <code>error</code> 不再返回，而是直接进行 <code>panic</code>，这也是 Go 语言很多库中的惯用方法。</p>
+<h3 id="声明模型"><a href="#声明模型" class="headerlink" title="声明模型"></a>声明模型</h3><p>我们定义一个 <code>User</code> 结构体来映射数据库中的 <code>user</code> 表：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	ID       <span class="keyword">int</span></span><br><span class="line">	Name     sql.NullString <span class="string">`json:"username"`</span></span><br><span class="line">	Email    <span class="keyword">string</span></span><br><span class="line">	Age      <span class="keyword">int</span></span><br><span class="line">	Birthday time.Time</span><br><span class="line">	Salary   Salary</span><br><span class="line">	CreatedAt time.Time <span class="string">`db:"created_at"`</span></span><br><span class="line">	UpdatedAt time.Time <span class="string">`db:"updated_at"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Salary <span class="keyword">struct</span> &#123;</span><br><span class="line">	Month <span class="keyword">int</span> <span class="string">`json:"month"`</span></span><br><span class="line">	Year  <span class="keyword">int</span> <span class="string">`json:"year"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Scan implements sql.Scanner, use custom types in *sql.Rows.Scan</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Salary)</span> <span class="title">Scan</span><span class="params">(src any)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> src == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> buf []<span class="keyword">byte</span></span><br><span class="line">	<span class="keyword">switch</span> v := src.(<span class="keyword">type</span>) &#123;</span><br><span class="line">	<span class="keyword">case</span> []<span class="keyword">byte</span>:</span><br><span class="line">		buf = v</span><br><span class="line">	<span class="keyword">case</span> <span class="keyword">string</span>:</span><br><span class="line">		buf = []<span class="keyword">byte</span>(v)</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"invalid type: %T"</span>, src)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err := json.Unmarshal(buf, s)</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Value implements driver.Valuer, use custom types in Query/QueryRow/Exec</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s Salary)</span> <span class="title">Value</span><span class="params">()</span> <span class="params">(driver.Value, error)</span></span> &#123;</span><br><span class="line">	v, err := json.Marshal(s)</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">string</span>(v), err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>User</code> 结构体在这里可以被称为「模型」。</p>
+<h3 id="执行-SQL-命令"><a href="#执行-SQL-命令" class="headerlink" title="执行 SQL 命令"></a>执行 SQL 命令</h3><p><code>database/sql</code> 包提供了 <code>*sql.DB.Exec</code> 方法来执行一条 SQL 命令，<code>sqlx</code> 对其进行了扩展，提供了 <code>*sqlx.DB.MustExec</code> 方法来执行一条 SQL 命令：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">MustCreateUser</span><span class="params">(db *sqlx.DB)</span> <span class="params">(<span class="keyword">int64</span>, error)</span></span> &#123;</span><br><span class="line">	birthday := time.Date(<span class="number">2000</span>, <span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, time.Local)</span><br><span class="line">	user := User&#123;</span><br><span class="line">		Name:     sql.NullString&#123;String: <span class="string">"jianghushinian"</span>, Valid: <span class="literal">true</span>&#125;,</span><br><span class="line">		Email:    <span class="string">"jianghushinian007@outlook.com"</span>,</span><br><span class="line">		Age:      <span class="number">10</span>,</span><br><span class="line">		Birthday: birthday,</span><br><span class="line">		Salary: Salary&#123;</span><br><span class="line">			Month: <span class="number">100000</span>,</span><br><span class="line">			Year:  <span class="number">10000000</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	res := db.MustExec(</span><br><span class="line">		<span class="string">`INSERT INTO user(name, email, age, birthday, salary) VALUES(?, ?, ?, ?, ?)`</span>,</span><br><span class="line">		user.Name, user.Email, user.Age, user.Birthday, user.Salary,</span><br><span class="line">	)</span><br><span class="line">	<span class="keyword">return</span> res.LastInsertId()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里使用 <code>*sqlx.DB.MustExec</code> 方法插入了一条 <code>user</code> 记录。</p>
+<p><code>*sqlx.DB.MustExec</code> 方法定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">MustExec</span><span class="params">(query <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">sql</span>.<span class="title">Result</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> MustExec(db, query, args...)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">MustExec</span><span class="params">(e Execer, query <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">sql</span>.<span class="title">Result</span></span> &#123;</span><br><span class="line">	res, err := e.Exec(query, args...)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> res</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>与前文介绍的 <code>sqlx.MustOpen</code> 方法一样，<code>*sqlx.DB.MustExec</code> 方法也会在遇到错误时直接 <code>panic</code>，其内部调用的是 <code>*sqlx.DB.Exec</code> 方法。</p>
+<h3 id="执行-SQL-查询"><a href="#执行-SQL-查询" class="headerlink" title="执行 SQL 查询"></a>执行 SQL 查询</h3><p><code>database/sql</code> 包提供了 <code>*sql.DB.Query</code> 和 <code>*sql.DB.QueryRow</code> 两个查询方法，其签名如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">Query</span><span class="params">(query <span class="keyword">string</span>, args ...any)</span> <span class="params">(*Rows, error)</span></span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">QueryRow</span><span class="params">(query <span class="keyword">string</span>, args ...any)</span> *<span class="title">Row</span></span></span><br></pre></td></tr></table></figure>
+
+<p><code>sqlx</code> 在这两个方法的基础上，扩展出如下两个方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">Queryx</span><span class="params">(query <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(*Rows, error)</span></span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">QueryRowx</span><span class="params">(query <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> *<span class="title">Row</span></span></span><br></pre></td></tr></table></figure>
+
+<p>这两个方法返回的类型正是前文 <a href="#sqlx-类型设计">sqlx 类型设计</a> 中提到的 <code>sqlx.Rows</code>、<code>sqlx.Row</code> 类型。</p>
+<p>下面来讲解下这两个方法如何使用。</p>
+<h4 id="Queryx"><a href="#Queryx" class="headerlink" title="Queryx"></a>Queryx</h4><p>使用 <code>*sqlx.DB.Queryx</code> 方法查询记录如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">QueryxUsers</span><span class="params">(db *sqlx.DB)</span> <span class="params">([]User, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> us []User</span><br><span class="line">	rows, err := db.Queryx(<span class="string">"SELECT * FROM user"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> rows.Close()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> rows.Next() &#123;</span><br><span class="line">		<span class="keyword">var</span> u User</span><br><span class="line">		<span class="comment">// sqlx 提供了便捷方法可以将查询结果直接扫描到结构体</span></span><br><span class="line">		err = rows.StructScan(&amp;u)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line">		us = <span class="built_in">append</span>(us, u)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> us, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>*sqlx.DB.Queryx</code> 方法签名虽然与 <code>*sql.DB.Query</code> 方法基本相同，但它返回类型 <code>*sqlx.Rows</code> 得到了扩展，其提供的 <code>StructScan</code> 方法能够方便的将查询结果直接扫描到 <code>User</code> 结构体，这极大的增加了便携性，我们再也不用像使用 <code>*sql.Rows</code> 提供的 <code>Scan</code> 方法那样挨个写出 <code>User</code> 的属性了。</p>
+<h4 id="QueryRowx"><a href="#QueryRowx" class="headerlink" title="QueryRowx"></a>QueryRowx</h4><p>使用 <code>*sqlx.DB.QueryRowx</code> 方法查询记录如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">QueryRowxUser</span><span class="params">(db *sqlx.DB, id <span class="keyword">int</span>)</span> <span class="params">(User, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> u User</span><br><span class="line">	err := db.QueryRowx(<span class="string">"SELECT * FROM user WHERE id = ?"</span>, id).StructScan(&amp;u)</span><br><span class="line">	<span class="keyword">return</span> u, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>*sqlx.Row</code> 同样提供了 <code>StructScan</code> 方法将查询结果扫描到结构体。</p>
+<p>另外，这里使用了链式调用的方式，在调用 <code>db.QueryRowx()</code> 之后直接调用了 <code>.StructScan(&amp;u)</code>，接收的 <code>err</code> 是 <code>StructScan</code> 的返回结果。这是因为 <code>db.QueryRowx()</code> 的返回结果 <code>*sqlx.Row</code> 中记录了错误信息 <code>err</code>，如果查询阶段遇到错误会被记录到 <code>*sqlx.Row.err</code> 中。在调用 <code>StructScan</code> 方法阶段，其内部首先判断 <code>r.err != nil</code>，如果存在 <code>err</code> 直接返回错误，没有错误则将查询结果扫描到 <code>dest</code> 参数接收到的结构体指针，代码实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Row <span class="keyword">struct</span> &#123;</span><br><span class="line">	err    error</span><br><span class="line">	unsafe <span class="keyword">bool</span></span><br><span class="line">	rows   *sql.Rows</span><br><span class="line">	Mapper *reflectx.Mapper</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *Row)</span> <span class="title">StructScan</span><span class="params">(dest <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> r.scanAny(dest, <span class="literal">true</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *Row)</span> <span class="title">scanAny</span><span class="params">(dest <span class="keyword">interface</span>&#123;&#125;, structOnly <span class="keyword">bool</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> r.err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> r.err</span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>sqlx</code> 不仅扩展了 <code>*sql.DB.Query</code> 和 <code>*sql.DB.QueryRow</code> 两个查询方法，它还新增了两个查询方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">Get</span><span class="params">(dest <span class="keyword">interface</span>&#123;&#125;, query <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">Select</span><span class="params">(dest <span class="keyword">interface</span>&#123;&#125;, query <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span></span><br></pre></td></tr></table></figure>
+
+<p><code>*sqlx.DB.Get</code> 方法包装了 <code>*sqlx.DB.QueryRowx</code> 方法，用以简化查询单条记录。</p>
+<p><code>*sqlx.DB.Select</code> 方法包装了 <code>*sqlx.DB.Queryx</code> 方法，用以简化查询多条记录。</p>
+<p>接下来讲解这两个方法如何使用。</p>
+<h4 id="Get"><a href="#Get" class="headerlink" title="Get"></a>Get</h4><p>使用 <code>*sqlx.DB.Get</code> 方法查询记录如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetUser</span><span class="params">(db *sqlx.DB, id <span class="keyword">int</span>)</span> <span class="params">(User, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> u User</span><br><span class="line">	<span class="comment">// 查询记录扫描数据到 struct</span></span><br><span class="line">	err := db.Get(&amp;u, <span class="string">"SELECT * FROM user WHERE id = ?"</span>, id)</span><br><span class="line">	<span class="keyword">return</span> u, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现 <code>*sqlx.DB.Get</code> 方法用起来非常简单，我们不再需要调用 <code>StructScan</code> 方法将查询结果扫描到结构体中，只需要将结构体指针当作 <code>Get</code> 方法的第一个参数传递进去即可。</p>
+<p>其代码实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">Get</span><span class="params">(dest <span class="keyword">interface</span>&#123;&#125;, query <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Get(db, dest, query, args...)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Get</span><span class="params">(q Queryer, dest <span class="keyword">interface</span>&#123;&#125;, query <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	r := q.QueryRowx(query, args...)</span><br><span class="line">	<span class="keyword">return</span> r.scanAny(dest, <span class="literal">false</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>根据源码可以看出，<code>*sqlx.DB.Get</code> 内部调用了 <code>*sqlx.DB.QueryRowx</code> 方法。</p>
+<h4 id="Select"><a href="#Select" class="headerlink" title="Select"></a>Select</h4><p>使用 <code>*sqlx.DB.Select</code> 方法查询记录如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SelectUsers</span><span class="params">(db *sqlx.DB)</span> <span class="params">([]User, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> us []User</span><br><span class="line">	<span class="comment">// 查询记录扫描数据到 slice</span></span><br><span class="line">	err := db.Select(&amp;us, <span class="string">"SELECT * FROM user"</span>)</span><br><span class="line">	<span class="keyword">return</span> us, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现 <code>*sqlx.DB.Select</code> 方法用起来同样非常简单，它可以直接将查询结果扫描到 <code>[]User</code> 切片中。</p>
+<p>其代码实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">Select</span><span class="params">(dest <span class="keyword">interface</span>&#123;&#125;, query <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Select(db, dest, query, args...)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Select</span><span class="params">(q Queryer, dest <span class="keyword">interface</span>&#123;&#125;, query <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	rows, err := q.Queryx(query, args...)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// if something happens here, we want to make sure the rows are Closed</span></span><br><span class="line">	<span class="keyword">defer</span> rows.Close()</span><br><span class="line">	<span class="keyword">return</span> scanAll(rows, dest, <span class="literal">false</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>根据源码可以看出，<code>*sqlx.DB.Select</code> 内部调用了 <code>*sqlx.DB.Queryx</code> 方法。</p>
+<h4 id="sqlx-In"><a href="#sqlx-In" class="headerlink" title="sqlx.In"></a>sqlx.In</h4><p>在 <code>database/sql</code> 中如果想要执行 SQL IN 查询，由于 IN 查询参数长度不固定，我们不得不使用 <code>fmt.Sprintf</code> 来动态拼接 SQL 语句，以保证 SQL 中参数占位符的个数是正确的。</p>
+<p><code>sqlx</code> 提供了 <code>In</code> 方法来支持 SQL IN 查询，这极大的简化了代码，也使得代码更易维护和安全。</p>
+<p>使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SqlxIn</span><span class="params">(db *sqlx.DB, ids []<span class="keyword">int64</span>)</span> <span class="params">([]User, error)</span></span> &#123;</span><br><span class="line">	query, args, err := sqlx.In(<span class="string">"SELECT * FROM user WHERE id IN (?)"</span>, ids)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	query = db.Rebind(query)</span><br><span class="line">	rows, err := db.Query(query, args...)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> rows.Close()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> us []User</span><br><span class="line">	<span class="keyword">for</span> rows.Next() &#123;</span><br><span class="line">		<span class="keyword">var</span> user User</span><br><span class="line">		err = rows.Scan(&amp;user.ID, &amp;user.Name, &amp;user.Email, &amp;user.Age,</span><br><span class="line">			&amp;user.Birthday, &amp;user.Salary, &amp;user.CreatedAt, &amp;user.UpdatedAt)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line">		us = <span class="built_in">append</span>(us, user)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> us, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用 <code>sqlx.In</code> 并传递 SQL 语句以及切片类型的参数，它将返回新的查询 SQL <code>query</code> 以及参数 <code>args</code>，这个 <code>query</code> 将会根据 <code>ids</code> 来动态调整。</p>
+<p>比如我们传递 <code>ids</code> 为 <code>[]int64{1, 2, 3}</code>，则得到 <code>query</code> 为 <code>SELECT * FROM user WHERE id IN (?, ?, ?)</code>。</p>
+<p>注意，我们接下来又调用 <code>db.Rebind(query)</code> 重新绑定了 <code>query</code> 变量的参数占位符。如果你使用 MySQL 数据库，这不是必须的，因为我们使用的 MySQL 驱动程序参数占位符就是 <code>?</code>。而如果你使用 PostgreSQL 数据库，由于 PostgreSQL 驱动程序参数占位符是 <code>$n</code>，这时就必须要调用 <code>db.Rebind(query)</code> 方法来转换参数占位符了。</p>
+<p>它会将 <code>SELECT * FROM user WHERE id IN (?, ?, ?)</code> 中的参数占位符转换为 PostgreSQL 驱动程序能够识别的参数占位符 <code>SELECT * FROM user WHERE id IN ($1, $2, $3)</code>。</p>
+<p>之后的代码就跟使用 <code>database/sql</code> 查询记录没什么两样了。</p>
+<h3 id="使用具名参数"><a href="#使用具名参数" class="headerlink" title="使用具名参数"></a>使用具名参数</h3><p><code>sqlx</code> 提供了两个方法 <code>NamedExec</code>、<code>NamedQuery</code>，它们能够支持具名参数 <code>:name</code>，这样就不必再使用 <code>?</code> 这种占位符的形式了。</p>
+<p>这两个方法签名如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">NamedExec</span><span class="params">(query <span class="keyword">string</span>, arg <span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(sql.Result, error)</span></span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">NamedQuery</span><span class="params">(query <span class="keyword">string</span>, arg <span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(*Rows, error)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>其使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NamedExec</span><span class="params">(db *sqlx.DB)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	m := <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;</span><br><span class="line">		<span class="string">"email"</span>: <span class="string">"jianghushinian007@outlook.com"</span>,</span><br><span class="line">		<span class="string">"age"</span>:   <span class="number">18</span>,</span><br><span class="line">	&#125;</span><br><span class="line">	result, err := db.NamedExec(<span class="string">`UPDATE user SET age = :age WHERE email = :email`</span>, m)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Println(result.RowsAffected())</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NamedQuery</span><span class="params">(db *sqlx.DB)</span> <span class="params">([]User, error)</span></span> &#123;</span><br><span class="line">	u := User&#123;</span><br><span class="line">		Email: <span class="string">"jianghushinian007@outlook.com"</span>,</span><br><span class="line">		Age:   <span class="number">18</span>,</span><br><span class="line">	&#125;</span><br><span class="line">	rows, err := db.NamedQuery(<span class="string">"SELECT * FROM user WHERE email = :email OR age = :age"</span>, u)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> rows.Close()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> users []User</span><br><span class="line">	<span class="keyword">for</span> rows.Next() &#123;</span><br><span class="line">		<span class="keyword">var</span> user User</span><br><span class="line">		err := rows.StructScan(&amp;user)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line">		users = <span class="built_in">append</span>(users, user)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> users, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以使用 <code>:name</code> 的方式来命名参数，它能够匹配 <code>map</code> 或 <code>struct</code> 对应字段的参数值，这样的 SQL 语句可读性更强。</p>
+<h3 id="事务"><a href="#事务" class="headerlink" title="事务"></a>事务</h3><p>在事务的支持上，<code>sqlx</code> 扩展出了 <code>Must</code> 版本的事务，使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">MustTransaction</span><span class="params">(db *sqlx.DB)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	tx := db.MustBegin()</span><br><span class="line">	tx.MustExec(<span class="string">"UPDATE user SET age = 25 WHERE id = ?"</span>, <span class="number">1</span>)</span><br><span class="line">	<span class="keyword">return</span> tx.Commit()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>不过这种用法不多，你知道就行。以下是事务的推荐用法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Transaction</span><span class="params">(db *sqlx.DB, id <span class="keyword">int64</span>, name <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	tx, err := db.Begin()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> tx.Rollback()</span><br><span class="line"></span><br><span class="line">	res, err := tx.Exec(<span class="string">"UPDATE user SET name = ? WHERE id = ?"</span>, name, id)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	rowsAffected, err := res.RowsAffected()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Printf(<span class="string">"rowsAffected: %d\n"</span>, rowsAffected)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> tx.Commit()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们使用 <code>defer</code> 语句来处理事务的回滚操作，这样就不必在每次处理错误时重复的编写调用 <code>tx.Rollback()</code> 的代码。</p>
+<p>如果代码正常执行到最后，通过 <code>tx.Commit()</code> 来提交事务，此时即使再调用 <code>tx.Rollback()</code> 也不会对结果产生影响。</p>
+<h3 id="预处理语句"><a href="#预处理语句" class="headerlink" title="预处理语句"></a>预处理语句</h3><p><code>sqlx</code> 针对 <code>*sql.DB.Prepare</code> 扩展出了 <code>*sqlx.DB.Preparex</code> 方法，返回 <code>*sqlx.Stmt</code> 类型。</p>
+<p><code>*sqlx.Stmt</code> 类型支持 <code>Queryx</code>、<code>QueryRowx</code>、<code>Get</code>、<code>Select</code> 这些 <code>sqlx</code> 特有的方法。</p>
+<p>其使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">PreparexGetUser</span><span class="params">(db *sqlx.DB)</span> <span class="params">(User, error)</span></span> &#123;</span><br><span class="line">	stmt, err := db.Preparex(<span class="string">`SELECT * FROM user WHERE id = ?`</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> User&#123;&#125;, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> u User</span><br><span class="line">	err = stmt.Get(&amp;u, <span class="number">1</span>)</span><br><span class="line">	<span class="keyword">return</span> u, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>*sqlx.DB.Preparex</code> 方法定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Preparex</span><span class="params">(p Preparer, query <span class="keyword">string</span>)</span> <span class="params">(*Stmt, error)</span></span> &#123;</span><br><span class="line">	s, err := p.Prepare(query)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;Stmt&#123;Stmt: s, unsafe: isUnsafe(p), Mapper: mapperFor(p)&#125;, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>实际上 <code>*sqlx.DB.Preparex</code> 内部还是调用的 <code>*sql.DB.Preapre</code> 方法，只不过将其返回结果构造成 <code>*sqlx.Stmt</code> 类型并返回。</p>
+<h3 id="不安全的扫描"><a href="#不安全的扫描" class="headerlink" title="不安全的扫描"></a>不安全的扫描</h3><p>在使用 <code>*sqlx.DB.Get</code> 等方法查询记录时，如果 SQL 语句查询出来的字段与要绑定的模型属性不匹配，则会报错。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetUser</span><span class="params">(db *sqlx.DB)</span> <span class="params">(User, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> user <span class="keyword">struct</span> &#123;</span><br><span class="line">		ID    <span class="keyword">int</span></span><br><span class="line">		Name  <span class="keyword">string</span></span><br><span class="line">		Email <span class="keyword">string</span></span><br><span class="line">		<span class="comment">// 没有 Age 属性</span></span><br><span class="line">	&#125;</span><br><span class="line">	err := db.Get(&amp;user, <span class="string">"SELECT id, name, email, age FROM user WHERE id = ?"</span>, <span class="number">1</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> User&#123;&#125;, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> User&#123;</span><br><span class="line">		ID:    user.ID,</span><br><span class="line">		Name:  sql.NullString&#123;String: user.Name&#125;,</span><br><span class="line">		Email: user.Email,</span><br><span class="line">	&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上示例代码中，SQL 语句中查询了 <code>id</code>、<code>name</code>、<code>email</code>、<code>age</code> 4 个字段，而 <code>user</code> 结构体则只有 <code>ID</code>、<code>Name</code>、<code>Email</code> 3 个属性，由于无法一一对应，执行以上代码，我们将得到如下报错信息：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">missing destination name age in *<span class="keyword">struct</span> &#123; ID <span class="keyword">int</span>; Name <span class="keyword">string</span>; Email <span class="keyword">string</span> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种表现是合理的，符合 Go 语言的编程风格，尽早暴露错误有助于减少代码存在 BUG 的隐患。</p>
+<p>不过，有些时候，我们就是为了方便想要让上面的示例代码能够运行，可以这样做：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">UnsafeGetUser</span><span class="params">(db *sqlx.DB)</span> <span class="params">(User, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> user <span class="keyword">struct</span> &#123;</span><br><span class="line">		ID    <span class="keyword">int</span></span><br><span class="line">		Name  <span class="keyword">string</span></span><br><span class="line">		Email <span class="keyword">string</span></span><br><span class="line">		<span class="comment">// 没有 Age 属性</span></span><br><span class="line">	&#125;</span><br><span class="line">	udb := db.Unsafe()</span><br><span class="line">	err := udb.Get(&amp;user, <span class="string">"SELECT id, name, email, age FROM user WHERE id = ?"</span>, <span class="number">1</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> User&#123;&#125;, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> User&#123;</span><br><span class="line">		ID:    user.ID,</span><br><span class="line">		Name:  sql.NullString&#123;String: user.Name&#125;,</span><br><span class="line">		Email: user.Email,</span><br><span class="line">	&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里我们不再直接使用 <code>db.Get</code> 来查询记录，而是先通过 <code>udb := db.Unsafe()</code> 获取 <code>unsafe</code> 属性为 <code>true</code> 的 <code>*sqlx.DB</code> 对象，然后再调用它的 <code>Get</code> 方法。</p>
+<p><code>*sqlx.DB</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> DB <span class="keyword">struct</span> &#123;</span><br><span class="line">	*sql.DB</span><br><span class="line">	driverName <span class="keyword">string</span></span><br><span class="line">	unsafe     <span class="keyword">bool</span></span><br><span class="line">	Mapper     *reflectx.Mapper</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当 <code>unsafe</code> 属性为 <code>true</code> 时，<code>*sqlx.DB</code> 对象会忽略不匹配的字段，使代码能够正常运行，并将能够匹配的字段正确绑定到 <code>user</code> 结构体对象上。</p>
+<p>通过这个属性的名称我们就知道，这是不安全的做法，不被推荐。</p>
+<p>与未使用的变量一样，被忽略的列是对网络和数据库资源的浪费，并且这很容易导致出现模型与数据库表不匹配而不被感知的情况。</p>
+<h3 id="Scan-变体"><a href="#Scan-变体" class="headerlink" title="Scan 变体"></a>Scan 变体</h3><p>前文示例中，我们见过了 <code>*sqlx.Rows.Scan</code> 的变体 <code>*sqlx.Rows.StructScan</code> 的用法，它能够方便的将查询结果扫描到 <code>struct</code> 中。</p>
+<p><code>sqlx</code> 还提供了 <code>*sqlx.Rows.MapScan</code>、<code>*sqlx.Rows.SliceScan</code> 两个方法，能够将查询结果分别扫描到 <code>map</code> 和 <code>slice</code> 中。</p>
+<p>使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">MapScan</span><span class="params">(db *sqlx.DB)</span> <span class="params">([]<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;, error)</span></span> &#123;</span><br><span class="line">	rows, err := db.Queryx(<span class="string">"SELECT * FROM user"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> rows.Close()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> res []<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">	<span class="keyword">for</span> rows.Next() &#123;</span><br><span class="line">		r := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">		err := rows.MapScan(r)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line">		res = <span class="built_in">append</span>(res, r)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> res, err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SliceScan</span><span class="params">(db *sqlx.DB)</span> <span class="params">([][]<span class="keyword">interface</span>&#123;&#125;, error)</span></span> &#123;</span><br><span class="line">	rows, err := db.Queryx(<span class="string">"SELECT * FROM user"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> rows.Close()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> res [][]<span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">	<span class="keyword">for</span> rows.Next() &#123;</span><br><span class="line">		<span class="comment">// cols is an []interface&#123;&#125; of all the column results</span></span><br><span class="line">		cols, err := rows.SliceScan()</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line">		res = <span class="built_in">append</span>(res, cols)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> res, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中，<code>rows.MapScan(r)</code> 用法与 <code>rows.StructScan(&amp;u)</code> 用法类似，都是将接收查询结果集的目标模型指针变量当作参数传递进来。</p>
+<p><code>rows.SliceScan()</code> 用法略有不同，它不接收参数，而是将结果保存在 <code>[]interface{}</code> 中并返回。</p>
+<p>可以按需使用以上两个方法。</p>
+<h3 id="控制字段名称映射"><a href="#控制字段名称映射" class="headerlink" title="控制字段名称映射"></a>控制字段名称映射</h3><p>讲到这里，想必不少同学心里可能存在一个疑惑，<code>rows.StructScan(&amp;u)</code> 在将查询记录的字段映射到对应结构体属性时，是如何找到对应关系的呢？</p>
+<p>答案就是 <code>db</code> 结构体标签。</p>
+<p>回顾前文讲 <a href="#声明模型">声明模型</a> 时，<code>User</code> 结构体中定义的 <code>CreatedAt</code>、<code>UpdatedAt</code> 两个字段，定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">CreatedAt time.Time <span class="string">`db:"created_at"`</span></span><br><span class="line">UpdatedAt time.Time <span class="string">`db:"updated_at"`</span></span><br></pre></td></tr></table></figure>
+
+<p>这里显式的标明了结构体标签 <code>db</code>，<code>sqlx</code> 正是使用 <code>db</code> 标签来映射查询字段和模型属性。</p>
+<p>默认情况下，结构体字段会被映射成全小写形式，如 <code>ID</code> 字段会被映射为 <code>id</code>，而 <code>CreatedAt</code> 字段会被映射为 <code>createdat</code>。</p>
+<p>因为在 <code>user</code> 数据库表中，创建时间和更新时间两个字段分别为 <code>created_at</code>、<code>updated_at</code>，与 <code>sqlx</code> 默认字段映射规则不匹配，所以我才显式的为 <code>CreatedAt</code> 和 <code>UpdatedAt</code> 两个字段指明了 <code>db</code> 标签，这样 <code>sqlx</code> 的 <code>rows.StructScan</code> 就能正常工作了。</p>
+<p>当然，数据库字段不一定都是小写，如果你的数据库字段为全大写，<code>sqlx</code> 提供了 <code>*sqlx.DB.MapperFunc</code> 方法来控制查询字段和模型属性的映射关系。</p>
+<p>其使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">MapperFuncUseToUpper</span><span class="params">(db *sqlx.DB)</span> <span class="params">(User, error)</span></span> &#123;</span><br><span class="line">	copyDB := sqlx.NewDb(db.DB, db.DriverName())</span><br><span class="line">	copyDB.MapperFunc(strings.ToUpper)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> user User</span><br><span class="line">	err := copyDB.Get(&amp;user, <span class="string">"SELECT id as ID, name as NAME, email as EMAIL FROM user WHERE id = ?"</span>, <span class="number">1</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> User&#123;&#125;, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> user, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里为了不改变原有的 <code>db</code> 对象，我们复制了一个 <code>copyDB</code>，调用 <code>copyDB.MapperFunc</code> 并将 <code>strings.ToUpper</code> 传递进来。</p>
+<p>注意这里的查询语句中，查询字段全部通过 <code>as</code> 重新命名成了大写形式，而 <code>User</code> 模型字段 <code>db</code> 默认都为小写形式。</p>
+<p><code>copyDB.MapperFunc(strings.ToUpper)</code> 的作用，就是在调用 <code>Get</code> 方法将查询结果扫描到结构体时，把 <code>User</code> 模型的小写字段，通过 <code>strings.ToUpper</code> 方法转成大写，这样查询字段和模型属性就全为大写了，也就能够一一匹配上了。</p>
+<p>还有一种情况，如果你的模型已存在 <code>json</code> 标签，并且不想重复的再抄一遍到 <code>db</code> 标签，我们可以直接使用 <code>json</code> 标签来映射查询字段和模型属性。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">MapperFuncUseJsonTag</span><span class="params">(db *sqlx.DB)</span> <span class="params">(User, error)</span></span> &#123;</span><br><span class="line">	copyDB := sqlx.NewDb(db.DB, db.DriverName())</span><br><span class="line">	<span class="comment">// Create a new mapper which will use the struct field tag "json" instead of "db"</span></span><br><span class="line">	copyDB.Mapper = reflectx.NewMapperFunc(<span class="string">"json"</span>, strings.ToLower)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> user User</span><br><span class="line">	<span class="comment">// json tag</span></span><br><span class="line">	err := copyDB.Get(&amp;user, <span class="string">"SELECT id, name as username, email FROM user WHERE id = ?"</span>, <span class="number">1</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> User&#123;&#125;, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> user, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里需要直接修改 <code>copyDB.Mapper</code> 属性，赋值为 <code>reflectx.NewMapperFunc(&quot;json&quot;, strings.ToLower)</code> 将模型映射的标签由 <code>db</code> 改为 <code>json</code>，并通过 <code>strings.ToLower</code> 方法转换为小写。</p>
+<p><code>reflectx</code> 按照如下方式导入：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">"github.com/jmoiron/sqlx/reflectx"</span></span><br></pre></td></tr></table></figure>
+
+<p>现在，查询语句中 <code>name</code> 属性通过使用 <code>as</code> 被重命名为 <code>username</code>，而 <code>username</code> 刚好与 <code>User</code> 模型中 <code>Name</code> 字段的 <code>json</code> 标签相对应：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Name     sql.NullString <span class="string">`json:"username"`</span></span><br></pre></td></tr></table></figure>
+
+<p>所以，以上示例代码能够正确映射查询字段和模型属性。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><code>sqlx</code> 建立在 <code>database/sql</code> 包之上，用于简化和增强与关系型数据库的交互操作。</p>
+<p>对常见数据库操作方法，<code>sqlx</code> 提供了 <code>Must</code> 版本，如 <code>sqlx.MustOpen</code> 用来连接数据库，<code>*sqlx.DB.MustExec</code> 用来执行 SQL 语句，当遇到 <code>error</code> 时将会直接 <code>panic</code>。</p>
+<p><code>sqlx</code> 还扩展了查询方法 <code>*sqlx.DB.Queryx</code>、<code>*sqlx.DB.QueryRowx</code>、<code>*sqlx.DB.Get</code>、<code>*sqlx.DB.Select</code>，并且这些查询方法支持直接将查询结果扫描到结构体。</p>
+<p><code>sqlx</code> 为 SQL IN 操作提供了便捷方法 <code>sqlx.In</code>。</p>
+<p>为了使 SQL 更易阅读，<code>sqlx</code> 提供了 <code>*sqlx.DB.NamedExec</code>、<code>*sqlx.DB.NamedQuery</code> 两个方法支持具名参数。</p>
+<p>调用 <code>*sqlx.DB.Unsafe()</code> 方法能够获取 <code>unsafe</code> 属性为 <code>true</code> 的 <code>*sqlx.DB</code> 对象，在将查询结果扫描到结构体使可以用来忽略不匹配的记录字段。</p>
+<p>除了能够将查询结果扫描到 <code>struct</code>，<code>sqlx</code> 还支持将查询结果扫描到 <code>map</code> 和 <code>slice</code>。</p>
+<p><code>sqlx</code> 使用 <code>db</code> 结构体标签来映射查询字段和模型属性，如果不显式指定 <code>db</code> 标签，默认映射的模型属性为小写形式，可以通过 <code>*sqlx.DB.MapperFunc</code> 函数来修改默认行为。</p>
+<p>本文完整代码示例我放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/sqlx" target="_blank" rel="noopener">GitHub</a> 上，欢迎点击查看。</p>
+<p>希望此文能对你有所帮助。</p>
+<p><strong>联系我</strong></p>
+<ul>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客地址：<a href="https://jianghushinian.cn/" target="_blank" rel="noopener">https://jianghushinian.cn/</a></li>
+</ul>
+<p><strong>参考</strong></p>
+<ul>
+<li>sqlx 源码：<a href="https://github.com/jmoiron/sqlx" target="_blank" rel="noopener">https://github.com/jmoiron/sqlx</a></li>
+<li>sqlx 文档：<a href="https://pkg.go.dev/github.com/jmoiron/sqlx" target="_blank" rel="noopener">https://pkg.go.dev/github.com/jmoiron/sqlx</a></li>
+<li>sqlx 官网：<a href="http://jmoiron.github.io/sqlx/" target="_blank" rel="noopener">http://jmoiron.github.io/sqlx/</a></li>
+<li>本文示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/sqlx" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/sqlx</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:13.267Z" itemprop="dateUpdated">2025-02-15 09:45:13</time>
+</span><br>
+
+
+        
+        <a href="/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/SQL/" rel="tag">SQL</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/&title=《在 Go 中使用 sqlx 替代 database/sql 操作数据库》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/&title=《在 Go 中使用 sqlx 替代 database/sql 操作数据库》 — 江湖十年&source=sqlx 是 Go 语言中一个流行的第三方包，它提供了对 Go 标准库 database/sql 的扩展，旨在简化和改进 Go 语言中使用 SQL 的体验..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中使用 sqlx 替代 database/sql 操作数据库》 — 江湖十年&url=http://www.jianghushinian.cn/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2023/06/16/understanding-kubernetes-storage-design-in-one-post/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">一文读懂 Kubernetes 存储设计</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/06/05/how-to-use-database-sql-to-operate-database-in-go/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">在 Go 中如何使用 database/sql 来操作数据库</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/&title=《在 Go 中使用 sqlx 替代 database/sql 操作数据库》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/&title=《在 Go 中使用 sqlx 替代 database/sql 操作数据库》 — 江湖十年&source=sqlx 是 Go 语言中一个流行的第三方包，它提供了对 Go 标准库 database/sql 的扩展，旨在简化和改进 Go 语言中使用 SQL 的体验..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中使用 sqlx 替代 database/sql 操作数据库》 — 江湖十年&url=http://www.jianghushinian.cn/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/06/15/using-sqlx-instead-of-database-sql-for-database-operations-in-go/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

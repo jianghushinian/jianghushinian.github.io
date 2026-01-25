@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Kubernetes,CSI,存储">
+    <meta name="description" content="K8s 支持多达 20+ 种类型的持久化存储，如常见的 CephFS 、Glusterfs 等，不过这些大都是分布式存储，随着社区的发展，越来越多的用户期望将 K8s 集群中工作节点上挂载的数据盘利用起来，于是就有了 local 类型持久卷的支持。 我将通过上、下两篇文章介绍 K8s 本地持久化存储方案 OpenEBS LocalPV 落地实践完整过程。本篇为使用篇，着重介绍实践过程，下一篇文章为">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇">
+<meta property="og:url" content="http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="K8s 支持多达 20+ 种类型的持久化存储，如常见的 CephFS 、Glusterfs 等，不过这些大都是分布式存储，随着社区的发展，越来越多的用户期望将 K8s 集群中工作节点上挂载的数据盘利用起来，于是就有了 local 类型持久卷的支持。 我将通过上、下两篇文章介绍 K8s 本地持久化存储方案 OpenEBS LocalPV 落地实践完整过程。本篇为使用篇，着重介绍实践过程，下一篇文章为">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/openebs-arch.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/fdisk.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/parted.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/partion.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/part-size.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/parse-part-free.png">
+<meta property="article:published_time" content="2022-11-04T13:35:10.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.719Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Kubernetes">
+<meta property="article:tag" content="CSI">
+<meta property="article:tag" content="存储">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/openebs-arch.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2022-11-04T13:35:10.000Z" itemprop="datePublished" class="page-time">
+  2022-11-04
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Kubernetes/">Kubernetes</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#K8s-本地存储"><span class="post-toc-number">1.</span> <span class="post-toc-text">K8s 本地存储</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#特点"><span class="post-toc-number">1.1.</span> <span class="post-toc-text">特点</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#OpenBES-本地存储"><span class="post-toc-number">2.</span> <span class="post-toc-text">OpenBES 本地存储</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#简介"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">简介</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#卷类型"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">卷类型</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#本地卷"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">本地卷</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#实践"><span class="post-toc-number">2.4.</span> <span class="post-toc-text">实践</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#第一步，环境准备"><span class="post-toc-number">2.4.1.</span> <span class="post-toc-text">第一步，环境准备</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#第二步，安装-Device-LocalPV"><span class="post-toc-number">2.4.2.</span> <span class="post-toc-text">第二步，安装 Device-LocalPV</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#第三步，准备磁盘"><span class="post-toc-number">2.4.3.</span> <span class="post-toc-text">第三步，准备磁盘</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#第四步，创建存储类"><span class="post-toc-number">2.4.4.</span> <span class="post-toc-text">第四步，创建存储类</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#第五步，创建-StatefulSet-来申请使用-LocalPV"><span class="post-toc-number">2.4.5.</span> <span class="post-toc-text">第五步，创建 StatefulSet 来申请使用 LocalPV</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#避坑指南"><span class="post-toc-number">2.5.</span> <span class="post-toc-text">避坑指南</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#parted-命令版本问题"><span class="post-toc-number">2.5.1.</span> <span class="post-toc-text">parted 命令版本问题</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#PV-动态扩容问题"><span class="post-toc-number">2.5.2.</span> <span class="post-toc-text">PV 动态扩容问题</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#PV-可能无法创建成功问题"><span class="post-toc-number">2.5.3.</span> <span class="post-toc-text">PV 可能无法创建成功问题</span></a></li></ol></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">3.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-Kubernetes-本地持久化存储方案-OpenEBS-LocalPV-落地实践上——使用篇"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2022-11-04 21:35:10" datetime="2022-11-04T13:35:10.000Z"  itemprop="datePublished">2022-11-04</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Kubernetes/">Kubernetes</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>K8s 支持多达 20+ 种类型的持久化存储，如常见的 CephFS 、Glusterfs 等，不过这些大都是分布式存储，随着社区的发展，越来越多的用户期望将 K8s 集群中工作节点上挂载的数据盘利用起来，于是就有了 local 类型持久卷的支持。</p>
+<p>我将通过上、下两篇文章介绍 K8s 本地持久化存储方案 OpenEBS LocalPV 落地实践完整过程。本篇为使用篇，着重介绍实践过程，下一篇文章为原理篇，将对 OpenEBS LocalPV 原理进行讲解。</p>
+<a id="more"></a>
+
+<p>我们可以把 local 类型持久卷称作：Local Persistent Volume，简称 LocalPV。LocalPV 所代表的是某个被挂载的本地（工作节点）存储设备，例如磁盘、分区或者目录，所以 LocalPV 并不能像分布式存储一样可靠，但速度极快，这也决定了 LocalPV 使用场景：I/O 敏感度高且能够容忍小概率数据丢失现象。</p>
+<h3 id="K8s-本地存储"><a href="#K8s-本地存储" class="headerlink" title="K8s 本地存储"></a>K8s 本地存储</h3><p>K8s 官方文档里有一个使用 LocalPV 的<a href="https://kubernetes.io/zh-cn/docs/concepts/storage/volumes/#local" target="_blank" rel="noopener">简单示例</a>，由于篇幅所限，我这里就不对其进行演示了，感兴趣的读者可以自行尝试。</p>
+<h4 id="特点"><a href="#特点" class="headerlink" title="特点"></a>特点</h4><p>这里简单总结下 K8s LocalPV 的特点：</p>
+<ul>
+<li><p>只能用作静态创建的持久卷，不支持动态供应，也就是说必须通过手动的方式创建 PV。</p>
+</li>
+<li><p>与 <code>hostPath</code> 卷相比，LocalPV 能够以持久和可移植的方式使用，而无需手动将 Pod 调度到节点。系统通过查看 PV 的节点亲和性（<code>nodeAffinity</code>）配置，就能了解卷的节点约束。</p>
+</li>
+<li><p>如果想使用存储类来自动绑定 PVC 和 PV，则<strong>必须将 StorageClass 配置成延迟绑定</strong>，示例如下：</p>
+</li>
+</ul>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">local-storage</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">kubernetes.io/no-provisioner</span></span><br><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">WaitForFirstConsumer</span></span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>volumeBindingMode: WaitForFirstConsumer</code> 属性即为延迟卷绑定，它使得调度器在为 PVC 选择一个合适的 PV 时能考虑到所属 Pod 的调度限制。</p>
+<p>举个例子，假设我们创建好了两个 PV 分别为 <code>PV1</code>、<code>PV2</code>，然后创建一个 Pod 并申明一个 PVC 叫 <code>PVC1</code> ，<code>PV1</code> 和 <code>PV2</code> 同时满足 <code>PVC1</code> 的要求，但此时存储类并不能马上将 <code>PVC1</code> 与 <code>PV1</code> 或 <code>PV2</code> 中任何一个 PV 进行绑定，而是要考虑 Pod 的调度策略。如果 Pod 指定了节点亲和性必须要部署到 <code>PV1</code> 所在节点，则 <code>PVC1</code> 就需要跟 <code>PV1</code> 进行绑定，而不能与 <code>PV2</code> 进行绑定。</p>
+<p>可以发现，当 Pod 需要使用 LocalPV 时，PVC 与 PV 的绑定就需要考虑 Pod 的调度情况了，所以 LocalPV 的存储类无法支持立即绑定，只能将绑定时机延迟到 Pod 调度时进行（<code>WaitForFirstConsumer</code>）。 </p>
+<h3 id="OpenBES-本地存储"><a href="#OpenBES-本地存储" class="headerlink" title="OpenBES 本地存储"></a>OpenBES 本地存储</h3><p>由于 K8s LocalPV 的使用限制无法满足生产需求，所以就需要寻找替代方案，好在社区已经有人实现了更强大的 LocalPV 存储方案——OpenEBS LocalPV。</p>
+<h4 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h4><p>OpenEBS 官网地址为：<a href="https://openebs.io/。" target="_blank" rel="noopener">https://openebs.io/。</a></p>
+<p>OpenEBS 可以将 K8s 工作节点上的任何可用存储转换为本地或分布式（也称为复制）持久卷。</p>
+<p>OpenEBS 最初由 <a href="https://mayadata.io/" target="_blank" rel="noopener">MayaData</a> 构建并捐赠给 CNCF，现在是 <a href="https://www.cncf.io/sandbox-projects/" target="_blank" rel="noopener">CNCF 沙盒项目</a>。</p>
+<h4 id="卷类型"><a href="#卷类型" class="headerlink" title="卷类型"></a>卷类型</h4><p>OpenEBS 支持两种卷类型：本地卷、复制卷，架构如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="openebs-arch.png" alt="openebs" title="">
+                </div>
+                <div class="image-caption">openebs</div>
+            </figure>
+
+<p>本地卷能够直接将工作节点上插入的数据盘抽象为持久卷，供当前节点上的 Pod 挂载使用。</p>
+<p>而复制卷则相对复杂一些，OpenEBS 使用其内部的引擎为每个复制卷创建一个微服务，在使用时，有状态服务将数据写入 OpenEBS 引擎，引擎将数据同步复制到集群中的多个节点，从而实现了高可用。</p>
+<h4 id="本地卷"><a href="#本地卷" class="headerlink" title="本地卷"></a>本地卷</h4><p>由于本次 OpenEBS 的落地实践针对于本地持久化存储，故本文将主要介绍 OpenEBS 本地卷的使用，不会对复制卷进行过多讲解，感兴趣的读者可以进入官网查看学习。</p>
+<p>OpenEBS 本地卷支持多种类型：Hostpath、Device、LVM、ZFS、Rawfile</p>
+<p>每种类型各有特点，都有自己的适用场景，比如相较于 K8s 原生 Hostpath，OpenEBS 的 Hostpath 能够支持将外挂的数据盘目录作为 Hostpath 目录，从而避免 Pod 可能将宿主机目录写满的问题。Device 能够将块设备用于 LocalPV 的使用，速度极快。而借助 LVM 的能力，则可以更灵活的使用 LocalPV，它可以支持 PV 的动态扩缩容操作。</p>
+<p>OpenEBS 为其支持的每种类型都实现了一个单独的项目，这里以使用块设备为例，介绍 OpenEBS LocalPV 使用实践，项目地址为：<a href="https://github.com/openebs/device-localpv" target="_blank" rel="noopener">device-localpv</a>，下文中我将以 Device-LocalPV 来指代它。</p>
+<h4 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h4><p>这里我将通过 5 个步骤来演示 OpenEBS LocalPV 的实践过程，你可以跟着我一步步操作。</p>
+<h5 id="第一步，环境准备"><a href="#第一步，环境准备" class="headerlink" title="第一步，环境准备"></a>第一步，环境准备</h5><p>这里我们使用 minikube 来搭建 K8s 集群环境，OpenEBS 官方要求 K8s 版本为 1.20+，我实测下来 1.19 版本也是没有问题的，不过建议大家还是尽量优先选用推荐版本。</p>
+<ul>
+<li><p>使用 VirtualBox 作为驱动启动两个 minikube 节点：<code>minikube</code>、<code>minikube-m02</code>（可以参考：<a href="https://minikube.sigs.k8s.io/docs/drivers/virtualbox/）" target="_blank" rel="noopener">https://minikube.sigs.k8s.io/docs/drivers/virtualbox/）</a></p>
+</li>
+<li><p>minikube 节点挂载一块 4GB 磁盘，<code>minikube-m02</code> 节点分别挂载一块 4GB、一块 8GB 磁盘</p>
+</li>
+</ul>
+<h5 id="第二步，安装-Device-LocalPV"><a href="#第二步，安装-Device-LocalPV" class="headerlink" title="第二步，安装 Device-LocalPV"></a>第二步，安装 Device-LocalPV</h5><p>由于 OpenEBS Device-LocalPV 本身即为云原生而开发的应用，所以安装起来非常简单，只需要一条 <code>kubectl apply</code> 命令即可。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">➜ kubectl apply -f https://raw.githubusercontent.com/openebs/device-localpv/develop/deploy/device-operator.yaml</span><br></pre></td></tr></table></figure>
+
+<p>执行以上命令后，会得到如下几个相关 Pod：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">➜ kubectl get pod -A</span><br><span class="line">NAMESPACE     NAME                               READY   STATUS    RESTARTS   AGE</span><br><span class="line">kube-system   openebs-device-controller-0        2/2     Running   0          2m23s</span><br><span class="line">kube-system   openebs-device-node-4wld7          2/2     Running   0          2m23s</span><br><span class="line">kube-system   openebs-device-node-p2r6m          2/2     Running   0          2m23s</span><br></pre></td></tr></table></figure>
+
+<p>确保这几个 Pod 全部处于 <code>Running</code> 状态，就表示 Device-LocalPV 安装成功了。如果安装失败，则需要根据 <code>kubectl describe</code> 命令的描述信息进行排查。</p>
+<h5 id="第三步，准备磁盘"><a href="#第三步，准备磁盘" class="headerlink" title="第三步，准备磁盘"></a>第三步，准备磁盘</h5><p>Device-LocalPV 能够直接接管节点上的块设备，有时候节点上可能同时插入多块数据盘，而这些数据盘中，也许某些数据盘我们不想当作 LocalPV 来使用，为了能够区分哪些块设备可以供 Device-LocalPV 来使用，我们需要在对应的块设备上创建一个（~10MiB）Meta 分区，用于存储磁盘标识信息，Meta 分区有如下要求：</p>
+<ul>
+<li><p>是块设备的第一个分区（<code>ID_PART_ENTRY_NUMBER=1</code>）</p>
+</li>
+<li><p>不能被格式化成任何文件系统</p>
+</li>
+<li><p>不能设置 flags 分区标记</p>
+</li>
+</ul>
+<p>操作命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 在 minikube 节点上执行如下命令</span></span><br><span class="line">$ sudo parted /dev/sdb mklabel gpt</span><br><span class="line">$ sudo parted /dev/sdb mkpart <span class="built_in">test</span>-device 1MiB 10MiB</span><br><span class="line"></span><br><span class="line"><span class="comment">## 在 minikube-m02 节点执行如下命令</span></span><br><span class="line">$ sudo parted /dev/sdb mklabel gpt</span><br><span class="line">$ sudo parted /dev/sdb mkpart <span class="built_in">test</span>-device 1MiB 10MiB</span><br><span class="line">$ sudo parted /dev/sdc mklabel gpt</span><br><span class="line">$ sudo parted /dev/sdc mkpart <span class="built_in">test</span>-device 1MiB 10MiB</span><br></pre></td></tr></table></figure>
+
+<p>以上分别对 <code>minikube</code>、<code>minikube-m02</code> 两个节点上的块设备进行了 Meta 分区的操作，其中 <code>/dev/sdb</code>、<code>/dev/sdc</code> 就是节点上挂载的块设备名，你需要根据自己实际情况来指定。</p>
+<p>其中三块盘的 Meta 分区名都叫 <code>test-device</code> 是有意而为之，接下来创建存储类时会用到。</p>
+<h5 id="第四步，创建存储类"><a href="#第四步，创建存储类" class="headerlink" title="第四步，创建存储类"></a>第四步，创建存储类</h5><p>既然 Device-LocalPV 支持动态供应，那么必然少不了创建存储类的步骤，将以下 yaml 文件保存为 <code>sc.yaml</code> 然后通过 <code>kubectl apply -f sc.yaml</code> 创建存储类。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.K8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">openebs-device-sc</span></span><br><span class="line"><span class="attr">allowVolumeExpansion:</span> <span class="literal">false</span></span><br><span class="line"><span class="attr">parameters:</span></span><br><span class="line">  <span class="attr">devname:</span> <span class="string">"test-device"</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">device.csi.openebs.io</span></span><br><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">WaitForFirstConsumer</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>注意：</strong>存储类 <code>parameters</code> 字段需要指定 <code>devname</code>，其值为上面在为块设备分区时指定的分区名称 <code>test-device</code>，存储类在创建 PV 的时候正是根据这个分区名的匹配，来找到哪些块设备是供 Device-LocalPV 来使用的。</p>
+<h5 id="第五步，创建-StatefulSet-来申请使用-LocalPV"><a href="#第五步，创建-StatefulSet-来申请使用-LocalPV" class="headerlink" title="第五步，创建 StatefulSet 来申请使用 LocalPV"></a>第五步，创建 StatefulSet 来申请使用 LocalPV</h5><p>StatefulSet 以及相关资源定义如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">web</span></span><br><span class="line">  <span class="attr">clusterIP:</span> <span class="string">None</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">nginx</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StatefulSet</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hello</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">hello</span></span><br><span class="line">  <span class="attr">serviceName:</span> <span class="string">"nginx"</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">2</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">hello</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">terminationGracePeriodSeconds:</span> <span class="number">1</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">html</span></span><br><span class="line">          <span class="attr">image:</span> <span class="string">busybox</span></span><br><span class="line">          <span class="attr">imagePullPolicy:</span> <span class="string">IfNotPresent</span></span><br><span class="line">          <span class="attr">command:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">sh</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">-c</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">'while true; do echo "`date` [`hostname`] Hello from OpenEBS Local PV." &gt;&gt; /mnt/store/index.html; sleep $(($RANDOM % 5 + 300)); done'</span></span><br><span class="line">          <span class="attr">volumeMounts:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="attr">mountPath:</span> <span class="string">/mnt/store</span></span><br><span class="line">              <span class="attr">name:</span> <span class="string">csi-devicepv</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">web</span></span><br><span class="line">          <span class="attr">image:</span> <span class="string">K8s.gcr.io/nginx-slim:0.8</span></span><br><span class="line">          <span class="attr">imagePullPolicy:</span> <span class="string">IfNotPresent</span></span><br><span class="line">          <span class="attr">ports:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br><span class="line">              <span class="attr">name:</span> <span class="string">web</span></span><br><span class="line">          <span class="attr">volumeMounts:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">csi-devicepv</span></span><br><span class="line">              <span class="attr">mountPath:</span> <span class="string">/usr/share/nginx/html</span></span><br><span class="line">  <span class="attr">volumeClaimTemplates:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">metadata:</span></span><br><span class="line">        <span class="attr">name:</span> <span class="string">csi-devicepv</span></span><br><span class="line">      <span class="attr">spec:</span></span><br><span class="line">        <span class="attr">accessModes:</span> <span class="string">["ReadWriteOnce"]</span></span><br><span class="line">        <span class="attr">storageClassName:</span> <span class="string">"openebs-device-sc"</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">requests:</span></span><br><span class="line">            <span class="attr">storage:</span> <span class="string">1Gi</span></span><br></pre></td></tr></table></figure>
+
+<p>这一步我们创建了一个 Service 和一个名叫 <code>hello</code> 的 StatefulSet。我们重点关注 StatefulSet，它启动两个副本，并通过 <code>volumeClaimTemplates</code> 来申请 1Gi 大小的 PVC。</p>
+<p>通过 <code>kubectl apply</code> 命令安装以上文件资源后，可以看到，两个 Pod 分别被调度到了不同节点上：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 Pod 调度情况</span></span><br><span class="line">➜ kubectl get pod -o wide</span><br><span class="line">NAME      READY   STATUS    RESTARTS   AGE     IP           NODE           NOMINATED NODE   READINESS GATES</span><br><span class="line">hello-0   2/2     Running   0          4m13s   10.244.1.3   minikube-m02   &lt;none&gt;           &lt;none&gt;</span><br><span class="line">hello-1   2/2     Running   0          2m42s   10.244.0.3   minikube       &lt;none&gt;           &lt;none&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 PVC 资源</span></span><br><span class="line">➜ kubectl get pvc -o wide</span><br><span class="line">NAME                   STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS        AGE     VOLUMEMODE</span><br><span class="line">csi-devicepv-hello-0   Bound    pvc-042661c8-c000-4dde-9950-2b6859d5f273   1Gi        RWO            openebs-device-sc   4m46s   Filesystem</span><br><span class="line">csi-devicepv-hello-1   Bound    pvc-26f92829-e0d4-4520-86da-2d7741cd68c2   1Gi        RWO            openebs-device-sc   3m15s   Filesystem</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 PV 资源</span></span><br><span class="line">➜ kubectl get pv -o wide</span><br><span class="line">NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                          STORAGECLASS        REASON   AGE   VOLUMEMODE</span><br><span class="line">pvc-042661c8-c000-4dde-9950-2b6859d5f273   1Gi        RWO            Delete           Bound    default/csi-devicepv-hello-0   openebs-device-sc            18m   Filesystem</span><br><span class="line">pvc-26f92829-e0d4-4520-86da-2d7741cd68c2   1Gi        RWO            Delete           Bound    default/csi-devicepv-hello-1   openebs-device-sc            17m   Filesystem</span><br></pre></td></tr></table></figure>
+
+<p>现在分别登录两台 minikube 主机节点，使用 <code>fdisk</code> 命令查看两个节点磁盘使用情况：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="fdisk.png" alt="fdisk" title="">
+                </div>
+                <div class="image-caption">fdisk</div>
+            </figure>
+
+<p>上图中，左侧为 <code>minikube</code> 节点，右侧为 <code>minikube-m02</code> 节点，可以看到 PV 创建成功后会在对应节点的块设备上创建与 PV 相同大小的分区来提供 LocalPV 的支持，而这个分区的生命周期管理工作都是由 Device-LocalPV 来帮我们完成的，它会随着 PV 的创建而创建，随着 PV 的删除而销毁。<br>以上几步，我们就完成了 OpenEBS Device-LocalPV 实践演练。</p>
+<h4 id="避坑指南"><a href="#避坑指南" class="headerlink" title="避坑指南"></a>避坑指南</h4><p>正常来说，通过上面的实践步骤，你应该能顺利的搭建并使用 OpenEBS Device-LocalPV。但如果你不够幸运，也许会遇到一些奇怪的问题，接下来我就介绍几个我在 OpenEBS Device-LocalPV 落地实践过程所踩到的坑，供你参考避坑。</p>
+<h5 id="parted-命令版本问题"><a href="#parted-命令版本问题" class="headerlink" title="parted 命令版本问题"></a>parted 命令版本问题</h5><p>根据我的经验，<code>parted</code> 命令不同版本表现可能不一致。如下所示，使用两个不同版本的 <code>parted</code> 工具执行相同命令，来对块设备进行 Meta 分区操作，得到的结果却不一样。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="parted.png" alt="parted" title="">
+                </div>
+                <div class="image-caption">parted</div>
+            </figure>
+
+<p>可以发现，截图中 3.3 版本 <code>parted</code> 命令分区会产生 <code>flag（msftdata）</code>，下面 3.1 版本的 <code>parted</code> 命令分区则没有产生 <code>flag</code>。</p>
+<p>OpenEBS Device-LocalPV 规定 Meta 分区不能有 <code>flag</code>，如果产生 <code>flag</code> 则 Device-LocalPV 会将这个块设备忽略，不进行使用。</p>
+<p>为了保证执行 parted 命令对磁盘进行分区时，得到预期结果，我们可以总是进入 OpenEBS Daemonset 的容器内部来使用 OpenEBS 提供的 <code>parted</code> 命令进行分区。这样就保证了与 Device-LocalPV 工作时内部使用的 <code>parted</code> 命令版本一致，不会出现一些意料之外的问题。Daemonset 所对应的 Pod 即为上面的 <code>openebs-device-node-4wld7</code>、<code>openebs-device-node-p2r6m</code> 两个 Pod，OpenEBS 启动时会在每个节点上启动一个 Daemonset 工作负载，用来操作节点块设备提供 LocalPV 支持（下一篇文章原理篇中将会对其有更详细的介绍）。</p>
+<h5 id="PV-动态扩容问题"><a href="#PV-动态扩容问题" class="headerlink" title="PV 动态扩容问题"></a>PV 动态扩容问题</h5><p>OpenEBS Device-LocalPV 目前还不支持扩容操作，所以在创建存储类时需要指定 <code>allowVolumeExpansion</code> 属性值为 <code>false</code>，以此来标记这个存储类所创建出来的 PV 不支持动态扩容操作。</p>
+<h5 id="PV-可能无法创建成功问题"><a href="#PV-可能无法创建成功问题" class="headerlink" title="PV 可能无法创建成功问题"></a>PV 可能无法创建成功问题</h5><p>你可能会遇到 PVC 所申请的容量刚好等于块设备剩余容量时，PV 无法创建成功，PVC 一直处于 <code>Pending</code> 状态的问题。</p>
+<p>假设我们现在只有一个节点，节点上也仅仅只有一个块设备供 Device-LocalPV 使用，其容量为 10Gi。如果我们连续申请 4 个 PVC，其容量依次为 1G、3G、3G、1G，分别对应如下截图（<code>fdisk</code> 命令显示结果）中 <code>sdb2</code>、<code>sdb3</code>、<code>sdb4</code>、<code>sdb5</code> 4 个分区。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="partion.png" alt="partion" title="">
+                </div>
+                <div class="image-caption">partion</div>
+            </figure>
+
+<p>现在如果删除第一个容量为 3G 的 PVC，Device-LocalPV 则会自动删除 <code>/dev/sdb3</code> 这个分区。可是，此时如果我们尝试再次创建一个 3G 的 PVC，这个 PVC 将永远无法创建成功，一直处于 <code>Pending</code> 状态。</p>
+<p>当我们每创建一个 PVC 时，存储类都会通过 Device-LocalPV 在节点的块设备上帮我们新创建一个和 PVC 中申请的容量相等的一个磁盘分区出来，从截图中可以看出，这个分区的 <code>Start</code> 、<code>End</code> 是从小到大且连续的。新创建的 3G 的 PVC 容量等于 <code>/dev/sdb3</code> 分区容量，理论上应该是可以创建成功的。</p>
+<p>分析 Device-LocalPV 源码可以发现，在计算节点上块设备剩余可用容量是否满足 PVC 申请的容量大小时，Device-LocalPV 通过 <code>if tmp.SizeMiB &gt; partSize</code> 这条语句来进行判断，其中 <code>tmp.SizeMiB</code> 为块设备剩余可用容量，<code>partSize</code> 为 PVC 申请容量，只有块设备剩余容量大于 PVC 申请容量时，才会进行分区操作，如果没有满足 PVC 申请容量的可用分区，PVC 就会一直处于 <code>Pending</code> 状态。</p>
+<p><a href="https://github.com/openebs/device-localpv/blob/develop/pkg/device/device-util.go#L243" target="_blank" rel="noopener">https://github.com/openebs/device-localpv/blob/develop/pkg/device/device-util.go#L243</a></p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="part-size.png" alt="part-size" title="">
+                </div>
+                <div class="image-caption">part-size</div>
+            </figure>
+
+<p>由此可见，我们将 <code>if tmp.SizeMiB &gt; partSize</code> 改成 <code>if tmp.SizeMiB &gt;= partSize</code> 即可解决这个问题。</p>
+<p>另外，在阅读源码的过程中，我还发现 Device-LocalPV 在计算块设备可用分区时，对于分区大小的计算会涉及从 <code>Bytes</code> 到 <code>Mib</code> 的单位转换操作：<br><a href="https://github.com/openebs/device-localpv/blob/develop/pkg/device/device-util.go#L294" target="_blank" rel="noopener">https://github.com/openebs/device-localpv/blob/develop/pkg/device/device-util.go#L294</a></p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="parse-part-free.png" alt="parse-part-free" title="">
+                </div>
+                <div class="image-caption">parse-part-free</div>
+            </figure>
+
+<p>这里的 <code>beginBytes</code> 、<code>endBytes</code> 对应的就是上面 <code>fdisk</code> 命令截图中的 <code>Start</code> 、<code>End</code>，此时如果分区没有对齐，则会出现浮点数计算精度丢失问题，其中 <code>beginMib</code> 会被 <code>math.Ceil</code> 向上取整，<code>endMib</code> 会被 <code>math.Floor</code> 向下取整，最终得到的 <code>sizeMib</code> 有可能小于实际剩余可用空间，这样就导致可能会出现磁盘剩余容量满足 PVC 申请容量，而 PVC 却无法创建成功现象，所以在创建 PVC 时应尽量申请 <code>1024</code> 整数倍大小的容量。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本篇文章首先简单介绍 K8s LocalPV 使用场景及其特点，接着又介绍了 OpenEBS Device-LocalPV 的使用方法以及实践过程中可能遇到的一些坑，如果你也刚好需要落地 LocalPV，希望本文能对你有所帮助。</p>
+<p>下一篇文章我将带你一起剖析 OpenEBS Device-LocalPV 底层原理，记得不要错过。</p>
+<p><strong>参考</strong></p>
+<p><a href="https://kubernetes.io/zh-cn/docs/concepts/storage/volumes/#local" target="_blank" rel="noopener">https://kubernetes.io/zh-cn/docs/concepts/storage/volumes/#local</a><br><a href="https://openebs.io/" target="_blank" rel="noopener">https://openebs.io/</a><br><a href="https://github.com/openebs/device-localpv" target="_blank" rel="noopener">https://github.com/openebs/device-localpv</a><br><a href="https://minikube.sigs.k8s.io/docs/drivers/virtualbox/" target="_blank" rel="noopener">https://minikube.sigs.k8s.io/docs/drivers/virtualbox/</a></p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.719Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/" target="_blank" rel="external">http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/CSI/" rel="tag">CSI</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Kubernetes/" rel="tag">Kubernetes</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%AD%98%E5%82%A8/" rel="tag">存储</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/&title=《Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/&title=《Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇》 — 江湖十年&source=K8s 支持多达 20+ 种类型的持久化存储，如常见的 CephFS 、Glusterfs 等，不过这些大都是分布式存储，随着社区的发展，越来越多的用户期..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇》 — 江湖十年&url=http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2022/11/16/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8B%E2%80%94%E2%80%94%E5%8E%9F%E7%90%86%E7%AF%87/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践下——原理篇</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Python 搭建私有 PyPI 仓库不完全指南</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/&title=《Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/&title=《Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇》 — 江湖十年&source=K8s 支持多达 20+ 种类型的持久化存储，如常见的 CephFS 、Glusterfs 等，不过这些大都是分布式存储，随着社区的发展，越来越多的用户期..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇》 — 江湖十年&url=http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

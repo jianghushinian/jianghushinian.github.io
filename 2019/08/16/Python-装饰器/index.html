@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Python 装饰器 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Python,Pythonic">
+    <meta name="description" content="Python 中一切皆对象，函数也是对象。函数可以赋值给一个变量，函数可以当作参数传递个另一个函数，函数可以通过 return 语句返回函数。而装饰器就是一个能够接收函数并返回函数的函数。这话乍听起来有点绕，但装饰器本质上就是一个函数。既然要学习装饰器，首先就要知道它用于什么场景，装饰器通过面向切面编程来增强代码的健壮性，比如：记录日志，处理缓存，权限校验等。接下来我们就一步一步的学习 Pytho">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python 装饰器">
+<meta property="og:url" content="http://www.jianghushinian.cn/2019/08/16/Python-%E8%A3%85%E9%A5%B0%E5%99%A8/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="Python 中一切皆对象，函数也是对象。函数可以赋值给一个变量，函数可以当作参数传递个另一个函数，函数可以通过 return 语句返回函数。而装饰器就是一个能够接收函数并返回函数的函数。这话乍听起来有点绕，但装饰器本质上就是一个函数。既然要学习装饰器，首先就要知道它用于什么场景，装饰器通过面向切面编程来增强代码的健壮性，比如：记录日志，处理缓存，权限校验等。接下来我们就一步一步的学习 Pytho">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-08-16T13:33:31.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.775Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="Pythonic">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Python 装饰器</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Python 装饰器</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2019-08-16T13:33:31.000Z" itemprop="datePublished" class="page-time">
+  2019-08-16
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#简单装饰器"><span class="post-toc-number">1.</span> <span class="post-toc-text">简单装饰器</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#被装饰的函数带有参数、返回值的装饰器"><span class="post-toc-number">2.</span> <span class="post-toc-text">被装饰的函数带有参数、返回值的装饰器</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#保持被装饰函数的元信息的装饰器"><span class="post-toc-number">3.</span> <span class="post-toc-text">保持被装饰函数的元信息的装饰器</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#装饰器自身带有参数"><span class="post-toc-number">4.</span> <span class="post-toc-text">装饰器自身带有参数</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#装饰器即支持带参数又支持不带参数"><span class="post-toc-number">5.</span> <span class="post-toc-text">装饰器即支持带参数又支持不带参数</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#类装饰器"><span class="post-toc-number">6.</span> <span class="post-toc-text">类装饰器</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#装饰器装饰顺序"><span class="post-toc-number">7.</span> <span class="post-toc-text">装饰器装饰顺序</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#装饰器实战"><span class="post-toc-number">8.</span> <span class="post-toc-text">装饰器实战</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-Python-装饰器"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Python 装饰器</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2019-08-16 21:33:31" datetime="2019-08-16T13:33:31.000Z"  itemprop="datePublished">2019-08-16</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>Python 中一切皆对象，函数也是对象。函数可以赋值给一个变量，函数可以当作参数传递个另一个函数，函数可以通过 return 语句返回函数。而装饰器就是一个能够接收函数并返回函数的函数。这话乍听起来有点绕，但装饰器本质上就是一个函数。<br>既然要学习装饰器，首先就要知道它用于什么场景，装饰器通过面向切面编程来增强代码的健壮性，比如：记录日志，处理缓存，权限校验等。接下来我们就一步一步的学习 Python 中装饰器的用法。</p>
+<p>先来看一个简单的函数定义，函数只有一个功能，打印 Hello World：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    print(<span class="string">'Hello World!'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>现在新的需求来了，要在原有的函数执行前加入日志记录功能，于是就有了下面这段代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    print(<span class="string">'run hello'</span>)</span><br><span class="line">    print(<span class="string">'Hello World!'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>现在上面的问题解决了，只需要增加一行代码就能搞定。但问题是，实际工作场景下，我们可能需要修改的并不只是一个 <code>hello</code> 函数，有可能是 10 个、20 个函数同时需要增加日志功能。这个时候问题就来了，我们不太可能挨个函数依次复制这一行代码，况且那个时候有可能增加的不只是一行代码，可能上百行。并且这样就会造成出现大量的重复代码，当代码出现过多重复，你就要小心了，它很容易引起意想不到的 bug，并且难以排查及维护。<br>一个很容易想到的方法是定义一个专门打印日志的函数 <code>log</code>，然后在每个函数中都调用一下 <code>log</code> 函数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">log</span><span class="params">()</span>:</span></span><br><span class="line">    print(<span class="string">'run hello'</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    log()</span><br><span class="line">    print(<span class="string">'Hello World!'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>这样做还是需要修 <code>hello</code> 函数内部的代码，不是说不能这样做，但这样做显然违反了 <code>开闭原则</code> 思想 —— 对已实现的功能代码封闭，对扩展开放。虽然这句话通常用在面向对象编程思想中，但函数式编程同样适用。<br>我们可以考虑用高阶函数的方式来解决这个问题，还是定义一个 <code>log</code> 函数，但这次它接收一个函数作为参数，这个函数内部先执行打印日志的功能，在 <code>log</code> 函数最后调用传递进来的函数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">log</span><span class="params">(func)</span>:</span></span><br><span class="line">    print(<span class="string">'run hello'</span>)</span><br><span class="line">    func()</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    print(<span class="string">'Hello World!'</span>)</span><br><span class="line"></span><br><span class="line">log(hello)</span><br></pre></td></tr></table></figure>
+
+<p>上面的代码就利用了函数可以当作参数传给另一个函数的特性，解决了需要修改原来函数内部代码的问题。这样做虽然功能上实现了，并且没有破坏原有函数内部的逻辑，但是却破坏了函数调用方的代码逻辑。也就是说，在原来代码中所有调用 <code>hello</code> 函数的语句不得不从 <code>hello()</code> 改为 <code>log(hello)</code>，这样做似乎更麻烦了些。</p>
+<h3 id="简单装饰器"><a href="#简单装饰器" class="headerlink" title="简单装饰器"></a>简单装饰器</h3><p>那么，现在就是该引出 <code>装饰器</code> 这个概念的时候了，<code>装饰器</code> 非常擅长用 <code>Pythonic</code> 的方式解决这类问题。<br>来看一个最简单的装饰器的写法：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">log</span><span class="params">(func)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span><span class="params">()</span>:</span></span><br><span class="line">        print(<span class="string">'run hello'</span>)</span><br><span class="line">        func()</span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    print(<span class="string">'Hello World!'</span>)</span><br><span class="line"></span><br><span class="line">hello = log(hello)</span><br><span class="line">hello()</span><br></pre></td></tr></table></figure>
+
+<p>这段代码充分体现了前面所介绍的函数的特性，函数可以赋值给一个变量，函数可以当作参数传递个另一个函数，函数可以通过 return 语句返回函数。现在的 <code>log</code> 函数就是一个 <code>装饰器</code>。<br>首先定义一个 <code>log</code> 函数，它接收一个函数作为参数，并且它的内部又定义了一个 <code>wrapper</code> 函数，<code>wrapper</code> 函数在打印日志以后，调用了传递进来的 <code>func</code> 函数（也就是<code>hello</code>函数），在 <code>log</code> 函数的最后返回这个内部定义的函数。<br>在示例代码的最底部，我们将 <code>hello</code> 函数当作参数传递给 <code>log</code> 函数，并将其返回结果又赋值给变量 <code>hello</code>，此时的 <code>hello</code> 变量所指向的其实已经不是原来的 <code>hello</code> 函数，而是 <code>log</code> 装饰器返回的内部函数 <code>wrapper</code>。<br>现在调用方无需修改调用方式，仍然使用 <code>hello()</code> 的方式去调用 <code>hello</code> 函数，但它的功能已经增强了，会自动在执行 <code>print(&#39;Hello World!&#39;)</code> 逻辑之前加上打印日志的功能。<br>上面的代码我们从功能上实现了 <code>装饰器</code> 的效果。但实际上，Python 在语法层面上直接支持了装饰器模式。仅需要一个 <code>@</code> 符号就能让上面的代码更加可读，且易于维护。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">log</span><span class="params">(func)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span><span class="params">()</span>:</span></span><br><span class="line">        print(<span class="string">'run hello'</span>)</span><br><span class="line">        func()</span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"><span class="meta">@log</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    print(<span class="string">'Hello World!'</span>)</span><br><span class="line"></span><br><span class="line">hello()</span><br></pre></td></tr></table></figure>
+
+<p><code>@</code> 符号是 Python 在语法层面上提供的语法糖，但它本质上完全等价于 <code>hello = log(hello)</code>。<br>以上就是一个最精简的符合 <code>Pythonic</code> 的 <code>装饰器</code>，无论你以后遇到多么复杂的装饰器，请记住，它最终的本质实际上就是一个函数，只不过利用了一些 Python 中的函数特性使其能够处理更复杂的业务场景。</p>
+<h3 id="被装饰的函数带有参数、返回值的装饰器"><a href="#被装饰的函数带有参数、返回值的装饰器" class="headerlink" title="被装饰的函数带有参数、返回值的装饰器"></a>被装饰的函数带有参数、返回值的装饰器</h3><p>实际工作场景，我们写的函数往往都很复杂，想要写一个通用性更强的装饰器，还需要做一些细节部分的工作。不过你已经了解了装饰器的本质，剩下的例子理解起来并不会很费力，你只需要在特定的场景使用特定功能的装饰器就可以了。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">log</span><span class="params">(func)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span><span class="params">(*args, **kwargs)</span>:</span></span><br><span class="line">        print(<span class="string">'run hello'</span>)</span><br><span class="line">        <span class="keyword">return</span> func(*args, **kwargs)</span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"><span class="meta">@log</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">(name)</span>:</span></span><br><span class="line">    print(<span class="string">'Hello World!'</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">f'I am <span class="subst">&#123;name&#125;</span>.'</span></span><br><span class="line"></span><br><span class="line">result = hello(<span class="string">'xiaoming'</span>)</span><br><span class="line">print(result)</span><br></pre></td></tr></table></figure>
+
+<p><code>*args, **kwargs</code> 这两个不定长参数，就很好的解决了装饰器通用性的问题，使得装饰器在装饰任何函数的时候，参数都可以原样的传入到原函数内部。<code>wrapper</code> 函数最后调用 <code>func</code> 函数的前面加上了 <code>return</code> 语句，它的作用就是将原函数的 <code>return</code> 结果返回给调用方。</p>
+<h3 id="保持被装饰函数的元信息的装饰器"><a href="#保持被装饰函数的元信息的装饰器" class="headerlink" title="保持被装饰函数的元信息的装饰器"></a>保持被装饰函数的元信息的装饰器</h3><p><code>log</code> 装饰器内部的 <code>wrapper</code> 函数打印日志的代码 <code>print(&#39;run hello&#39;)</code> 是固定的字符串，假如我们想要让其可以根据函数名自动更改打印结果，如 <code>print(f&#39;run {函数名}.&#39;)</code> 这样的形式。<br>每个函数都有一个 <code>__name__</code> 属性，能够返回其函数名：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">(name)</span>:</span></span><br><span class="line">    print(<span class="string">'Hello World!'</span>)</span><br><span class="line"></span><br><span class="line">print(hello.__name__)  <span class="comment"># hello</span></span><br></pre></td></tr></table></figure>
+
+<p>但问题是现在使用了 <code>log</code> 装饰器以后，原来的 <code>hello</code> 函数已经指向 <code>wrapper</code> 函数了，所以如果你测试就会发现，被装饰过的 <code>hello</code> 函数 <code>__name__</code> 属性已经变成了 <code>wrapper</code>，这显然不是我们想要的结果。<br>我们可以通过 <code>wrapper.__name__ = func.__name__</code> 一行语句解决这个问题，不过我们还有更好的办法。Python 内置了一个装饰器 <code>functools.wraps</code> 就能够帮我们解决这个问题。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">log</span><span class="params">(func)</span>:</span></span><br><span class="line"><span class="meta">    @wraps(func)</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span><span class="params">(*args, **kwargs)</span>:</span></span><br><span class="line">        print(<span class="string">f'run <span class="subst">&#123;func.__name__&#125;</span>'</span>)</span><br><span class="line">        <span class="keyword">return</span> func(*args, **kwargs)</span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"><span class="meta">@log</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">(name)</span>:</span></span><br><span class="line">    print(<span class="string">'Hello World!'</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">f'I am <span class="subst">&#123;name&#125;</span>.'</span></span><br><span class="line"></span><br><span class="line">print(hello(<span class="string">'xiaoming'</span>))</span><br><span class="line">print(hello.__name__)</span><br></pre></td></tr></table></figure>
+
+<h3 id="装饰器自身带有参数"><a href="#装饰器自身带有参数" class="headerlink" title="装饰器自身带有参数"></a>装饰器自身带有参数</h3><p>也许你想控制 <code>log</code> 装饰器的日志级别，那么给装饰器传参是一个很容易想到的办法，下面来看一下需要接收参数的装饰器的例子：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">log</span><span class="params">(level)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">decorator</span><span class="params">(func)</span>:</span></span><br><span class="line"><span class="meta">        @wraps(func)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span><span class="params">(*args, **kwargs)</span>:</span></span><br><span class="line">            <span class="keyword">if</span> level == <span class="string">'warn'</span>:</span><br><span class="line">                print(<span class="string">f'run <span class="subst">&#123;func.__name__&#125;</span>'</span>)</span><br><span class="line">            <span class="keyword">elif</span> level == <span class="string">'info'</span>:</span><br><span class="line">                <span class="keyword">pass</span></span><br><span class="line">            <span class="keyword">return</span> func(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line">    <span class="keyword">return</span> decorator</span><br><span class="line"></span><br><span class="line"><span class="meta">@log('warn')</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">(name)</span>:</span></span><br><span class="line">    print(<span class="string">'Hello World!'</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">f'I am <span class="subst">&#123;name&#125;</span>.'</span></span><br><span class="line"></span><br><span class="line">result = hello(<span class="string">'xiaoming'</span>)</span><br><span class="line">print(result)</span><br></pre></td></tr></table></figure>
+
+<p>和之前的装饰器相比，带参数的装饰器又多了一层函数嵌套，实际上效果是这样的 <code>hello = log(&#39;warn&#39;)(hello)</code>，首先调用 <code>log(&#39;warn&#39;)</code> 返回的是内部 <code>decorator</code> 函数，接着就相当于 <code>hello = decorator(hello)</code>，实际上到这一步就和不带参数的装饰器一样了。</p>
+<h3 id="装饰器即支持带参数又支持不带参数"><a href="#装饰器即支持带参数又支持不带参数" class="headerlink" title="装饰器即支持带参数又支持不带参数"></a>装饰器即支持带参数又支持不带参数</h3><p>有时候可能会遇到更加变态的需求，需要装饰器传不传参数都能够使用，解决方式有多种，我这里给出一个比较简单容易理解的实现。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">log</span><span class="params">(level)</span>:</span></span><br><span class="line">    <span class="keyword">if</span> callable(level):</span><br><span class="line"><span class="meta">        @wraps(level)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper1</span><span class="params">(*args, **kwargs)</span>:</span></span><br><span class="line">            print(<span class="string">f'run <span class="subst">&#123;level.__name__&#125;</span>'</span>)</span><br><span class="line">            <span class="keyword">return</span> level(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> wrapper1</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">decorator</span><span class="params">(func)</span>:</span></span><br><span class="line"><span class="meta">            @wraps(func)</span></span><br><span class="line">            <span class="function"><span class="keyword">def</span> <span class="title">wrapper2</span><span class="params">(*args, **kwargs)</span>:</span></span><br><span class="line">                <span class="keyword">if</span> level == <span class="string">'warn'</span>:</span><br><span class="line">                    print(<span class="string">f'run <span class="subst">&#123;func.__name__&#125;</span>'</span>)</span><br><span class="line">                <span class="keyword">elif</span> level == <span class="string">'info'</span>:</span><br><span class="line">                    <span class="keyword">pass</span></span><br><span class="line">                <span class="keyword">return</span> func(*args, **kwargs)</span><br><span class="line">            <span class="keyword">return</span> wrapper2</span><br><span class="line">    <span class="keyword">return</span> decorator</span><br><span class="line"></span><br><span class="line"><span class="meta">@log('warn')</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">(name)</span>:</span></span><br><span class="line">    print(<span class="string">'Hello World!'</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">f'I am <span class="subst">&#123;name&#125;</span>.'</span></span><br><span class="line"></span><br><span class="line"><span class="meta">@log</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">world</span><span class="params">()</span>:</span></span><br><span class="line">    print(<span class="string">'world'</span>)</span><br><span class="line"></span><br><span class="line">print(hello(<span class="string">'xiaoming'</span>))</span><br><span class="line">world()</span><br></pre></td></tr></table></figure>
+
+<p><code>callable</code> 可以判断传递进来的参数是否可调用，不过需要注意，<code>callable</code> 只支持 <code>Python3.2</code> 及以上版本，你可以查看<a href="https://docs.python.org/3/library/functions.html?highlight=callable#callable" target="_blank" rel="noopener">官方文档</a>获取详细信息。</p>
+<h3 id="类装饰器"><a href="#类装饰器" class="headerlink" title="类装饰器"></a>类装饰器</h3><p>相比函数装饰器，类装饰更灵活，也更强大。在 Python 类中可以定义 <code>__call__</code> 方法，使其在无需实例化的情况下自身可以被调用，而此时就会执行 <code>__call__</code> 内部的代码。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Log</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, func)</span>:</span></span><br><span class="line">        self._func = func</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span><span class="params">(self)</span>:</span></span><br><span class="line">        print(<span class="string">'before'</span>)</span><br><span class="line">        self._func()</span><br><span class="line">        print(<span class="string">'after'</span>)</span><br><span class="line"></span><br><span class="line"><span class="meta">@Log</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    print(<span class="string">'hello world!'</span>)</span><br><span class="line"></span><br><span class="line">hello()</span><br></pre></td></tr></table></figure>
+
+<h3 id="装饰器装饰顺序"><a href="#装饰器装饰顺序" class="headerlink" title="装饰器装饰顺序"></a>装饰器装饰顺序</h3><p>一个函数其实可以同时被多个装饰器所装饰，那么多个装饰器的装饰顺序是怎样的呢？下面我们就来探索一下。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">a</span><span class="params">(func)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span><span class="params">()</span>:</span></span><br><span class="line">        print(<span class="string">'a before'</span>)</span><br><span class="line">        func()</span><br><span class="line">        print(<span class="string">'a after'</span>)</span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">b</span><span class="params">(func)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span><span class="params">()</span>:</span></span><br><span class="line">        print(<span class="string">'b before'</span>)</span><br><span class="line">        func()</span><br><span class="line">        print(<span class="string">'b after'</span>)</span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">c</span><span class="params">(func)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span><span class="params">()</span>:</span></span><br><span class="line">        print(<span class="string">'c before'</span>)</span><br><span class="line">        func()</span><br><span class="line">        print(<span class="string">'c after'</span>)</span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"><span class="meta">@a</span></span><br><span class="line"><span class="meta">@b</span></span><br><span class="line"><span class="meta">@c</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    print(<span class="string">'Hello World!'</span>)</span><br><span class="line"></span><br><span class="line">hello()</span><br></pre></td></tr></table></figure>
+
+<p>以上代码运行结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">a before</span><br><span class="line">b before</span><br><span class="line">c before</span><br><span class="line">Hello World!</span><br><span class="line">c after</span><br><span class="line">b after</span><br><span class="line">a after</span><br></pre></td></tr></table></figure>
+
+<p>多装饰的语法等效于 <code>hello = a(b(c(hello)))</code>。根据打印结果不难发现这段代码的执行顺序。如果你了解过 Node.js 的 <code>Koa2</code> 框架的中间件机制，那么你一定不会陌生以上代码的执行顺序，实际上 Python 装饰器同样遵循 <code>洋葱模型</code>。多装饰器的代码执行顺序就像剥洋葱一样，先由外到内进入，然后再由内到外。<br>给大家留一个思考题：最终的 <code>hello.__name__</code> 指向哪一个装饰器内部的 <code>wrapper</code> 函数呢？</p>
+<h3 id="装饰器实战"><a href="#装饰器实战" class="headerlink" title="装饰器实战"></a>装饰器实战</h3><p>理解了装饰器，我们就要用起来，文章开头有提到装饰器的用途，下面我们来看一个实际场景下使用装饰器的例子。<br><code>Flask</code> 是 Python Web 生态中非常流行的一个微框架，你可以到 <a href="https://github.com/pallets/flask" target="_blank" rel="noopener">GitHub</a>上查看其源码。下面就是一个用 <code>Flask</code> 编写的最小 Web 应用。<br>在这里 <code>@app.route(&quot;/&quot;)</code> 装饰器的作用就是将根路由 <code>/</code>发送过来的请求绑定到处理函数 <code>hello</code> 上面来进行处理。这样当我们启动 <code>Flask</code> Web Server 以后，在浏览器地址访问 <code>http://127.0.0.1:5000/</code> 就能够获得返回结果 <code>Hello, World!</code>。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask</span><br><span class="line"></span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route("/")</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">"Hello, World!"</span></span><br></pre></td></tr></table></figure>
+
+<p>当然，更多的装饰器使用场景还是需要你自己亲自动手去探索发现。</p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.775Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2019/08/16/Python-%E8%A3%85%E9%A5%B0%E5%99%A8/" target="_blank" rel="external">http://www.jianghushinian.cn/2019/08/16/Python-%E8%A3%85%E9%A5%B0%E5%99%A8/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Pythonic/" rel="tag">Pythonic</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2019/08/16/Python-%E8%A3%85%E9%A5%B0%E5%99%A8/&title=《Python 装饰器》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2019/08/16/Python-%E8%A3%85%E9%A5%B0%E5%99%A8/&title=《Python 装饰器》 — 江湖十年&source=互联网产品技术研究，软件开发" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2019/08/16/Python-%E8%A3%85%E9%A5%B0%E5%99%A8/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Python 装饰器》 — 江湖十年&url=http://www.jianghushinian.cn/2019/08/16/Python-%E8%A3%85%E9%A5%B0%E5%99%A8/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2019/08/16/Python-%E8%A3%85%E9%A5%B0%E5%99%A8/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2019/08/19/Python-for-else-%E8%AF%AD%E5%8F%A5/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Python for...else... 语句</h4>
+      </a>
+    </div>
+  
+
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2019/08/16/Python-%E8%A3%85%E9%A5%B0%E5%99%A8/&title=《Python 装饰器》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2019/08/16/Python-%E8%A3%85%E9%A5%B0%E5%99%A8/&title=《Python 装饰器》 — 江湖十年&source=互联网产品技术研究，软件开发" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2019/08/16/Python-%E8%A3%85%E9%A5%B0%E5%99%A8/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Python 装饰器》 — 江湖十年&url=http://www.jianghushinian.cn/2019/08/16/Python-%E8%A3%85%E9%A5%B0%E5%99%A8/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2019/08/16/Python-%E8%A3%85%E9%A5%B0%E5%99%A8/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2019/08/16/Python-%E8%A3%85%E9%A5%B0%E5%99%A8/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

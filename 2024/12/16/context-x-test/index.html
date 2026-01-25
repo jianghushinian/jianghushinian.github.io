@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 源码是如何解决测试代码循环依赖问题的？ | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="最近我写了一篇讲解 context 包源码的文章《Go 并发控制：context 源码解读》，在阅读源码的过程中，我在 context 包测试代码中发现了一个解决循环依赖的小技巧，在此分享给大家。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 源码是如何解决测试代码循环依赖问题的？">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/12/16/context-x-test/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="最近我写了一篇讲解 context 包源码的文章《Go 并发控制：context 源码解读》，在阅读源码的过程中，我在 context 包测试代码中发现了一个解决循环依赖的小技巧，在此分享给大家。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/12/16/context-x-test/context-test.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/12/16/context-x-test/go-programming-language.png">
+<meta property="article:published_time" content="2024-12-16T15:05:27.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.911Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2024/12/16/context-x-test/context-test.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 源码是如何解决测试代码循环依赖问题的？</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 源码是如何解决测试代码循环依赖问题的？</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-12-16T15:05:27.000Z" itemprop="datePublished" class="page-time">
+  2024-12-16
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#x-test-go-解决循环依赖"><span class="post-toc-number">1.</span> <span class="post-toc-text">x_test.go 解决循环依赖</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#export-test-go-测试后门"><span class="post-toc-number">2.</span> <span class="post-toc-text">export_test.go 测试后门</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">3.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-context-x-test"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 源码是如何解决测试代码循环依赖问题的？</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-12-16 23:05:27" datetime="2024-12-16T15:05:27.000Z"  itemprop="datePublished">2024-12-16</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>最近我写了一篇讲解 context 包源码的文章<a href="https://jianghushinian.cn/2024/12/09/context/" target="_blank" rel="noopener">《Go 并发控制：context 源码解读》</a>，在阅读源码的过程中，我在 context 包测试代码中发现了一个解决循环依赖的小技巧，在此分享给大家。</p>
+<a id="more"></a>
+
+<h3 id="x-test-go-解决循环依赖"><a href="#x-test-go-解决循环依赖" class="headerlink" title="x_test.go 解决循环依赖"></a>x_test.go 解决循环依赖</h3><p>context 包源码目录结构如下：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/tree/go1.23.0/src/context" target="_blank" rel="noopener">https://github.com/golang/go/tree/go1.23.0/src/context</a></p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ tree context </span><br><span class="line">context</span><br><span class="line">├── afterfunc_test.go</span><br><span class="line">├── benchmark_test.go</span><br><span class="line">├── context.go</span><br><span class="line">├── context_test.go</span><br><span class="line">├── example_test.go</span><br><span class="line">├── net_test.go</span><br><span class="line">└── x_test.go</span><br><span class="line"></span><br><span class="line">1 directory, 7 files</span><br></pre></td></tr></table></figure>
+
+<p><code>context.go</code> 文件是 context 包源码实现，其他都是测试文件。其中只有 <code>context_test.go</code> 的包名为 <code>context</code>，其他几个测试文件的包名则为 <code>context_test</code>。那么也就是说 <code>context_test.go</code> 是白盒测试，其他测试文件为黑盒测试。</p>
+<p>不过，<code>context_test.go</code> 文件中并没有以 <code>Test</code> 开头的测试函数，而是定义了几个名称格式为 <code>XTestXxx</code> 的测试函数。以 <code>XTestCancelRemoves</code> 为例，其代码如下：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.0/src/context/context_test.go#L193" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/context/context_test.go#L193</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> context</span><br><span class="line"></span><br><span class="line"><span class="comment">// Tests in package context cannot depend directly on package testing due to an import cycle.</span></span><br><span class="line"><span class="comment">// If your test does requires access to unexported members of the context package,</span></span><br><span class="line"><span class="comment">// add your test below as `func XTestFoo(t testingT)` and add a `TestFoo` to x_test.go</span></span><br><span class="line"><span class="comment">// that calls it. Otherwise, write a regular test in a test.go file in package context_test.</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> testingT <span class="keyword">interface</span> &#123;</span><br><span class="line">	Deadline() (time.Time, <span class="keyword">bool</span>)</span><br><span class="line">	Error(args ...any)</span><br><span class="line">	Errorf(format <span class="keyword">string</span>, args ...any)</span><br><span class="line">	Fail()</span><br><span class="line">	FailNow()</span><br><span class="line">	Failed() <span class="keyword">bool</span></span><br><span class="line">	Fatal(args ...any)</span><br><span class="line">	Fatalf(format <span class="keyword">string</span>, args ...any)</span><br><span class="line">	Helper()</span><br><span class="line">	Log(args ...any)</span><br><span class="line">	Logf(format <span class="keyword">string</span>, args ...any)</span><br><span class="line">	Name() <span class="keyword">string</span></span><br><span class="line">	Parallel()</span><br><span class="line">	Skip(args ...any)</span><br><span class="line">	SkipNow()</span><br><span class="line">	Skipf(format <span class="keyword">string</span>, args ...any)</span><br><span class="line">	Skipped() <span class="keyword">bool</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">XTestCancelRemoves</span><span class="params">(t testingT)</span></span> &#123;</span><br><span class="line">	checkChildren := <span class="function"><span class="keyword">func</span><span class="params">(when <span class="keyword">string</span>, ctx Context, want <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> got := <span class="built_in">len</span>(ctx.(*cancelCtx).children); got != want &#123;</span><br><span class="line">			t.Errorf(<span class="string">"%s: context has %d children, want %d"</span>, when, got, want)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	ctx, _ := WithCancel(Background())</span><br><span class="line">	checkChildren(<span class="string">"after creation"</span>, ctx, <span class="number">0</span>)</span><br><span class="line">	_, cancel := WithCancel(ctx)</span><br><span class="line">	checkChildren(<span class="string">"with WithCancel child "</span>, ctx, <span class="number">1</span>)</span><br><span class="line">	cancel()</span><br><span class="line">	checkChildren(<span class="string">"after canceling WithCancel child"</span>, ctx, <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">	ctx, _ = WithCancel(Background())</span><br><span class="line">	checkChildren(<span class="string">"after creation"</span>, ctx, <span class="number">0</span>)</span><br><span class="line">	_, cancel = WithTimeout(ctx, <span class="number">60</span>*time.Minute)</span><br><span class="line">	checkChildren(<span class="string">"with WithTimeout child "</span>, ctx, <span class="number">1</span>)</span><br><span class="line">	cancel()</span><br><span class="line">	checkChildren(<span class="string">"after canceling WithTimeout child"</span>, ctx, <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">	ctx, _ = WithCancel(Background())</span><br><span class="line">	checkChildren(<span class="string">"after creation"</span>, ctx, <span class="number">0</span>)</span><br><span class="line">	stop := AfterFunc(ctx, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;&#125;)</span><br><span class="line">	checkChildren(<span class="string">"with AfterFunc child "</span>, ctx, <span class="number">1</span>)</span><br><span class="line">	stop()</span><br><span class="line">	checkChildren(<span class="string">"after stopping AfterFunc child "</span>, ctx, <span class="number">0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先，<code>go test</code> 是不认识以 <code>XTest</code> 开头的函数的，其次，函数参数 <code>testingT</code> 是一个接口，并不是 <code>*testing.T</code> 结构体，所以 <code>XTestCancelRemoves</code> 不会被当作测试函数。</p>
+<p>并且在文件开头的注释部分也说明了：</p>
+<blockquote>
+<p><code>context</code> 包中的测试不能直接依赖 <code>testing</code> 包，因为会导致循环导入。如果你的测试需要访问 <code>context</code> 包中未导出的（unexported）成员，请将测试添加到下面，形式为 <code>func XTestFoo(t testingT)</code>，并在 <code>x_test.go</code> 文件中添加一个调用它的 <code>TestFoo</code> 方法。否则，请在 <code>context_test</code> 包中的 <code>test.go</code> 文件中编写常规测试。</p>
+</blockquote>
+<p>所以，这种写法是为了解决循环导入的。</p>
+<p>我在 testing 包源码中搜索了下，有两处直接导入 context 包，分别是 <code>deps.go</code> 文件和 <code>slogtest.go</code> 文件。</p>
+<p>源码位置：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.0/src/testing/internal/testdeps/deps.go#L15" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/testing/internal/testdeps/deps.go#L15</a></p>
+<p><a href="https://github.com/golang/go/blob/go1.23.0/src/testing/slogtest/slogtest.go#L9" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/testing/slogtest/slogtest.go#L9</a></p>
+</blockquote>
+<p>不过，实测下来这两处并不是导致循环导入的根本原因，因为它们都是 testing 的子包。如果没有用到，是不会被导入到 context 包的。</p>
+<p>其实 testing 包源码中还有一处间接引用 context 包的地方，在 <code>testing.go</code> 中导入了 <code>runtime/trace</code> 包，而 <code>runtime/trace</code> 包内部则引入了 context 包。</p>
+<p>源码位置：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.0/src/testing/testing.go#L385" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/testing/testing.go#L385</a></p>
+</blockquote>
+<p>这个才是造成 context 包与 testing 包形成循环导入的根因。</p>
+<p>那么为了解决这个问题，所以才抽象出 <code>testingT</code> 接口，这个接口就是照着 <code>*testing.T</code> 结构体实现的方法设计的，也就是说 <code>*testing.T</code> 结构体实现了这个接口。</p>
+<p>但是因为 <code>go test</code> 是不认 <code>testingT</code> 接口的，所以如果将 <code>XTestCancelRemoves</code> 定义成以 <code>Test</code> 开头的单元测试函数 <code>TestCancelRemoves</code>，就会编译报错。为了解决这个问题，前面加一个 <code>X</code>，就得到了 <code>XTestCancelRemoves</code>。而 <code>XTestCancelRemoves</code> 不过是一个<strong>普通函数</strong>，并不是单元测试函数。所以使用 <code>go test</code> 命令执行测试代码的时候，不会执行 <code>XTestCancelRemoves</code> 函数。</p>
+<p>那么现在这个问题就好解决了。在 <code>x_test.go</code> 中定义 <code>TestCancelRemoves</code> 单元测试函数，并且其内部调用了 <code>XTestCancelRemoves</code>，实现代码如下：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.0/src/context/x_test.go#L26" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/context/x_test.go#L26</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> context_test</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	. <span class="string">"context"</span></span><br><span class="line">	<span class="string">"errors"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"math/rand"</span></span><br><span class="line">	<span class="string">"runtime"</span></span><br><span class="line">	<span class="string">"strings"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">	<span class="string">"testing"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Each XTestFoo in context_test.go must be called from a TestFoo here to run.</span></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestCancelRemoves</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	XTestCancelRemoves(t) <span class="comment">// uses unexported context types</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意这里使用 <code>import . &quot;context&quot;</code> 的方式导入了 <code>context</code> 包，因为这两个文件不在同一个包，当前黑盒测试代码包名为 <code>context_test</code>，并且这里就可以导入 <code>testing</code> 包了，这样就解决了循环依赖问题。</p>
+<p><code>TestCancelRemoves</code> 函数以 <code>Test</code> 开头，并且参数为 <code>*testing.T</code>，这是一个标志的单元测试代码，能够被 <code>go test</code> 识别。</p>
+<p>现在，<code>context</code>、<code>testing</code>、<code>context_test</code> 三个包的依赖情况如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="context-test.png" alt="包依赖关系" title="">
+                </div>
+                <div class="image-caption">包依赖关系</div>
+            </figure>
+
+<p><code>context_test</code> 包导入了 <code>context</code>、<code>testing</code> 两个包，而 <code>context</code>、<code>testing</code> 两个包并没有互相导入，这也就通过抽象出一个更高的层级依赖两个下层包的方式，解决了循环导入。这也是我们平时开发时，避免循环导入的小技巧。</p>
+<h3 id="export-test-go-测试后门"><a href="#export-test-go-测试后门" class="headerlink" title="export_test.go 测试后门"></a>export_test.go 测试后门</h3><p>在分析 <code>x_test.go</code> 机制时，让我想起了 Go 语言“圣经”<a href="https://book.douban.com/subject/27044219/" target="_blank" rel="noopener">《Go程序设计语言》</a>一书中讲到的测试“后门”。既然都讲到这里，那么我再顺便分享一下使用 <code>export_test.go</code> 作为测试“后门”的小技巧。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="go-programming-language.png" alt="《Go程序设计语言》" title="">
+                </div>
+                <div class="image-caption">《Go程序设计语言》</div>
+            </figure>
+
+<blockquote>
+<p>NOTE:</p>
+<p>身为一名 Gopher，如果你还没读过这本 Go 语言“圣经”，那么强烈建议你读一下。</p>
+</blockquote>
+<p>在《Go程序设计语言》一书 <code>11.2.4 外部测试包</code> 这一小节中也有提到使用黑盒测试解决循环引用问题。不过，如果有些包变量是 unexported 的，则可以通过编写测试“后门”来解决。</p>
+<p>比如 <code>fmt</code> 包中有一个 unexported 的函数 <code>isSpace</code>，在黑盒测试中需要被使用。解决方案非常简单，在包名为 <code>fmt</code> 的白盒测试文件中，声明一个 exported 的新变量 <code>IsSpace</code>，并将 <code>isSpace</code> 赋值给它：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.0/src/fmt/export_test.go" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/fmt/export_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> fmt</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> IsSpace = isSpace</span><br><span class="line"><span class="keyword">var</span> Parsenum = parsenum</span><br></pre></td></tr></table></figure>
+
+<p>然后就可以在黑盒测试中使用 exported 变量 <code>IsSpace</code> 了：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.23.0/src/fmt/fmt_test.go#L1789" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/fmt/fmt_test.go#L1789</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> fmt_test</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"bytes"</span></span><br><span class="line">	. <span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"internal/race"</span></span><br><span class="line">	<span class="string">"io"</span></span><br><span class="line">	<span class="string">"math"</span></span><br><span class="line">	<span class="string">"reflect"</span></span><br><span class="line">	<span class="string">"runtime"</span></span><br><span class="line">	<span class="string">"strings"</span></span><br><span class="line">	<span class="string">"testing"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line">	<span class="string">"unicode"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestIsSpace</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	<span class="comment">// This tests the internal isSpace function.</span></span><br><span class="line">	<span class="comment">// IsSpace = isSpace is defined in export_test.go.</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="keyword">rune</span>(<span class="number">0</span>); i &lt;= unicode.MaxRune; i++ &#123;</span><br><span class="line">		<span class="keyword">if</span> IsSpace(i) != unicode.IsSpace(i) &#123;</span><br><span class="line">			t.Errorf(<span class="string">"isSpace(%U) = %v, want %v"</span>, i, IsSpace(i), unicode.IsSpace(i))</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>测试函数 <code>TestIsSpace</code> 的代码注释中也说明了 <code>IsSpace = isSpace</code> 是在 <code>export_test.go</code> 中定义的。</p>
+<p>为测试编写“后门”原来如此简单。并且，由于以 <code>_test.go</code> 结尾的文件只在编译测试的时候才会被使用，那么正常编译 exported 变量 <code>IsSpace</code> 是不会被使用的，所以无需担心 <code>isSpace</code> 被乱用的问题。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文介绍了两个单元测试的小技巧，我们可以使用 <code>XTest</code> 来解决循环依赖问题，使用测试“后门”来解决黑盒测试引用白盒测试 unexported 变量问题。</p>
+<p>另外，《Go程序设计语言》非常值得一读，推荐给大家。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>go1.23.0/src/context：<a href="https://github.com/golang/go/tree/go1.23.0/src/context" target="_blank" rel="noopener">https://github.com/golang/go/tree/go1.23.0/src/context</a></li>
+<li>go1.23.0/src/fmt：<a href="https://github.com/golang/go/blob/go1.23.0/src/fmt/" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.23.0/src/fmt/</a></li>
+<li>《Go程序设计语言》：<a href="https://book.douban.com/subject/27044219/" target="_blank" rel="noopener">https://book.douban.com/subject/27044219/</a></li>
+<li>Go 并发控制：context 源码解读：<a href="https://jianghushinian.cn/2024/12/09/context/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/12/09/context/</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/context" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/context</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.911Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2024/12/16/context-x-test/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/12/16/context-x-test/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/12/16/context-x-test/&title=《Go 源码是如何解决测试代码循环依赖问题的？》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/12/16/context-x-test/&title=《Go 源码是如何解决测试代码循环依赖问题的？》 — 江湖十年&source=最近我写了一篇讲解 context 包源码的文章《Go 并发控制：context 源码解读》，在阅读源码的过程中，我在 context 包测试代码中发现了..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/12/16/context-x-test/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 源码是如何解决测试代码循环依赖问题的？》 — 江湖十年&url=http://www.jianghushinian.cn/2024/12/16/context-x-test/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/12/16/context-x-test/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2024/12/23/sync-waitgroup/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Go 并发控制：sync.WaitGroup 详解</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/12/09/context/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 并发控制：context 源码解读</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/12/16/context-x-test/&title=《Go 源码是如何解决测试代码循环依赖问题的？》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/12/16/context-x-test/&title=《Go 源码是如何解决测试代码循环依赖问题的？》 — 江湖十年&source=最近我写了一篇讲解 context 包源码的文章《Go 并发控制：context 源码解读》，在阅读源码的过程中，我在 context 包测试代码中发现了..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/12/16/context-x-test/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 源码是如何解决测试代码循环依赖问题的？》 — 江湖十年&url=http://www.jianghushinian.cn/2024/12/16/context-x-test/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/12/16/context-x-test/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/12/16/context-x-test/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

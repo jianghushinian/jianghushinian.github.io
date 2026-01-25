@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Go 中如何使用有限状态机优雅解决程序中状态转换问题 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,FSM,有限状态机">
+    <meta name="description" content="在编程中，有限状态机（FSM）是管理复杂状态流转的优雅工具，其核心在于通过明确定义状态、事件和转换规则，将业务逻辑模块化。本文将探讨在 Go 中如何使用有限状态机。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Go 中如何使用有限状态机优雅解决程序中状态转换问题">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/05/25/fsm/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在编程中，有限状态机（FSM）是管理复杂状态流转的优雅工具，其核心在于通过明确定义状态、事件和转换规则，将业务逻辑模块化。本文将探讨在 Go 中如何使用有限状态机。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/05/25/fsm/fsm.png">
+<meta property="article:published_time" content="2025-05-25T13:30:44.000Z">
+<meta property="article:modified_time" content="2026-01-25T04:52:54.024Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="FSM">
+<meta property="article:tag" content="有限状态机">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2025/05/25/fsm/fsm.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Go 中如何使用有限状态机优雅解决程序中状态转换问题</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Go 中如何使用有限状态机优雅解决程序中状态转换问题</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-05-25T13:30:44.000Z" itemprop="datePublished" class="page-time">
+  2025-05-25
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#有限状态机"><span class="post-toc-number">1.</span> <span class="post-toc-text">有限状态机</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用示例"><span class="post-toc-number">2.</span> <span class="post-toc-text">使用示例</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#安装"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">安装</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#简单使用"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">简单使用</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#在结构体中使用"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">在结构体中使用</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#项目实战"><span class="post-toc-number">2.4.</span> <span class="post-toc-text">项目实战</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">3.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-fsm"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Go 中如何使用有限状态机优雅解决程序中状态转换问题</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-05-25 21:30:44" datetime="2025-05-25T13:30:44.000Z"  itemprop="datePublished">2025-05-25</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在编程中，有限状态机（FSM）是管理复杂状态流转的优雅工具，其核心在于通过明确定义<strong>状态</strong>、<strong>事件</strong>和<strong>转换规则</strong>，将业务逻辑模块化。本文将探讨在 Go 中如何使用有限状态机。</p>
+<a id="more"></a>
+
+<h3 id="有限状态机"><a href="#有限状态机" class="headerlink" title="有限状态机"></a>有限状态机</h3><p>在介绍有限状态机之前，我们可以先来看一个示例程序：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/fsm/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/fsm/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> State <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	ClosedState State = <span class="string">"closed"</span></span><br><span class="line">	OpenState   State = <span class="string">"open"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Event <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	OpenEvent  Event = <span class="string">"open"</span></span><br><span class="line">	CloseEvent Event = <span class="string">"close"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Door <span class="keyword">struct</span> &#123;</span><br><span class="line">	to    <span class="keyword">string</span></span><br><span class="line">	state State</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewDoor</span><span class="params">(to <span class="keyword">string</span>)</span> *<span class="title">Door</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Door&#123;</span><br><span class="line">		to:    to,</span><br><span class="line">		state: ClosedState,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *Door)</span> <span class="title">CurrentState</span><span class="params">()</span> <span class="title">State</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> d.state</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *Door)</span> <span class="title">HandleEvent</span><span class="params">(e Event)</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> e &#123;</span><br><span class="line">	<span class="keyword">case</span> OpenEvent:</span><br><span class="line">		d.state = OpenState</span><br><span class="line">	<span class="keyword">case</span> CloseEvent:</span><br><span class="line">		d.state = ClosedState</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	door := NewDoor(<span class="string">"heaven"</span>)</span><br><span class="line"></span><br><span class="line">	fmt.Println(door.CurrentState())</span><br><span class="line"></span><br><span class="line">	door.HandleEvent(OpenEvent)</span><br><span class="line">	fmt.Println(door.CurrentState())</span><br><span class="line"></span><br><span class="line">	door.HandleEvent(CloseEvent)</span><br><span class="line">	fmt.Println(door.CurrentState())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个示例中，定义了一个核心结构体 <code>Door</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Door <span class="keyword">struct</span> &#123;</span><br><span class="line">	to    <span class="keyword">string</span></span><br><span class="line">	state State</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Door</code> 结构体表示这是一扇门，<code>to</code> 属性表示这扇门通往哪里，<code>state</code> 属性标识这扇门当前处于哪种<strong>状态</strong>。门只有<strong>开</strong>和<strong>关</strong>两种状态，分别对应 <code>open</code> 和 <code>closed</code>。我们可以执行两个动作（<strong>事件</strong>）<strong>开门</strong>和<strong>关门</strong>，分别对应 <code>open</code> 和 <code>close</code>。</p>
+<p>我们在 <code>main</code> 函数中使用 <code>NewDoor(&quot;heaven&quot;)</code> 构造了一个 <code>door</code> 对象，然后打印当前门所处的状态。接着调用 <code>door.HandleEvent(OpenEvent)</code> 实现开门操作，并打印现在门所处的状态。最后调用 <code>door.HandleEvent(CloseEvent)</code> 实现关门操作，并打印最终门所处的状态。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">closed</span><br><span class="line">open</span><br><span class="line">closed</span><br></pre></td></tr></table></figure>
+
+<p>以上，我们就通过 Go 程序模拟了真实世界中的门。</p>
+<p>那么这跟有限状态机有什么关系呢？其实，门就是一种有限状态机的模型。</p>
+<p>维基百科中对<a href="https://zh.wikipedia.org/wiki/%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA" target="_blank" rel="noopener">有限状态机</a>的定义比较晦涩，在这里，我以有限状态机中最核心的三个特征来为你介绍到底什么是有限状态机。</p>
+<p>有限状态机（英语：finite-state machine，缩写：FSM）是一个数学计算模型，其特征如下：</p>
+<ul>
+<li>状态（state）个数是有限的。</li>
+<li>任意一个时刻，只处于其中一种状态。</li>
+<li>某种条件下（触发某种 event），会从一种状态转变（transition）为另一种状态。</li>
+</ul>
+<p>满足以上三个特征的对象，我们都可以称其为有限状态机。</p>
+<p>对于 <code>Door</code> 来说，其状态只有两种，分别为 <code>open</code> 和 <code>closed</code>；任意一个时刻，门只会处在 <code>open</code> 或 <code>closed</code> 中的一种状态；如果门处于 <code>closed</code> 状态，当触发 <code>open</code> 事件时，门就会从 <code>closed</code> 状态变为 <code>open</code> 状态，反之亦然。所以 <code>Door</code> 对象就是一个有限状态机。</p>
+<p>在我们的日常生活中，有限状态机非常多，比如过马路时的红绿灯，只有三种颜色（状态）红、黄、绿；任意一个时刻，也只会处于一种颜色（状态），其触发条件是倒计时。</p>
+<p>程序中也有很多常见的有限状态机，比如电商的订单，有已创建、已支付、已配送、已完成、已取消、已退款等有限的状态枚举；任意一个时刻，只处于其中一种状态；触发条件则是支付、申请退款等操作。</p>
+<p>可以发现，有限状态机中最重要的两个概念就是<strong>状态</strong>和<strong>事件</strong>。一个对象存在<strong>有限个状态</strong>，并在某些<strong>事件发生</strong>时可以实现<strong>状态转换</strong>，这是一个非常常见的模型，我们在写程序的过程中，可以将很多对象都抽象成有限状态机。</p>
+<p>既然有限状态机的模型比较统一，我们是否可以专门抽象出来一个有限状体机程序，来处理这些有限状态机对象？</p>
+<p><a href="https://github.com/looplab/fsm" target="_blank" rel="noopener">looplab/fsm</a> 包就是干这个事情的，这是一个有限状态机的 Go 语言实现。接下来，我们来一起学习一下这个包的使用。</p>
+<h3 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h3><h4 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h4><p>可以通过如下命令来安装 <code>fsm</code> 包：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go get github.com/looplab/fsm</span><br></pre></td></tr></table></figure>
+
+<h4 id="简单使用"><a href="#简单使用" class="headerlink" title="简单使用"></a>简单使用</h4><p>我们可以用 <code>fsm</code> 包来重写一下前文中介绍的 <code>Door</code> 对象实现：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/fsm/examples/simple.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/fsm/examples/simple.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"context"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/looplab/fsm"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fsm := fsm.NewFSM(</span><br><span class="line">		<span class="string">"closed"</span>,</span><br><span class="line">		fsm.Events&#123;</span><br><span class="line">			&#123;Name: <span class="string">"open"</span>, Src: []<span class="keyword">string</span>&#123;<span class="string">"closed"</span>&#125;, Dst: <span class="string">"open"</span>&#125;,</span><br><span class="line">			&#123;Name: <span class="string">"close"</span>, Src: []<span class="keyword">string</span>&#123;<span class="string">"open"</span>&#125;, Dst: <span class="string">"closed"</span>&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line">		fsm.Callbacks&#123;&#125;,</span><br><span class="line">	)</span><br><span class="line"></span><br><span class="line">	fmt.Println(fsm.Current())</span><br><span class="line"></span><br><span class="line">	err := fsm.Event(context.Background(), <span class="string">"open"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Println(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Println(fsm.Current())</span><br><span class="line"></span><br><span class="line">	err = fsm.Event(context.Background(), <span class="string">"close"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Println(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Println(fsm.Current())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>示例中，通过 <code>fsm.NewFSM</code> 函数可以构造一个有限状态机对象 <code>fsm</code>，构造函数接收 3 个参数，第一个参数表示有限状态机的<strong>当前状态</strong>（或者叫初始状态）；第二个参数是一个 <code>fsm.Events{}</code> 对象，它底层类型是一个 <code>slice</code>，即可以注册多个事件，比如 <code>{Name: &quot;open&quot;, Src: []string{&quot;closed&quot;}, Dst: &quot;open&quot;}</code> 表示，当前状态为 <code>closed</code> 的情况下，如果触发 <code>open</code> 事件，则状态机的状态将转换成 <code>open</code>，注意，这里面 <code>Name</code> 对应的 <code>open</code> 表示事件，<code>Dst</code> 对应的 <code>open</code> 表示状态；第三个参数是一个回调函数列表 <code>fsm.Callbacks{}</code>，暂时设为空。</p>
+<p>接下来，我们先用 <code>fmt.Println(fsm.Current())</code> 输出 <code>fsm</code> 的当前状态；接着，触发 <code>open</code> 事件并输出 <code>fsm</code> 的最新状态；最后，触发 <code>close</code> 事件，并输出 <code>fsm</code> 的最终状态。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go run examples/simple.go </span><br><span class="line">closed</span><br><span class="line">open</span><br><span class="line">closed</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，我们使用 <code>fsm</code> 包，实现了 <code>Door</code> 状态机。</p>
+<p>对比之下，我们可以发现，<code>fsm</code> 包是有限状态机的高度抽象。在使用 <code>fsm</code> 包时，我们无需像在使用 <code>Door</code> 时一样，手动编写一个 <code>*Door.HandleEvent</code> 方法来处理事件实现状态转换。而是可以直接在构造有限状态机时，通过类似 <code>{Name: &quot;open&quot;, Src: []string{&quot;closed&quot;}, Dst: &quot;open&quot;}</code> 的方式，来定义事件触发时的状态转换规则。这样，当调用 <code>fsm.Event(ctx, &quot;open&quot;)</code> 触发事件时，<code>fsm</code> 包就会根据预置的规则自动帮我们完成状态转换，将对象从原状态（<code>Src</code>）转换成目标状态（<code>Dst</code>）。</p>
+<p>这样做的好处是，我们将状态转换规则进行了预置，在代码逻辑中，我们只需关注何时该触发某个事件即可，无需手动转换状态。这会大大减少复杂业务代码中出现 Bug 的概率，并且也提升了代码的可维护性。</p>
+<h4 id="在结构体中使用"><a href="#在结构体中使用" class="headerlink" title="在结构体中使用"></a>在结构体中使用</h4><p>此外，<code>fsm</code> 包还有另一个常见用法，它可以作为结构体字段来使用。</p>
+<p>示例如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/fsm/examples/struct/struct.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/fsm/examples/struct/struct.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"context"</span></span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">    <span class="string">"github.com/looplab/fsm"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Door <span class="keyword">struct</span> &#123;</span><br><span class="line">    To  <span class="keyword">string</span></span><br><span class="line">    FSM *fsm.FSM</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewDoor</span><span class="params">(to <span class="keyword">string</span>)</span> *<span class="title">Door</span></span> &#123;</span><br><span class="line">    d := &amp;Door&#123;</span><br><span class="line">        To: to,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    d.FSM = fsm.NewFSM(</span><br><span class="line">        <span class="string">"closed"</span>,</span><br><span class="line">        fsm.Events&#123;</span><br><span class="line">            &#123;Name: <span class="string">"open"</span>, Src: []<span class="keyword">string</span>&#123;<span class="string">"closed"</span>&#125;, Dst: <span class="string">"open"</span>&#125;,</span><br><span class="line">            &#123;Name: <span class="string">"close"</span>, Src: []<span class="keyword">string</span>&#123;<span class="string">"open"</span>&#125;, Dst: <span class="string">"closed"</span>&#125;,</span><br><span class="line">        &#125;,</span><br><span class="line">        fsm.Callbacks&#123;</span><br><span class="line">            <span class="string">"enter_state"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123; d.enterState(e) &#125;,</span><br><span class="line">        &#125;,</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> d</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *Door)</span> <span class="title">enterState</span><span class="params">(e *fsm.Event)</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"The door to %s is %s\n"</span>, d.To, e.Dst)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    door := NewDoor(<span class="string">"heaven"</span>)</span><br><span class="line"></span><br><span class="line">    err := door.FSM.Event(context.Background(), <span class="string">"open"</span>)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(err)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    err = door.FSM.Event(context.Background(), <span class="string">"close"</span>)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(err)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此处，我们使用 <code>Door</code> 结构体重新实现了有限状态机，将 <code>FSM</code> 对象作为 <code>Door</code> 结构体的一个属性，这样，<code>Door</code> 结构体看起来更加符合业务。</p>
+<p>并且，这里我们还为有限状态机定义了一个回调函数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">fsm.Callbacks&#123;</span><br><span class="line">    <span class="string">"enter_state"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123; d.enterState(e) &#125;,</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+
+<p><code>enter_state</code> 是事件触发后的回调函数，定义了任意一个事件结束后触发的函数，即当触发 <code>FSM.Event(ctx, event)</code> 时会调用此函数。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run examples/struct/struct.go </span><br><span class="line">The door to heaven is open</span><br><span class="line">The door to heaven is closed</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，无论是触发 <code>open</code> 事件，还是触发 <code>close</code> 事件，<code>enter_state</code> 定义的回调函数都会被调用。</p>
+<p>事实上，<code>fsm</code> 包不止提供了这一个回调函数，它共计为我们提供了 8 个回调函数。</p>
+<p>完整回调函数使用示例如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/fsm/examples/struct/struct.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/fsm/examples/struct/struct.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"context"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/fatih/color"</span></span><br><span class="line">	<span class="string">"github.com/looplab/fsm"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Door <span class="keyword">struct</span> &#123;</span><br><span class="line">	To  <span class="keyword">string</span></span><br><span class="line">	FSM *fsm.FSM</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewDoor</span><span class="params">(to <span class="keyword">string</span>)</span> *<span class="title">Door</span></span> &#123;</span><br><span class="line">	d := &amp;Door&#123;</span><br><span class="line">		To: to,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	d.FSM = fsm.NewFSM(</span><br><span class="line">		<span class="string">"closed"</span>,</span><br><span class="line">		fsm.Events&#123;</span><br><span class="line">			&#123;Name: <span class="string">"open"</span>, Src: []<span class="keyword">string</span>&#123;<span class="string">"closed"</span>&#125;, Dst: <span class="string">"open"</span>&#125;,</span><br><span class="line">			&#123;Name: <span class="string">"close"</span>, Src: []<span class="keyword">string</span>&#123;<span class="string">"open"</span>&#125;, Dst: <span class="string">"closed"</span>&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line">		fsm.Callbacks&#123;</span><br><span class="line">			<span class="comment">// <span class="doctag">NOTE:</span> closed =&gt; open</span></span><br><span class="line">			<span class="comment">// 在 open 事件发生之前触发（这里的 open 是指代 open event）</span></span><br><span class="line">			<span class="string">"before_open"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123;</span><br><span class="line">				color.Magenta(<span class="string">"| before open\t | %s | %s |"</span>, e.Src, e.Dst)</span><br><span class="line">			&#125;,</span><br><span class="line">			<span class="comment">// 任一事件发生之前触发</span></span><br><span class="line">			<span class="string">"before_event"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123;</span><br><span class="line">				color.HiMagenta(<span class="string">"| before event\t | %s | %s |"</span>, e.Src, e.Dst)</span><br><span class="line">			&#125;,</span><br><span class="line">			<span class="comment">// 在离开 closed 状态时触发</span></span><br><span class="line">			<span class="string">"leave_closed"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123;</span><br><span class="line">				color.Cyan(<span class="string">"| leave closed\t | %s | %s |"</span>, e.Src, e.Dst)</span><br><span class="line">			&#125;,</span><br><span class="line">			<span class="comment">// 离开任一状态时触发</span></span><br><span class="line">			<span class="string">"leave_state"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123;</span><br><span class="line">				color.HiCyan(<span class="string">"| leave state\t | %s | %s |"</span>, e.Src, e.Dst)</span><br><span class="line">			&#125;,</span><br><span class="line">			<span class="comment">// 在进入 open 状态时触发（这里的 open 是指代 open state）</span></span><br><span class="line">			<span class="string">"enter_open"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123;</span><br><span class="line">				color.Green(<span class="string">"| enter open\t | %s | %s |"</span>, e.Src, e.Dst)</span><br><span class="line">			&#125;,</span><br><span class="line">			<span class="comment">// 进入任一状态时触发</span></span><br><span class="line">			<span class="string">"enter_state"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123;</span><br><span class="line">				color.HiGreen(<span class="string">"| enter state\t | %s | %s |"</span>, e.Src, e.Dst)</span><br><span class="line">			&#125;,</span><br><span class="line">			<span class="comment">// 在 open 事件发生之后触发（这里的 open 是指代 open event）</span></span><br><span class="line">			<span class="string">"after_open"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123;</span><br><span class="line">				color.Yellow(<span class="string">"| after open\t | %s | %s |"</span>, e.Src, e.Dst)</span><br><span class="line">			&#125;,</span><br><span class="line">			<span class="comment">// 任一事件结束后触发</span></span><br><span class="line">			<span class="string">"after_event"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123;</span><br><span class="line">				color.HiYellow(<span class="string">"| after event\t | %s | %s |"</span>, e.Src, e.Dst)</span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line">	)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> d</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	door := NewDoor(<span class="string">"heaven"</span>)</span><br><span class="line"></span><br><span class="line">	color.White(<span class="string">"--------- closed to open ---------"</span>)</span><br><span class="line">	color.White(<span class="string">"| event\t\t | src\t  | dst\t |"</span>)</span><br><span class="line">	color.White(<span class="string">"----------------------------------"</span>)</span><br><span class="line"></span><br><span class="line">	err := door.FSM.Event(context.Background(), <span class="string">"open"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Println(err)</span><br><span class="line">	&#125;</span><br><span class="line">	color.White(<span class="string">"----------------------------------"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="fsm.png" alt="fsm" title="">
+                </div>
+                <div class="image-caption">fsm</div>
+            </figure>
+
+<p>这是我们触发 <code>open</code> 事件，将 <code>Door</code> 状态机从 <code>closed</code> 状态转换成 <code>open</code> 状态的完整生命周期回调函数执行记录。</p>
+<p>先不要觉得多，记不住，从而有抵触情绪。我忙你依次来分析一下这些回调函数你就理解了。</p>
+<p>首先，这些回调函数执行顺序与定义顺序无关，所以以上示例代码无论如何调整回调函数定义顺序，其执行结果仍是一样的。</p>
+<p>接着，其实你可以发现，我用不同颜色，区分了每一个回调函数的输出结果。细心观察，你还可以察觉到每两个连续的回调函数的输出颜色是用一个浅色和一个高亮色来区分的。虽然有 8 个回调函数，但其实可以分为 4 类，分别是 <code>before</code>、<code>leave</code>、<code>enter</code> 以及 <code>after</code>，所以每两个挨着的同色系输出属于同一类回调函数。</p>
+<ul>
+<li><code>before</code> 表示在某个<strong>事件</strong>触发<strong>之前</strong>执行的回调函数：<ul>
+<li><code>before_open</code> 表示在 <code>open</code> 事件发生之前触发。</li>
+<li><code>before_event</code> 表示任意一个事件发生之前触发。</li>
+<li>如果同时定义了 <code>before_&lt;EVENT&gt;</code> 和 <code>before_event</code>，则 <code>before_&lt;EVENT&gt;</code> 先于 <code>before_event</code> 触发。</li>
+</ul>
+</li>
+<li><code>leave</code> 表示在<strong>离开</strong>某一<strong>状态</strong>时执行的回调函数：<ul>
+<li><code>leave_closed</code> 表示在离开 <code>closed</code> 状态时触发。</li>
+<li><code>leave_state</code> 表示离开任意一个状态时都会触发。</li>
+<li>如果同时定义了 <code>leave_&lt;OLD_STATE&gt;</code> 和 <code>leave_state</code>，则 <code>leave_&lt;OLD_STATE&gt;</code> 先于 <code>leave_state</code> 触发。</li>
+</ul>
+</li>
+<li><code>enter</code> 表示在<strong>进入</strong>某一<strong>状态</strong>时执行的回调函数：<ul>
+<li><code>enter_open</code> 表示在进入 <code>open</code> 状态时触发。</li>
+<li><code>enter_state</code> 表示进入任意一个状态时都会触发。</li>
+<li>如果同时定义了 <code>enter_&lt;NEW_STATE&gt;</code> 和 <code>enter_state</code>，则 <code>enter_&lt;NEW_STATE&gt;</code> 先于 <code>enter_state</code> 触发。</li>
+</ul>
+</li>
+<li><code>after</code> 表示在某个<strong>事件</strong>触发<strong>之后</strong>执行的回调函数：<ul>
+<li><code>after_open</code> 表示在 <code>open</code> 事件发生之后触发。</li>
+<li><code>after_event</code> 表示任意一个事件发生之后触发。</li>
+<li>如果同时定义了 <code>after_&lt;EVENT&gt;</code> 和 <code>after_event</code>，则 <code>after_&lt;EVENT&gt;</code> 先于 <code>after_event</code> 触发。</li>
+</ul>
+</li>
+</ul>
+<p>我们通过回调函数<strong>执行时机</strong>，将这 8 个回调函数分为了 4 大类。如果站在<strong>状态</strong>和<strong>事件</strong>的角度，则可以分为两类，有些回调函数是在事件触发时执行的，如 <code>before_xxx</code>、<code>after_xxx</code>，另外一些回调函数则是在状态发生转换时执行的，如 <code>leave_xxx</code>、<code>enter_xxx</code>。</p>
+<p>这些回调函数，可以在事件触发或状态转换的生命周期内，辅助我们实现一些特有的业务逻辑。</p>
+<p>其实，<code>fsm</code> 还为我们提供了两种定义回调函数的简写形式，比如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"closed"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123;</span><br><span class="line">    color.Green(<span class="string">"| enter closed\t | %s | %s |"</span>, e.Src, e.Dst)</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+
+<p>等价于：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"enter_closed"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123;</span><br><span class="line">    color.Green(<span class="string">"| enter closed\t | %s | %s |"</span>, e.Src, e.Dst)</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+
+<p>即 <code>&lt;NEW_STATE&gt;</code> 是 <code>enter_&lt;NEW_STATE&gt;</code> 的简写形式。</p>
+<p>再比如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"close"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123;</span><br><span class="line">    color.Yellow(<span class="string">"| after close\t | %s | %s |"</span>, e.Src, e.Dst)</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+
+<p>等价于：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"after_close"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123;</span><br><span class="line">    color.Yellow(<span class="string">"| after close\t | %s | %s |"</span>, e.Src, e.Dst)</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+
+<p>即 <code>&lt;EVENT&gt;</code> 是 <code>after_&lt;EVENT&gt;</code> 的简写形式。</p>
+<p>如果我们定义一个不存在的事件/状态，<code>fsm</code> 表现如何呢？</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"unknown"</span>: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, e *fsm.Event)</span></span> &#123;</span><br><span class="line">    color.Red(<span class="string">"unknown event\t | %s | %s |"</span>, e.Src, e.Dst)</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+
+<p>这个示例结果就交给你自行去探索了。</p>
+<h4 id="项目实战"><a href="#项目实战" class="headerlink" title="项目实战"></a>项目实战</h4><p>以上我向你介绍了有限状态机的概念，以及在 Go 中如何利用 <code>fsm</code> 包实现有限状态机。如果你看后还觉得不过瘾，想了解一下在真实的企业级项目中，是如何使用有限状态机的，那么你可以参考 OneX 项目 <code>nightwatch</code> 组件的源码（<a href="https://github.com/onexstack/onex/tree/feature/onex-v2/internal/nightwatch/watcher/user" target="_blank" rel="noopener">https://github.com/onexstack/onex/tree/feature/onex-v2/internal/nightwatch/watcher/user</a>），来学习如何在项目中落地 <code>fsm</code>。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文以一个示例开始，我向你介绍了什么是有限状态机。接着我向你推荐了 Go 中 <code>fsm</code> 包，并使用它实现了一个 <code>Door</code> 有限状态机。通过对比，我们能够发现，使用 <code>fsm</code> 来实现有限状态机好处是，可以将状态转换规则提前预置，然后在代码逻辑中，只需关注何时该触发某个事件即可，无需手动转换状态。我认为这也是 <code>fsm</code> 的优势所在，定义好了状态流转规则，状态转换就不会出现未知异常，如果将状态转换的代码写在复杂的业务逻辑中，则很容易出现 Bug，尤其在代码多次迭代过程中，很容易漏掉某些 case。使用 <code>fsm</code> 则可以有效避免这些问题。</p>
+<p>对于 <code>fsm</code> 的更多使用示例，可以参考官方 examples 代码：<a href="https://github.com/looplab/fsm/tree/main/examples" target="_blank" rel="noopener">https://github.com/looplab/fsm/tree/main/examples</a> 。</p>
+<p>此外，挖一个坑，如果后续有时间，我将对 <code>fsm</code> 源码进行深度剖析与解读，敬请期待！</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/fsm" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>有限状态机定义：<a href="https://zh.wikipedia.org/wiki/有限状态机" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/有限状态机</a></li>
+<li>JavaScript与有限状态机：<a href="https://www.ruanyifeng.com/blog/2013/09/finite-state_machine_for_javascript.html" target="_blank" rel="noopener">https://www.ruanyifeng.com/blog/2013/09/finite-state_machine_for_javascript.html</a></li>
+<li>OneX 有限状态机：<a href="https://github.com/onexstack/onex/tree/feature/onex-v2/internal/nightwatch/watcher/user" target="_blank" rel="noopener">https://github.com/onexstack/onex/tree/feature/onex-v2/internal/nightwatch/watcher/user</a></li>
+<li>fsm GitHub 源码：<a href="https://github.com/looplab/fsm" target="_blank" rel="noopener">https://github.com/looplab/fsm</a></li>
+<li>fsm Documentation：<a href="https://pkg.go.dev/github.com/looplab/fsm@v1.0.3" target="_blank" rel="noopener">https://pkg.go.dev/github.com/looplab/fsm@v1.0.3</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/fsm" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/fsm</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2025/05/25/fsm/" target="_blank" rel="noopener">https://jianghushinian.cn/2025/05/25/fsm/</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-01-25T04:52:54.024Z" itemprop="dateUpdated">2026-01-25 12:52:54</time>
+</span><br>
+
+
+        
+        <a href="/2025/05/25/fsm/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/05/25/fsm/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/FSM/" rel="tag">FSM</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA/" rel="tag">有限状态机</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/05/25/fsm/&title=《在 Go 中如何使用有限状态机优雅解决程序中状态转换问题》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/05/25/fsm/&title=《在 Go 中如何使用有限状态机优雅解决程序中状态转换问题》 — 江湖十年&source=在编程中，有限状态机（FSM）是管理复杂状态流转的优雅工具，其核心在于通过明确定义状态、事件和转换规则，将业务逻辑模块化。本文将探讨在 Go 中如何使用有..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/05/25/fsm/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中如何使用有限状态机优雅解决程序中状态转换问题》 — 江湖十年&url=http://www.jianghushinian.cn/2025/05/25/fsm/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/05/25/fsm/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2025/06/01/fsm-source-code/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Go 语言 fsm 源码解读，这一次让你彻底学会有限状态机</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/05/17/scc/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">一行命令统计代码行数</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/05/25/fsm/&title=《在 Go 中如何使用有限状态机优雅解决程序中状态转换问题》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/05/25/fsm/&title=《在 Go 中如何使用有限状态机优雅解决程序中状态转换问题》 — 江湖十年&source=在编程中，有限状态机（FSM）是管理复杂状态流转的优雅工具，其核心在于通过明确定义状态、事件和转换规则，将业务逻辑模块化。本文将探讨在 Go 中如何使用有..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/05/25/fsm/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中如何使用有限状态机优雅解决程序中状态转换问题》 — 江湖十年&url=http://www.jianghushinian.cn/2025/05/25/fsm/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/05/25/fsm/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/05/25/fsm/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

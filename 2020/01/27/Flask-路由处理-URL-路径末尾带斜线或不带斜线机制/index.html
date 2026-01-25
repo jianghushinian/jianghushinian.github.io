@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Flask 路由处理 URL 路径末尾带斜线或不带斜线机制 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Python,Flask">
+    <meta name="description" content="在浏览 Web 网站时，如果你细心观察会发现有些网站的 URL 网址末尾加不加斜线都能正常访问同一个页面。本篇文章就带大家来看看 Flask 中如何处理这种情况。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flask 路由处理 URL 路径末尾带斜线或不带斜线机制">
+<meta property="og:url" content="http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在浏览 Web 网站时，如果你细心观察会发现有些网站的 URL 网址末尾加不加斜线都能正常访问同一个页面。本篇文章就带大家来看看 Flask 中如何处理这种情况。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/hello.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/hello_not_found.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/hello_line.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/hello_line1.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/hello1.png">
+<meta property="article:published_time" content="2020-01-27T01:58:50.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.704Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="Flask">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/hello.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Flask 路由处理 URL 路径末尾带斜线或不带斜线机制</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Flask 路由处理 URL 路径末尾带斜线或不带斜线机制</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2020-01-27T01:58:50.000Z" itemprop="datePublished" class="page-time">
+  2020-01-27
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用多个路由装饰器来绑定同一个视图函数"><span class="post-toc-number">1.</span> <span class="post-toc-text">使用多个路由装饰器来绑定同一个视图函数</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用-Flask-自带的机制来支持-URL-路径末尾带斜线或不带斜线"><span class="post-toc-number">2.</span> <span class="post-toc-text">使用 Flask 自带的机制来支持 URL 路径末尾带斜线或不带斜线</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-Flask-路由处理-URL-路径末尾带斜线或不带斜线机制"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Flask 路由处理 URL 路径末尾带斜线或不带斜线机制</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2020-01-27 09:58:50" datetime="2020-01-27T01:58:50.000Z"  itemprop="datePublished">2020-01-27</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在浏览 Web 网站时，如果你细心观察会发现有些网站的 URL 网址末尾加不加斜线都能正常访问同一个页面。本篇文章就带大家来看看 Flask 中如何处理这种情况。</p>
+<a id="more"></a>
+
+<h3 id="使用多个路由装饰器来绑定同一个视图函数"><a href="#使用多个路由装饰器来绑定同一个视图函数" class="headerlink" title="使用多个路由装饰器来绑定同一个视图函数"></a>使用多个路由装饰器来绑定同一个视图函数</h3><p>在 Flask 中通常来说每个请求由一个视图函数来处理，视图函数和请求 URL 的绑定是通过 <code>@app.route()</code> 装饰器实现的，使用 Flask 实现的一个最简单的 Hello World 程序如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask</span><br><span class="line"></span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/hello')</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">'Hello World!'</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    app.run()</span><br></pre></td></tr></table></figure>
+
+<p>浏览器地址栏访问 <code>http://127.0.0.1:5000/hello</code> 即可得到 <code>Hello World!</code> 响应。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="hello.png" alt="http://127.0.0.1:5000/hello" title="">
+                </div>
+                <div class="image-caption">http://127.0.0.1:5000/hello</div>
+            </figure>
+
+<p>此时访问末尾带斜线的 URL 地址 <code>http://127.0.0.1:5000/hello/</code> 则无法获得正确响应。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="hello_not_found.png" alt="http://127.0.0.1:5000/hello/" title="">
+                </div>
+                <div class="image-caption">http://127.0.0.1:5000/hello/</div>
+            </figure>
+
+<p>要想使程序能够同时支持 URL 路径末尾带斜线或不带斜线，只需要在 <code>hello</code> 视图函数上再增加一个路由装饰器即可：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask</span><br><span class="line"></span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/hello/')</span></span><br><span class="line"><span class="meta">@app.route('/hello')</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">'Hello World!'</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    app.run()</span><br></pre></td></tr></table></figure>
+
+<p>启动程序，再次访问 <code>http://127.0.0.1:5000/hello/</code> 同样能得到 <code>Hello World!</code> 响应。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="hello_line.png" alt="http://127.0.0.1:5000/hello/" title="">
+                </div>
+                <div class="image-caption">http://127.0.0.1:5000/hello/</div>
+            </figure>
+
+<h3 id="使用-Flask-自带的机制来支持-URL-路径末尾带斜线或不带斜线"><a href="#使用-Flask-自带的机制来支持-URL-路径末尾带斜线或不带斜线" class="headerlink" title="使用 Flask 自带的机制来支持 URL 路径末尾带斜线或不带斜线"></a>使用 Flask 自带的机制来支持 URL 路径末尾带斜线或不带斜线</h3><p>我们使用了两个路由装饰器解决了 URL 路径末尾带斜线或不带斜线都能正确得到响应的问题。但这样做对搜索引擎来说，同一个页面会被索引两次，对 SEO 是不利的。</p>
+<p>实际上，Flask 本身是支持 URL 路径末尾带斜线或不带斜线都能访问同一个页面的。我们只需要使用 <code>@app.route(&#39;/hello/&#39;)</code> 一个路由装饰器即可：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask</span><br><span class="line"></span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/hello/')</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">'Hello World!'</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    app.run()</span><br></pre></td></tr></table></figure>
+
+<p>启动程序，访问 <code>http://127.0.0.1:5000/hello/</code> 可得到 <code>Hello World!</code> 响应。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="hello_line1.png" alt="http://127.0.0.1:5000/hello/" title="">
+                </div>
+                <div class="image-caption">http://127.0.0.1:5000/hello/</div>
+            </figure>
+
+<p>访问末尾不带斜线的 URL 路径 <code>http://127.0.0.1:5000/hello</code> 同样能得到 <code>Hello World!</code> 响应。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="hello1.png" alt="http://127.0.0.1:5000/hello" title="">
+                </div>
+                <div class="image-caption">http://127.0.0.1:5000/hello</div>
+            </figure>
+
+<p>当我们去掉了 <code>@app.route(&#39;/hello&#39;)</code> 装饰器，只使用一个 <code>@app.route(&#39;/hello/&#39;)</code> 装饰器就能够同时支持 URL 路径末尾带斜线或不带斜线。</p>
+<p>在 Chrome 开发者工具 Network 选项卡可以发现，实际上 Flask 实现这种机制的原理就是采用重定向。如果访问末尾不带斜线的 URL 路径 <code>http://127.0.0.1:5000/hello</code>，Flask 会自动返回 308 状态码，重定向到带斜线的 URL 路径 <code>http://127.0.0.1:5000/hello/</code>，以此来实现只需要绑定一个路由 <code>@app.route(&#39;/hello/&#39;)</code> 即可同时支持 URL 路径末尾带斜线或不带斜线。</p>
+<p>Flask 以一种优雅的实现，即同时支持 URL 路径末尾带斜线或不带斜线两种路径，又不影响搜索引擎的 SEO，可谓一举两得，值得借鉴。</p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.704Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/" target="_blank" rel="external">http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flask/" rel="tag">Flask</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/&title=《Flask 路由处理 URL 路径末尾带斜线或不带斜线机制》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/&title=《Flask 路由处理 URL 路径末尾带斜线或不带斜线机制》 — 江湖十年&source=在浏览 Web 网站时，如果你细心观察会发现有些网站的 URL 网址末尾加不加斜线都能正常访问同一个页面。本篇文章就带大家来看看 Flask 中如何处理这..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Flask 路由处理 URL 路径末尾带斜线或不带斜线机制》 — 江湖十年&url=http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2020/01/27/%E4%BD%BF%E7%94%A8-Faker-%E5%BA%93%E7%94%9F%E6%88%90%E5%81%87%E6%95%B0%E6%8D%AE/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">使用 Faker 库生成假数据</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2020/01/18/JavaScript-%E7%AB%8B%E5%8D%B3%E6%89%A7%E8%A1%8C%E5%87%BD%E6%95%B0/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">JavaScript 立即执行函数</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/&title=《Flask 路由处理 URL 路径末尾带斜线或不带斜线机制》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/&title=《Flask 路由处理 URL 路径末尾带斜线或不带斜线机制》 — 江湖十年&source=在浏览 Web 网站时，如果你细心观察会发现有些网站的 URL 网址末尾加不加斜线都能正常访问同一个页面。本篇文章就带大家来看看 Flask 中如何处理这..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Flask 路由处理 URL 路径末尾带斜线或不带斜线机制》 — 江湖十年&url=http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2020/01/27/Flask-%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86-URL-%E8%B7%AF%E5%BE%84%E6%9C%AB%E5%B0%BE%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%88%96%E4%B8%8D%E5%B8%A6%E6%96%9C%E7%BA%BF%E6%9C%BA%E5%88%B6/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

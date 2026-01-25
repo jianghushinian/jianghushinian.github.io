@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>2024 都要过完了，我不允许你在 Go 中还不会解决 CORS 跨域问题 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="大家好，我是江湖十年，今天来简单聊聊我们在 Web 开发中绕不开的一个话题——跨域。 关于跨域以及如何解决跨域，算是老生常谈的问题了。虽然这个问题很常见且在网上一搜就能找到大把解决方案。但我在工作中还是会经常发现有人不理解或无法解释清楚到底什么是跨域，本文就来一次性解释清楚跨域问题，让你知其然并能知其所以然。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="2024 都要过完了，我不允许你在 Go 中还不会解决 CORS 跨域问题">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/11/18/go-cors/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="大家好，我是江湖十年，今天来简单聊聊我们在 Web 开发中绕不开的一个话题——跨域。 关于跨域以及如何解决跨域，算是老生常谈的问题了。虽然这个问题很常见且在网上一搜就能找到大把解决方案。但我在工作中还是会经常发现有人不理解或无法解释清楚到底什么是跨域，本文就来一次性解释清楚跨域问题，让你知其然并能知其所以然。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/11/18/go-cors/cors.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/11/18/go-cors/simple-request.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/11/18/go-cors/options-request.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/11/18/go-cors/cors-simple.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/11/18/go-cors/cors-simple-success.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/11/18/go-cors/cors-options.png">
+<meta property="article:published_time" content="2024-11-18T15:03:15.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.965Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2024/11/18/go-cors/cors.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">2024 都要过完了，我不允许你在 Go 中还不会解决 CORS 跨域问题</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">2024 都要过完了，我不允许你在 Go 中还不会解决 CORS 跨域问题</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-11-18T15:03:15.000Z" itemprop="datePublished" class="page-time">
+  2024-11-18
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#什么是跨域"><span class="post-toc-number">1.</span> <span class="post-toc-text">什么是跨域</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#跨域资源共享（CORS）"><span class="post-toc-number">2.</span> <span class="post-toc-text">跨域资源共享（CORS）</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#简单请求"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">简单请求</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#非简单请求"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">非简单请求</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#CORS-规范定义的-HTTP-头字段"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">CORS 规范定义的 HTTP 头字段</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#在-Go-中解决跨域问题"><span class="post-toc-number">3.</span> <span class="post-toc-text">在 Go 中解决跨域问题</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#简单请求-1"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">简单请求</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#非简单请求-1"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">非简单请求</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Gin-框架中如何解决跨域问题"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">Gin 框架中如何解决跨域问题</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#K8s-如何解决跨域问题"><span class="post-toc-number">3.4.</span> <span class="post-toc-text">K8s 如何解决跨域问题</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go-cors"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">2024 都要过完了，我不允许你在 Go 中还不会解决 CORS 跨域问题</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-11-18 23:03:15" datetime="2024-11-18T15:03:15.000Z"  itemprop="datePublished">2024-11-18</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>大家好，我是<a href="https://jianghushinian.cn/about/" target="_blank" rel="noopener">江湖十年</a>，今天来简单聊聊我们在 Web 开发中绕不开的一个话题——跨域。</p>
+<p>关于跨域以及如何解决跨域，算是老生常谈的问题了。虽然这个问题很常见且在网上一搜就能找到大把解决方案。但我在工作中还是会经常发现有人不理解或无法解释清楚到底什么是跨域，本文就来一次性解释清楚跨域问题，让你知其然并能知其所以然。</p>
+<a id="more"></a>
+
+<h3 id="什么是跨域"><a href="#什么是跨域" class="headerlink" title="什么是跨域"></a>什么是跨域</h3><p>要理解什么是跨域，以及为什么会出现跨域问题，就得从浏览器的同源策略来说起。</p>
+<p><a href="https://zh.wikipedia.org/wiki/%E5%90%8C%E6%BA%90%E7%AD%96%E7%95%A5" target="_blank" rel="noopener">同源策略</a>是浏览器的安全基石，由 Netscape 公司在 1995 年引入浏览器，目前所有主流浏览器都遵守这一策略。</p>
+<p>简单来说，同源策略是指，在 A 网站设置的 Cookie，在 B 网站无法使用，因为它们<strong>不同源</strong>。</p>
+<p>如何区分两个网页是否同源，有三项判别标准：</p>
+<ul>
+<li>协议（<font style="color:rgb(37, 41, 51);">protocol</font>）</li>
+<li>主机（<font style="color:rgb(37, 41, 51);">host</font>）</li>
+<li>端口（port）</li>
+</ul>
+<p>只有这三者<strong>全部相同</strong>的两个网页，才被认为是<strong>同源</strong>。否则，为<strong>不同源</strong>。</p>
+<p>我们有一个 URL 长这样：<a href="https://jianghushinian.cn/2024/11/18/go-cors/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/11/18/go-cors/</a>。其中，协议为 <code>https</code>，主机（或者叫域名）为 <code>jianghushinian.cn</code>，端口为 <code>443</code>，因为 <code>443</code> 是 <code>https</code> 协议默认端口号，所以可以省略。</p>
+<p>下表列举出了一些 URL 与 <a href="https://jianghushinian.cn/2024/11/18/go-cors/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/11/18/go-cors/</a> 是否属于同源：</p>
+<table>
+<thead>
+<tr>
+<th><font style="color:rgb(37, 41, 51);">URL</font></th>
+<th><font style="color:rgb(37, 41, 51);">是否同源</font></th>
+<th><font style="color:rgb(37, 41, 51);">原因</font></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://jianghushinian.cn/2024/11/11/sync-once/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/11/11/sync-once/</a></td>
+<td><font style="color:rgb(37, 41, 51);">是</font></td>
+<td><font style="color:rgb(37, 41, 51);">协议、域名、端口相同，只有路径不同</font></td>
+</tr>
+<tr>
+<td><a href="http://jianghushinian.cn/2024/11/18/go-cors/" target="_blank" rel="noopener">http://jianghushinian.cn/2024/11/18/go-cors/</a></td>
+<td><font style="color:rgb(37, 41, 51);">否</font></td>
+<td><font style="color:rgb(37, 41, 51);">协议不同（HTTPS 和 HTTP）</font></td>
+</tr>
+<tr>
+<td><a href="https://www.jianghushinian.cn/2024/11/18/go-cors/">https://www.jianghushinian.cn/2024/11/18/go-cors/</a></td>
+<td><font style="color:rgb(37, 41, 51);">否</font></td>
+<td><font style="color:rgb(37, 41, 51);">域名不同（jianghushinian.cn 和 <a href="http://www.jianghushinian.cn）" target="_blank" rel="noopener">www.jianghushinian.cn）</a></font></td>
+</tr>
+<tr>
+<td><a href="https://www.google.com/" target="_blank" rel="noopener">https://www.google.com/</a></td>
+<td><font style="color:rgb(37, 41, 51);">否</font></td>
+<td><font style="color:rgb(37, 41, 51);">域名不同（jianghushinian.cn 和  <a href="http://www.google.com）" target="_blank" rel="noopener">www.google.com）</a></font></td>
+</tr>
+<tr>
+<td><a href="https://jianghushinian.cn:8443/2024/11/18/go-cors/" target="_blank" rel="noopener">https://jianghushinian.cn:8443/2024/11/18/go-cors/</a></td>
+<td><font style="color:rgb(37, 41, 51);">否</font></td>
+<td><font style="color:rgb(37, 41, 51);">端口不同（443 和 8443）</font></td>
+</tr>
+</tbody></table>
+<p>现在，我们知道了什么是浏览器的同源策略。那么它和跨域有什么关系呢？<strong>其实，我们常说的跨域，就是不同源。</strong></p>
+<p>在不同源的情况下，除了不能跨域访问 Cookie，浏览器还存在其他限制。</p>
+<p>同源策略对跨源交互主要有以下几种限制：</p>
+<ul>
+<li><strong>DOM 访问：</strong>一个源中的 JavaScript 脚本无法访问另一个源的页面中的 DOM 元素。</li>
+<li><strong>Cookie 和 Storage：</strong>不同源的网页无法访问彼此的 Cookie、LocalStorage、SessionStorage 和 IndexDB。</li>
+<li><strong>AJAX 请求：</strong><code>XMLHttpRequest</code> 或 <code>Fetch</code> 只能向同源的 URL 发送请求。跨源请求会被阻止，除非服务器启用了 CORS（跨域资源共享）。</li>
+<li><strong><code>&lt;iframe&gt;</code> 间访问：</strong>如果一个页面通过 <code>&lt;iframe&gt;</code> 嵌套了另一个页面，默认情况下，两个页面的 JavaScript 不能操作对方的 DOM，也无法进行通信。</li>
+</ul>
+<p>以上几种交互，跟后端有关的，就是 AJAX 请求了。</p>
+<blockquote>
+<p>NOTE:<br>其他几种跨源交互如何解决通信问题，属于前端领域，如果你感兴趣，可以参考阮一峰老师的文章<a href="https://www.ruanyifeng.com/blog/2016/04/same-origin-policy.html" target="_blank" rel="noopener">《浏览器同源政策及其规避方法》</a>。</p>
+</blockquote>
+<p>在同源策略的限制下，跨源的 AJAX 请求会被浏览器阻止，导致前端 JavaScript 发出的请求无法得到成功响应。</p>
+<p>你一定见过这个令人头大的经典报错：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="cors.png" alt="跨域" title="">
+                </div>
+                <div class="image-caption">跨域</div>
+            </figure>
+
+<p>之所以产生这个报错，是因为现在基本上都采用前后端分离架构，前端和后端分开部署。<font style="color:rgb(37, 41, 51);">这就很容易导致前后端域名不一致，会触发浏览器的同源策略限制，导致请求失败。</font></p>
+<p><font style="color:rgb(37, 41, 51);">有多种方案可以解决跨域问题，如 Nginx 反向代理、JSONP、WebSocket 和 CORS。</font>在编写 Go 程序时，要通过服务端来解决这个问题，就需要引出本文的重点内容 CORS 了。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>其他几种解决跨域问题的方案不是本文重点，且都比 CORS 概念更加简单，我就不过多介绍了，感兴趣的读者可以自行学习。</p>
+</blockquote>
+<h3 id="跨域资源共享（CORS）"><a href="#跨域资源共享（CORS）" class="headerlink" title="跨域资源共享（CORS）"></a>跨域资源共享（CORS）</h3><p>CORS 是跨域资源共享（<font style="color:rgb(27, 27, 27);">Cross-Origin Resource Sharing</font>）的缩写，它是 W3C 标准推出用来解决 AJAX 跨域请求的方案。同源策略默认阻止跨域获取资源，但是 CORS 给了 Web 服务器这样的权限，即服务器可以决定是否允许跨源请求访问到它的资源。</p>
+<p>CORS 需要浏览器和后端服务器同时支持，所以 CORS 可以理解为一个“协议”。只要通信双方都支持此协议，那么就能够发送跨域请求。所有主流的浏览器都已支持 CORS 功能，并且对用户来说是无感知的，所以通过 CORS 实现跨域，主要工作量在后端。</p>
+<p>CORS 标准新增了一组 HTTP 头字段（请求头和响应头），允许服务器端通过 HTTP 响应头声明<strong>哪些源站</strong>通过<strong>浏览器</strong>有权限访问<strong>哪些资源</strong>。而在浏览器侧，CORS 请求分为两类，简单请求和非简单请求。对于那些可能对服务器数据产生<strong>副作用</strong>的 HTTP 请求（非简单请求），浏览器必须先使用 OPTIONS 方法发起一个预检请求（Preflight Request），从而获知服务端是否允许该跨源请求。服务器确认允许之后，浏览器才会发起实际的 HTTP 请求。此外，在预检请求的返回中，服务器端也可以通过 HTTP 头字段告知客户端，是否允许携带 Cookie 等<a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Authentication" target="_blank" rel="noopener">认证信息</a>。</p>
+<p>上面的描述比较抽象，不是那么好理解。现在我们来具体说明一下在 CORS 中，什么是简单请求，什么是非简单请求。</p>
+<h4 id="简单请求"><a href="#简单请求" class="headerlink" title="简单请求"></a>简单请求</h4><p><font style="color:rgb(27, 27, 27);">如果浏览器在发起请求时，请求内容同时</font>满足所有下述条件<font style="color:rgb(27, 27, 27);">，则为简单请求：</font></p>
+<ul>
+<li>请求方法为下列方法之一：<ul>
+<li>HEAD</li>
+<li>GET</li>
+<li>POST</li>
+</ul>
+</li>
+<li>请求头不能超出 CORS 规定的安全 HTTP 头字段集合：<ul>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Accept" target="_blank" rel="noopener">Accept</a></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Accept-Language" target="_blank" rel="noopener">Accept-Language</a></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Content-Language" target="_blank" rel="noopener">Content-Language</a></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Content-Type" target="_blank" rel="noopener">Content-Type</a><font style="color:rgb(27, 27, 27);">（需要注意额外的 MIME 类型限制）</font></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Range" target="_blank" rel="noopener">Range</a><font style="color:rgb(27, 27, 27);">（只允许简单的范围标头值，如 <code>bytes=256-</code> 或 <code>bytes=127-255</code>）</li>
+</ul>
+</li>
+<li>Content-Type 请求头所指定的 MIME 类型值仅限于下列三者之一：<ul>
+<li>text/plain</li>
+<li>multipart/form-data</li>
+<li>application/x-www-form-urlencoded</li>
+</ul>
+</li>
+<li>如果请求是使用 <code>XMLHttpRequest</code> 对象发出的，在返回的 <code>XMLHttpRequest.upload</code> 对象属性上没有注册任何事件监听器（也就是说，给定一个 XMLHttpRequest 实例 <code>xhr</code>，没有调用 <code>xhr.upload.addEventListener()</code>，以监听该上传请求）。</li>
+<li>请求中没有使用 <code>ReadableStream</code> 对象。</li>
+</ul>
+<blockquote>
+<p>NOTE:<br>如果你了解前端的 <code>&lt;form&gt;</code> 表单，你会发现，允许的 <code>Content-Type</code> 跟 <code>&lt;form&gt;</code> 表单所支持的 <a href="https://developer.mozilla.org/zh-CN/docs/Web/HTML/Element/form" target="_blank" rel="noopener">MIME 类型</a>可选值如出一辙。这其实就是为了让 AJAX 发送跨域请求时的表现对齐 <code>&lt;form&gt;</code> 表单，因为表单是可以直接发送跨域请求的。</p>
+</blockquote>
+<p><font style="color:rgb(27, 27, 27);">知道了什么是简单请求，我们来分析下简单请求基本流程：</font></p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="simple-request.png" alt="简单请求" title="">
+                </div>
+                <div class="image-caption">简单请求</div>
+            </figure>
+
+<p>CORS 简单请求看起来跟普通请求区别不大，只不过浏览器会自动在 HTTP 请求头中加上 <code>Origin</code> 字段，用来说明本次请求来自哪个源，<code>Origin</code> 字段的值完整包含了判断跨域请求的三项标准：协议、域名、端口号。</p>
+<p>一个简单请求的 HTTP 头信息示例如下：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/resources/public-data/</span> HTTP/1.1</span><br><span class="line"><span class="attribute">Accept</span>: */*</span><br><span class="line"><span class="attribute">Accept-Encoding</span>: gzip, deflate, br, zstd</span><br><span class="line"><span class="attribute">Accept-Language</span>: zh-CN,zh;q=0.9,en;q=0.8</span><br><span class="line"><span class="attribute">Cache-Control</span>: no-cache</span><br><span class="line"><span class="attribute">Connection</span>: keep-alive</span><br><span class="line"><span class="attribute">Host</span>: foo.example</span><br><span class="line"><span class="attribute">Origin</span>: https://foo.example</span><br><span class="line"><span class="attribute">User-Agent</span>: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36</span><br></pre></td></tr></table></figure>
+
+<p>其中请求头 <code>Origin: https://foo.example</code> 表明了请求源。</p>
+<p>服务端响应的 HTTP 头信息示例如下：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">HTTP/1.1 <span class="number">200</span> OK</span><br><span class="line"><span class="attribute">Access-Control-Allow-Origin</span>: *</span><br><span class="line"><span class="attribute">Content-Type</span>: application/json; charset=utf-8</span><br><span class="line"><span class="attribute">Content-Length</span>: 44</span><br><span class="line"><span class="attribute">Date</span>: Sun, 17 Nov 2024 02:45:52 GMT</span><br></pre></td></tr></table></figure>
+
+<p><font style="color:rgb(27, 27, 27);">响应头中的 </font><code>Access-Control-Allow-Origin: *</code><font style="color:rgb(27, 27, 27);"> 表明该资源可以被</font><strong>任意</strong>跨域的<font style="color:rgb(27, 27, 27);">外源访问。</font></p>
+<p><font style="color:rgb(27, 27, 27);">所以，使用 </font><code>Origin</code><font style="color:rgb(27, 27, 27);"> 和 </font><code>Access-Control-Allow-Origin</code><font style="color:rgb(27, 27, 27);"> 这一对 HTTP 头就能完成最简单的访问控制，突破同源策略的限制。</font></p>
+<h4 id="非简单请求"><a href="#非简单请求" class="headerlink" title="非简单请求"></a>非简单请求</h4><p><font style="color:rgb(27, 27, 27);">与</font>简单请求<font style="color:rgb(27, 27, 27);">不同，非简单请求要求浏览器在发送正式请求之前，必须先使用 </font>OPTIONS<font style="color:rgb(27, 27, 27);"> 方法发起一个预检请求到服务器，以获知服务器是否允许该正式请求。</font></p>
+<p><font style="color:rgb(27, 27, 27);">非简单请求基本流程如下：</font></p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="options-request.png" alt="非简单请求" title="">
+                </div>
+                <div class="image-caption">非简单请求</div>
+            </figure>
+
+<p>上图中，<code>Preflight request</code> 就是预检请求，<code>Main request</code> 就是正式请求。只有预检请求通过，浏览器才会继续发送正式请求。</p>
+<p>一个预检请求的 HTTP 头信息示例如下：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">OPTIONS</span> <span class="string">/doc</span> HTTP/1.1</span><br><span class="line"><span class="attribute">Accept</span>: */*</span><br><span class="line"><span class="attribute">Accept-Encoding</span>: gzip, deflate, br, zstd</span><br><span class="line"><span class="attribute">Accept-Language</span>: zh-CN,zh;q=0.9,en;q=0.8</span><br><span class="line"><span class="attribute">Connection</span>: keep-alive</span><br><span class="line"><span class="attribute">Host</span>: foo.example</span><br><span class="line"><span class="attribute">Origin</span>: https://foo.example</span><br><span class="line"><span class="attribute">Access-Control-Request-Method</span>: POST</span><br><span class="line"><span class="attribute">Access-Control-Request-Headers</span>: X-PINGOTHER, Content-Type</span><br><span class="line"><span class="attribute">User-Agent</span>: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36</span><br></pre></td></tr></table></figure>
+
+<p>其中请求头 <code>Origin: https://foo.example</code> 同简单请求一样，表明了请求源。</p>
+<p>此外，还有两个附加的 HTTP 头字段：<code>Access-Control-Request-Method: POST</code> 用来告诉服务器，接下来的正式请求将使用 POST 方法。<code>Access-Control-Request-Headers: X-PINGOTHER, Content-Type</code> 用来告诉服务器，<font style="color:rgb(27, 27, 27);">正式请求将携带两个自定义请求头字段 </font><code>X-PINGOTHER</code><font style="color:rgb(27, 27, 27);"> 和 </font><code>Content-Type</code><font style="color:rgb(27, 27, 27);">。</font></p>
+<p>如果你细心观察，还会发现预检请求的 URL 和正式请求的 URL 其实是相同的。</p>
+<p>预检请求的服务端响应的 HTTP 头信息示例如下：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">HTTP/1.1 <span class="number">204</span> No Content</span><br><span class="line"><span class="attribute">Access-Control-Allow-Origin</span>: https://foo.example</span><br><span class="line"><span class="attribute">Access-Control-Allow-Credentials</span>: true</span><br><span class="line"><span class="attribute">Access-Control-Allow-Headers</span>: X-PINGOTHER,Content-Type</span><br><span class="line"><span class="attribute">Access-Control-Allow-Methods</span>: POST,GET,OPTIONS</span><br><span class="line"><span class="attribute">Vary</span>: Origin</span><br><span class="line"><span class="attribute">Date</span>: Sun, 17 Nov 2024 03:42:16 GMT</span><br></pre></td></tr></table></figure>
+
+<p><font style="color:rgb(27, 27, 27);">响应头中的 </font><code>Access-Control-Allow-Origin: https://foo.example</code><font style="color:rgb(27, 27, 27);"> 表明该资源可以被</font> <code>https://foo.example</code> 这个源<font style="color:rgb(27, 27, 27);">访问。</font><code>Access-Control-Allow-Credentials: true</code><font style="color:rgb(27, 27, 27);"> 表示允许浏览器携带 Cookie 等认证信息。当允许携带 Cookie 时，</font><code>Access-Control-Allow-Origin</code><font style="color:rgb(27, 27, 27);"> 值不能为通配符 </font><code>*</code><font style="color:rgb(27, 27, 27);">，必须指定明确的域名。</font></p>
+<p>剩下两个 CORS 相关的 HTTP 头字段很好理解，<code>Access-Control-Allow-Headers: X-PINGOTHER,Content-Type</code> 表明了服务端允许的附加<strong>请求头</strong>。<code>Access-Control-Allow-Methods: POST,GET,OPTIONS</code> 表明了服务端允许的<strong>请求方法</strong>。</p>
+<p>预检请求完成后，浏览器将发送正式请求：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/doc</span> HTTP/1.1</span><br><span class="line"><span class="attribute">Accept</span>: */*</span><br><span class="line"><span class="attribute">Accept-Encoding</span>: gzip, deflate, br, zstd</span><br><span class="line"><span class="attribute">Accept-Language</span>: zh-CN,zh;q=0.9,en;q=0.8</span><br><span class="line"><span class="attribute">Cache-Control</span>: no-cache</span><br><span class="line"><span class="attribute">Connection</span>: keep-alive</span><br><span class="line"><span class="attribute">Content-Length</span>: 15</span><br><span class="line"><span class="attribute">Content-Type</span>: application/json</span><br><span class="line"><span class="attribute">Host</span>: foo.example</span><br><span class="line"><span class="attribute">Origin</span>: https://foo.example</span><br><span class="line"><span class="attribute">User-Agent</span>: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36</span><br></pre></td></tr></table></figure>
+
+<p>服务端响应的 HTTP 头信息示例如下：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">HTTP/1.1 <span class="number">200</span> OK</span><br><span class="line"><span class="attribute">Access-Control-Allow-Origin</span>: https://foo.example</span><br><span class="line"><span class="attribute">Access-Control-Allow-Credentials</span>: true</span><br><span class="line"><span class="attribute">Content-Type</span>: application/json; charset=utf-8</span><br><span class="line"><span class="attribute">Vary</span>: Origin</span><br><span class="line"><span class="attribute">Date</span>: Sun, 17 Nov 2024 03:42:16 GMT</span><br><span class="line"><span class="attribute">Content-Length</span>: 68</span><br></pre></td></tr></table></figure>
+
+<p>至此，一个非简单请求的 CORS 流程就完成了。</p>
+<h4 id="CORS-规范定义的-HTTP-头字段"><a href="#CORS-规范定义的-HTTP-头字段" class="headerlink" title="CORS 规范定义的 HTTP 头字段"></a>CORS 规范定义的 HTTP 头字段</h4><p>我们对 CORS 中的简单请求和非简单请求有了较为清晰的认识。现在，我们再来梳理下 CORS 规范中定义的所有 HTTP 头字段。</p>
+<p>请求头字段如下：</p>
+<ul>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Origin" target="_blank" rel="noopener">Origin</a><font style="color:rgb(27, 27, 27);">：表明获取资源的请求是从哪个源发起的。此请求头与服务器端的 </font><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Allow-Origin" target="_blank" rel="noopener">Access-Control-Allow-Origin</a><font style="color:rgb(27, 27, 27);"> 响应头对应。</font></li>
+</ul>
+<p><font style="color:rgb(27, 27, 27);">预检请求头字段如下：</font></p>
+<ul>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Request-Headers" target="_blank" rel="noopener">Access-Control-Request-Headers</a><font style="color:rgb(27, 27, 27);">：用于发起预检请求，告知服务器正式请求会携带哪些 HTTP 请求头（通过 </font><a href="https://developer.mozilla.org/zh-CN/docs/Web/API/XMLHttpRequest/setRequestHeader" target="_blank" rel="noopener">setRequestHeader()</a><font style="color:rgb(27, 27, 27);"> 等设置的）。此请求头与服务器端的 </font><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Allow-Headers" target="_blank" rel="noopener">Access-Control-Allow-Headers</a><font style="color:rgb(27, 27, 27);"> 响应头对应。</font></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Request-Method" target="_blank" rel="noopener">Access-Control-Request-Method</a><font style="color:rgb(27, 27, 27);">：用于发起预检请求，告知服务器正式请求会使用哪一种 </font><font style="color:rgb(27, 27, 27);">HTTP 请求方法</font><font style="color:rgb(27, 27, 27);">。此请求头与服务器端的 </font><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Allow-Methods" target="_blank" rel="noopener">Access-Control-Allow-Methods</a><font style="color:rgb(27, 27, 27);"> 响应头对应。</font></li>
+</ul>
+<p>响应头字段如下：</p>
+<ul>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Allow-Origin" target="_blank" rel="noopener">Access-Control-Allow-Origin</a><font style="color:rgb(27, 27, 27);">：必须字段，</font>告知浏览器允许该源访问资源，可以是单一的源，也可以是通配符 <code>*</code>。如果浏览器需要携带认证信息，则不能使用 <code>*</code>。<font style="color:rgb(27, 27, 27);">此响应头是服务器端对浏览器端 </font><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Origin" target="_blank" rel="noopener">Origin</a><font style="color:rgb(27, 27, 27);"> 请求头的响应。</font></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Allow-Headers" target="_blank" rel="noopener">Access-Control-Allow-Headers</a><font style="color:rgb(27, 27, 27);">：可选字段，用于</font>预检请求<font style="color:rgb(27, 27, 27);">的响应，指明了正式请求中允许浏览器携带的 HTTP 请求头字段。如果浏览器需要携带认证信息，则不能使用 </font><code>*</code><font style="color:rgb(27, 27, 27);">。此响应头是服务器端对浏览器端 </font><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Request-Headers" target="_blank" rel="noopener">Access-Control-Request-Headers</a><font style="color:rgb(27, 27, 27);"> 请求头的响应。</font></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Allow-Methods" target="_blank" rel="noopener">Access-Control-Allow-Methods</a><font style="color:rgb(27, 27, 27);">：可选字段，用于</font>预检请求<font style="color:rgb(27, 27, 27);">的响应，指明了正式请求中允许的 HTTP 请求方法。如果浏览器需要携带认证信息，则不能使用 </font><code>*</code><font style="color:rgb(27, 27, 27);">。此响应头是服务器端对浏览器端 </font><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Request-Method" target="_blank" rel="noopener">Access-Control-Request-Method</a><font style="color:rgb(27, 27, 27);"> 请求头的响应。</font></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Expose-Headers" target="_blank" rel="noopener">Access-Control-Expose-Headers</a><font style="color:rgb(27, 27, 27);">：可选字段，列出允许的响应头字段，供浏览器的 JavaScript 代码（如 </font><a href="https://developer.mozilla.org/zh-CN/docs/Web/API/XMLHttpRequest/getResponseHeader" target="_blank" rel="noopener">getResponseHeader()</a><font style="color:rgb(27, 27, 27);">）获取。浏览器发起 </font>CORS 请求时，<code>XMLHttpRequest</code>对象的<code>getResponseHeader()</code>方法，或 <code>fetch</code> 响应对象 <code>Response</code> 的 <code>headers.get</code> 方法，只能拿到 6 个基本的响应头字段：<code>Cache-Control</code>、<code>Content-Language</code>、<code>Content-Type</code>、<code>Expires</code>、<code>Last-Modified</code>、<code>Pragma</code>。如果想访问其他响应头字段，就需要在 <code>Access-Control-Expose-Headers</code><font style="color:rgb(27, 27, 27);"> </font>中指定。</li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials" target="_blank" rel="noopener">Access-Control-Allow-Credentials</a><font style="color:rgb(27, 27, 27);">：可选字段，该字段指定了当浏览器的 </font><code>credentials</code><font style="color:rgb(27, 27, 27);"> 设置为 </font><code>true</code><font style="color:rgb(27, 27, 27);"> 时，是否允许浏览器 JavaScript 脚本读取响应体 </font><code>response</code><font style="color:rgb(27, 27, 27);"> 中的内容。同时，它为 </font><code>true</code><font style="color:rgb(27, 27, 27);">，表明允许浏览器携带 Cookie。</font></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Max-Age" target="_blank" rel="noopener">Access-Control-Max-Age</a><font style="color:rgb(27, 27, 27);">：可选字段，指定了预检请求的结果能够被缓存多久。</font></li>
+</ul>
+<p><font style="color:rgb(27, 27, 27);">其他相关头字段如下：</font></p>
+<ul>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Timing-Allow-Origin" target="_blank" rel="noopener">Timing-Allow-Origin</a>：主要用于控制 Web 应用程序是否能够访问资源的性能信息，例如通过 <a href="https://developer.mozilla.org/en-US/docs/Web/API/Resource_Timing_API" target="_blank" rel="noopener">ResourceTimingAPI</a> 获取有关加载资源的详细时间数据。</li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Vary" target="_blank" rel="noopener">Vary</a>：服务器声明缓存策略，可以根据 <code>Origin</code> 头动态生成响应。</li>
+</ul>
+<p><font style="color:rgb(27, 27, 27);">以上就是 CORS 规范中支持的全部 HTTP 头字段了。</font></p>
+<p><font style="color:rgb(27, 27, 27);">注意，CORS 规范所定义的请求头，都无需手动设置，当使用 AJAX 发起跨域请求时，浏览器会自行设置。所以我在前文说 CORS 请求是对前端用户无感知的。</font></p>
+<h3 id="在-Go-中解决跨域问题"><a href="#在-Go-中解决跨域问题" class="headerlink" title="在 Go 中解决跨域问题"></a>在 Go 中解决跨域问题</h3><p>学完了 CORS 的概念，终于到实践环节了。</p>
+<p>接下来我就以两个例子，分别演示下 CORS 中的简单请求和非简单请求，以及在 Go 程序中如何解决跨域问题。</p>
+<h4 id="简单请求-1"><a href="#简单请求-1" class="headerlink" title="简单请求"></a>简单请求</h4><p>这是一个简单请求的前端代码实现：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/cors/index.html" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/cors/index.html</a></p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span> <span class="attr">lang</span>=<span class="string">"en"</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">name</span>=<span class="string">"viewport"</span> <span class="attr">content</span>=<span class="string">"width=device-width, initial-scale=1.0"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>CORS Demo<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>CORS 简单请求演示<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">button</span> <span class="attr">id</span>=<span class="string">"fetchData"</span>&gt;</span>发送跨域请求<span class="tag">&lt;/<span class="name">button</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">pre</span> <span class="attr">id</span>=<span class="string">"output"</span>&gt;</span><span class="tag">&lt;/<span class="name">pre</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="javascript">    <span class="built_in">document</span>.getElementById(<span class="string">'fetchData'</span>).addEventListener(<span class="string">'click'</span>, () =&gt; &#123;</span></span><br><span class="line"><span class="actionscript">        fetch(<span class="string">'http://localhost:8000/data'</span>) <span class="comment">// 不同源（端口不同）</span></span></span><br><span class="line"><span class="javascript">            .then(<span class="function"><span class="params">response</span> =&gt;</span> &#123;</span></span><br><span class="line">                if (!response.ok) &#123;</span><br><span class="line"><span class="javascript">                    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">`HTTP error! Status: <span class="subst">$&#123;response.status&#125;</span>`</span>);</span></span><br><span class="line">                &#125;</span><br><span class="line"><span class="actionscript">                <span class="keyword">return</span> response.json();</span></span><br><span class="line">            &#125;)</span><br><span class="line"><span class="javascript">            .then(<span class="function"><span class="params">data</span> =&gt;</span> &#123;</span></span><br><span class="line"><span class="javascript">                <span class="built_in">document</span>.getElementById(<span class="string">'output'</span>).textContent = <span class="built_in">JSON</span>.stringify(data, <span class="literal">null</span>, <span class="number">2</span>);</span></span><br><span class="line">            &#125;)</span><br><span class="line"><span class="javascript">            .catch(<span class="function"><span class="params">error</span> =&gt;</span> &#123;</span></span><br><span class="line"><span class="javascript">                <span class="built_in">document</span>.getElementById(<span class="string">'output'</span>).textContent = <span class="string">`Error: <span class="subst">$&#123;error.message&#125;</span>`</span>;</span></span><br><span class="line">            &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line"><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>如果你不熟悉前端也没关系，你只需要知道，这个代码会在页面中展示一个按钮，点击按钮后，浏览器会通过 AJAX 发送一个 GET 请求到地址 <code>http://localhost:8000/data</code>。</p>
+<p>如下示例代码是使用 Gin 框架开启的后端服务器：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/cors/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/cors/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"github.com/gin-gonic/gin"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	r := gin.Default()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 路由处理：返回简单的 JSON 数据</span></span><br><span class="line">	r.GET(<span class="string">"/data"</span>, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">		c.JSON(<span class="number">200</span>, gin.H&#123;</span><br><span class="line">			<span class="string">"message"</span>: <span class="string">"这是未配置 CORS 的响应"</span>,</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 监听在 8000 端口</span></span><br><span class="line">	r.Run(<span class="string">":8000"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码很简单，无需解释，我们直接启动它：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br></pre></td></tr></table></figure>
+
+<p>通过 GoLand IDE 打开前端网页，点击 <code>发送跨域请求</code> 按钮：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="cors-simple.png" alt="简单请求跨域" title="">
+                </div>
+                <div class="image-caption">简单请求跨域</div>
+            </figure>
+
+<p>我们得到了经典的跨域请求报错。</p>
+<p>这是因为前端和后端<strong>不同源</strong>，前端网页的 URL 根路径是 <code>http://localhost:63342</code>，后端服务的 URL 根路径是 <code>http://localhost:8000</code>，显然二者端口不一样，所以触发了浏览器跨域限制。</p>
+<p>现在我们重新编写一版服务端代码的实现：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/cors/cors/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/cors/cors/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"github.com/gin-gonic/gin"</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// <span class="doctag">NOTE:</span> 在 Handler Func 中处理简单请求</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	r := gin.Default()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 路由处理：返回简单的 JSON 数据</span></span><br><span class="line">	r.GET(<span class="string">"/data"</span>, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">		<span class="comment">// 设置 CORS 响应头</span></span><br><span class="line">		c.Header(<span class="string">"Access-Control-Allow-Origin"</span>, <span class="string">"*"</span>)</span><br><span class="line"></span><br><span class="line">		c.JSON(<span class="number">200</span>, gin.H&#123;</span><br><span class="line">			<span class="string">"message"</span>: <span class="string">"这是配置了 CORS 的响应"</span>,</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 监听在 8000 端口</span></span><br><span class="line">	r.Run(<span class="string">":8000"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里重点代码仅有一行 <code>c.Header(&quot;Access-Control-Allow-Origin&quot;, &quot;*&quot;)</code>，不必过多解释，我想你已经明白了这意味着什么。</p>
+<p>启动示例代码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go run cors/main.go</span><br></pre></td></tr></table></figure>
+
+<p>我们刷新下页面，重新点击 <code>发送跨域请求</code> 按钮：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="cors-simple-success.png" alt="CORS 简单请求" title="">
+                </div>
+                <div class="image-caption">CORS 简单请求</div>
+            </figure>
+
+<p>这一次，得到了成功响应。</p>
+<p>并且从截图中可以看到，服务端设置允许跨域的响应头信息 <code>Access-Control-Allow-Origin: *</code>。</p>
+<p>简单请求的 CORS 支持就是这么简单，实际上在服务端仅需要修改一行 Go 代码。</p>
+<h4 id="非简单请求-1"><a href="#非简单请求-1" class="headerlink" title="非简单请求"></a>非简单请求</h4><p>我们再来看下非简单请求的实践示例。</p>
+<p>非简单请求的前端代码实现：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/cors/index-options.html" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/cors/index-options.html</a></p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span> <span class="attr">lang</span>=<span class="string">"en"</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">name</span>=<span class="string">"viewport"</span> <span class="attr">content</span>=<span class="string">"width=device-width, initial-scale=1.0"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>CORS Non-Simple Request Demo<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>CORS 非简单请求演示<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">button</span> <span class="attr">id</span>=<span class="string">"fetchData"</span>&gt;</span>发送跨域请求<span class="tag">&lt;/<span class="name">button</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">pre</span> <span class="attr">id</span>=<span class="string">"output"</span>&gt;</span><span class="tag">&lt;/<span class="name">pre</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="javascript">    <span class="built_in">document</span>.getElementById(<span class="string">'fetchData'</span>).addEventListener(<span class="string">'click'</span>, () =&gt; &#123;</span></span><br><span class="line"><span class="actionscript">        fetch(<span class="string">'http://localhost:8000/data'</span>, &#123;</span></span><br><span class="line"><span class="actionscript">            method: <span class="string">'POST'</span>, <span class="comment">// 非简单请求，使用 POST</span></span></span><br><span class="line">            headers: &#123;</span><br><span class="line"><span class="actionscript">                <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>, <span class="comment">// 非简单请求的 Content-Type</span></span></span><br><span class="line"><span class="actionscript">                <span class="string">'X-Custom-Header'</span>: <span class="string">'CustomValue'</span>    <span class="comment">// 自定义请求头</span></span></span><br><span class="line">            &#125;,</span><br><span class="line"><span class="javascript">            body: <span class="built_in">JSON</span>.stringify(&#123;<span class="attr">name</span>: <span class="string">'江湖十年'</span>&#125;)  <span class="comment">// 带有请求体</span></span></span><br><span class="line">        &#125;)</span><br><span class="line"><span class="javascript">            .then(<span class="function"><span class="params">response</span> =&gt;</span> &#123;</span></span><br><span class="line">                if (!response.ok) &#123;</span><br><span class="line"><span class="javascript">                    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">`HTTP error! Status: <span class="subst">$&#123;response.status&#125;</span>`</span>);</span></span><br><span class="line">                &#125;</span><br><span class="line"><span class="actionscript">                <span class="comment">// console.log(`X-jwt-token: $&#123;response.headers.get("X-jwt-token")&#125;`)</span></span></span><br><span class="line"><span class="actionscript">                <span class="keyword">return</span> response.json();</span></span><br><span class="line">            &#125;)</span><br><span class="line"><span class="javascript">            .then(<span class="function"><span class="params">data</span> =&gt;</span> &#123;</span></span><br><span class="line"><span class="javascript">                <span class="built_in">document</span>.getElementById(<span class="string">'output'</span>).textContent = <span class="built_in">JSON</span>.stringify(data, <span class="literal">null</span>, <span class="number">2</span>);</span></span><br><span class="line">            &#125;)</span><br><span class="line"><span class="javascript">            .catch(<span class="function"><span class="params">error</span> =&gt;</span> &#123;</span></span><br><span class="line"><span class="javascript">                <span class="built_in">document</span>.getElementById(<span class="string">'output'</span>).textContent = <span class="string">`Error: <span class="subst">$&#123;error.message&#125;</span>`</span>;</span></span><br><span class="line">            &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line"><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>这里同样在页面中展示一个按钮，不过现在点击按钮后，浏览器会通过 AJAX 发送一个 POST 请求到地址 <code>http://localhost:8000/data</code>。并且，<code>Content-Type</code> 所指定的 MIME 类型值也不是简单请求所支持的类型。所以这是一个非简单请求。此外，还设置了自定义请求头 <code>X-Custom-Header</code>，以及请求体 <code>{name: &#39;江湖十年&#39;}</code>。</p>
+<p>我们前面实现的 Go 服务端程序仅支持简单请求，所以也需要修改。</p>
+<p>现在我们重新编写一版支持预检请求的服务端代码的实现：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/cors/cors/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/cors/cors/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"github.com/gin-gonic/gin"</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// <span class="doctag">NOTE:</span> 使用 CORS 中间件处理非简单请求</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	r := gin.Default()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 使用 CORS 中间件</span></span><br><span class="line">	r.Use(Cors)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 路由处理：返回简单的 JSON 数据</span></span><br><span class="line">	r.POST(<span class="string">"/data"</span>, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">		<span class="keyword">var</span> requestData <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">		<span class="keyword">if</span> err := c.BindJSON(&amp;requestData); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			c.JSON(<span class="number">400</span>, gin.H&#123;<span class="string">"error"</span>: <span class="string">"Invalid JSON"</span>&#125;)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		c.JSON(<span class="number">200</span>, gin.H&#123;</span><br><span class="line">			<span class="string">"message"</span>:     <span class="string">"非简单请求已成功"</span>,</span><br><span class="line">			<span class="string">"requestData"</span>: requestData,</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 监听在 8000 端口</span></span><br><span class="line">	r.Run(<span class="string">":8000"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Cors</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 如果没有 Origin 请求头则说明不是 CORS 请求</span></span><br><span class="line">	<span class="keyword">if</span> c.Request.Header.Get(<span class="string">"Origin"</span>) == <span class="string">""</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 允许的 CORS 请求源</span></span><br><span class="line">	c.Header(<span class="string">"Access-Control-Allow-Origin"</span>, <span class="string">"*"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 处理预请求</span></span><br><span class="line">	<span class="keyword">if</span> c.Request.Method == <span class="string">"OPTIONS"</span> &#123;</span><br><span class="line">		c.Header(<span class="string">"Access-Control-Allow-Headers"</span>, <span class="string">"Content-Type,X-Custom-Header"</span>)</span><br><span class="line">		c.Header(<span class="string">"Access-Control-Allow-Methods"</span>, <span class="string">"GET,POST,PUT,PATCH,DELETE,OPTIONS"</span>)</span><br><span class="line">		c.Header(<span class="string">"Content-Type"</span>, <span class="string">"application/json"</span>)</span><br><span class="line">		c.AbortWithStatus(<span class="number">204</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 处理正式请求</span></span><br><span class="line">	c.Next()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里编写了一个 <code>Cors</code> 中间件，来支持服务端程序处理 CORS 请求。我在前文提到，预检请求的 URL 与正式请求的 URL 一致，所以预检请求的 URL 理论上可以为任意路径，所以非常适合在中间件中实现。</p>
+<p>代码中写了注释，所以很容易看懂。首先根据是否存在 <code>Origin</code> 请求头来判断当前请求是否为 CORS 请求，如果是则继续处理。接着设置了允许任意跨域的<font style="color:rgb(27, 27, 27);">外源访问。然后对预请求进行处理，</font>我们可以发现，当 <code>Access-Control-Allow-Headers</code> 和 <code>Access-Control-Allow-Methods</code> 支持多个时，可以使用逗号分隔的列表来表示，这在 HTTP 头字段中算是惯用法了。最后预检请求通过，使用 <code>c.AbortWithStatus(204)</code> 设置响应状态码为 <code>204</code>，因为响应中没有响应体，所以相比于 <code>200</code> 响应码，使用 <code>204</code> 响应码更为合适。</p>
+<p>启动服务端示例代码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go run cors/main.go</span><br></pre></td></tr></table></figure>
+
+<p>打开非简单请求演示页面，点击 <code>发送跨域请求</code> 按钮：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="cors-options.png" alt="CORS 非简单请求" title="">
+                </div>
+                <div class="image-caption">CORS 非简单请求</div>
+            </figure>
+
+<p>可以看到浏览器为我们发送了两个请求，第一个请求类型为 <code>preflight</code>，即预检请求。预检请求成功后，发送第二个请求类型为 <code>fetch</code>，因为我们的 AJAX 正式请求是使用 <code>fetch</code> 库来实现的。</p>
+<p>预检请求的请求头如下：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">OPTIONS</span> <span class="string">/data</span> HTTP/1.1</span><br><span class="line"><span class="attribute">Accept</span>: */*</span><br><span class="line"><span class="attribute">Accept-Encoding</span>: gzip, deflate, br, zstd</span><br><span class="line"><span class="attribute">Accept-Language</span>: zh-CN,zh;q=0.9,en;q=0.8</span><br><span class="line"><span class="attribute">Access-Control-Request-Headers</span>: content-type,x-custom-header</span><br><span class="line"><span class="attribute">Access-Control-Request-Method</span>: POST</span><br><span class="line"><span class="attribute">Cache-Control</span>: no-cache</span><br><span class="line"><span class="attribute">Connection</span>: keep-alive</span><br><span class="line"><span class="attribute">Host</span>: localhost:8000</span><br><span class="line"><span class="attribute">Origin</span>: http://localhost:63342</span><br><span class="line"><span class="attribute">Pragma</span>: no-cache</span><br><span class="line"><span class="attribute">Referer</span>: http://localhost:63342/</span><br><span class="line"><span class="attribute">Sec-Fetch-Dest</span>: empty</span><br><span class="line"><span class="attribute">Sec-Fetch-Mode</span>: cors</span><br><span class="line"><span class="attribute">Sec-Fetch-Site</span>: same-site</span><br><span class="line"><span class="attribute">User-Agent</span>: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36</span><br></pre></td></tr></table></figure>
+
+<p>响应头如下：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">HTTP/1.1 <span class="number">204</span> No Content</span><br><span class="line"><span class="attribute">Access-Control-Allow-Headers</span>: Content-Type,X-Custom-Header</span><br><span class="line"><span class="attribute">Access-Control-Allow-Methods</span>: GET,POST,PUT,PATCH,DELETE,OPTIONS</span><br><span class="line"><span class="attribute">Access-Control-Allow-Origin</span>: *</span><br><span class="line"><span class="attribute">Content-Type</span>: application/json</span><br><span class="line"><span class="attribute">Date</span>: Mon, 18 Nov 2024 00:23:00 GMT</span><br></pre></td></tr></table></figure>
+
+<p>现在我们就掌握了在 Go 中如何解决 CORS 跨域问题。</p>
+<p>接下来你可能想要优化下我们实现的 <code>Cors</code> 中间件，不过且慢，其实在 Gin 框架中我们有现成的工具可以用。</p>
+<h4 id="Gin-框架中如何解决跨域问题"><a href="#Gin-框架中如何解决跨域问题" class="headerlink" title="Gin 框架中如何解决跨域问题"></a>Gin 框架中如何解决跨域问题</h4><p>在 Gin 框架生态的 <a href="https://github.com/gin-contrib" target="_blank" rel="noopener">gin-contrib</a> 列表中有一个 <a href="https://github.com/gin-contrib/cors" target="_blank" rel="noopener">cors</a> 库就是专门为 Gin 提供的接口跨域请求的 CORS 中间件。</p>
+<p>使用示例如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/cors/cors/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/cors/cors/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"strings"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/gin-contrib/cors"</span></span><br><span class="line">	<span class="string">"github.com/gin-gonic/gin"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// <span class="doctag">NOTE:</span> 使用 Gin 的 CORS 中间件处理非简单请求</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	r := gin.Default()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 使用 CORS 中间件配置非简单请求</span></span><br><span class="line">	r.Use(cors.New(cors.Config&#123;</span><br><span class="line">		<span class="comment">// AllowOrigins: []string&#123;"http://localhost:63342"&#125;,          // 允许的前端域名</span></span><br><span class="line">		AllowMethods:     []<span class="keyword">string</span>&#123;<span class="string">"GET"</span>, <span class="string">"POST"</span>, <span class="string">"OPTIONS"</span>&#125;,          <span class="comment">// 允许的 HTTP 方法</span></span><br><span class="line">		AllowHeaders:     []<span class="keyword">string</span>&#123;<span class="string">"Content-Type"</span>, <span class="string">"X-Custom-Header"</span>&#125;, <span class="comment">// 允许的请求头</span></span><br><span class="line">		ExposeHeaders:    []<span class="keyword">string</span>&#123;<span class="string">"X-jwt-token"</span>&#125;,                     <span class="comment">// 允许暴露给 JavaScript 脚本的响应头</span></span><br><span class="line">		AllowCredentials: <span class="literal">true</span>,                                        <span class="comment">// 是否允许凭证（Cookies）</span></span><br><span class="line">		AllowOriginFunc: <span class="function"><span class="keyword">func</span><span class="params">(origin <span class="keyword">string</span>)</span> <span class="title">bool</span></span> &#123; <span class="comment">// 使用函数设置允许的前端域名</span></span><br><span class="line">			<span class="keyword">if</span> strings.HasPrefix(origin, <span class="string">"http://localhost"</span>) &#123;</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> strings.HasSuffix(origin, <span class="string">"jianghushinian.cn"</span>)</span><br><span class="line">		&#125;,</span><br><span class="line">		MaxAge: <span class="number">1</span> * time.Hour,</span><br><span class="line">	&#125;))</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 路由处理：返回简单的 JSON 数据</span></span><br><span class="line">	r.POST(<span class="string">"/data"</span>, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">		<span class="keyword">var</span> requestData <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">		<span class="keyword">if</span> err := c.BindJSON(&amp;requestData); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			c.JSON(<span class="number">400</span>, gin.H&#123;<span class="string">"error"</span>: <span class="string">"Invalid JSON"</span>&#125;)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		c.Header(<span class="string">"X-jwt-token"</span>, <span class="string">"fake-token"</span>)</span><br><span class="line">		c.JSON(<span class="number">200</span>, gin.H&#123;</span><br><span class="line">			<span class="string">"message"</span>:     <span class="string">"非简单请求已成功"</span>,</span><br><span class="line">			<span class="string">"requestData"</span>: requestData,</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 监听在 8000 端口</span></span><br><span class="line">	r.Run(<span class="string">":8000"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个中间件最方便也是我最喜欢的地方，就是它在设置 <code>Access-Control-Allow-Origin</code> 响应头时， 支持使用函数 <code>AllowOriginFunc</code>。这样，就允许我们在函数中编写逻辑，很容易就能写出同时适配开发和生产环境的 CORS 逻辑。而不必在 <code>AllowOrigins</code> 列表中列出全部可能出现的情况。所有支持设置多个值的响应头，都以 <code>[]string</code> 类型来实现。用起来还是非常简单方便的。</p>
+<p>这个示例与我们实现的 <code>Cors</code> 中间件本质上原理是相同的，我就不跑起来演示了，你可以自行尝试。</p>
+<h4 id="K8s-如何解决跨域问题"><a href="#K8s-如何解决跨域问题" class="headerlink" title="K8s 如何解决跨域问题"></a>K8s 如何解决跨域问题</h4><p>最后我们再来看下 K8s 源码中是如何解决 CORS 跨域问题的。</p>
+<p>相关部分源码如下：</p>
+<blockquote>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/v1.31.0/staging/src/k8s.io/apiserver/pkg/server/filters/cors.go#L36" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.31.0/staging/src/k8s.io/apiserver/pkg/server/filters/cors.go#L36</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithCORS</span><span class="params">(handler http.Handler, allowedOriginPatterns []<span class="keyword">string</span>, allowedMethods []<span class="keyword">string</span>, allowedHeaders []<span class="keyword">string</span>, exposedHeaders []<span class="keyword">string</span>, allowCredentials <span class="keyword">string</span>)</span> <span class="title">http</span>.<span class="title">Handler</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(allowedOriginPatterns) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> handler</span><br><span class="line">	&#125;</span><br><span class="line">	allowedOriginPatternsREs := allowedOriginRegexps(allowedOriginPatterns)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Set defaults for methods and headers if nothing was passed</span></span><br><span class="line">	<span class="keyword">if</span> allowedMethods == <span class="literal">nil</span> &#123;</span><br><span class="line">		allowedMethods = []<span class="keyword">string</span>&#123;<span class="string">"POST"</span>, <span class="string">"GET"</span>, <span class="string">"OPTIONS"</span>, <span class="string">"PUT"</span>, <span class="string">"DELETE"</span>, <span class="string">"PATCH"</span>&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	allowMethodsResponseHeader := strings.Join(allowedMethods, <span class="string">", "</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> allowedHeaders == <span class="literal">nil</span> &#123;</span><br><span class="line">		allowedHeaders = []<span class="keyword">string</span>&#123;<span class="string">"Content-Type"</span>, <span class="string">"Content-Length"</span>, <span class="string">"Accept-Encoding"</span>, <span class="string">"X-CSRF-Token"</span>, <span class="string">"Authorization"</span>, <span class="string">"X-Requested-With"</span>, <span class="string">"If-Modified-Since"</span>&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	allowHeadersResponseHeader := strings.Join(allowedHeaders, <span class="string">", "</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> exposedHeaders == <span class="literal">nil</span> &#123;</span><br><span class="line">		exposedHeaders = []<span class="keyword">string</span>&#123;<span class="string">"Date"</span>&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	exposeHeadersResponseHeader := strings.Join(exposedHeaders, <span class="string">", "</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> http.HandlerFunc(<span class="function"><span class="keyword">func</span><span class="params">(w http.ResponseWriter, req *http.Request)</span></span> &#123;</span><br><span class="line">		origin := req.Header.Get(<span class="string">"Origin"</span>)</span><br><span class="line">		<span class="keyword">if</span> origin == <span class="string">""</span> &#123;</span><br><span class="line">			handler.ServeHTTP(w, req)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> !isOriginAllowed(origin, allowedOriginPatternsREs) &#123;</span><br><span class="line">			handler.ServeHTTP(w, req)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		w.Header().Set(<span class="string">"Access-Control-Allow-Origin"</span>, origin)</span><br><span class="line">		w.Header().Set(<span class="string">"Access-Control-Allow-Methods"</span>, allowMethodsResponseHeader)</span><br><span class="line">		w.Header().Set(<span class="string">"Access-Control-Allow-Headers"</span>, allowHeadersResponseHeader)</span><br><span class="line">		w.Header().Set(<span class="string">"Access-Control-Expose-Headers"</span>, exposeHeadersResponseHeader)</span><br><span class="line">		w.Header().Set(<span class="string">"Access-Control-Allow-Credentials"</span>, allowCredentials)</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Stop here if its a preflight OPTIONS request</span></span><br><span class="line">		<span class="keyword">if</span> req.Method == <span class="string">"OPTIONS"</span> &#123;</span><br><span class="line">			w.WriteHeader(http.StatusNoContent)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Dispatch to the next handler</span></span><br><span class="line">		handler.ServeHTTP(w, req)</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">isOriginAllowed</span><span class="params">(originHeader <span class="keyword">string</span>, allowedOriginPatternsREs []*regexp.Regexp)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> _, re := <span class="keyword">range</span> allowedOriginPatternsREs &#123;</span><br><span class="line">		<span class="keyword">if</span> re.MatchString(originHeader) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">allowedOriginRegexps</span><span class="params">(allowedOrigins []<span class="keyword">string</span>)</span> []*<span class="title">regexp</span>.<span class="title">Regexp</span></span> &#123;</span><br><span class="line">	res, err := compileRegexps(allowedOrigins)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		klog.Fatalf(<span class="string">"Invalid CORS allowed origin, --cors-allowed-origins flag was set to %v - %v"</span>, strings.Join(allowedOrigins, <span class="string">","</span>), err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> res</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">compileRegexps</span><span class="params">(regexpStrings []<span class="keyword">string</span>)</span> <span class="params">([]*regexp.Regexp, error)</span></span> &#123;</span><br><span class="line">	regexps := []*regexp.Regexp&#123;&#125;</span><br><span class="line">	<span class="keyword">for</span> _, regexpStr := <span class="keyword">range</span> regexpStrings &#123;</span><br><span class="line">		r, err := regexp.Compile(regexpStr)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> []*regexp.Regexp&#123;&#125;, err</span><br><span class="line">		&#125;</span><br><span class="line">		regexps = <span class="built_in">append</span>(regexps, r)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> regexps, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，<code>WithCORS</code> 函数的第一个参数是 <code>http.Handler</code>，即控制器函数。后面几个参数都是用来设置 CORS 响应头的，不过也能发现它不支持 <code>Access-Control-Max-Age</code> 响应头的设置。</p>
+<p>值得注意的一点是，<code>WithCORS</code> 的实现中 <code>allowedOriginPatterns</code> 是支持正则匹配的。这跟 Gin 框架中 <code>cors</code> 库支持函数匹配目的一样，都是为了方便我们处理 <code>Access-Control-Allow-Origin</code> 响应头。所以，CORS 中哪个响应头最重要，也就不言自明了。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>我们从浏览器的同源策略开始，讲解了跨域问题的起因，以及如何使用 CORS 来解决跨域问题。</p>
+<p>并且，在 Go 中进行了代码演示。我还讲解了在 Gin 框架和 K8s 中是如何解决 CORS 问题的。如果你使用其他 Web 框架，应该很容易就能找到对应的解决方案。如果没有，我们已经掌握了 CORS 原理，那自己实现一个也很简单，并且我们也可以参考 Gin <code>cors</code> 中间件或  K8s <code>WithCORS</code> 的实现。</p>
+<p>记住，跨域是浏览器的同源策略导致的。也就是说，只有在浏览器中才会出现跨域问题。如果你使用 <code>curl</code>、<code>Postman</code> 等，或者很多编程语言的请求库，如 Python 的 <code>urllib</code>、<code>requests</code>、Go 的 <code>net/http</code> 等，根本就不会有跨域问题。</p>
+<p>这也就是为什么使用 Nginx 反向代理能解决跨域问题。还有两个本文提及但没有深入讲解的 CORS 解决方案：<code>JSONP</code> 是一个较为“古老”的技术了，现在几乎见不到了，我工作多年也仅在刚入行的时候用过一次，并且它只能发送 GET 请求，已经不推荐使用了。另外，使用 WebSocket 协议时无需考虑浏览器跨域问题，WebSocket 协议不实行同源策略。</p>
+<p>针对后端的 CORS 解放方案，本文从原理到实践都讲解清楚了，希望下一次再遇到跨域问题，我们不要只会复制粘贴解决问题，遇到复杂情况，也会知道如何排查和处理。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/cors" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>同源策略：<a href="https://zh.wikipedia.org/wiki/同源策略" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/同源策略</a></li>
+<li>浏览器的同源策略：<a href="https://developer.mozilla.org/zh-CN/docs/Web/Security/Same-origin_policy" target="_blank" rel="noopener">https://developer.mozilla.org/zh-CN/docs/Web/Security/Same-origin_policy</a></li>
+<li>跨源资源共享：<a href="https://developer.mozilla.org/zh-CN/docs/Glossary/CORS" target="_blank" rel="noopener">https://developer.mozilla.org/zh-CN/docs/Glossary/CORS</a></li>
+<li>跨源资源共享（CORS）：<a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/CORS" target="_blank" rel="noopener">https://developer.mozilla.org/zh-CN/docs/Web/HTTP/CORS</a></li>
+<li>列入 CORS 白名单的响应标头：<a href="https://developer.mozilla.org/zh-CN/docs/Glossary/CORS-safelisted_response_header" target="_blank" rel="noopener">https://developer.mozilla.org/zh-CN/docs/Glossary/CORS-safelisted_response_header</a></li>
+<li>浏览器同源政策及其规避方法：<a href="https://www.ruanyifeng.com/blog/2016/04/same-origin-policy.html" target="_blank" rel="noopener">https://www.ruanyifeng.com/blog/2016/04/same-origin-policy.html</a></li>
+<li>跨域资源共享 CORS 详解：<a href="https://www.ruanyifeng.com/blog/2016/04/cors.html" target="_blank" rel="noopener">https://www.ruanyifeng.com/blog/2016/04/cors.html</a></li>
+<li>CORS gin’s middleware：<a href="https://github.com/gin-contrib/cors" target="_blank" rel="noopener">https://github.com/gin-contrib/cors</a></li>
+<li>K8s WithCORS：<a href="https://github.com/kubernetes/kubernetes/blob/v1.31.0/staging/src/k8s.io/apiserver/pkg/server/filters/cors.go#L36" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.31.0/staging/src/k8s.io/apiserver/pkg/server/filters/cors.go#L36</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/cors" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/cors</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.965Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2024/11/18/go-cors/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/11/18/go-cors/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/11/18/go-cors/&title=《2024 都要过完了，我不允许你在 Go 中还不会解决 CORS 跨域问题》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/11/18/go-cors/&title=《2024 都要过完了，我不允许你在 Go 中还不会解决 CORS 跨域问题》 — 江湖十年&source=大家好，我是江湖十年，今天来简单聊聊我们在 Web 开发中绕不开的一个话题——跨域。
+关于跨域以及如何解决跨域，算是老生常谈的问题了。虽然这个问题很常见且..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/11/18/go-cors/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《2024 都要过完了，我不允许你在 Go 中还不会解决 CORS 跨域问题》 — 江湖十年&url=http://www.jianghushinian.cn/2024/11/18/go-cors/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/11/18/go-cors/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2024/11/24/x-sync-singleflight/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Go 并发控制：singleflight 详解</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/11/11/sync-once/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 并发控制：sync.Once 详解</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/11/18/go-cors/&title=《2024 都要过完了，我不允许你在 Go 中还不会解决 CORS 跨域问题》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/11/18/go-cors/&title=《2024 都要过完了，我不允许你在 Go 中还不会解决 CORS 跨域问题》 — 江湖十年&source=大家好，我是江湖十年，今天来简单聊聊我们在 Web 开发中绕不开的一个话题——跨域。
+关于跨域以及如何解决跨域，算是老生常谈的问题了。虽然这个问题很常见且..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/11/18/go-cors/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《2024 都要过完了，我不允许你在 Go 中还不会解决 CORS 跨域问题》 — 江湖十年&url=http://www.jianghushinian.cn/2024/11/18/go-cors/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/11/18/go-cors/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/11/18/go-cors/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

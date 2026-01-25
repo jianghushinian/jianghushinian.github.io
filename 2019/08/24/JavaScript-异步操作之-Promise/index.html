@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>JavaScript 异步操作之 Promise | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="JavaScript,异步编程">
+    <meta name="description" content="由于 JavaScript 通常是由单线程来执行代码，所以在编写 JavaScript 代码时经常需要使用异步操作来提高程序性能。一般来说异步执行在 JavaScript 中使用 回调函数 的形式来实现。不过近年来由于社区的推动，Promise 已经成为 JavaScript 异步编程的一个标准，使用 Promise 进行异步编程，代码的可维护性将有很大提升，尤其是使用 Promise 取代多层">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JavaScript 异步操作之 Promise">
+<meta property="og:url" content="http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="由于 JavaScript 通常是由单线程来执行代码，所以在编写 JavaScript 代码时经常需要使用异步操作来提高程序性能。一般来说异步执行在 JavaScript 中使用 回调函数 的形式来实现。不过近年来由于社区的推动，Promise 已经成为 JavaScript 异步编程的一个标准，使用 Promise 进行异步编程，代码的可维护性将有很大提升，尤其是使用 Promise 取代多层">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-08-24T11:16:43.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.718Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="JavaScript">
+<meta property="article:tag" content="异步编程">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">JavaScript 异步操作之 Promise</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">JavaScript 异步操作之 Promise</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2019-08-24T11:16:43.000Z" itemprop="datePublished" class="page-time">
+  2019-08-24
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/JavaScript/">JavaScript</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Promise-简介"><span class="post-toc-number">1.</span> <span class="post-toc-text">Promise 简介</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Promise-能够解决什么问题"><span class="post-toc-number">2.</span> <span class="post-toc-text">Promise 能够解决什么问题</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Promise-的-then-方法和-catch-方法"><span class="post-toc-number">3.</span> <span class="post-toc-text">Promise 的 then 方法和 catch 方法</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Promise-的-all-方法和-race-方法"><span class="post-toc-number">4.</span> <span class="post-toc-text">Promise 的 all 方法和 race 方法</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-JavaScript-异步操作之-Promise"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">JavaScript 异步操作之 Promise</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2019-08-24 19:16:43" datetime="2019-08-24T11:16:43.000Z"  itemprop="datePublished">2019-08-24</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/JavaScript/">JavaScript</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>由于 JavaScript 通常是由单线程来执行代码，所以在编写 JavaScript 代码时经常需要使用异步操作来提高程序性能。一般来说异步执行在 JavaScript 中使用 <code>回调函数</code> 的形式来实现。不过近年来由于社区的推动，<code>Promise</code> 已经成为 JavaScript 异步编程的一个标准，使用 <code>Promise</code> 进行异步编程，代码的可维护性将有很大提升，尤其是使用 <code>Promise</code> 取代多层 <code>回调函数</code> 嵌套的问题。</p>
+<a id="more"></a>
+
+<h3 id="Promise-简介"><a href="#Promise-简介" class="headerlink" title="Promise 简介"></a><code>Promise</code> 简介</h3><p>下面是构造一个最简单的 <code>Promise</code> 代码示例：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 构造 Promise</span></span><br><span class="line"><span class="keyword">const</span> promise = <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function"><span class="keyword">function</span> (<span class="params">resolve, reject</span>) </span>&#123;</span><br><span class="line">    <span class="comment">// 异步操作代码</span></span><br><span class="line">    <span class="keyword">if</span> (异步操作成功) &#123;</span><br><span class="line">        resolve(<span class="keyword">this</span>.response);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        reject(<span class="keyword">this</span>.status);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// promise 状态改变时的回调</span></span><br><span class="line">promise.then(<span class="function"><span class="keyword">function</span> (<span class="params">res</span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(res);  <span class="comment">// 执行成功回调</span></span><br><span class="line">&#125;, <span class="function"><span class="keyword">function</span> (<span class="params">error</span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(error);  <span class="comment">// 执行失败回调</span></span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p><code>Promise</code> 是 JavaScript 提供的一个对象，可以通过 <code>new</code> 关键字构造这个对象。<code>Promise</code> 构造函数接收一个函数作为参数，该函数接收另外两个函数作为参数，分别是 <code>resolve</code>、<code>reject</code>，这两个函数由 JavaScript 引擎自身提供，无需我们手动创建。</p>
+<p><code>Promise</code> 对象有三种状态，分别是：<code>pending</code>(进行中)、<code>fulfilled</code>(已成功)、<code>rejected</code>(已失败)。有两种状态改变，一种是从 <code>pending</code> 变为 <code>fulfilled</code>，另一种是从 <code>pending</code> 变为 <code>rejected</code>，一旦状态改变，状态就会凝固，无法被再次更改。而 <code>resolve</code> 的作用就是将 <code>Promise</code> 对象的状态从 <code>pending</code> 变为 <code>fulfilled</code>，<code>reject</code> 的作用是将 <code>Promise</code> 对象的状态从 <code>pending</code> 变为 <code>rejected</code>。</p>
+<p>通常我们在传递给 <code>Promise</code> 构造函数的函数顶部编写一些异步代码，例如一个 <code>AJAX</code> 请求，然后当异步代码执行成功的时候，调用 <code>resolve</code>，<code>resolve</code> 是一个函数，它能够接收参数，所以我们调用它时可以将异步代码的执行结果传递给它，此时 <code>resolve</code> 函数有两个作用，一是改变 <code>Promise</code> 的状态为 <code>fulfilled</code>，二是它能够将传递进去的参数传递到 <code>promise</code> 实例的 <code>then</code> 方法的第一个回调函数中，待后续操作使用。异步代码执行失败时调用 <code>reject</code> 函数，此时 <code>reject</code> 函数同样有两个作用，一是改变 <code>Promise</code> 的状态为 <code>rejected</code>，二是将传递进去的参数传递到 <code>promise</code> 实例的 <code>then</code> 方法的第二个回调函数中。</p>
+<p>当 <code>Promise</code> 状态一旦改变，我们就可以通过 <code>Promise</code> 对象的实例（<code>promise</code> 变量）的 <code>then</code> 方法获取到异步操作的结果。<code>then</code> 方法接收两个回调函数作为参数，第一个回调函数会在 <code>Promise</code> 状态变为 <code>fulfilled</code> 的时候自动调用，第二个回调函数会在 <code>Promise</code> 状态变为 <code>rejected</code> 的时候自动调用。这两个回调函数分别接收一个参数，第一个回调函数接收到的 <code>res</code> 参数实际上就是我们在 <code>Promise</code> 内部异步代码执行成功时传递给 <code>resolve</code> 的参数，第二个回调函数接收到的 <code>error</code> 参数是在 <code>Promise</code> 内部异步代码执行失败时传递给 <code>reject</code> 的参数。</p>
+<p>以上就是 <code>Promise</code> 对象的执行流程，接下来我们就用一个示例来展示 <code>Promise</code> 在实际编写代码中如何应用。</p>
+<p>先来看一段用 <code>回调函数</code> 的写法发送 <code>AJAX</code> 请求的代码示例：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">handleResponse</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">this</span>.readyState === <span class="number">4</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.status === <span class="number">200</span>) &#123;</span><br><span class="line">            <span class="built_in">console</span>.log(<span class="keyword">this</span>.response);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="built_in">console</span>.log(<span class="keyword">this</span>.status);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> request = <span class="keyword">new</span> XMLHttpRequest();</span><br><span class="line">request.open(<span class="string">'GET'</span>, <span class="string">'http://httpbin.org/get'</span>);</span><br><span class="line">request.onreadystatechange = handleResponse;</span><br><span class="line">request.send();</span><br></pre></td></tr></table></figure>
+
+<p>在编写 Javascript 时这种代码非常常见，那么如何用 <code>Promise</code> 的写法来编写上面这段代码呢？请看下面的示例：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> promise = <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function"><span class="keyword">function</span> (<span class="params">resolve, reject</span>) </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">handleResponse</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.readyState === <span class="number">4</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (<span class="keyword">this</span>.status === <span class="number">200</span>) &#123;</span><br><span class="line">                resolve(<span class="keyword">this</span>.response);  <span class="comment">// 请求成功时调用</span></span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                reject(<span class="keyword">this</span>.status);  <span class="comment">// 请求失败时调用</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">const</span> request = <span class="keyword">new</span> XMLHttpRequest();</span><br><span class="line">    request.open(<span class="string">'GET'</span>, <span class="string">'http://httpbin.org/get'</span>);</span><br><span class="line">    request.onreadystatechange = handleResponse;</span><br><span class="line">    request.send();</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line">promise.then(<span class="function"><span class="keyword">function</span> (<span class="params">res</span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(res);  <span class="comment">// 成功回调</span></span><br><span class="line">&#125;, <span class="function"><span class="keyword">function</span> (<span class="params">error</span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(error);  <span class="comment">// 失败回调</span></span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>以上就是通过 <code>Promise</code> 来处理 <code>AJAX</code> 的写法。乍一看，觉得代码是不是变多了，也更麻烦了？事实上，的确如此，如果仅仅从发送一个简单的 <code>AJAX</code> 请求代码来看我们确实没必要采用 <code>Promise</code> 的写法，这样做只会让代码看起来更加复杂。</p>
+<h3 id="Promise-能够解决什么问题"><a href="#Promise-能够解决什么问题" class="headerlink" title="Promise 能够解决什么问题"></a><code>Promise</code> 能够解决什么问题</h3><p>那么 <code>Promise</code> 的适用场景到底是什么，能够解决什么问题呢？</p>
+<ol>
+<li><code>Promise</code> 非常适合解决 <code>回调地狱</code> 问题。</li>
+<li><code>Promise</code> 解决了回调函数中不能够使用 <code>return</code> 的问题。</li>
+</ol>
+<p>我们来看看 <code>Promise</code> 是如何解决这两个问题的。假设我们需要调用一个获取用户发表的博客列表的接口，而这个接口需要登录才能够调用。也就是说我们调用接口的顺序必须是：先调用登录认证接口进行登录，然后再去调用获取用户博客列表的接口。</p>
+<p>如果使用 <code>jQuery</code> 发送 <code>AJAX</code> 请求的 <code>回调函数</code> 写法，我们有可能会写出这样的代码：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 发送第一个 AJAX 请求进行登录</span></span><br><span class="line">$.ajax(&#123;</span><br><span class="line">    type: <span class="string">'GET'</span>,</span><br><span class="line">    url: <span class="string">'http://localhost:3000/login'</span>,</span><br><span class="line">    success: <span class="function"><span class="keyword">function</span> (<span class="params">res</span>) </span>&#123;</span><br><span class="line">        <span class="comment">// 登录成功回调函数内部，发送第二个 AJAX 请求获取数据</span></span><br><span class="line">        $.ajax(&#123;</span><br><span class="line">            type: <span class="string">'GET'</span>,</span><br><span class="line">            url: <span class="string">'http://localhost:3000/blog/list'</span>,</span><br><span class="line">            success: <span class="function"><span class="keyword">function</span> (<span class="params">res</span>) </span>&#123;</span><br><span class="line">                <span class="built_in">console</span>.log(res);</span><br><span class="line">            &#125;,</span><br><span class="line">            error: <span class="function"><span class="keyword">function</span> (<span class="params">xhr</span>) </span>&#123;</span><br><span class="line">                <span class="built_in">console</span>.log(xhr.status);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;,</span><br><span class="line">    error: <span class="function"><span class="keyword">function</span> (<span class="params">xhr</span>) </span>&#123;</span><br><span class="line">        <span class="built_in">console</span>.log(xhr.status);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，使用 <code>回调函数</code> 形式写出的代码是嵌套形式的。也就是说，每多一次请求，我们就要在 <code>success</code> 回调函数内部再写一层嵌套。如果嵌套层次过多，那么就会出现 JavaScript 令人头疼的问题 —— <code>回调地狱</code>。嵌套层次越多，代码就越难以理解，如果出现异常，那么调试将会是一个非常痛苦的过程。</p>
+<p>我们尝试着用 <code>Promise</code> 来解决上面的问题：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> getResponse = <span class="function"><span class="keyword">function</span> (<span class="params">url</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">const</span> promise = <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function"><span class="keyword">function</span> (<span class="params">resolve, reject</span>) </span>&#123;</span><br><span class="line">        $.ajax(&#123;</span><br><span class="line">            type: <span class="string">'GET'</span>,</span><br><span class="line">            url: url,</span><br><span class="line">            success: <span class="function"><span class="keyword">function</span> (<span class="params">res</span>) </span>&#123;</span><br><span class="line">                resolve(res);</span><br><span class="line">            &#125;,</span><br><span class="line">            error: <span class="function"><span class="keyword">function</span> (<span class="params">xhr</span>) </span>&#123;</span><br><span class="line">                reject(xhr);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line">    <span class="keyword">return</span> promise;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">getResponse(<span class="string">'http://localhost:3000/login'</span>).then(<span class="function"><span class="keyword">function</span> (<span class="params">res</span>) </span>&#123;</span><br><span class="line">    getResponse(<span class="string">'http://localhost:3000/blog/list'</span>).then(<span class="function"><span class="keyword">function</span> (<span class="params">res</span>) </span>&#123;</span><br><span class="line">        <span class="built_in">console</span>.log(res);</span><br><span class="line">    &#125;, <span class="function"><span class="keyword">function</span> (<span class="params">xhr</span>) </span>&#123;</span><br><span class="line">        <span class="built_in">console</span>.log(xhr.status);</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;, <span class="function"><span class="keyword">function</span> (<span class="params">xhr</span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(xhr.status);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>以上是使用 <code>Promise</code> 进行重构的代码，但仔细观察你会发现：上面的代码依然在用 <code>回调</code> 的思想来写 <code>Promise</code> 代码。在第一次调用 <code>getResponse</code> 函数请求 <code>http://localhost:3000/login</code> 成功后，代码执行 <code>then</code> 方法，在 <code>then</code> 方法的内部，再一次调用了 <code>getResponse</code> 函数，这一次请求 <code>http://localhost:3000/blog/list</code> 地址，成功后执行下一个 <code>then</code> 方法，在 <code>then</code> 方法内部就能够成功获取用户博客列表的接口返回结果。</p>
+<p>其实上面这段代码同样存在 <code>回调地狱</code> 的问题，因为如果请求次数过多，我们同样需要在一层层的嵌套函数中调用 <code>getResponse</code>。这无疑没有摆脱 <code>回调地狱</code>。</p>
+<p>来看正确使用 <code>Promise</code> 对象解决 <code>回调地狱</code> 的示例：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> getResponse = <span class="function"><span class="keyword">function</span> (<span class="params">url</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">const</span> promise = <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function"><span class="keyword">function</span> (<span class="params">resolve, reject</span>) </span>&#123;</span><br><span class="line">        $.ajax(&#123;</span><br><span class="line">            type: <span class="string">'GET'</span>,</span><br><span class="line">            url: url,</span><br><span class="line">            success: <span class="function"><span class="keyword">function</span> (<span class="params">res</span>) </span>&#123;</span><br><span class="line">                resolve(res);</span><br><span class="line">            &#125;,</span><br><span class="line">            error: <span class="function"><span class="keyword">function</span> (<span class="params">xhr</span>) </span>&#123;</span><br><span class="line">                reject(xhr.status);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line">    <span class="keyword">return</span> promise;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">getResponse(<span class="string">'http://localhost:3000/login'</span>).then(<span class="function"><span class="keyword">function</span> (<span class="params">res</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> getResponse(<span class="string">'http://localhost:3000/blog/list'</span>);</span><br><span class="line">&#125;, <span class="function"><span class="keyword">function</span> (<span class="params">xhr</span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(xhr.status);</span><br><span class="line">&#125;).then(<span class="function"><span class="keyword">function</span> (<span class="params">res</span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(res);</span><br><span class="line">&#125;, <span class="function"><span class="keyword">function</span> (<span class="params">xhr</span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(xhr.status);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>Promise</code> 接口中，<code>then</code> 方法会返回一个新的 <code>Promise</code> 实例，所以我们能够采用链式调用的写法，<code>then</code> 方法后面再接另一个 <code>then</code> 方法，理论上可以无限的接下去。</p>
+<p>注意第一个 <code>then</code> 方法的内部，在调用 <code>getResponse(&#39;http://localhost:3000/blog/list&#39;)</code> 的前面加上了 <code>return</code>。正是这个 <code>return</code> 的存在，才使得不使用层层嵌套的写法成为可能，得以使代码展平。<code>Promise</code> 实例后面的 <code>then</code> 方法会依次执行，前一次 <code>then</code> 方法内部的 <code>return</code> 结果，会当作参数传入下一个 <code>then</code> 方法。如果使用回调函数的写法，因为其内部没有办法 <code>return</code>，所以你只能无限的增加嵌套来解决问题。</p>
+<p>这段代码才能体现出 <code>Promise</code> 对象的真正威力，它能够把层层嵌套的代码全部展平。每多一次请求，就在后面再增加一个 <code>then</code>方法的调用，这样写出来的代码明显要直观很多，你不需要再写出多层嵌套的代码。</p>
+<h3 id="Promise-的-then-方法和-catch-方法"><a href="#Promise-的-then-方法和-catch-方法" class="headerlink" title="Promise 的 then 方法和 catch 方法"></a><code>Promise</code> 的 <code>then</code> 方法和 <code>catch</code> 方法</h3><p>通过前面的介绍我们知道 <code>Promise</code> 的 <code>then</code> 方法接收两个回调函数作为参数。实际上，它的第二个参数并不是必填的，如果你不关心异常，那么就可以只写第一个回调函数。</p>
+<p><code>Promise</code> 还提供了 <code>catch</code> 方法专门用来接收异常，写法如下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">getResponse(<span class="string">'http://localhost:3000/login'</span>).then(<span class="function"><span class="keyword">function</span> (<span class="params">res</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> getResponse(<span class="string">'http://localhost:3000/blog/list'</span>);</span><br><span class="line">&#125;).catch(<span class="function"><span class="keyword">function</span> (<span class="params">xhr</span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(xhr.status);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>用上面这种写法来处理异常更符合直觉，看起来也更加清晰，不用在 <code>then</code> 方法内部传入第二个回调函数去处理异常，而是单独在 <code>catch</code> 方法内部进行处理。事实上 <code>.catch(callback)</code> 方法等价于 <code>.then(undefined, callback)</code>。</p>
+<h3 id="Promise-的-all-方法和-race-方法"><a href="#Promise-的-all-方法和-race-方法" class="headerlink" title="Promise 的 all 方法和 race 方法"></a><code>Promise</code> 的 <code>all</code> 方法和 <code>race</code> 方法</h3><p><code>Promise</code> 的 <code>all</code> 方法可以将多个 <code>Promise</code> 实例，合并为一个 <code>Promise</code> 实例。</p>
+<p>这有什么用？假设我们需要等待多个异步操作都执行完才能执行下一步逻辑，此时就是使用 <code>all</code> 方法的绝佳时机。这种情况使用 <code>回调函数</code> 的形式不太好解决，而使用 <code>Promise</code> 就非常简单。</p>
+<p>我们通过请求三次 <code>http://httpbin.org/get</code> 来模拟需要等待的三个异步操作，写出的代码如下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> p1 = getResponse(<span class="string">'http://httpbin.org/get'</span>);</span><br><span class="line"><span class="keyword">const</span> p2 = getResponse(<span class="string">'http://httpbin.org/get'</span>);</span><br><span class="line"><span class="keyword">const</span> p3 = getResponse(<span class="string">'http://httpbin.org/get'</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> p = <span class="built_in">Promise</span>.all([p1, p2, p3]);</span><br><span class="line">p.then(<span class="function"><span class="params">res</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(res);</span><br><span class="line">&#125;).catch(<span class="function"><span class="params">err</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(err);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p><code>all</code> 方法接收一个数组作为参数，数组每一项都是一个 <code>Promise</code> 对象，<code>Promise</code> 实例 <code>p</code> 就是合并后的对象，<code>p1</code>、<code>p2</code>、<code>p3</code> 的状态决定了 <code>p</code> 的最终状态。</p>
+<p>只有 <code>p1</code>、<code>p2</code>、<code>p3</code> 的状态同时都变为 <code>fulfilled</code> 时，<code>p</code> 的状态才会变为 <code>fulfilled</code>。只要 <code>p1</code>、<code>p2</code>、<code>p3</code> 的状态有一个变为 <code>rejected</code>，<code>p</code> 的状态就会变为 <code>rejected</code>。当 <code>p</code> 的状态变为 <code>fulfilled</code>时，<code>p1</code>、<code>p2</code>、<code>p3</code> 的返回结果会组成一个列表，自动传递给 <code>p</code> 的 <code>then</code> 方法的回调函数。并且这个列表的顺序由传入 <code>all</code> 方法的数组中 <code>p1</code>、<code>p2</code>、<code>p3</code> 的顺序决定。</p>
+<p>当 <code>p1</code>、<code>p2</code>、<code>p3</code> 任意一个状态变为 <code>rejected</code> 时，只有其没有自己的 <code>catch</code> 方法时才会调用 <code>all</code> 方法后面的 <code>catch</code> 方法。否则只会调用其自己的 <code>catch</code> 方法。</p>
+<p>至于 <code>race</code> 方法的用法与 <code>all</code> 方法完全相同，其区别是：只要 <code>p1</code>、<code>p2</code>、<code>p3</code> 的状态有一个变为 <code>fulfilled</code> 时，<code>p</code> 的状态就会变为 <code>fulfilled</code>。这也是 <code>race</code> 这个单词所代表的含义 <code>竞争</code>，只要 <code>p1</code>、<code>p2</code>、<code>p3</code> 其中有一个对象率先改变了状态，那么 <code>p</code> 的状态也就随之改变并且凝固。其他两个对象内部的代码还是会执行，但其结果已经没有用了。</p>
+<p>由于使用 <code>race</code> 的代码只需要将 <code>Promise.all([p1, p2, p3])</code> 换成 <code>Promise.race([p1, p2, p3])</code> 即可，所以这里不再给出代码示例。</p>
+<p>以上就是关于 <code>Promise</code> 使用方法的介绍，事实上 <code>Promise</code> 不止提供了这些接口，不过其他接口很少会用到，所以这里不再过多介绍，等你熟悉了它的用法后可以再进一步去学习。</p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.718Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/" target="_blank" rel="external">http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/JavaScript/" rel="tag">JavaScript</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" rel="tag">异步编程</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/&title=《JavaScript 异步操作之 Promise》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/&title=《JavaScript 异步操作之 Promise》 — 江湖十年&source=由于 JavaScript 通常是由单线程来执行代码，所以在编写 JavaScript 代码时经常需要使用异步操作来提高程序性能。一般来说异步执行在 Ja..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《JavaScript 异步操作之 Promise》 — 江湖十年&url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2019/09/08/Python-%E8%B5%8B%E5%80%BC%E4%B8%8E%E6%8B%B7%E8%B4%9D/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Python 赋值与拷贝</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2019/08/22/Python-%E4%B8%AD%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%AF%94%E8%BE%83%E6%93%8D%E4%BD%9C/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Python 中对象的比较操作 == 与 is</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/&title=《JavaScript 异步操作之 Promise》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/&title=《JavaScript 异步操作之 Promise》 — 江湖十年&source=由于 JavaScript 通常是由单线程来执行代码，所以在编写 JavaScript 代码时经常需要使用异步操作来提高程序性能。一般来说异步执行在 Ja..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《JavaScript 异步操作之 Promise》 — 江湖十年&url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2019/08/24/JavaScript-%E5%BC%82%E6%AD%A5%E6%93%8D%E4%BD%9C%E4%B9%8B-Promise/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

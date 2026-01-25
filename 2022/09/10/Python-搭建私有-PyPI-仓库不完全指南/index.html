@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Python 搭建私有 PyPI 仓库不完全指南 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Python">
+    <meta name="description" content="由于某些不可抗力因素的存在，当我们通过 pip install xxx 的方式安装第三方 Python 包时，经常出现速度不理想的情况，而这个时候通常解决方案是使用诸如 豆瓣源、阿里源 等来进行下载 Python 包。其实我们也可以自己搭建一个私有的 PyPI 仓库来进行 Python 包管理，本文就来介绍下如何搭建一个私有的 PyPI 仓库。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python 搭建私有 PyPI 仓库不完全指南">
+<meta property="og:url" content="http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="由于某些不可抗力因素的存在，当我们通过 pip install xxx 的方式安装第三方 Python 包时，经常出现速度不理想的情况，而这个时候通常解决方案是使用诸如 豆瓣源、阿里源 等来进行下载 Python 包。其实我们也可以自己搭建一个私有的 PyPI 仓库来进行 Python 包管理，本文就来介绍下如何搭建一个私有的 PyPI 仓库。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/welcome_to_pypiserver.jpg">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/example-package.jpg">
+<meta property="article:published_time" content="2022-09-10T06:53:54.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.771Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Python">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/welcome_to_pypiserver.jpg">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Python 搭建私有 PyPI 仓库不完全指南</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Python 搭建私有 PyPI 仓库不完全指南</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2022-09-10T06:53:54.000Z" itemprop="datePublished" class="page-time">
+  2022-09-10
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#优势"><span class="post-toc-number">1.</span> <span class="post-toc-text">优势</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#搭建并使用"><span class="post-toc-number">2.</span> <span class="post-toc-text">搭建并使用</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#启动-pypiserver"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">启动 pypiserver</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#上传-Python-包到-pypiserver"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">上传 Python 包到 pypiserver</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#构建项目包"><span class="post-toc-number">2.2.1.</span> <span class="post-toc-text">构建项目包</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#上传项目包"><span class="post-toc-number">2.2.2.</span> <span class="post-toc-text">上传项目包</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#从-pypiserver-下载并使用包"><span class="post-toc-number">2.2.3.</span> <span class="post-toc-text">从 pypiserver 下载并使用包</span></a></li></ol></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#启用认证"><span class="post-toc-number">3.</span> <span class="post-toc-text">启用认证</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#生成认证文件"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">生成认证文件</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#启动带有认证功能的-pypiserver"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">启动带有认证功能的 pypiserver</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#优化认证过程"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">优化认证过程</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#参考"><span class="post-toc-number">5.</span> <span class="post-toc-text">参考</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-Python-搭建私有-PyPI-仓库不完全指南"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Python 搭建私有 PyPI 仓库不完全指南</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2022-09-10 14:53:54" datetime="2022-09-10T06:53:54.000Z"  itemprop="datePublished">2022-09-10</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>由于某些不可抗力因素的存在，当我们通过 <code>pip install xxx</code> 的方式安装第三方 Python 包时，经常出现速度不理想的情况，而这个时候通常解决方案是使用诸如 <a href="https://pypi.doubanio.com/simple/" target="_blank" rel="noopener"><code>豆瓣源</code></a>、<a href="https://mirrors.aliyun.com/pypi/simple/" target="_blank" rel="noopener"><code>阿里源</code></a> 等来进行下载 Python 包。其实我们也可以自己搭建一个私有的 PyPI 仓库来进行 Python 包管理，本文就来介绍下如何搭建一个私有的 PyPI 仓库。</p>
+<a id="more"></a>
+
+<h3 id="优势"><a href="#优势" class="headerlink" title="优势"></a>优势</h3><p>先解释下已经有了 <a href="https://pypi.doubanio.com/simple/" target="_blank" rel="noopener"><code>豆瓣源</code></a>、<a href="https://mirrors.aliyun.com/pypi/simple/" target="_blank" rel="noopener"><code>阿里源</code></a> 的存在，我们为什么还要自己搭建 PyPI 仓库，自建 PyPI 仓库有哪些优势：</p>
+<ol>
+<li><p>速度更快，如果自己搭建的 PyPI 仓库只在内网使用，那么理论速度将会更快。</p>
+</li>
+<li><p>可掌控，第三方 PyPI 源一般都是定时同步 Python 官方的 PyPI 仓库，有时候会出现某些包不存在的情况，如果是我们自己搭建的私有 PyPI 仓库，则可以自己手动上传 Python 包。</p>
+</li>
+<li><p>隐私性，有些内部库不打算开源，但需要团队之间共享，如果只用私有 <code>Git</code> 仓库来管理分发则装包时就会比较麻烦，既然是私有 PyPI 仓库，我们就可以控制只有内部人员可以使用。</p>
+</li>
+</ol>
+<h3 id="搭建并使用"><a href="#搭建并使用" class="headerlink" title="搭建并使用"></a>搭建并使用</h3><p>我们将使用 <a href="https://github.com/pypiserver/pypiserver" target="_blank" rel="noopener"><code>pypiserver</code></a> 开源项目来搭建私有 PyPI 仓库，<code>pypiserver</code> 使用 <code>Bottle</code> 这个 Python Web 框架实现了一个轻量版的 PyPI。</p>
+<p><code>pypiserver</code> 搭建方式有多种，可以直接通过 <code>pip install pypiserver</code> 来安装并使用，不过我今天想要介绍的是使用 Docker 的方式来安装。</p>
+<h4 id="启动-pypiserver"><a href="#启动-pypiserver" class="headerlink" title="启动 pypiserver"></a>启动 <code>pypiserver</code></h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">➜ docker run --rm -p 80:8080 pypiserver/pypiserver:latest -P . -a . --fallback-url https://pypi.douban.com/simple</span><br></pre></td></tr></table></figure>
+
+<p>各参数说明：</p>
+<ul>
+<li><p><code>docker run</code> 表示通过 Docker 启动一个容器（进程）</p>
+</li>
+<li><p><code>--rm</code> 表示这个容器用完即删，非常适合测试阶段</p>
+</li>
+<li><p><code>-p 80:8080</code> 表示主机监听到 <code>80</code> 端口的请求将会转发给容器内部的 <code>8080</code> 端口，也就是会被 <code>pypiserver</code> 接收到</p>
+</li>
+<li><p><code>pypiserver/pypiserver:latest</code> 表示容器镜像，版本为 <code>latest</code></p>
+</li>
+<li><p><code>-P . -a .</code> 是启动 <code>pypiserver</code> 的参数，表名不使用用户名和密码进行认证</p>
+</li>
+<li><p><code>--fallback-url https://pypi.douban.com/simple</code> 下载包时，如果在私有 PyPI 仓库中没有找到某个包，将请求转发到 <code>豆瓣源</code></p>
+</li>
+</ul>
+<p>启动后访问 <code>http://127.0.0.1/</code> 将得打如下界面：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="welcome_to_pypiserver.jpg" alt="Welcome to pypiserver" title="">
+                </div>
+                <div class="image-caption">Welcome to pypiserver</div>
+            </figure>
+
+<p>表示已经成功搭建私有 PyPI 仓库。</p>
+<h4 id="上传-Python-包到-pypiserver"><a href="#上传-Python-包到-pypiserver" class="headerlink" title="上传 Python 包到 pypiserver"></a>上传 Python 包到 <code>pypiserver</code></h4><p>以 <a href="https://github.com/jianghushinian/python_packaging_tutorial" target="_blank" rel="noopener"><code>python_packaging_tutorial</code></a> 项目为例，将其打包并上传到 <code>pypiserver</code>。</p>
+<p>项目目录结构如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">python_packaging_tutorial</span><br><span class="line">├── LICENSE</span><br><span class="line">├── README.md</span><br><span class="line">├── pyproject.toml</span><br><span class="line">├── requirements.txt</span><br><span class="line">├── src</span><br><span class="line">│   └── example_package</span><br><span class="line">│       ├── __init__.py</span><br><span class="line">│       └── example.py</span><br><span class="line">└── tests</span><br><span class="line">    ├── __init__.py</span><br><span class="line">    └── test_example.py</span><br></pre></td></tr></table></figure>
+
+<h5 id="构建项目包"><a href="#构建项目包" class="headerlink" title="构建项目包"></a>构建项目包</h5><p>构建命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 安装构建工具</span></span><br><span class="line">➜ python3 -m pip install --upgrade build</span><br><span class="line"><span class="comment"># 构建（打包）</span></span><br><span class="line">➜ python3 -m build</span><br></pre></td></tr></table></figure>
+
+<p>现在目录结构如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">python_packaging_tutorial</span><br><span class="line">├── LICENSE</span><br><span class="line">├── README.md</span><br><span class="line">├── dist</span><br><span class="line">│   ├── example_package-0.0.1-py3-none-any.whl</span><br><span class="line">│   └── example_package-0.0.1.tar.gz</span><br><span class="line">├── pyproject.toml</span><br><span class="line">├── requirements.txt</span><br><span class="line">├── src</span><br><span class="line">│   ├── example_package</span><br><span class="line">│   │   ├── __init__.py</span><br><span class="line">│   │   └── example.py</span><br><span class="line">│   └── example_package.egg-info</span><br><span class="line">│       ├── PKG-INFO</span><br><span class="line">│       ├── SOURCES.txt</span><br><span class="line">│       ├── dependency_links.txt</span><br><span class="line">│       ├── requires.txt</span><br><span class="line">│       └── top_level.txt</span><br><span class="line">└── tests</span><br><span class="line">    ├── __init__.py</span><br><span class="line">    └── test_example.py</span><br></pre></td></tr></table></figure>
+
+<p>可以看到在 <code>dist</code> 目录下生成了两个包文件 <code>example_package-0.0.1.tar.gz</code>、<code>example_package-0.0.1-py3-none-any.whl</code>。前者只对项目代码进行了打包和压缩工作，后者是编译好的二进制包。为了保证跨平台性，我们这里只会将 <code>example_package-0.0.1.tar.gz</code> 上传到 <code>pypiserver</code>。</p>
+<p><strong>Tip:</strong> 如果想在本地直接安装构建好的包，执行 <code>python3 -m pip install ./dist/example_package-0.0.1.tar.gz</code> 命令即可。</p>
+<h5 id="上传项目包"><a href="#上传项目包" class="headerlink" title="上传项目包"></a>上传项目包</h5><p>创建 <code>~/.pypirc</code> 文件，供下面介绍的分发工具 <code>twine</code> 来使用</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[distutils]</span><br><span class="line">index-servers&#x3D;private-pypi</span><br><span class="line"></span><br><span class="line">[private-pypi]</span><br><span class="line">repository &#x3D; http:&#x2F;&#x2F;127.0.0.1:80</span><br></pre></td></tr></table></figure>
+
+<p>上传构建好的 Python 包</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Python 现在推荐使用 twine 上传分发包，所以需要先安装它</span></span><br><span class="line">➜ python3 -m pip install --upgrade twine</span><br><span class="line"><span class="comment"># 上传 Python 包到 PyPI 仓库</span></span><br><span class="line"><span class="comment"># --repository private-pypi 指定私有 PyPI 仓库，从 `~/.pypirc` 中读取 URL 地址</span></span><br><span class="line"><span class="comment"># -u "" -p "" 分别指定用户名和密码为空</span></span><br><span class="line">➜ python3 -m twine upload --repository private-pypi dist/example_package-0.0.1.tar.gz -u <span class="string">""</span> -p <span class="string">""</span></span><br></pre></td></tr></table></figure>
+
+<p>现在访问 <code>http://127.0.0.1/simple/example-package/</code> 将看到已经上传成功的包</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="example-package.jpg" alt="Example Package" title="">
+                </div>
+                <div class="image-caption">Example Package</div>
+            </figure>
+
+<h5 id="从-pypiserver-下载并使用包"><a href="#从-pypiserver-下载并使用包" class="headerlink" title="从 pypiserver 下载并使用包"></a>从 <code>pypiserver</code> 下载并使用包</h5><p>有如下测试代码 <code>test_package.py</code>：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> example_package <span class="keyword">import</span> example</span><br><span class="line"></span><br><span class="line">example.hello_world()</span><br><span class="line"></span><br><span class="line">response = example.httpbin_get()</span><br><span class="line">print(response.status_code)</span><br></pre></td></tr></table></figure>
+
+<p>从私有 PyPI 仓库安装 <code>example_package</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">➜ pip install example-package -i http://127.0.0.1/simple/</span><br></pre></td></tr></table></figure>
+
+<p><strong>注意：</strong> <code>example_package</code> 项目依赖了外部第三方包，在 <code>pyproject.toml</code> 可以看到如下配置：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">dependencies &#x3D; [</span><br><span class="line">    &quot;certifi&#x3D;&#x3D;2022.6.15&quot;,</span><br><span class="line">    &quot;charset-normalizer&#x3D;&#x3D;2.1.1&quot;,</span><br><span class="line">    &quot;idna&#x3D;&#x3D;3.3&quot;,</span><br><span class="line">    &quot;requests&#x3D;&#x3D;2.28.1&quot;,</span><br><span class="line">    &quot;urllib3&#x3D;&#x3D;1.26.12&quot;,</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+
+<p>我们搭建的私有 PyPI 仓库只上传了 <code>example_package</code> 包，并不包含以上这几个外部第三方包，当在 <code>pypiserver</code> 中找不到要下载的包时，请求会被转发到 <code>--fallback-url</code> 指定的镜像源地址。</p>
+<p>执行测试程序</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">➜ python3 test_package.py</span><br><span class="line">Hello World!</span><br><span class="line">200</span><br></pre></td></tr></table></figure>
+
+<p>没有问题。</p>
+<h3 id="启用认证"><a href="#启用认证" class="headerlink" title="启用认证"></a>启用认证</h3><h4 id="生成认证文件"><a href="#生成认证文件" class="headerlink" title="生成认证文件"></a>生成认证文件</h4><p>现在虽然已经通过 <code>pypiserver</code> 搭建并使用了私有 PyPI 仓库，但还不够私有化，用现在比较流行的说法：私有了，但没完全私有。因为只要在同一内网中的其他用户就可以随意将自己的 Python 包上传到 <code>pypiserver</code> 中，这可能会导致有人随意上传和 <code>example_package</code> 同名的包，来覆盖我们自己上传的 Python 包。</p>
+<p>现在我们需要给 <code>pypiserver</code> 增加认证功能，这样只有拥有账号密码的用户才可以上传 Python 包。</p>
+<p>这里需要借助 <code>Apache htpasswd</code> 来生成一个认证文件供 <code>pypiserver</code> 服务使用</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">➜ htpasswd -c ~/.htpasswd username</span><br><span class="line">New password: <span class="comment"># 输入密码</span></span><br><span class="line">Re-type new password: <span class="comment"># 再次输入密码</span></span><br><span class="line">Adding password <span class="keyword">for</span> user username</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>htpasswd</code> 来生成一个用户名为 <code>username</code> 密码为 <code>password</code> 的认证文件 <code>~/.htpasswd</code>。</p>
+<p>其文件内容如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">➜ cat ~/.htpasswd</span><br><span class="line">username:<span class="variable">$apr1</span><span class="variable">$Yob6NUQf</span><span class="variable">$M8vpxJ</span>.PpNYh0FEahMLzS0</span><br></pre></td></tr></table></figure>
+
+<h4 id="启动带有认证功能的-pypiserver"><a href="#启动带有认证功能的-pypiserver" class="headerlink" title="启动带有认证功能的 pypiserver"></a>启动带有认证功能的 <code>pypiserver</code></h4><p>先使用 <code>Ctrl+C</code> 停掉之前使用 <code>docker run ...</code> 命令启动的 <code>pypiserver</code> 服务，还记得启动时指定的 <code>--rm</code> 参数吗，这个参数此时就会发挥作用，它会自动删除当前停掉的容器。</p>
+<p>再使用如下命令启动新的 <code>pypiserver</code> 服务：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">➜ docker run --rm -p 80:8080 -v ~/.htpasswd:/data/.htpasswd pypiserver/pypiserver:latest --fallback-url https://pypi.douban.com/simple -P .htpasswd packages</span><br></pre></td></tr></table></figure>
+
+<p>这次的启动命令先通过 <code>-v ~/.htpasswd:/data/.htpasswd</code> 参数将认证文件 <code>~/.htpasswd</code> 复制到容器内部，然后再通过 <code>-P .htpasswd</code> 来供 <code>pypiserver</code> 服务使用，就可以开启私有 PyPI 仓库的认证功能。最后的 <code>packages</code> 参数指明存放 Python 包的目录，不指定也没关系，它必须是容器内部已经存在的目录，默认为 <code>/data/packages</code> 目录。</p>
+<p>现在上传 Python 包则需要指明用户名和密码才可以上传成功：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">➜ python3 -m twine upload --repository private-pypi dist/example_package-0.0.1.tar.gz -u username -p password</span><br></pre></td></tr></table></figure>
+
+<p>否则将得到如下错误：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">➜ python3 -m twine upload --repository private-pypi dist/example_package-0.0.1.tar.gz -u <span class="string">""</span> -p <span class="string">""</span>            </span><br><span class="line">Uploading distributions to http://127.0.0.1:80</span><br><span class="line">Uploading example_package-0.0.1.tar.gz</span><br><span class="line">100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.0/7.0 kB • 00:00 • ?</span><br><span class="line">WARNING  Error during upload. Retry with the --verbose option <span class="keyword">for</span> more details.                                                           </span><br><span class="line">ERROR    HTTPError: 401 Unauthorized from http://127.0.0.1:80/                                                                            </span><br><span class="line">         Unauthorized</span><br></pre></td></tr></table></figure>
+
+<h4 id="优化认证过程"><a href="#优化认证过程" class="headerlink" title="优化认证过程"></a>优化认证过程</h4><p>你一定不想每次使用私有 PyPI 仓库上传 Python 包都输入用户名和密码，即使通过使用环境变量来保存用户名和密码的方式也会比较繁琐，不过有一种非常简单的方法可以做到避免输入用户名和密码的麻烦。</p>
+<p>修改 <code>~/.pypirc</code> 文件：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[distutils]</span><br><span class="line">index-servers&#x3D;private-pypi</span><br><span class="line"></span><br><span class="line">[private-pypi]</span><br><span class="line">repository &#x3D; http:&#x2F;&#x2F;127.0.0.1:80</span><br><span class="line">username &#x3D; &lt;username&gt;</span><br><span class="line">password &#x3D; &lt;password&gt;</span><br></pre></td></tr></table></figure>
+
+<p><em>对应的 <code>&lt;username&gt;</code>、<code>&lt;password&gt;</code> 部分替换成我们用 <code>.htpasswd</code> 创建认证文件时指定的用户名和密码</em></p>
+<p>现在直接使用如下命令即可上传 Python 包到私有仓库：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">➜ python3 -m twine upload --repository private-pypi dist/example_package-0.0.1.tar.gz</span><br></pre></td></tr></table></figure>
+
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文介绍了使用 Docker 搭建私有 PyPI 仓库的基本流程，如果正式部署 <code>pypiserver</code> 项目，则在使用 <code>docker run ...</code> 命令启动的 <code>pypiserver</code> 服务时，建议使用如下命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">➜ docker run -d --name pypiserver -p 80:8080 -v ~/packages:/data/packages -v ~/.htpasswd:/data/.htpasswd pypiserver/pypiserver:latest --fallback-url https://pypi.douban.com/simple -P .htpasswd packages</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>这条命令将 <code>--rm</code> 参数移除，这样当想要停止或者重启容器时容器不会被清理掉</p>
+</li>
+<li><p>新增加的 <code>-d</code> 参数让容器以后台进程的方式运行，这样即使关闭终端，容器依然在运行</p>
+</li>
+<li><p><code>--name pypiserver</code> 参数给启动容器取名为 <code>pypiserver</code>，方便维护</p>
+</li>
+<li><p><code>-v ~/packages:/data/packages</code> 参数将主机 <code>~/packages</code> 目录挂载到容器 <code>/data/packages</code> 目录，这样即使删除容器，我们上传过的 Python 包依然存在，不会丢失，重新运行新的容器时再次使用此参数挂载容器，那么新启动的 <code>pypiserver</code> 服务依然能够读取以前上传的 Python 包</p>
+</li>
+</ul>
+<p>如果你对 Docker 不熟悉，官方文档也有直接通过 <code>pip</code> 安装 <code>pypiserver</code> 的方式。如果需要更高级的功能可以在 <a href="https://github.com/pypiserver/pypiserver" target="_blank" rel="noopener"><code>pypiserver</code></a> GitHub 官方仓库查看更详细的文档。</p>
+<p>如果你有多个私有仓库需要配置，那么 <code>~/.pypirc</code> 文件可以这样写：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">[distutils]</span><br><span class="line">index-servers &#x3D;</span><br><span class="line">  local</span><br><span class="line">  5.14</span><br><span class="line"></span><br><span class="line">[local]</span><br><span class="line">repository &#x3D; http:&#x2F;&#x2F;127.0.0.1:8080</span><br><span class="line">username &#x3D; username</span><br><span class="line">password &#x3D; password</span><br><span class="line"></span><br><span class="line">[5.14]</span><br><span class="line">repository &#x3D; http:&#x2F;&#x2F;10.0.5.14:31578</span><br><span class="line">username &#x3D; fake</span><br><span class="line">password &#x3D; fake</span><br></pre></td></tr></table></figure>
+
+<p>本文也顺带讲了一点构建 Python 包的知识，你也许对使用 <code>pyproject.toml</code> 文件来构建 Python 包比较陌生，现在较知名的 Python 开源项目由于历史原因，使用此方式的的确不多，不过还是推荐你了解一下。关于 Python 包构建可讲的东西其实也比较多，简单一句话概括：<code>setup.py</code> 是过去，<code>setup.cfg</code> 是现在，<code>pyproject.toml</code> 是未来。</p>
+<p>希望这篇文档对你有所帮助。</p>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><blockquote>
+<p><a href="https://packaging.python.org/en/latest/tutorials/packaging-projects/" target="_blank" rel="noopener">https://packaging.python.org/en/latest/tutorials/packaging-projects/</a><br><a href="https://peps.python.org/pep-0631/" target="_blank" rel="noopener">https://peps.python.org/pep-0631/</a><br><a href="https://peps.python.org/pep-0517/" target="_blank" rel="noopener">https://peps.python.org/pep-0517/</a></p>
+</blockquote>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.771Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/" target="_blank" rel="external">http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/&title=《Python 搭建私有 PyPI 仓库不完全指南》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/&title=《Python 搭建私有 PyPI 仓库不完全指南》 — 江湖十年&source=由于某些不可抗力因素的存在，当我们通过 pip install xxx 的方式安装第三方 Python 包时，经常出现速度不理想的情况，而这个时候通常解决..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Python 搭建私有 PyPI 仓库不完全指南》 — 江湖十年&url=http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2022/11/04/Kubernetes-%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8%E6%96%B9%E6%A1%88-OpenEBS-LocalPV-%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5%E4%B8%8A%E2%80%94%E2%80%94%E4%BD%BF%E7%94%A8%E7%AF%87/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Kubernetes 本地持久化存储方案 OpenEBS LocalPV 落地实践上——使用篇</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Python Type Hints 从入门到实践</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/&title=《Python 搭建私有 PyPI 仓库不完全指南》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/&title=《Python 搭建私有 PyPI 仓库不完全指南》 — 江湖十年&source=由于某些不可抗力因素的存在，当我们通过 pip install xxx 的方式安装第三方 Python 包时，经常出现速度不理想的情况，而这个时候通常解决..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Python 搭建私有 PyPI 仓库不完全指南》 — 江湖十年&url=http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>xgo: 一款新鲜出炉的 Go 代码测试利器 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,Test">
+    <meta name="description" content="我曾经写过一篇文章《测试代码终极解决方案 Monkey Patching》，里面介绍了 Go 语言中的猴子补丁方案。如今，时隔数月我又发现了一款新的工具可以实现 Monkey Patching，本文将带大家一起尝鲜下这款新的测试工具表现如何。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="xgo: 一款新鲜出炉的 Go 代码测试利器">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="我曾经写过一篇文章《测试代码终极解决方案 Monkey Patching》，里面介绍了 Go 语言中的猴子补丁方案。如今，时隔数月我又发现了一款新的工具可以实现 Monkey Patching，本文将带大家一起尝鲜下这款新的测试工具表现如何。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/trace.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/git-diff.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/incremental-coverage.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/full-coverage.png">
+<meta property="article:published_time" content="2024-05-19T08:14:55.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:13.328Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="Test">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/trace.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">xgo: 一款新鲜出炉的 Go 代码测试利器</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">xgo: 一款新鲜出炉的 Go 代码测试利器</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-05-19T08:14:55.000Z" itemprop="datePublished" class="page-time">
+  2024-05-19
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#简介"><span class="post-toc-number">1.</span> <span class="post-toc-text">简介</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#HTTP-服务程序示例"><span class="post-toc-number">2.</span> <span class="post-toc-text">HTTP 服务程序示例</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用-xgo-进行单元测试"><span class="post-toc-number">3.</span> <span class="post-toc-text">使用 xgo 进行单元测试</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#安装"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">安装</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#编写测试代码"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">编写测试代码</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#xgo-其他功能"><span class="post-toc-number">4.</span> <span class="post-toc-text">xgo 其他功能</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Trap"><span class="post-toc-number">4.1.</span> <span class="post-toc-text">Trap</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Trace"><span class="post-toc-number">4.2.</span> <span class="post-toc-text">Trace</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#增量覆盖率"><span class="post-toc-number">4.3.</span> <span class="post-toc-text">增量覆盖率</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">5.</span> <span class="post-toc-text">总结</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#P-S"><span class="post-toc-number">6.</span> <span class="post-toc-text">P.S.</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-xgo-a-fresh-go-code-testing-tool"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">xgo: 一款新鲜出炉的 Go 代码测试利器</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-05-19 16:14:55" datetime="2024-05-19T08:14:55.000Z"  itemprop="datePublished">2024-05-19</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>我曾经写过一篇文章<a href="https://jianghushinian.cn/2023/07/22/the-ultimate-solution-to-test-code-monkey-patching/" target="_blank" rel="noopener">《测试代码终极解决方案 Monkey Patching》</a>，里面介绍了 Go 语言中的猴子补丁方案。如今，时隔数月我又发现了一款新的工具可以实现 Monkey Patching，本文将带大家一起尝鲜下这款新的测试工具表现如何。</p>
+<a id="more"></a>
+
+<h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p>简单一句话介绍 <code>xgo</code>：它是一款强大的的 Go 测试工具集，功能包括 Trap、Mock、Trace、增量覆盖率。</p>
+<p>当然，开发中最常用的还是 Mock 功能，也是本文讲解的重点（不要慌，其他功能也会介绍）。</p>
+<p>以下是 <code>xgo</code> 支持的所有平台：</p>
+<table>
+<thead>
+<tr>
+<th align="center"></th>
+<th align="center">x86</th>
+<th align="center">x86_64 (amd64)</th>
+<th align="center">arm64</th>
+<th align="center">any other Arch…</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">Linux</td>
+<td align="center">Y</td>
+<td align="center">Y</td>
+<td align="center">Y</td>
+<td align="center">Y</td>
+</tr>
+<tr>
+<td align="center">Windows</td>
+<td align="center">Y</td>
+<td align="center">Y</td>
+<td align="center">Y</td>
+<td align="center">Y</td>
+</tr>
+<tr>
+<td align="center">macOS</td>
+<td align="center">Y</td>
+<td align="center">Y</td>
+<td align="center">Y</td>
+<td align="center">Y</td>
+</tr>
+<tr>
+<td align="center">any other OS…</td>
+<td align="center">Y</td>
+<td align="center">Y</td>
+<td align="center">Y</td>
+<td align="center">Y</td>
+</tr>
+</tbody></table>
+<p>可以发现，<code>xgo</code> 支持所有 <code>go</code> 语言支持的 OS 和 Arch，即它是跨平台的。</p>
+<p>跨平台这一点是最吸引我的地方，也是能让 <code>xgo</code> 脱颖而出的关键。</p>
+<p>此外，<code>xgo</code> 还是并发安全的 Monkey Patching 方案，这点也是有别于其他方案的一个亮点。</p>
+<p>本文就以测试一个 HTTP 服务程序来演示 <code>xgo</code> 的基本使用。</p>
+<h3 id="HTTP-服务程序示例"><a href="#HTTP-服务程序示例" class="headerlink" title="HTTP 服务程序示例"></a>HTTP 服务程序示例</h3><p>假设我们有一个 HTTP 服务程序对外提供用户服务，代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"encoding/json"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"io"</span></span><br><span class="line">	<span class="string">"net/http"</span></span><br><span class="line">	<span class="string">"strconv"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/julienschmidt/httprouter"</span></span><br><span class="line">	<span class="string">"gorm.io/driver/mysql"</span></span><br><span class="line">	<span class="string">"gorm.io/gorm"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	ID   <span class="keyword">int</span></span><br><span class="line">	Name <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewMySQLDB</span><span class="params">(host, port, user, pass, dbname <span class="keyword">string</span>)</span> <span class="params">(*gorm.DB, error)</span></span> &#123;</span><br><span class="line">	dsn := fmt.Sprintf(<span class="string">"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&amp;parseTime=True&amp;loc=Local"</span>,</span><br><span class="line">		user, pass, host, port, dbname)</span><br><span class="line">	<span class="keyword">return</span> gorm.Open(mysql.Open(dsn), &amp;gorm.Config&#123;&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewUserHandler</span><span class="params">(store *gorm.DB)</span> *<span class="title">UserHandler</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;UserHandler&#123;store: store&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> UserHandler <span class="keyword">struct</span> &#123;</span><br><span class="line">	store *gorm.DB</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *UserHandler)</span> <span class="title">CreateUser</span><span class="params">(w http.ResponseWriter, r *http.Request, _ httprouter.Params)</span></span> &#123;</span><br><span class="line">	w.Header().Set(<span class="string">"Content-Type"</span>, <span class="string">"application/json"</span>)</span><br><span class="line"></span><br><span class="line">	body, err := io.ReadAll(r.Body)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		w.WriteHeader(http.StatusBadRequest)</span><br><span class="line">		_, _ = fmt.Fprintf(w, <span class="string">`&#123;"msg":"%s"&#125;`</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; _ = r.Body.Close() &#125;()</span><br><span class="line"></span><br><span class="line">	u := User&#123;&#125;</span><br><span class="line">	<span class="keyword">if</span> err := json.Unmarshal(body, &amp;u); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		w.WriteHeader(http.StatusBadRequest)</span><br><span class="line">		_, _ = fmt.Fprintf(w, <span class="string">`&#123;"msg":"%s"&#125;`</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := h.store.Create(&amp;u).Error; err != <span class="literal">nil</span> &#123;</span><br><span class="line">		w.WriteHeader(http.StatusInternalServerError)</span><br><span class="line">		_, _ = fmt.Fprintf(w, <span class="string">`&#123;"msg":"%s"&#125;`</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	w.WriteHeader(http.StatusCreated)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *UserHandler)</span> <span class="title">GetUser</span><span class="params">(w http.ResponseWriter, r *http.Request, ps httprouter.Params)</span></span> &#123;</span><br><span class="line">	id := ps[<span class="number">0</span>].Value</span><br><span class="line">	uid, _ := strconv.Atoi(id)</span><br><span class="line"></span><br><span class="line">	w.Header().Set(<span class="string">"Content-Type"</span>, <span class="string">"application/json"</span>)</span><br><span class="line">	<span class="keyword">var</span> u User</span><br><span class="line">	<span class="keyword">if</span> err := h.store.First(&amp;u, uid).Error; err != <span class="literal">nil</span> &#123;</span><br><span class="line">		w.WriteHeader(http.StatusInternalServerError)</span><br><span class="line">		_, _ = fmt.Fprintf(w, <span class="string">`&#123;"msg":"%s"&#125;`</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	_, _ = fmt.Fprintf(w, <span class="string">`&#123;"id":%d,"name":"%s"&#125;`</span>, u.ID, u.Name)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">setupRouter</span><span class="params">(handler *UserHandler)</span> *<span class="title">httprouter</span>.<span class="title">Router</span></span> &#123;</span><br><span class="line">	router := httprouter.New()</span><br><span class="line">	router.POST(<span class="string">"/users"</span>, handler.CreateUser)</span><br><span class="line">	router.GET(<span class="string">"/users/:id"</span>, handler.GetUser)</span><br><span class="line">	<span class="keyword">return</span> router</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	mysqlDB, _ := NewMySQLDB(<span class="string">"localhost"</span>, <span class="string">"3306"</span>, <span class="string">"user"</span>, <span class="string">"password"</span>, <span class="string">"test"</span>)</span><br><span class="line">	handler := NewUserHandler(mysqlDB)</span><br><span class="line">	router := setupRouter(handler)</span><br><span class="line">	_ = http.ListenAndServe(<span class="string">":8000"</span>, router)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这是一个简单的 Web Server 程序，服务监听 <code>8000</code> 端口，提供了两个接口：</p>
+<p><code>POST /users</code> 用来创建用户。</p>
+<p><code>GET /users/:id</code> 用来查询指定 ID 对应的用户信息。</p>
+<p>代码逻辑比较简单，我就不详细讲解了。</p>
+<p>为了保证业务的正确性，我们应该对 <code>(*UserHandler).CreateUser</code> 和 <code>(*UserHandler).GetUser</code> 这两个 Handler 方法进行单元测试。</p>
+<h3 id="使用-xgo-进行单元测试"><a href="#使用-xgo-进行单元测试" class="headerlink" title="使用 xgo 进行单元测试"></a>使用 xgo 进行单元测试</h3><h4 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h4><p><code>xgo</code> 使用前必须通过 <code>go install</code> 命令进行安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go install github.com/xhd2015/xgo/cmd/xgo@latest</span><br><span class="line">$ xgo version</span><br><span class="line">1.0.35</span><br></pre></td></tr></table></figure>
+
+<h4 id="编写测试代码"><a href="#编写测试代码" class="headerlink" title="编写测试代码"></a>编写测试代码</h4><p>以 <code>(*UserHandler).CreateUser</code> 方法为例演习下如何编写测试代码。</p>
+<p>我们先来分析下这个方法的依赖项：</p>
+<p>首先<code>UserHandler</code> 这个结构体本身有一个 <code>store</code> 属性，依赖了 <code>*gorm.DB</code> 对象。</p>
+<p>其次，<code>CreateUser</code> 方法还接收三个参数，它们都属于 HTTP 网络相关的外部依赖，你可以在我的另一篇文章<a href="https://jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/" target="_blank" rel="noopener">《在 Go 语言单元测试中如何解决 HTTP 网络依赖问题》</a>中找到解决方案，就不在本文中进行讲解了。</p>
+<p>所以，我们应该要想办法解决 <code>*gorm.DB</code> 这个外部依赖。</p>
+<p>由于我们编写代码时，没有为支持单元测试而专门使用接口来进行解耦，导致 <code>UserHandler</code> 结构体直接依赖了 <code>*gorm.DB</code> 结构体对象，无法使用 <code>gomock</code> 工具对依赖项进行 Mock。</p>
+<p>在不改变代码的前提下，我们可以使用 <code>xgo</code> 提供的 Monkey Patching 技术为依赖对象 <code>*gorm.DB</code> 打上猴子补丁，以此来解决测试代码中难以调用 <code>h.store.First(&amp;u, uid).Error</code> 方法问题。</p>
+<p>要使用 <code>xgo</code> 编写测试，需要引入 <code>xgo</code> 提供的 <code>runtime</code> 包，所以先使用 <code>go get</code> 命令将其添加到 <code>go.mod</code> 依赖项： </p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go get github.com/xhd2015/xgo/runtime@latest</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>xgo</code> 为 <code>(*UserHandler).CreateUser</code> 方法编写的测试代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"net/http/httptest"</span></span><br><span class="line">	<span class="string">"strings"</span></span><br><span class="line">	<span class="string">"testing"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/stretchr/testify/assert"</span></span><br><span class="line">	<span class="string">"github.com/xhd2015/xgo/runtime/mock"</span></span><br><span class="line">	<span class="string">"gorm.io/gorm"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestUserHandler_CreateUser</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	mysqlDB := &amp;gorm.DB&#123;&#125;</span><br><span class="line">	handler := NewUserHandler(mysqlDB)</span><br><span class="line">	router := setupRouter(handler)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 为 mysqlDB 打上猴子补丁，替换其 Create 方法</span></span><br><span class="line">	mock.Patch(mysqlDB.Create, <span class="function"><span class="keyword">func</span><span class="params">(value <span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(tx *gorm.DB)</span></span> &#123;</span><br><span class="line">		expected := &amp;User&#123;</span><br><span class="line">			Name: <span class="string">"user1"</span>,</span><br><span class="line">		&#125;</span><br><span class="line">		actual := value.(*User)</span><br><span class="line">		assert.Equal(t, expected, actual)</span><br><span class="line">		<span class="keyword">return</span> mysqlDB</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	w := httptest.NewRecorder()</span><br><span class="line">	req := httptest.NewRequest(<span class="string">"POST"</span>, <span class="string">"/users"</span>, strings.NewReader(<span class="string">`&#123;"name": "user1"&#125;`</span>))</span><br><span class="line">	router.ServeHTTP(w, req)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 断言成功响应</span></span><br><span class="line">	assert.Equal(t, <span class="number">201</span>, w.Code)</span><br><span class="line">	assert.Equal(t, <span class="string">"application/json"</span>, w.Header().Get(<span class="string">"Content-Type"</span>))</span><br><span class="line">	assert.Equal(t, <span class="string">""</span>, w.Body.String())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们使用 <code>xgo</code> 提供的 <code>mock.Patch</code> 方法，为 <code>mysqlDB</code> 对象的 <code>Create</code> 方法打了一个猴子补丁，然后使用匿名函数来实现这个 <code>Create</code> 方法，并且，在匿名函数的内部还对 <code>Create</code> 方法接收到的参数进行了验证。</p>
+<p>没错，<code>xgo</code> 使用起来就是这么简单，这也体现了猴子补丁的强大，它能原地修改 <code>mysqlDB.Create</code> 方法的实现。</p>
+<p>这样，在执行测试代码时，测试方法将不再执行 <code>mysqlDB.Create</code> 原方法内部逻辑，而会被替换为调用在此定义的匿名函数逻辑。</p>
+<p>要执行测试，我们不能像原来一样使用 <code>go test</code> 来执行测试函数，需要将 <code>go</code> 命令替换为 <code>xgo</code> 命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ xgo <span class="built_in">test</span> -v -run TestUserHandler_CreateUser          </span><br><span class="line">=== RUN   TestUserHandler_CreateUser</span><br><span class="line">--- PASS: TestUserHandler_CreateUser (0.00s)</span><br><span class="line">PASS</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/xgo      0.524s</span><br></pre></td></tr></table></figure>
+
+<p>测试通过。</p>
+<p><code>xgo</code> 用法跟普通的 <code>go test</code> 用法完全相同，这也大大简化了我们切换命令的心智负担，几乎零成本切换。</p>
+<blockquote>
+<p>NOTE: 如果直接使用 <code>go test -v -run TestUserHandler_CreateUser</code> 执行测试将得到报错，读者可自行测试。</p>
+</blockquote>
+<p>接下来我们再为 <code>(*UserHandler).GetUser</code> 方法编写如下测试代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestUserHandler_GetUser</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	mysqlDB := &amp;gorm.DB&#123;&#125;</span><br><span class="line">	handler := NewUserHandler(mysqlDB)</span><br><span class="line">	router := setupRouter(handler)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 为 mysqlDB 打上猴子补丁，替换其 First 方法</span></span><br><span class="line">	mock.Patch(mysqlDB.First, <span class="function"><span class="keyword">func</span><span class="params">(dest <span class="keyword">interface</span>&#123;&#125;, conds ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(tx *gorm.DB)</span></span> &#123;</span><br><span class="line">		assert.Equal(t, dest, &amp;User&#123;&#125;)</span><br><span class="line">		assert.Equal(t, <span class="built_in">len</span>(conds), <span class="number">1</span>)</span><br><span class="line">		assert.Equal(t, conds[<span class="number">0</span>], <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">		u := dest.(*User)</span><br><span class="line">		u.ID = <span class="number">1</span></span><br><span class="line">		u.Name = <span class="string">"user1"</span></span><br><span class="line">		<span class="keyword">return</span> mysqlDB</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	w := httptest.NewRecorder()</span><br><span class="line">	req := httptest.NewRequest(<span class="string">"GET"</span>, <span class="string">"/users/1"</span>, <span class="literal">nil</span>)</span><br><span class="line">	router.ServeHTTP(w, req)</span><br><span class="line"></span><br><span class="line">	assert.Equal(t, <span class="number">200</span>, w.Code)</span><br><span class="line">	assert.Equal(t, <span class="string">"application/json"</span>, w.Header().Get(<span class="string">"Content-Type"</span>))</span><br><span class="line">	assert.Equal(t, <span class="string">`&#123;"id":1,"name":"user1"&#125;`</span>, w.Body.String())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>与之前的套路如出一辙，使用 <code>xgo</code> 执行测试：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ xgo <span class="built_in">test</span> -v -run TestUserHandler_GetUser          </span><br><span class="line">=== RUN   TestUserHandler_GetUser</span><br><span class="line">--- PASS: TestUserHandler_GetUser (0.00s)</span><br><span class="line">PASS</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/xgo      0.424s</span><br></pre></td></tr></table></figure>
+
+<p>测试通过。</p>
+<p>现在，你也许会问，这种使用 <code>mock.Patch</code> 打过猴子补丁的测试代码需要使用 <code>xgo</code> 才能执行，那没有用到 <code>mock.Patch</code> 的普通测试代码能不能也用 <code>xgo</code> 执行呢？答案是肯定的。</p>
+<p>比如我们随意写一个没什么意义的 demo 测试：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestDemo</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	t.Log(<span class="string">"---------- TestDemo ----------"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>xgo</code> 执行测试代码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ xgo <span class="built_in">test</span> -v -run TestDemo               </span><br><span class="line">=== RUN   TestDemo</span><br><span class="line">    main_test.go:65: ---------- TestDemo ----------</span><br><span class="line">--- PASS: TestDemo (0.00s)</span><br><span class="line">PASS</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/xgo      0.219s</span><br></pre></td></tr></table></figure>
+
+<p>测试通过。</p>
+<p>使用 <code>xgo</code> 一次执行全部测试代码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ xgo <span class="built_in">test</span> -v               </span><br><span class="line">=== RUN   TestUserHandler_CreateUser</span><br><span class="line">--- PASS: TestUserHandler_CreateUser (0.00s)</span><br><span class="line">=== RUN   TestUserHandler_GetUser</span><br><span class="line">--- PASS: TestUserHandler_GetUser (0.00s)</span><br><span class="line">=== RUN   TestDemo</span><br><span class="line">    main_test.go:65: ---------- TestDemo ----------</span><br><span class="line">--- PASS: TestDemo (0.00s)</span><br><span class="line">PASS</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/xgo      0.175s</span><br></pre></td></tr></table></figure>
+
+<p>测试通过。</p>
+<p>这样我们就统一了执行测试代码的方式，所有测试都可以使用 <code>xgo</code> 来执行。理论上，我们只需要将现有项目执行 <code>go test</code> 的地方，替换成 <code>xgo test</code> 即可兼容所有测试代码，这大大降低了引入 <code>xgo</code> 的迁移成本。</p>
+<h3 id="xgo-其他功能"><a href="#xgo-其他功能" class="headerlink" title="xgo 其他功能"></a>xgo 其他功能</h3><p>前文提到，<code>xgo</code> 核心功能包括 Trap、Mock、Trace、增量覆盖率。</p>
+<p>其实我们上面介绍的 <code>mock.Patch</code> 即为 Mock 功能，不过除了这个 API，<code>xgo</code> 还提供了另外一个 Mock API <code>mock.Mock</code>，实际上这两个方法底层调用的是同一个函数，用法也类似，我就不进行演示了，感兴趣的读者可以深入源码进行研究。</p>
+<p>接下来我将依次介绍下 Trap、Trace、增量覆盖率这几个功能。</p>
+<h4 id="Trap"><a href="#Trap" class="headerlink" title="Trap"></a>Trap</h4><p>Trap 是 <code>xgo</code> 的核心，也是 Mock、Trace 功能的基础，它可以对 Go 函数进行拦截。</p>
+<p>以下是一个官方文档中使用 Trap 的例子：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"context"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/xhd2015/xgo/runtime/core"</span></span><br><span class="line">	<span class="string">"github.com/xhd2015/xgo/runtime/trap"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	trap.AddInterceptor(&amp;trap.Interceptor&#123;</span><br><span class="line">		Pre: <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context, f *core.FuncInfo, args core.Object, results core.Object)</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span></span> &#123;</span><br><span class="line">			<span class="keyword">if</span> f.Name == <span class="string">"A"</span> &#123;</span><br><span class="line">				fmt.Printf(<span class="string">"trap A\n"</span>)</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> f.Name == <span class="string">"B"</span> &#123;</span><br><span class="line">				fmt.Printf(<span class="string">"abort B\n"</span>)</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">nil</span>, trap.ErrAbort</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	A()</span><br><span class="line">	B()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">A</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Printf(<span class="string">"A\n"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">B</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Printf(<span class="string">"B\n"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>go</code> 命令执行代码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">A</span><br><span class="line">B</span><br></pre></td></tr></table></figure>
+
+<p>代码正常执行。</p>
+<p>如果改为使用 <code>xgo</code> 执行代码；</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ xgo run main.go</span><br><span class="line"><span class="built_in">trap</span> A</span><br><span class="line">A</span><br><span class="line">abort B</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>xgo</code> 改变了代码执行结果，这就是 Trap 的强大之处，<code>xgo</code> 拦截了原有代码的逻辑，进而执行拦截器内部的逻辑。</p>
+<p>不过这种用法并不太多，我们更多的场景还是使用更上层的 Mock 功能来编写测试代码。</p>
+<h4 id="Trace"><a href="#Trace" class="headerlink" title="Trace"></a>Trace</h4><p>Trace 功能可以将 Go 程序执行过程可视化，在一定程度上可以替代 Debug 工具，方便我们以可视化的方式进行代码调试。</p>
+<p>要想使用 Trace 功能，也很简单，仅需要在使用 <code>xgo</code> 执行测试代码时加上 <code>--strace</code> 标志：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ xgo <span class="built_in">test</span> -v -run TestDemo --strace</span><br><span class="line">=== RUN   TestDemo</span><br><span class="line">    main_test.go:65: ---------- TestDemo ----------</span><br><span class="line">--- PASS: TestDemo (0.00s)</span><br><span class="line">PASS</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/xgo      0.162s</span><br></pre></td></tr></table></figure>
+
+<p>执行以上命令会在当前目录生成一个 <code>TestDemo.json</code> 文件，文件中即为可视化所需报告数据。</p>
+<p>接下来执行如下命令即可开启 Trace 可视化服务：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ xgo tool trace TestDemo.json                     </span><br><span class="line">Server listen at http://localhost:7070</span><br></pre></td></tr></table></figure>
+
+<p>此时会自动打开浏览器显示类似如下页面：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="trace.png" alt="Trace Demo" title="">
+                </div>
+                <div class="image-caption">Trace Demo</div>
+            </figure>
+
+<p>左侧列表可视化的展示了堆栈跟踪信息，每项前面如果是蓝色表示被调用函数正常返回，红色表示返回错误。如果你使用 VSCode 开发代码的话，点击 VSCode 图标还会自动定位到 VSCode 中函数定义的位置，方便排查问题。</p>
+<p>遗憾的是，经过笔者实测目前此功能还不够稳定，存在影响使用的 BUG，甚至经常超时无法生成 Trace 文件。</p>
+<h4 id="增量覆盖率"><a href="#增量覆盖率" class="headerlink" title="增量覆盖率"></a>增量覆盖率</h4><p>我们要介绍的最后一个功能是增量覆盖率。</p>
+<p><code>go test</code> 本身支持测试覆盖率，不过 <code>xgo</code> 更近一步，它可以根据 <code>Git</code> 变更，计算出增量测试覆盖率，极大方便了代码 review 的过程。</p>
+<p>为了查看变更代码的增量覆盖率，我们对 <code>GetUser</code> 方法代码进行了如下修改：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="git-diff.png" alt="git diff 命令输出" title="">
+                </div>
+                <div class="image-caption">git diff 命令输出</div>
+            </figure>
+
+<p>使用 <code>xgo</code> 命令输出测试覆盖率文件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ xgo <span class="built_in">test</span> -v -coverpkg . -coverprofile cover.out</span><br><span class="line">=== RUN   TestUserHandler_CreateUser</span><br><span class="line">--- PASS: TestUserHandler_CreateUser (0.00s)</span><br><span class="line">=== RUN   TestUserHandler_GetUser</span><br><span class="line"><span class="literal">true</span>...</span><br><span class="line">--- PASS: TestUserHandler_GetUser (0.00s)</span><br><span class="line">=== RUN   TestDemo</span><br><span class="line">    main_test.go:65: ---------- TestDemo ----------</span><br><span class="line">--- PASS: TestDemo (0.00s)</span><br><span class="line">PASS</span><br><span class="line">coverage: 54.8% of statements <span class="keyword">in</span> .</span><br><span class="line">ok  	github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/xgo	0.962s</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>NOTE: 由于此功能基于 Git，所以如果代码不在 Git 仓库，则执行命令会报错。并且笔者实测，如果一个 Git 仓库存在多个项目情况下，执行命令也会报错。</p>
+</blockquote>
+<p>得到测试覆盖率文件 <code>cover.out</code> 后，执行以下命令启动一个本地 Server 来展示测试覆盖率：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ xgo tool coverage serve cover.out</span><br></pre></td></tr></table></figure>
+
+<p>执行命令后，<code>xgo</code> 会自动开启浏览器并访问 <code>http://localhost:8000</code> 地址：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="incremental-coverage.png" alt="Incremental Coverage" title="">
+                </div>
+                <div class="image-caption">Incremental Coverage</div>
+            </figure>
+
+<p>默认展示的就是增量代码测试覆盖率。蓝色表示已覆盖，黄色表示未覆盖，展示结果符合预期。</p>
+<p>我们也可以切换成查看全局代码测试覆盖率：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="full-coverage.png" alt="Full Coverage" title="">
+                </div>
+                <div class="image-caption">Full Coverage</div>
+            </figure>
+
+<p>以上就是 <code>xgo</code> 对增量测试覆盖率的支持，还是能够比较方便查看增量代码测试覆盖率的。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><code>xgo</code> 作为一款 Monkey Patching 解决方案的工具，其支持 Trap、Mock、Trace、增量覆盖率几个功能，方便我们用来编写单元测试。</p>
+<p>Trap 是 <code>xgo</code> 的核心，虽然不太常用，但上层的 Mock 和 Trace 都是基于 Trap 实现的。</p>
+<p>Mock 是我们用的最多的功能，其可以实现跨平台的 Monkey Patching 解决方案。</p>
+<p>Trace 功能可以方便我们以可视化的形式对代码进行 Debug。</p>
+<p>而增量覆盖率则可以方便我们在 review 代码时可视化的感知到增量代码的测试情况。</p>
+<p>总结下 <code>xgo</code> 目前的优点和不足：</p>
+<p><strong>优点：</strong></p>
+<ul>
+<li>相比于其他 Monkey Patching 解决方案，<code>xgo</code> 的跨平台支持最好，这也是我认为 <code>xgo</code> 最大的优势。</li>
+<li>并发安全，多个协程下 Mock 完全隔离。</li>
+<li>相比于 <code>gomonkey</code> 等，<code>xgo</code> 在 <code>Patch</code> 后不需要进行 <code>Reset</code> 操作对猴子补丁进行恢复。</li>
+<li>使用方便，仅需要将 <code>go</code> 命令替换成 <code>xgo</code> 即可。</li>
+</ul>
+<p><strong>不足：</strong></p>
+<ul>
+<li>虽然使用时仅需将 <code>go</code> 命令替换成 <code>xgo</code> 即可，但这也意味着需要单独安装 <code>xgo</code> 才行，原来的 <code>go test</code> 命令执行会报错，不够友好。</li>
+<li>不能随意升级 Go 版本，至少目前笔者测试结果是这样，我在使用 <code>go1.22.0</code> 时有些命令会报错，换成 <code>go1.21.0</code> 则没有问题。</li>
+<li>Trace 功能速度比较慢，且存在 BUG。</li>
+<li>没有提供 <code>--help</code> 命令，较为遗憾。</li>
+</ul>
+<p>以上优点和不足，都是我个人基于当前版本测试下来的主观使用体验，希望 <code>xgo</code> 能够尽快发展起来，补齐短板。</p>
+<p>如果，你想了解 <code>xgo</code> 的诞生以及实现方案，前几天 <code>xgo</code> 作者在 <a href="https://talkgo.org/" target="_blank" rel="noopener">Go 夜读</a>分享了<a href="https://talkgo.org/t/topic/5514" target="_blank" rel="noopener">Go 夜读第 151 期：xgo: 基于编译期代码重写实现 Mock 和 Trace</a>。</p>
+<p>本文完整代码示例我放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/xgo" target="_blank" rel="noopener">GitHub</a> 上，欢迎点击查看。</p>
+<p>希望此文能对你有所帮助。</p>
+<h3 id="P-S"><a href="#P-S" class="headerlink" title="P.S."></a>P.S.</h3><p>本来预计这段时间不会再写 Go 测试相关文章了，因为之前写的测试相关文章已经覆盖了大部分日常编写单元测试的场景。不过前段时间 <code>xgo</code> 作者联系到我，跟我分享了 <code>xgo</code> 项目，解决了 <code>gomonkey</code> 项目的兼容性和并发问题。</p>
+<p>因为深入研究 Go 语言 Monkey Patching 解决方案这个方向的人很少，所以我对这个项目还是比较感兴趣的，于是花时间体验了下，便有了此文。</p>
+<p><code>xgo</code> 项目给在 Go 语言中单元测试带来了新的可能性，是目前我体验过的最方便也是兼容性最好的 Monkey Patching 方案。</p>
+<p>诚然，<code>xgo</code> 项目还不够成熟，它还非常年轻，刚开源出来不久，但是它开了个好头，期待给它足够的时间，能够成长为 Go 社区里 Monkey Patch 解决方案中最为流行的项目之一。</p>
+<p><strong>参考</strong></p>
+<ul>
+<li>xgo 源码：<a href="https://github.com/xhd2015/xgo" target="_blank" rel="noopener">https://github.com/xhd2015/xgo</a></li>
+<li>xgo: 在go中使用-toolexec实现猴子补丁：<a href="https://blog.xhd2015.xyz/zh/posts/xgo-monkey-patching-in-go-using-toolexec/" target="_blank" rel="noopener">https://blog.xhd2015.xyz/zh/posts/xgo-monkey-patching-in-go-using-toolexec/</a></li>
+<li>xgo trace: 一个强大的Go堆栈可视化工具：<a href="https://blog.xhd2015.xyz/zh/posts/xgo-trace_a-powerful-visualization-tool-in-go/" target="_blank" rel="noopener">https://blog.xhd2015.xyz/zh/posts/xgo-trace_a-powerful-visualization-tool-in-go/</a></li>
+<li>Go 夜读第 151 期：xgo: 基于编译期代码重写实现 Mock 和 Trace：<a href="https://talkgo.org/t/topic/5514" target="_blank" rel="noopener">https://talkgo.org/t/topic/5514</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/xgo" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/test/xgo</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：Go编程世界</li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:13.328Z" itemprop="dateUpdated">2025-02-15 09:45:13</time>
+</span><br>
+
+
+        
+        <a href="/2024/05/19/xgo-a-fresh-go-code-testing-tool/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Test/" rel="tag">Test</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/&title=《xgo: 一款新鲜出炉的 Go 代码测试利器》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/&title=《xgo: 一款新鲜出炉的 Go 代码测试利器》 — 江湖十年&source=我曾经写过一篇文章《测试代码终极解决方案 Monkey Patching》，里面介绍了 Go 语言中的猴子补丁方案。如今，时隔数月我又发现了一款新的工具可..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《xgo: 一款新鲜出炉的 Go 代码测试利器》 — 江湖十年&url=http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2024/05/25/what-is-the-naming-convention-for-go-project-files/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Go 项目文件命名规范是什么？</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/02/10/use-go-to-realize-liu-qian-s-2024-spring-festival-gala-magic/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">用 Go 语言实现刘谦 2024 春晚魔术，还原尼格买提汗流浃背的尴尬瞬间!</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/&title=《xgo: 一款新鲜出炉的 Go 代码测试利器》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/&title=《xgo: 一款新鲜出炉的 Go 代码测试利器》 — 江湖十年&source=我曾经写过一篇文章《测试代码终极解决方案 Monkey Patching》，里面介绍了 Go 语言中的猴子补丁方案。如今，时隔数月我又发现了一款新的工具可..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《xgo: 一款新鲜出炉的 Go 代码测试利器》 — 江湖十年&url=http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/05/19/xgo-a-fresh-go-code-testing-tool/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

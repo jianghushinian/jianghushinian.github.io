@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>如何使用 go:linkname 指令访问 Go 包中的私有函数 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,编译器指令">
+    <meta name="description" content="在 Go 语言的包设计中，函数和变量通过首字母大小写来严格区分导出（exported）与未导出（unexported）的可见性规则。这种机制是 Go 模块化设计的基石，但同时也为底层系统级开发带来了限制。&#x2F;&#x2F;go:linkname 指令正是 Go 为突破这一限制预留的「后门」，它通过编译器的符号重定向能力，允许开发者直接链接任意包的未导出符号——无论是标准库的私有函数，还是第三方包的隐藏变量。 本">
+<meta property="og:type" content="article">
+<meta property="og:title" content="如何使用 go:linkname 指令访问 Go 包中的私有函数">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/03/16/go-linkname/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在 Go 语言的包设计中，函数和变量通过首字母大小写来严格区分导出（exported）与未导出（unexported）的可见性规则。这种机制是 Go 模块化设计的基石，但同时也为底层系统级开发带来了限制。&#x2F;&#x2F;go:linkname 指令正是 Go 为突破这一限制预留的「后门」，它通过编译器的符号重定向能力，允许开发者直接链接任意包的未导出符号——无论是标准库的私有函数，还是第三方包的隐藏变量。 本">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-03-16T13:45:56.000Z">
+<meta property="article:modified_time" content="2026-01-25T04:52:54.038Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="编译器指令">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">如何使用 go:linkname 指令访问 Go 包中的私有函数</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">如何使用 go:linkname 指令访问 Go 包中的私有函数</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-03-16T13:45:56.000Z" itemprop="datePublished" class="page-time">
+  2025-03-16
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#go-linkname-指令简介"><span class="post-toc-number">1.</span> <span class="post-toc-text">go:linkname 指令简介</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#准备工作"><span class="post-toc-number">2.</span> <span class="post-toc-text">准备工作</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Pull-模式"><span class="post-toc-number">3.</span> <span class="post-toc-text">Pull 模式</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Push-模式"><span class="post-toc-number">4.</span> <span class="post-toc-text">Push 模式</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Handshake-模式"><span class="post-toc-number">5.</span> <span class="post-toc-text">Handshake 模式</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#内置包限制"><span class="post-toc-number">6.</span> <span class="post-toc-text">内置包限制</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">7.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go-linkname"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">如何使用 go:linkname 指令访问 Go 包中的私有函数</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-03-16 21:45:56" datetime="2025-03-16T13:45:56.000Z"  itemprop="datePublished">2025-03-16</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在 Go 语言的包设计中，函数和变量通过首字母大小写来严格区分导出（exported）与未导出（unexported）的可见性规则。这种机制是 Go 模块化设计的基石，但同时也为底层系统级开发带来了限制。<code>//go:linkname</code> 指令正是 Go 为突破这一限制预留的「后门」，它通过编译器的符号重定向能力，允许开发者直接链接任意包的未导出符号——无论是标准库的私有函数，还是第三方包的隐藏变量。</p>
+<p>本文就来带大家一起体验下 <code>//go:linkname</code> 指令的魔力。</p>
+<a id="more"></a>
+
+<h3 id="go-linkname-指令简介"><a href="#go-linkname-指令简介" class="headerlink" title="go:linkname 指令简介"></a>go:linkname 指令简介</h3><p><code>//go:linkname</code> 是 Go 语言中的一个编译器指令，用于在编译阶段将当前包内的函数或变量与另一个包中函数或变量（即使是未导出的）进行链接。</p>
+<p>语法格式如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//go:linkname localname [importpath.name]</span></span><br></pre></td></tr></table></figure>
+
+<p>例如，我们要自定义一个 <code>FastRand</code> 函数并链接到 <code>runtime</code> 包的私有函数 <code>fastrand</code>，可以这样写：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;&#x2F;go:linkname FastRand runtime.fastrand</span><br><span class="line">func FastRand() uint32</span><br></pre></td></tr></table></figure>
+
+<p>这样，我们只需要声明 <code>FastRand</code> 函数，而无需实现，当调用 <code>FastRand()</code> 时就会自动执行 <code>runtime.fastrand()</code> 的调用。</p>
+<p><code>//go:linkname</code> 指令支持 3 种模式，Pull 模式、Push 模式以及 Handshake 模式，这 3 种模式会在下文中依次讲解。</p>
+<h3 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h3><p>我准备了如下目录结构，用于演示 <code>//go:linkname</code> 指令的功能。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$  tree linkname   </span><br><span class="line">linkname</span><br><span class="line">├── bar</span><br><span class="line">│   └── bar.go</span><br><span class="line">├── foo</span><br><span class="line">│   ├── dummy.s</span><br><span class="line">│   └── foo.go</span><br><span class="line">├── go.mod</span><br><span class="line">└── main.go</span><br><span class="line"></span><br><span class="line">3 directories, 5 files</span><br></pre></td></tr></table></figure>
+
+<p><code>main.go</code> 是程序入口，<code>foo/foo.go</code> 用来定义程序的导出函数，<code>bar/bar.go</code> 用来定义程序的未导出函数。所以 <code>main.go</code> 不会直接导入 <code>bar/bar.go</code>，而是通过导入 <code>foo/foo.go</code> 间接与 <code>bar/bar.go</code> 交互。</p>
+<h3 id="Pull-模式"><a href="#Pull-模式" class="headerlink" title="Pull 模式"></a>Pull 模式</h3><p>Pull（拉取）模式下 <code>bar</code> 包中的函数无需任何特殊处理，<code>foo</code> 包使用 <code>//go:linkname</code> 指令链接到 <code>bar</code> 包中的函数。示例如下：</p>
+<p>首先在 <code>bar/bar.go</code> 中实现一个 <code>add</code> 函数：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/bar/bar.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/bar/bar.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> bar</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">add</span><span class="params">(a, b <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> a + b</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后在 <code>foo/foo.go</code> 中使用 <code>//go:linkname</code> 指令链接到 <code>bar</code> 包中的 <code>add</code> 函数：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/foo/foo.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/foo/foo.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> foo</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	_ <span class="string">"unsafe"</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 被拉取的包需要显式导入（除了 runtime 包）</span></span><br><span class="line">	_ <span class="string">"github.com/jianghushinian/blog-go-example/directive/linkname/bar"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Pull 模式（拉取外部实现）</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//go:linkname Add github.com/jianghushinian/blog-go-example/directive/linkname/bar.add</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Add</span><span class="params">(a, b <span class="keyword">int</span>)</span> <span class="title">int</span></span></span><br></pre></td></tr></table></figure>
+
+<p>这里有两点需要注意：</p>
+<ol>
+<li>被拉取的包需要显式导入到当前包中（<code>runtime</code> 包除外），所以这里使用了匿名导入的方式导入 <code>bar</code> 包。</li>
+<li>要使用 <code>//go:linkname</code> 指令，必须要导入 <code>unsafe</code> 包，因为这是一个不安全的操作，所以这里同样使用匿名导入的方式导入 <code>unsafe</code> 包。</li>
+</ol>
+<p>这里声明了 <code>Add</code> 函数但并未实现，并使用 <code>//go:linkname</code> 指令将 <code>Add</code> 函数链接到 <code>bar.add</code> 函数。</p>
+<p>这就完成了 Pull 模式。</p>
+<p>最后我们编写一个 <code>main</code> 函数来测试下效果：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/jianghushinian/blog-go-example/directive/linkname/foo"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"foo.Add(1, 2):"</span>, foo.Add(<span class="number">1</span>, <span class="number">2</span>))</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以像正常函数一样导入并使用 <code>foo.Add</code> 函数。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go                          </span><br><span class="line">foo.Add(1, 2): 3</span><br></pre></td></tr></table></figure>
+
+<p>看起来一切正常。</p>
+<p>不过，这种模式存在极大的安全隐患，在这种模式中，<code>bar</code> 包可能并不打算让 <code>foo</code> 使用其 <code>add</code> 函数，<code>bar</code> 包也不知道会有其他包链接它的函数，当维护 <code>bar</code> 包的人修改了 <code>add</code> 函数签名，则 <code>foo</code> 包就无法运行了。</p>
+<p>由此我们可以尝试换一种方式进行链接，使用 Push 模式。</p>
+<h3 id="Push-模式"><a href="#Push-模式" class="headerlink" title="Push 模式"></a>Push 模式</h3><p>Push（推送）模式下 <code>bar</code> 包使用 <code>//go:linkname</code> 指令将定义的未导出函数“重命名”为 <code>foo</code> 包中的导出函数，<code>foo</code> 包中只需要声明函数签名即可。示例如下：</p>
+<p>首先在 <code>bar/bar.go</code> 中实现一个 <code>div</code> 函数：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/bar/bar.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/bar/bar.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> bar</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	_ <span class="string">"unsafe"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Push 模式（导出本地实现）</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//go:linkname div github.com/jianghushinian/blog-go-example/directive/linkname/foo.Div</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">div</span><span class="params">(a, b <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> a / b</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里使用 <code>//go:linkname</code> 指令将未导出函数 <code>div</code> “重命名”为 <code>foo.Div</code>。</p>
+<p>然后我们在 <code>foo/foo.go</code> 中声明 <code>Div</code> 函数：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/foo/foo.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/foo/foo.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> foo</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="comment">// 被拉取的包需要显式导入（除了 runtime 包）</span></span><br><span class="line">	_ <span class="string">"github.com/jianghushinian/blog-go-example/directive/linkname/bar"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Div</span><span class="params">(a, b <span class="keyword">int</span>)</span> <span class="title">int</span></span></span><br></pre></td></tr></table></figure>
+
+<p>这里同样需要显式导入 <code>bar</code> 包，并且只声明 <code>Div</code> 函数而不做实现。</p>
+<p>最后同样编写一个 <code>main</code> 函数来测试下效果：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/jianghushinian/blog-go-example/directive/linkname/foo"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"foo.Div(2, 1):"</span>, foo.Div(<span class="number">2</span>, <span class="number">1</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在，我们来尝试执行下这个示例，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line"><span class="comment"># github.com/jianghushinian/blog-go-example/directive/linkname/foo</span></span><br><span class="line">foo/foo.go:8:6: missing <span class="keyword">function</span> body</span><br></pre></td></tr></table></figure>
+
+<p>这里得到了报错，提示 <code>foo.Div</code> 函数没有 <code>body</code> 体。</p>
+<p>解决办法也很简单，我们只需要在 <code>foo.go</code> 同级目录下加上一个内容为空的 <code>dummy.s</code> 文件就好了。这是 Go 语言的约定，你知道就好，其实这个文件名叫什么无所谓，只要是表示汇编程序的 <code>.s</code> 结尾的文件就可以。</p>
+<p>再次执行示例程序，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">foo.Div(2, 1): 2</span><br></pre></td></tr></table></figure>
+
+<p>这种模式下我们在 <code>bar</code> 包中主动暴露了未导出函数 <code>bar.div</code>，这样 <code>bar</code> 包就可以明确的知道自己会链接 <code>foo.Div</code> 函数。不过，这种模式带来了新的问题，就是需要引入一个空的 <code>dummy.s</code> 文件。</p>
+<p>那么有没有更好的方式呢？当然，答案就是 Handshake 模式。</p>
+<h3 id="Handshake-模式"><a href="#Handshake-模式" class="headerlink" title="Handshake 模式"></a>Handshake 模式</h3><p>Handshake（握手）模式故名思义，需要链接双方共同参与，携手实现最终目标。Handshake 模式下 <code>bar</code> 包使用 <code>//go:linkname</code> 指令将定义的未导出函数标记为允许被外部包链接，<code>foo</code> 包同样使用 <code>//go:linkname</code> 指令链接到 <code>bar</code> 包中的函数。示例如下：</p>
+<p>首先在 <code>bar/bar.go</code> 中实现一个 <code>hello</code> 函数：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/bar/bar.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/bar/bar.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> bar</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	_ <span class="string">"unsafe"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Handshake 模式（双方握手模式）</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//go:linkname hello</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">hello</span><span class="params">(name <span class="keyword">string</span>)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="string">"Hello "</span> + name + <span class="string">"!"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里使用 <code>//go:linkname hello</code> 指令标记为允许外部包进行链接。</p>
+<p>接着在 <code>foo/foo.go</code> 中声明 <code>Hello</code> 函数：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/foo/foo.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/foo/foo.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> foo</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	_ <span class="string">"unsafe"</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 被拉取的包需要显式导入（除了 runtime 包）</span></span><br><span class="line">	_ <span class="string">"github.com/jianghushinian/blog-go-example/directive/linkname/bar"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Handshake 模式（双方握手模式）</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//go:linkname Hello github.com/jianghushinian/blog-go-example/directive/linkname/bar.hello</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Hello</span><span class="params">(name <span class="keyword">string</span>)</span> <span class="title">string</span></span></span><br></pre></td></tr></table></figure>
+
+<p>这里并没有新的写法，与 Pull 模式写法相同。不过需要注意的是，Handshake 模式中双方都需要引入 <code>unsafe</code> 包。</p>
+<p>最后编写一个 <code>main</code> 函数来测试下效果：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/directive/linkname/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/jianghushinian/blog-go-example/directive/linkname/foo"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">`foo.Hello("jianghushinian"):`</span>, foo.Hello(<span class="string">"jianghushinian"</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$  go run main.go</span><br><span class="line">foo.Hello(<span class="string">"jianghushinian"</span>): Hello jianghushinian!</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，Handshake 模式其实就是 Pull 模式和 Push 模式的结合体。这种模式语义更加明确，且无需提供 <code>dummy.s</code> 文件，也是 Go 最推荐的写法。</p>
+<h3 id="内置包限制"><a href="#内置包限制" class="headerlink" title="内置包限制"></a>内置包限制</h3><p>事实上，从 Go 1.23 版本起，Go 已经不推荐 Pull 模式和 Push 模式了，仅推荐使用 Handshake 模式，具体原因，你可以在 <a href="https://github.com/golang/go/issues/67401" target="_blank" rel="noopener">issues/67401</a> 中查看。</p>
+<p>由此，也引来的一个问题，那就是在 Go 1.23+ 版本中，如果使用 Pull 模式链接 Go 内置包，则默认情况下程序无法通过编译。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	_ <span class="string">"unsafe"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">//go:linkname TooLarge fmt.tooLarge</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TooLarge</span><span class="params">(x <span class="keyword">int</span>)</span> <span class="title">bool</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"TooLarge(1e6 + 1):"</span>, TooLarge(<span class="number">1e6</span>+<span class="number">1</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里使用 <code>//go:linkname</code> 指令将 <code>TooLarge</code> 函数链接到内部包函数 <code>fmt.tooLarge</code>。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line"><span class="comment"># command-line-arguments</span></span><br><span class="line">link: main: invalid reference to fmt.tooLarge</span><br></pre></td></tr></table></figure>
+
+<p>要解决这个问题，需要提供编译新的编译指令 <code>-checklinkname=0</code>，用法如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run -ldflags=-checklinkname=0 main.go</span><br><span class="line">TooLarge(1e6 + 1): <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>这样，程序就可以正常执行了。</p>
+<p>当然，根据我的实测结果，如果把 <code>TooLarge</code> 函数的定义迁移到 <code>foo/foo.go</code> 中，然后在 <code>main.go</code> 中以 <code>foo.TooLarge(1e6+1)</code> 的方式使用，则没任何问题，无需提供编译指令 <code>-checklinkname=0</code>。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><code>//go:linkname</code> 指令用于在编译阶段将当前包内的函数或变量与另一个包中函数或变量（即使是未导出的）进行链接，突破了 Go 中未导出标识在外部无法访问的限制。不过 <code>//go:linkname</code> 指令虽然强大，但需要慎用，毕竟它是“unsafe”的，除非你知道自己在干什么。</p>
+<p>本文中演示了 <code>//go:linkname</code> 指令对函数的作用，关于对变量的应用读者可以自行尝试。</p>
+<p>虽然 Go 中的 <code>//go:linkname</code> 指令支持 3 种模式：Pull 模式、Push 模式和 Handshake 模式，不过从 Go 1.23 版本起，已经只推荐使用 Handshake 模式了。至于具体原因，你可以访问 <a href="https://github.com/golang/go/issues/67401" target="_blank" rel="noopener">issues/67401</a> 中查看，我就不啰嗦了。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/directive/linkname" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>cmd/compile Documentation：<a href="https://pkg.go.dev/cmd/compile@go1.24.1#hdr-Linkname_Directive" target="_blank" rel="noopener">https://pkg.go.dev/cmd/compile@go1.24.1#hdr-Linkname_Directive</a></li>
+<li>cmd/link: lock down future uses of linkname #67401：<a href="https://github.com/golang/go/issues/67401" target="_blank" rel="noopener">https://github.com/golang/go/issues/67401</a></li>
+<li>the hall of shame：<a href="https://github.com/golang/go/blob/go1.24.1/src/runtime/malloc.go#L996-L1010" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.24.1/src/runtime/malloc.go#L996-L1010</a></li>
+<li>Go 1.23 Release Notes：<a href="https://go.dev/doc/go1.23#linker" target="_blank" rel="noopener">https://go.dev/doc/go1.23#linker</a></li>
+<li>Function declarations：<a href="https://go.dev/ref/spec#Function_declarations" target="_blank" rel="noopener">https://go.dev/ref/spec#Function_declarations</a></li>
+<li>突破限制,访问其它Go package中的私有函数：<a href="https://colobu.com/2017/05/12/call-private-functions-in-other-packages/" target="_blank" rel="noopener">https://colobu.com/2017/05/12/call-private-functions-in-other-packages/</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/directive/linkname" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/directive/linkname</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-01-25T04:52:54.038Z" itemprop="dateUpdated">2026-01-25 12:52:54</time>
+</span><br>
+
+
+        
+        <a href="/2025/03/16/go-linkname/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/03/16/go-linkname/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E7%BC%96%E8%AF%91%E5%99%A8%E6%8C%87%E4%BB%A4/" rel="tag">编译器指令</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/03/16/go-linkname/&title=《如何使用 go:linkname 指令访问 Go 包中的私有函数》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/03/16/go-linkname/&title=《如何使用 go:linkname 指令访问 Go 包中的私有函数》 — 江湖十年&source=在 Go 语言的包设计中，函数和变量通过首字母大小写来严格区分导出（exported）与未导出（unexported）的可见性规则。这种机制是 Go 模块..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/03/16/go-linkname/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《如何使用 go:linkname 指令访问 Go 包中的私有函数》 — 江湖十年&url=http://www.jianghushinian.cn/2025/03/16/go-linkname/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/03/16/go-linkname/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2025/03/23/go-multierror/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">go-multierror: 更方便的处理你的错误列表</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/03/09/nightwatch/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">如何基于 Go 语言设计一个简洁优雅的分布式任务系统</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/03/16/go-linkname/&title=《如何使用 go:linkname 指令访问 Go 包中的私有函数》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/03/16/go-linkname/&title=《如何使用 go:linkname 指令访问 Go 包中的私有函数》 — 江湖十年&source=在 Go 语言的包设计中，函数和变量通过首字母大小写来严格区分导出（exported）与未导出（unexported）的可见性规则。这种机制是 Go 模块..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/03/16/go-linkname/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《如何使用 go:linkname 指令访问 Go 包中的私有函数》 — 江湖十年&url=http://www.jianghushinian.cn/2025/03/16/go-linkname/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/03/16/go-linkname/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/03/16/go-linkname/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

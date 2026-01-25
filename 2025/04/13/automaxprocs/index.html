@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>使用 Uber automaxprocs 正确设置 Go 程序线程数 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="我们知道 Go 语言没有直接对用户暴露线程的概念，而是通过 goroutine 来控制并发。不过，在 Go 程序启动时，其背后的调度器往往是多线程运行的。在 Go 语言的 GMP 调度模型中，P 决定着同时运行的 goroutine 数，我们可以通过环境变量 GOMAXPROCS 或者运行时函数 runtime.GOMAXPROCS(n) 来设置 P 的数量。默认情况下 P 的数量等于机器中可用的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用 Uber automaxprocs 正确设置 Go 程序线程数">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/04/13/automaxprocs/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="我们知道 Go 语言没有直接对用户暴露线程的概念，而是通过 goroutine 来控制并发。不过，在 Go 程序启动时，其背后的调度器往往是多线程运行的。在 Go 语言的 GMP 调度模型中，P 决定着同时运行的 goroutine 数，我们可以通过环境变量 GOMAXPROCS 或者运行时函数 runtime.GOMAXPROCS(n) 来设置 P 的数量。默认情况下 P 的数量等于机器中可用的">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-04-13T09:37:56.000Z">
+<meta property="article:modified_time" content="2026-01-25T04:52:53.999Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">使用 Uber automaxprocs 正确设置 Go 程序线程数</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">使用 Uber automaxprocs 正确设置 Go 程序线程数</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-04-13T09:37:56.000Z" itemprop="datePublished" class="page-time">
+  2025-04-13
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#宿主机环境"><span class="post-toc-number">1.</span> <span class="post-toc-text">宿主机环境</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#容器环境"><span class="post-toc-number">2.</span> <span class="post-toc-text">容器环境</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用-Uber-automaxprocs"><span class="post-toc-number">3.</span> <span class="post-toc-text">使用 Uber automaxprocs</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Kubernetes-环境"><span class="post-toc-number">4.</span> <span class="post-toc-text">Kubernetes 环境</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#源码解读"><span class="post-toc-number">5.</span> <span class="post-toc-text">源码解读</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#未来展望"><span class="post-toc-number">6.</span> <span class="post-toc-text">未来展望</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">7.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-automaxprocs"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">使用 Uber automaxprocs 正确设置 Go 程序线程数</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-04-13 17:37:56" datetime="2025-04-13T09:37:56.000Z"  itemprop="datePublished">2025-04-13</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>我们知道 Go 语言没有直接对用户暴露线程的概念，而是通过 goroutine 来控制并发。不过，在 Go 程序启动时，其背后的调度器往往是多线程运行的。在 Go 语言的 GMP 调度模型中，P 决定着同时运行的 goroutine 数，我们可以通过环境变量 <code>GOMAXPROCS</code> 或者运行时函数 <code>runtime.GOMAXPROCS(n)</code> 来设置 P 的数量。默认情况下 P 的数量等于机器中可用的 CPU 核心数，不过，这也带来了一个潜在的问题，在容器运行环境下，P 的数量可能远超容器限制的 CPU 数量，从而引发性能问题。本文我们一起来看一下 Go 程序在不同运行环境中的表现，以及如何解决潜在问题。</p>
+<a id="more"></a>
+
+<p>首先，介绍下本文用来测试程序的电脑是 MacBook Pro Core i5 双核四线程的 Intel CPU。我将分别在宿主机和容器环境下进行演示。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>文中所出现的 GOMAXPROCS 和 P 代表的都是一个意思，即表示 GMP 模型中 P 的数量值。</p>
+</blockquote>
+<h3 id="宿主机环境"><a href="#宿主机环境" class="headerlink" title="宿主机环境"></a>宿主机环境</h3><p>我们先来看在宿主机环境下执行 Go 程序，查看 P 数量的表现。</p>
+<p>示例代码如下：</p>
+<blockquote>
+<p>main.go</p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"runtime"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Printf(<span class="string">"GOMAXPROCS = %d\n"</span>, runtime.GOMAXPROCS(<span class="number">0</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>runtime.GOMAXPROCS(n)</code> 接收一个 <code>int</code> 类型的参数，如果参数 <code>n</code> 小于等于 0，则返回当前 P 的数量，如果 <code>n</code> 大于 0，则设置 P 的数量为 <code>n</code> 并返回修改前 P 的数量。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go             </span><br><span class="line">GOMAXPROCS = 4</span><br></pre></td></tr></table></figure>
+
+<p>这个结果符合预期，输出结果等于宿主机上可用的 CPU 核心数。</p>
+<h3 id="容器环境"><a href="#容器环境" class="headerlink" title="容器环境"></a>容器环境</h3><p>我们再来看下前面的示例程序在 Docker 容器环境下的表现。</p>
+<p>为了能够在 Docker 容器中执行示例程序，首先我们将程序进行交叉编译，得到 Linux 平台可执行的二进制文件 <code>gomaxprocs</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o gomaxprocs main.go</span><br></pre></td></tr></table></figure>
+
+<p>然后执行如下命令，在 Docker 容器中运行示例 <code>gomaxprocs</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ docker run --cpus=2 -it \</span><br><span class="line"> -v $(<span class="built_in">pwd</span>):/app -w /app alpine \</span><br><span class="line">./gomaxprocs               </span><br><span class="line">GOMAXPROCS = 4</span><br></pre></td></tr></table></figure>
+
+<p>在执行容器时，我传递了 <code>--cpus=2</code> 参数来限制容器内能够使用的 CPU 数量最大为 2。可以看到，<code>GOMAXPROCS</code> 输出结果依然为 4。这说明 Go 程序并没有清楚的识别到自己在容器中运行，其 P 的数量依然设置为宿主机的可用 CPU 核心数。这样看来容器并不能限制 Go 程序能够识别的 CPU 核心数，那么这个容器的隔离环境效果也就大大折扣。尽管 Go 程序为 P 设置了一个较大的数值，但容器执行时只会给容器内进程 2 核的 CPU 使用，而过多的 P 数量可能导致频繁的上下文切换，这将会严重影响 Go 程序的性能。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>使用如下命令可以查看 <code>docker run</code> 命令如何限制 CPU。 </p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ docker run --<span class="built_in">help</span> | grep cpu</span><br><span class="line">      --cpu-period int                   Limit CPU CFS (Completely Fair Scheduler) period</span><br><span class="line">      --cpu-quota int                    Limit CPU CFS (Completely Fair Scheduler) quota</span><br><span class="line">      --cpu-rt-period int                Limit CPU real-time period <span class="keyword">in</span> microseconds</span><br><span class="line">      --cpu-rt-runtime int               Limit CPU real-time runtime <span class="keyword">in</span> microseconds</span><br><span class="line">  -c, --cpu-shares int                   CPU shares (relative weight)</span><br><span class="line">      --cpus decimal                     Number of CPUs</span><br><span class="line">      --cpuset-cpus string               CPUs <span class="keyword">in</span> <span class="built_in">which</span> to allow execution (0-3, 0,1)</span><br><span class="line">      --cpuset-mems string               MEMs <span class="keyword">in</span> <span class="built_in">which</span> to allow execution (0-3, 0,1)</span><br></pre></td></tr></table></figure>
+
+<p>那么如何解决这个问题呢？现在是时候让 Uber <code>automaxprocs</code> 登场了。</p>
+<h3 id="使用-Uber-automaxprocs"><a href="#使用-Uber-automaxprocs" class="headerlink" title="使用 Uber automaxprocs"></a>使用 Uber automaxprocs</h3><p>Uber 公司是著名的 Go 应用厂商，其内部大量使用 Go 语言来开发程序，并且开源了很多 Go 包，比如流行的 Go 日志处理包 <a href="https://github.com/uber-go/zap" target="_blank" rel="noopener">zap</a>。同时 Uber 也开源了 <a href="https://github.com/uber-go/automaxprocs" target="_blank" rel="noopener">automaxprocs</a> 包用于解决 Go 程序在容器内无法正确识别运行环境中 CPU 核心数的问题。</p>
+<p>接下来，我们就使用 <code>automaxprocs</code> 来看一下效果。</p>
+<p>首先我们通过如下命令来安装 <code>automaxprocs</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go get -u go.uber.org/automaxprocs</span><br></pre></td></tr></table></figure>
+
+<p>之后就可以使用 <code>automaxprocs</code> 了。</p>
+<p>使用方式非常简单，只需要以匿名的方式导入 <code>automaxprocs</code> 包即可。</p>
+<blockquote>
+<p>automaxprocs/main.go</p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"runtime"</span></span><br><span class="line"></span><br><span class="line">	_ <span class="string">"go.uber.org/automaxprocs"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Printf(<span class="string">"GOMAXPROCS = %d\n"</span>, runtime.GOMAXPROCS(<span class="number">0</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们先在宿主机环境中执行以上示例代码，看一下效果。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="keyword">go</span> run automaxprocs/main.<span class="keyword">go</span></span><br><span class="line"><span class="number">2025</span>/<span class="number">04</span>/<span class="number">10</span> <span class="number">23</span>:<span class="number">37</span>:<span class="number">57</span> maxprocs: Leaving GOMAXPROCS=<span class="number">4</span>: CPU quota undefined</span><br><span class="line">GOMAXPROCS = <span class="number">4</span></span><br></pre></td></tr></table></figure>
+
+<p>可以发现输出的 <code>GOMAXPROCS</code> 值依然为 4，这没什么问题。</p>
+<p>此外，这里还会打印一行日志，其中 <code>CPU quota undefined</code> 表示未检测到容器 CPU 配额，说明 <code>automaxprocs</code> 识别到 Go 程序未运行在容器环境。</p>
+<p>现在，我们再来看下容器环境中 <code>automaxprocs</code> 的效果。同样使用交叉编译，得到 Linux 平台可执行的二进制文件 <code>automaxprocs</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o automaxprocs/automaxprocs automaxprocs/main.go</span><br></pre></td></tr></table></figure>
+
+<p>然后执行如下命令，在 Docker 容器中运行示例 <code>automaxprocs</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ docker run --cpus=2 -it \                                                                       </span><br><span class="line"> -v $(<span class="built_in">pwd</span>):/app -w /app alpine \</span><br><span class="line">./automaxprocs/automaxprocs</span><br><span class="line">2025/04/10 15:41:01 maxprocs: Updating GOMAXPROCS=2: determined from CPU quota</span><br><span class="line">GOMAXPROCS = 2</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，这一次输出的 <code>GOMAXPROCS</code> 值为 2，等于我们设置的参数 <code>--cpus=2</code>，说明 <code>automaxprocs</code> 包生效了。</p>
+<h3 id="Kubernetes-环境"><a href="#Kubernetes-环境" class="headerlink" title="Kubernetes 环境"></a>Kubernetes 环境</h3><p>因为在企业中，大多数情况都是以 Kubernetes 的方式来部署 Go 应用，所以我们有必要在 Kubernetes 环境中来验证一下 <code>automaxprocs</code> 包的效果。</p>
+<p>现在我们的示例程序目录如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ tree -F .</span><br><span class="line">./</span><br><span class="line">├── Dockerfile</span><br><span class="line">├── automaxprocs/</span><br><span class="line">│   ├── automaxprocs* <span class="comment"># Linux 平台下可执行的二进制文件</span></span><br><span class="line">│   └── main.go</span><br><span class="line">├── deploy/</span><br><span class="line">│   └── pod.yaml</span><br><span class="line">├── go.mod</span><br><span class="line">├── go.sum</span><br><span class="line">├── gomaxprocs* <span class="comment"># Linux 平台下可执行的二进制文件</span></span><br><span class="line">└── main.go</span><br><span class="line"></span><br><span class="line">3 directories, 8 files</span><br></pre></td></tr></table></figure>
+
+<p>我们将使用 <code>Dockerfile</code> 打包一个镜像，然后在 Kubernetes 环境中以 Pod 的方式来运行 Go 程序。</p>
+<p><code>Dockerfile</code> 内容如下：</p>
+<blockquote>
+<p>Dockerfile</p>
+</blockquote>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> alpine:latest</span><br><span class="line"><span class="keyword">LABEL</span><span class="bash"> authors=<span class="string">"jianghushinian"</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">WORKDIR</span><span class="bash"> /app</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> . .</span></span><br></pre></td></tr></table></figure>
+
+<p>Kubernetes 的 Pod Yaml 文件内容如下：</p>
+<blockquote>
+<p>deploy/pod.yaml</p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">test-automaxprocs</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">without-automaxprocs</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">automaxprocs:latest</span></span><br><span class="line">      <span class="attr">imagePullPolicy:</span> <span class="string">IfNotPresent</span></span><br><span class="line">      <span class="attr">command:</span> <span class="string">[</span> <span class="string">"/app/gomaxprocs"</span> <span class="string">]</span></span><br><span class="line">      <span class="attr">resources:</span></span><br><span class="line">        <span class="attr">limits:</span></span><br><span class="line">          <span class="attr">cpu:</span> <span class="string">"1"</span> <span class="comment"># 对应 docker run 中 --cpus=1</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">with-automaxprocs</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">automaxprocs:latest</span></span><br><span class="line">      <span class="attr">imagePullPolicy:</span> <span class="string">IfNotPresent</span></span><br><span class="line">      <span class="attr">command:</span> <span class="string">[</span> <span class="string">"/app/automaxprocs/automaxprocs"</span> <span class="string">]</span></span><br><span class="line">      <span class="attr">resources:</span></span><br><span class="line">        <span class="attr">limits:</span></span><br><span class="line">          <span class="attr">cpu:</span> <span class="string">"1"</span></span><br><span class="line">  <span class="attr">restartPolicy:</span> <span class="string">Never</span></span><br></pre></td></tr></table></figure>
+
+<p>这个 Pod 包含两个容器，<code>without-automaxprocs</code> 运行没有使用 <code>automaxprocs</code> 包的 Go 程序，<code>with-automaxprocs</code> 运行使用了 <code>automaxprocs</code> 包的 Go 程序。并且这两个容器都限制了可用的 CPU 核心数为 1。</p>
+<p>在 Kubernetes 集群中运行 Pod，输出结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 启动 Pod</span></span><br><span class="line">$ kubectl apply -f deploy/pod.yaml </span><br><span class="line">pod/<span class="built_in">test</span>-automaxprocs created</span><br><span class="line"></span><br><span class="line"><span class="comment"># 确认 Pod 执行完成</span></span><br><span class="line">$ kubectl get pod                 </span><br><span class="line">NAME                READY   STATUS      RESTARTS   AGE</span><br><span class="line"><span class="built_in">test</span>-automaxprocs   0/2     Completed   0          3s</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 without-automaxprocs 容器执行后的输出结果</span></span><br><span class="line">$ kubectl logs <span class="built_in">test</span>-automaxprocs -c without-automaxprocs</span><br><span class="line">GOMAXPROCS = 4</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 with-automaxprocs 容器执行后的输出结果</span></span><br><span class="line">$ kubectl logs <span class="built_in">test</span>-automaxprocs -c with-automaxprocs </span><br><span class="line">2025/04/10 16:43:51 maxprocs: Updating GOMAXPROCS=1: determined from CPU quota</span><br><span class="line">GOMAXPROCS = 1</span><br></pre></td></tr></table></figure>
+
+<p>以上结果说明 <code>automaxprocs</code> 包在 Kubernetes 运行的容器环境中也依然生效。</p>
+<p>那么，你是否好奇 <code>automaxprocs</code> 包是如何实现的呢？接下来，我将带你深入到 <code>automaxprocs</code> 包源码，来探究其实现原理。</p>
+<h3 id="源码解读"><a href="#源码解读" class="headerlink" title="源码解读"></a>源码解读</h3><p>既然我们在使用 <code>automaxprocs</code> 包的方式是通过匿名导入，那么很自然的就应该想到，背后是 <code>automaxprocs</code> 包的 <code>init</code> 函数在起作用。</p>
+<p><code>automaxprocs</code> 包的 <code>init</code> 函数实现如下：</p>
+<blockquote>
+<p><a href="https://github.com/uber-go/automaxprocs/blob/master/automaxprocs.go#L31" target="_blank" rel="noopener">https://github.com/uber-go/automaxprocs/blob/master/automaxprocs.go#L31</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	maxprocs.Set(maxprocs.Logger(log.Printf))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>看来 <code>automaxprocs</code> 包是通过 <code>maxprocs.Set</code> 函数来识别并设置正确的 P 数量的。其参数 <code>maxprocs.Logger(log.Printf)</code> 显然是用来设置日志输出的，这也是为什么我们匿名导入 <code>automaxprocs</code> 包后，每次执行程序，都会有日志输出打印 <code>GOMAXPROCS</code> 的值的原因。</p>
+<p><code>maxprocs.Set</code> 函数实现如下：</p>
+<blockquote>
+<p><a href="https://github.com/uber-go/automaxprocs/blob/master/maxprocs/maxprocs.go#L91" target="_blank" rel="noopener">https://github.com/uber-go/automaxprocs/blob/master/maxprocs/maxprocs.go#L91</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 自动设置 GOMAXPROCS 以匹配容器 CPU 配额，返回撤销函数和错误</span></span><br><span class="line"><span class="comment">// 仅在 Linux 系统下且有 CPU 配额时生效，其他情况无操作（no-op）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Set</span><span class="params">(opts ...Option)</span> <span class="params">(<span class="keyword">func</span>()</span>, <span class="title">error</span>)</span> &#123;</span><br><span class="line">	<span class="comment">// 配置初始化</span></span><br><span class="line">    cfg := &amp;config&#123;</span><br><span class="line">		procs:          iruntime.CPUQuotaToGOMAXPROCS, <span class="comment">// 根据 CPU 配额计算 P 的函数</span></span><br><span class="line">		roundQuotaFunc: iruntime.DefaultRoundFunc,     <span class="comment">// 配额舍入策略，默认向下取整（math.Floor）</span></span><br><span class="line">		minGOMAXPROCS:  <span class="number">1</span>,                             <span class="comment">// P 最小值为 1</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 应用自定义选项</span></span><br><span class="line">    <span class="keyword">for</span> _, o := <span class="keyword">range</span> opts &#123;</span><br><span class="line">		o.apply(cfg)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 初始化默认撤销函数</span></span><br><span class="line">    undoNoop := <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		cfg.log(<span class="string">"maxprocs: No GOMAXPROCS change to reset"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 如果存在 GOMAXPROCS 环境变量，则说明用户想要手动设置 P 的值，所以这里直接返回，跳过自动设置</span></span><br><span class="line">    <span class="keyword">if</span> max, exists := os.LookupEnv(_maxProcsKey); exists &#123;</span><br><span class="line">		cfg.log(<span class="string">"maxprocs: Honoring GOMAXPROCS=%q as set in environment"</span>, max)</span><br><span class="line">		<span class="keyword">return</span> undoNoop, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 根据 CPU 配额计算 P</span></span><br><span class="line">    <span class="comment">// 参数 cfg.minGOMAXPROCS 表示确保返回值大于此值</span></span><br><span class="line">    <span class="comment">// 参数 cfg.roundQuotaFunc 用来设置配额舍入策略</span></span><br><span class="line">    maxProcs, status, err := cfg.procs(cfg.minGOMAXPROCS, cfg.roundQuotaFunc)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> undoNoop, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 配额未定义时直接返回，跳过自动设置</span></span><br><span class="line">    <span class="comment">// 比如非容器环境下</span></span><br><span class="line">    <span class="keyword">if</span> status == iruntime.CPUQuotaUndefined &#123;</span><br><span class="line">		cfg.log(<span class="string">"maxprocs: Leaving GOMAXPROCS=%v: CPU quota undefined"</span>, currentMaxProcs())</span><br><span class="line">		<span class="keyword">return</span> undoNoop, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 获取当前 P 的值，构造撤销函数</span></span><br><span class="line">    <span class="comment">// 调用方可以调用 undo() 来撤销对 P 值的修改</span></span><br><span class="line">    prev := currentMaxProcs()</span><br><span class="line">	undo := <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		cfg.log(<span class="string">"maxprocs: Resetting GOMAXPROCS to %v"</span>, prev)</span><br><span class="line">		runtime.GOMAXPROCS(prev)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 分类处理日志记录</span></span><br><span class="line">    <span class="keyword">switch</span> status &#123;</span><br><span class="line">	<span class="keyword">case</span> iruntime.CPUQuotaMinUsed: <span class="comment">// CPU 配额值小于配置的最低值，使用 minGOMAXPROCS</span></span><br><span class="line">		cfg.log(<span class="string">"maxprocs: Updating GOMAXPROCS=%v: using minimum allowed GOMAXPROCS"</span>, maxProcs)</span><br><span class="line">	<span class="keyword">case</span> iruntime.CPUQuotaUsed: <span class="comment">// 使用正常计算值</span></span><br><span class="line">		cfg.log(<span class="string">"maxprocs: Updating GOMAXPROCS=%v: determined from CPU quota"</span>, maxProcs)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 设置计算后的 P 值，并返回撤销函数 undo</span></span><br><span class="line">    runtime.GOMAXPROCS(maxProcs)</span><br><span class="line">	<span class="keyword">return</span> undo, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>maxprocs.Set</code> 函数采用了选项模式，可以自定义一些配置项。默认情况下使用 <code>iruntime.CPUQuotaToGOMAXPROCS</code> 函数来根据 CPU 配额计算 P 值。如果用户指定了 <code>GOMAXPROCS</code> 环境变量，则跳过自动设置 P 值，否则，使用 <code>iruntime.CPUQuotaToGOMAXPROCS</code> 函数进行计算并设置 P 值。最终返回 <code>undo</code> 函数，可以用来撤销对 P 值的修改。</p>
+<p>其中 <code>currentMaxProcs</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">currentMaxProcs</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> runtime.GOMAXPROCS(<span class="number">0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>iruntime.DefaultRoundFunc</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DefaultRoundFunc</span><span class="params">(v <span class="keyword">float64</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">int</span>(math.Floor(v))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接下来我们重点关注下 <code>iruntime.CPUQuotaToGOMAXPROCS</code> 函数的实现。</p>
+<p>在 <code>maxprocs.Set</code> 函数的注释中我有提到，<code>Set</code> 函数仅在 Linux 系统下且有 CPU 配额时生效，其他情况无操作（<code>no-op</code>）。所以 <code>CPUQuotaToGOMAXPROCS</code> 函数在不同的平台必然有不同的实现。</p>
+<p>以下是非 Linux 系统中的实现：</p>
+<blockquote>
+<p><a href="https://github.com/uber-go/automaxprocs/blob/master/internal/runtime/cpu_quota_unsupported.go" target="_blank" rel="noopener">https://github.com/uber-go/automaxprocs/blob/master/internal/runtime/cpu_quota_unsupported.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//go:build !linux</span></span><br><span class="line"><span class="comment">// +build !linux</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> runtime</span><br><span class="line"></span><br><span class="line"><span class="comment">// CPUQuotaToGOMAXPROCS converts the CPU quota applied to the calling process</span></span><br><span class="line"><span class="comment">// to a valid GOMAXPROCS value. This is Linux-specific and not supported in the</span></span><br><span class="line"><span class="comment">// current OS.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CPUQuotaToGOMAXPROCS</span><span class="params">(_ <span class="keyword">int</span>, _ <span class="keyword">func</span>(v <span class="keyword">float64</span>)</span> <span class="title">int</span>) <span class="params">(<span class="keyword">int</span>, CPUQuotaStatus, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">-1</span>, CPUQuotaUndefined, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>比如我的 Mac 系统中，就会执行这个实现。</p>
+<p>而以下是 Linux 系统中的实现：</p>
+<blockquote>
+<p><a href="https://github.com/uber-go/automaxprocs/blob/master/internal/runtime/cpu_quota_linux.go#L35" target="_blank" rel="noopener">https://github.com/uber-go/automaxprocs/blob/master/internal/runtime/cpu_quota_linux.go#L35</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CPUQuotaToGOMAXPROCS</span><span class="params">(minValue <span class="keyword">int</span>, round <span class="keyword">func</span>(v <span class="keyword">float64</span>)</span> <span class="title">int</span>) <span class="params">(<span class="keyword">int</span>, CPUQuotaStatus, error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 如果传进来的参数 round 为 nil，则设置为默认的向下取整策略</span></span><br><span class="line">    <span class="keyword">if</span> round == <span class="literal">nil</span> &#123;</span><br><span class="line">		round = DefaultRoundFunc</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 检测 cgroups 版本</span></span><br><span class="line">    cgroups, err := _newQueryer()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>, CPUQuotaUndefined, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 根据 cgroups 获取 CPU 配额</span></span><br><span class="line">    quota, defined, err := cgroups.CPUQuota()</span><br><span class="line">	<span class="keyword">if</span> !defined || err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>, CPUQuotaUndefined, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 计算并校验配额</span></span><br><span class="line">    maxProcs := round(quota)</span><br><span class="line">	<span class="keyword">if</span> minValue &gt; <span class="number">0</span> &amp;&amp; maxProcs &lt; minValue &#123;</span><br><span class="line">		<span class="keyword">return</span> minValue, CPUQuotaMinUsed, <span class="literal">nil</span> <span class="comment">// 使用最低保障值</span></span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 返回计算结果</span></span><br><span class="line">	<span class="keyword">return</span> maxProcs, CPUQuotaUsed, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Linux 系统中的 <code>CPUQuotaToGOMAXPROCS</code> 函数实现代码逻辑不多，主要逻辑都封装在 <code>_newQueryer()</code> 返回的对象中。</p>
+<p><code>_newQueryer()</code> 实现如下：</p>
+<blockquote>
+<p><a href="https://github.com/uber-go/automaxprocs/blob/master/internal/runtime/cpu_quota_linux.go#L66" target="_blank" rel="noopener">https://github.com/uber-go/automaxprocs/blob/master/internal/runtime/cpu_quota_linux.go#L66</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> queryer <span class="keyword">interface</span> &#123;</span><br><span class="line">	CPUQuota() (<span class="keyword">float64</span>, <span class="keyword">bool</span>, error)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	_newCgroups2 = cg.NewCGroups2ForCurrentProcess</span><br><span class="line">	_newCgroups  = cg.NewCGroupsForCurrentProcess</span><br><span class="line">	_newQueryer  = newQueryer</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newQueryer</span><span class="params">()</span> <span class="params">(queryer, error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 这里先直接判断是否为 cgroups v2，如果是，直接返回，否则继续判断是否为 cgroups v1</span></span><br><span class="line">    cgroups, err := _newCgroups2()</span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> cgroups, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 如果不是 cgroups v2，则判断是否为 cgroups v1</span></span><br><span class="line">	<span class="keyword">if</span> errors.Is(err, cg.ErrNotV2) &#123;</span><br><span class="line">		<span class="keyword">return</span> _newCgroups()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>_newQueryer()</code>  函数等于 <code>newQueryer</code> 函数，而 <code>newQueryer</code> 函数返回一个 <code>queryer</code> 接口，这个接口仅有一个方法 <code>CPUQuota</code> 用来计算 CPU 配额。</p>
+<p><code>queryer</code> 接口的实现有两个，分别是 <code>cg.NewCGroupsForCurrentProcess</code> 和 <code>cg.NewCGroups2ForCurrentProcess</code>。而这二者也正对应的 cgroups v1/v2 两个版本。</p>
+<p>所以，代码阅读到这里，其实我们已经几乎探究到了 <code>automaxprocs</code> 包的实现原理，就是通过检查当前 Go 程序所在环境的 cgroups v1/v2 版本，来判断是当前环境是否在容器中，并以此来获取并设置正确的 P 值。这也是为什么 <code>automaxprocs</code> 包只能支持 Linux 系统的缘故，因为只有 Linux 实现了 cgroups，以此来实现容器功能。</p>
+<p>那么接下来其实我们要看的就是 <code>cg.NewCGroupsForCurrentProcess</code> 和 <code>cg.NewCGroups2ForCurrentProcess</code> 两个函数的具体实现了。</p>
+<p>不过，这两个函数代码实现比较多，我就不贴出来了，我把这两个函数各自相关的常量贴出来，你就能大致明白其实现原理了。</p>
+<p><code>cg.NewCGroupsForCurrentProcess</code> 函数涉及的部分常量如下：</p>
+<blockquote>
+<p><a href="https://github.com/uber-go/automaxprocs/blob/master/internal/cgroups/cgroups.go" target="_blank" rel="noopener">https://github.com/uber-go/automaxprocs/blob/master/internal/cgroups/cgroups.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	<span class="comment">// _cgroupFSType is the Linux CGroup file system type used in</span></span><br><span class="line">	<span class="comment">// `/proc/$PID/mountinfo`.</span></span><br><span class="line">	_cgroupFSType = <span class="string">"cgroup"</span></span><br><span class="line">	<span class="comment">// _cgroupSubsysCPU is the CPU CGroup subsystem.</span></span><br><span class="line">	_cgroupSubsysCPU = <span class="string">"cpu"</span></span><br><span class="line">	<span class="comment">// _cgroupSubsysCPUAcct is the CPU accounting CGroup subsystem.</span></span><br><span class="line">	_cgroupSubsysCPUAcct = <span class="string">"cpuacct"</span></span><br><span class="line">	<span class="comment">// _cgroupSubsysCPUSet is the CPUSet CGroup subsystem.</span></span><br><span class="line">	_cgroupSubsysCPUSet = <span class="string">"cpuset"</span></span><br><span class="line">	<span class="comment">// _cgroupSubsysMemory is the Memory CGroup subsystem.</span></span><br><span class="line">	_cgroupSubsysMemory = <span class="string">"memory"</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// _cgroupCPUCFSQuotaUsParam is the file name for the CGroup CFS quota</span></span><br><span class="line">	<span class="comment">// parameter.</span></span><br><span class="line">	_cgroupCPUCFSQuotaUsParam = <span class="string">"cpu.cfs_quota_us"</span></span><br><span class="line">	<span class="comment">// _cgroupCPUCFSPeriodUsParam is the file name for the CGroup CFS period</span></span><br><span class="line">	<span class="comment">// parameter.</span></span><br><span class="line">	_cgroupCPUCFSPeriodUsParam = <span class="string">"cpu.cfs_period_us"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	_procPathCGroup    = <span class="string">"/proc/self/cgroup"</span></span><br><span class="line">	_procPathMountInfo = <span class="string">"/proc/self/mountinfo"</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>在这里，我们可以看到 <code>cpu.cfs_quota_us</code> 和 <code>cpu.cfs_period_us</code> 两个关键的值。这两个值其实是 Linux 中的两个文件，是 cgroups v1 用来限制 CPU 使用量的，而它们分别代表着 CPU 时间配额（每周期内可使用的 CPU 时间上限）和 CPU 时间周期。</p>
+<p>我们可以在使用了 cgroups v1 的机器中用如下命令在容器中来看一下这两个文件中的实际内容：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ docker run --cpus=2 -it --rm alpine sh</span><br><span class="line">/ <span class="comment"># cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us</span></span><br><span class="line">200000</span><br><span class="line">/ <span class="comment"># cat /sys/fs/cgroup/cpu/cpu.cfs_period_us</span></span><br><span class="line">100000</span><br></pre></td></tr></table></figure>
+
+<p>CPU 时间配额和时间周期的值分别为 <code>200000</code> 和 <code>100000</code>，单位是 us，它的含义是：在每 <code>100</code> ms 的时间里，此容器中的进程能够使用 <code>200</code> ms 的 CPU 时间。即 CPU 的核心数为 <code>200000/100000 = 2</code> 核。</p>
+<p>而 <code>cg.NewCGroups2ForCurrentProcess</code> 函数涉及的部分常量如下：</p>
+<blockquote>
+<p><a href="https://github.com/uber-go/automaxprocs/blob/master/internal/cgroups/cgroups2.go" target="_blank" rel="noopener">https://github.com/uber-go/automaxprocs/blob/master/internal/cgroups/cgroups2.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	<span class="comment">// _cgroupv2CPUMax is the file name for the CGroup-V2 CPU max and period</span></span><br><span class="line">	<span class="comment">// parameter.</span></span><br><span class="line">	_cgroupv2CPUMax = <span class="string">"cpu.max"</span></span><br><span class="line">	<span class="comment">// _cgroupFSType is the Linux CGroup-V2 file system type used in</span></span><br><span class="line">	<span class="comment">// `/proc/$PID/mountinfo`.</span></span><br><span class="line">	_cgroupv2FSType = <span class="string">"cgroup2"</span></span><br><span class="line"></span><br><span class="line">	_cgroupv2MountPoint = <span class="string">"/sys/fs/cgroup"</span></span><br><span class="line"></span><br><span class="line">	_cgroupV2CPUMaxDefaultPeriod = <span class="number">100000</span></span><br><span class="line">	_cgroupV2CPUMaxQuotaMax      = <span class="string">"max"</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>这里的关键值是 <code>cpu.max</code> 和 <code>/sys/fs/cgroup</code>。这是 cgroups v2 用来限制 CPU 使用量的文件。</p>
+<p>我们可以在使用了 cgroups v2 的机器中用如下命令在容器中来看一下这个文件中的实际内容：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ docker run --cpus=2 -it --rm alpine \</span><br><span class="line">  sh -c <span class="string">"cat /sys/fs/cgroup/cpu.max"</span></span><br><span class="line">200000 100000</span><br></pre></td></tr></table></figure>
+
+<p>不难发现，其实 cgroups v2 就是把 cgroups v1 中 <code>cpu.cfs_quota_us</code> 和 <code>cpu.cfs_period_us</code> 两个文件的内容，放到了一个文件 <code>cpu.max</code> 中，而内容和效果完全一致。</p>
+<p>以上，便是 <code>automaxprocs</code> 包的实现原理。</p>
+<h3 id="未来展望"><a href="#未来展望" class="headerlink" title="未来展望"></a>未来展望</h3><p>其实，之所以今天想写这个话题，是因为最近 Go 的一个新提案 <a href="https://github.com/golang/go/issues/73193" target="_blank" rel="noopener">issues/73193</a> 中提到了 Go 要在未来版本中加入自动正确设置容器内 Go 程序 P 值的逻辑。即 Go 官方亲自下场，来解决这个历史遗留问题。这个问题由来已久，早在 2019 年的 <a href="https://github.com/golang/go/issues/33803" target="_blank" rel="noopener">issues/33803</a> 中就有人提出，如果 Go 官方要来解决此问题，对我们广大的 Gopher 来说也算是一件好事。</p>
+<p>这里我简单总结一下 <a href="https://github.com/golang/go/issues/73193" target="_blank" rel="noopener">issues/73193</a> 提案，感兴趣的读者也可以点击跳转过去查阅原文。</p>
+<p>此提案旨在让 Go 运行时自动适配容器环境，根据 CPU 配额、CPU 亲和性和物理机核心数来综合考量，智能的设置 <code>GOMAXPROCS</code>。其优化规则如下：</p>
+<ol>
+<li>获取 3 个关键参数<ol>
+<li>机器的可用逻辑 CPU 核心数</li>
+<li>通过系统调用 <code>sched_getaffinity()</code> 得到的可用 CPU 核心数（CPU 亲和性限制）</li>
+<li>如果进程在容器中运行，计算 cgroups v1/v2 中的 CPU 核心数</li>
+</ol>
+</li>
+<li>计算 <code>GOMAXPROCS</code> 值，取步骤 1 中最小值</li>
+</ol>
+<p>当然，现在还处于提案阶段，后续在新版本的 Go 程序中到底如何实现还需要查看具体代码。先挖个坑，到时候我会再写一篇文章来分析，欢迎先关注我 <a href="https://jianghushinian.cn/about/" target="_blank" rel="noopener">https://jianghushinian.cn/about/</a>。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文讲解了如何使用 Uber <code>automaxprocs</code> 包正确设置 <code>GOMAXPROCS</code>。</p>
+<p>默认情况下 Go 程序无法识别自己是在容器中运行，导致其自动创建的 P 数量等于宿主机中的可用逻辑 CPU 核心数，从而可能引发性能问题。</p>
+<p><code>automaxprocs</code> 包就是专门用来解决此问题的，并且用法非常简单，只需要使用匿名导入的方式 <code>import _ &quot;go.uber.org/automaxprocs&quot;</code> 一行代码即可搞定。</p>
+<p>我还带你一起阅读了 <code>automaxprocs</code> 包的核心部分源码，来深入探究其实现原理。通过阅读源码，我们知道 <code>automaxprocs</code> 包其实是读取了 cgroups v/v2 中用来配置 CPU 配额的文件，来感知容器内可用 CPU 核数的，以此来实现在容器内自动为 Go 程序设置正确的 <code>GOMAXPROCS</code> 值。</p>
+<p>并且，我还提到了 Go 官方下场，将在未来的 Go 版本中解决 <code>GOMAXPROCS</code> 不正确的问题，敬请期待。</p>
+<p>最后，留一个小作业，如果你觉得 <code>automaxprocs</code> 包打印的日志不符合你的项目规范，如何自定义日志呢？这个问题就交给你自行去探索了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">2025/04/10 23:37:57 maxprocs: Leaving GOMAXPROCS=4: CPU quota undefined</span><br></pre></td></tr></table></figure>
+
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/automaxprocs" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>automaxprocs GitHub 源码地址：<a href="https://github.com/uber-go/automaxprocs" target="_blank" rel="noopener">https://github.com/uber-go/automaxprocs</a></li>
+<li>Go GOMAXPROCS 提案 issues/73193：<a href="https://github.com/golang/go/issues/73193" target="_blank" rel="noopener">https://github.com/golang/go/issues/73193</a></li>
+<li>Go issues/33803：<a href="https://github.com/golang/go/issues/33803" target="_blank" rel="noopener">https://github.com/golang/go/issues/33803</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/automaxprocs" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/automaxprocs</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2025/04/13/automaxprocs/" target="_blank" rel="noopener">https://jianghushinian.cn/2025/04/13/automaxprocs/</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-01-25T04:52:53.999Z" itemprop="dateUpdated">2026-01-25 12:52:53</time>
+</span><br>
+
+
+        
+        <a href="/2025/04/13/automaxprocs/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/04/13/automaxprocs/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/04/13/automaxprocs/&title=《使用 Uber automaxprocs 正确设置 Go 程序线程数》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/04/13/automaxprocs/&title=《使用 Uber automaxprocs 正确设置 Go 程序线程数》 — 江湖十年&source=我们知道 Go 语言没有直接对用户暴露线程的概念，而是通过 goroutine 来控制并发。不过，在 Go 程序启动时，其背后的调度器往往是多线程运行的。..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/04/13/automaxprocs/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用 Uber automaxprocs 正确设置 Go 程序线程数》 — 江湖十年&url=http://www.jianghushinian.cn/2025/04/13/automaxprocs/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/04/13/automaxprocs/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2025/04/18/io-discard/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Go 语言中你不知道的 io.Discard 妙用</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/04/03/air/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">效率工具：使用 air 热重载 Go 应用程序</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/04/13/automaxprocs/&title=《使用 Uber automaxprocs 正确设置 Go 程序线程数》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/04/13/automaxprocs/&title=《使用 Uber automaxprocs 正确设置 Go 程序线程数》 — 江湖十年&source=我们知道 Go 语言没有直接对用户暴露线程的概念，而是通过 goroutine 来控制并发。不过，在 Go 程序启动时，其背后的调度器往往是多线程运行的。..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/04/13/automaxprocs/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用 Uber automaxprocs 正确设置 Go 程序线程数》 — 江湖十年&url=http://www.jianghushinian.cn/2025/04/13/automaxprocs/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/04/13/automaxprocs/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/04/13/automaxprocs/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

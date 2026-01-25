@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Go 中如何编写测试代码内容补充 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,Test">
+    <meta name="description" content="最近一直在写 Go 语言测试相关的文章，从《在 Go 中如何编写测试代码》开始，已经更新了七篇文章。本来打算测试系列文章就此告一段落，近期不再写相关内容了。但是重读一遍这个系列的文章，发现还是有一些遗漏的知识点，和之前文章中提到过但没有深入讲解的内容。本文就作为这个系列文章的一个补充，讲解下我认为在 Go 测试中还有哪些值得一写的内容。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Go 中如何编写测试代码内容补充">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/07/23/how-to-write-testing-in-go-content-supplement/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="最近一直在写 Go 语言测试相关的文章，从《在 Go 中如何编写测试代码》开始，已经更新了七篇文章。本来打算测试系列文章就此告一段落，近期不再写相关内容了。但是重读一遍这个系列的文章，发现还是有一些遗漏的知识点，和之前文章中提到过但没有深入讲解的内容。本文就作为这个系列文章的一个补充，讲解下我认为在 Go 测试中还有哪些值得一写的内容。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-07-23T03:37:55.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:13.036Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="Test">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Go 中如何编写测试代码内容补充</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Go 中如何编写测试代码内容补充</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-07-23T03:37:55.000Z" itemprop="datePublished" class="page-time">
+  2023-07-23
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#准备"><span class="post-toc-number">1.</span> <span class="post-toc-text">准备</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#TestMain"><span class="post-toc-number">2.</span> <span class="post-toc-text">TestMain</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Setup-Teardown"><span class="post-toc-number">3.</span> <span class="post-toc-text">Setup&#x2F;Teardown</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#表格测试"><span class="post-toc-number">4.</span> <span class="post-toc-text">表格测试</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Subtests"><span class="post-toc-number">5.</span> <span class="post-toc-text">Subtests</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#自动生成测试代码"><span class="post-toc-number">6.</span> <span class="post-toc-text">自动生成测试代码</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#何时编写测试"><span class="post-toc-number">7.</span> <span class="post-toc-text">何时编写测试</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#何时执行测试"><span class="post-toc-number">8.</span> <span class="post-toc-text">何时执行测试</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">9.</span> <span class="post-toc-text">总结</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#P-S"><span class="post-toc-number">10.</span> <span class="post-toc-text">P.S.</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-how-to-write-testing-in-go-content-supplement"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Go 中如何编写测试代码内容补充</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-07-23 11:37:55" datetime="2023-07-23T03:37:55.000Z"  itemprop="datePublished">2023-07-23</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>最近一直在写 Go 语言测试相关的文章，从<a href="https://jianghushinian.cn/2023/07/09/how-to-write-testing-in-go/" target="_blank" rel="noopener">《在 Go 中如何编写测试代码》</a>开始，已经更新了七篇文章。本来打算测试系列文章就此告一段落，近期不再写相关内容了。但是重读一遍这个系列的文章，发现还是有一些遗漏的知识点，和之前文章中提到过但没有深入讲解的内容。本文就作为这个系列文章的一个补充，讲解下我认为在 Go 测试中还有哪些值得一写的内容。</p>
+<a id="more"></a>
+
+<h3 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h3><p>本文所有测试用例都是基于 <code>Abs</code> 函数编写的，<code>Abs</code> 函数定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Abs</span><span class="params">(x <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	fmt.Printf(<span class="string">"&gt;&gt;&gt; call abs(%d)\n"</span>, x)</span><br><span class="line">	<span class="keyword">if</span> x &lt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> -x</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> x</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="TestMain"><a href="#TestMain" class="headerlink" title="TestMain"></a>TestMain</h3><p>有些时候，我们可能需要在测试前执行一些准备工作，测试后执行一些清理工作。比如测试前启动一个测试用的 HTTP Server，测试后关闭这个 Server。<code>TestMain</code> 函数就是用来干这个的，它相当于测试中的 <code>main</code> 函数。</p>
+<p><code>TestMain</code> 函数参数为 <code>*testing.M</code> 类型，测试开始时会最先被执行，在 <code>TestMain</code> 函数中可以调用 <code>(*testing.M).Run()</code>，这会执行全部的测试用例。利用这个特性，我们可以在调用 <code>(*testing.M).Run()</code> 之前执行测试准备工作，在调用 <code>(*testing.M).Run()</code> 之后执行清理工作。</p>
+<p>为 <code>Abs</code> 函数编写单元测试代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestAbs</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	want := <span class="number">1</span></span><br><span class="line">	<span class="keyword">if</span> got := Abs(<span class="number">-1</span>); got != want &#123;</span><br><span class="line">		t.Fatalf(<span class="string">"Abs() = %v, want %v"</span>, got, want)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">setup</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"&gt; setup completed"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">teardown</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"&gt; teardown completed"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestMain</span><span class="params">(m *testing.M)</span></span> &#123;</span><br><span class="line">	setup()</span><br><span class="line">	code := m.Run()</span><br><span class="line">	teardown()</span><br><span class="line">	os.Exit(code)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>setup()</code> 可以用来执行准备工作，<code>teardown()</code> 用来执行清理工作，<code>m.Run()</code> 执行全部测试用例后会返回程序退出码，可以在程序退出时传递给 <code>os.Exit()</code> 函数。</p>
+<p>使用 <code>go test</code> 来执行测试函数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -v</span><br><span class="line">&gt; setup completed</span><br><span class="line">=== RUN   TestAbs</span><br><span class="line">&gt;&gt;&gt; call abs(-1)</span><br><span class="line">--- PASS: TestAbs (0.00s)</span><br><span class="line">PASS</span><br><span class="line">&gt; teardown completed</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/supplement       0.369s</span><br></pre></td></tr></table></figure>
+
+<p>执行结果符合预期。</p>
+<h3 id="Setup-Teardown"><a href="#Setup-Teardown" class="headerlink" title="Setup/Teardown"></a>Setup/Teardown</h3><p><code>TestMain</code> 函数是全局粒度的，有些时候，我们想要单独为某一个测试用例实现准备和清理函数，可以这样做：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestAbs</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	teardownTest := setupTest(t)</span><br><span class="line">	<span class="keyword">defer</span> teardownTest(t)</span><br><span class="line">	want := <span class="number">1</span></span><br><span class="line">	<span class="keyword">if</span> got := Abs(<span class="number">-1</span>); got != want &#123;</span><br><span class="line">		t.Fatalf(<span class="string">"Abs() = %v, want %v"</span>, got, want)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// testing.TB is the interface common to T, B, and F.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">setupTest</span><span class="params">(tb testing.TB)</span> <span class="title">func</span><span class="params">(tb testing.TB)</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"&gt;&gt; setup Test"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(tb testing.TB)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"&gt;&gt; teardown Test"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>定义 <code>setupTest</code> 函数为某个测试用例提供准备工作，它接收参数为 <code>testing.TB</code> 接口，testing 框架中的 <code>*testing.&lt;T|B|F&gt;</code> 都实现了这个接口，所以 <code>setupTest</code> 函数在单元测试、基准测试、模糊测试中都可以使用。<code>setupTest</code> 函数返回的函数可以用来执行清理工作。</p>
+<p>使用 <code>go test</code> 来执行测试函数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -v</span><br><span class="line">&gt; setup completed</span><br><span class="line">=== RUN   TestAbs</span><br><span class="line">&gt;&gt; setup Test</span><br><span class="line">&gt;&gt;&gt; call abs(-1)</span><br><span class="line">&gt;&gt; teardown Test</span><br><span class="line">--- PASS: TestAbs (0.00s)</span><br><span class="line">PASS</span><br><span class="line">&gt; teardown completed</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/supplement       0.518s</span><br></pre></td></tr></table></figure>
+
+<h3 id="表格测试"><a href="#表格测试" class="headerlink" title="表格测试"></a>表格测试</h3><p>如果我们想为一个函数编写多个测试用例，则可以使用表格测试（<code>table-driven tests</code>）。</p>
+<p>表格测试将所有的测试用例保存在结构体切片中，然后在 <code>for</code> 循环中依次执行每个测试用例，实现代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestAbsWithTable</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	<span class="keyword">type</span> args <span class="keyword">struct</span> &#123;</span><br><span class="line">		x <span class="keyword">int</span></span><br><span class="line">	&#125;</span><br><span class="line">	tests := []<span class="keyword">struct</span> &#123;</span><br><span class="line">		name <span class="keyword">string</span></span><br><span class="line">		args args</span><br><span class="line">		want <span class="keyword">int</span></span><br><span class="line">	&#125;&#123;</span><br><span class="line">		&#123;</span><br><span class="line">			name: <span class="string">"positive"</span>,</span><br><span class="line">			args: args&#123;x: <span class="number">1</span>&#125;,</span><br><span class="line">			want: <span class="number">1</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">		&#123;</span><br><span class="line">			name: <span class="string">"negative"</span>,</span><br><span class="line">			args: args&#123;x: <span class="number">-1</span>&#125;,</span><br><span class="line">			want: <span class="number">1</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> _, tt := <span class="keyword">range</span> tests &#123;</span><br><span class="line">		teardownTest := setupTest(t)</span><br><span class="line">		<span class="keyword">defer</span> teardownTest(t)</span><br><span class="line">		<span class="keyword">if</span> got := Abs(tt.args.x); got != tt.want &#123;</span><br><span class="line">			t.Fatalf(<span class="string">"Abs() = %v, want %v"</span>, got, tt.want)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>go test</code> 来执行测试函数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -v</span><br><span class="line">&gt; setup completed</span><br><span class="line">=== RUN   TestAbsWithTable</span><br><span class="line">&gt;&gt; setup Test</span><br><span class="line">&gt;&gt;&gt; call abs(1)</span><br><span class="line">&gt;&gt; setup Test</span><br><span class="line">&gt;&gt;&gt; call abs(-1)</span><br><span class="line">&gt;&gt; teardown Test</span><br><span class="line">&gt;&gt; teardown Test</span><br><span class="line">--- PASS: TestAbsWithTable (0.00s)</span><br><span class="line">PASS</span><br><span class="line">&gt; teardown completed</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/supplement       0.550s</span><br></pre></td></tr></table></figure>
+
+<p>根据执行结果可以发现，每个测试用例是顺序执行的。但是存在一个问题，虽然每个测试用例的准备函数 <code>setupTest(t)</code> 是在当前轮次循环中进行调用的，可清理函数 <code>teardownTest(t)</code> 却是在 <code>for</code> 循环执行完成后，才会被依次执行。这是 Go 语言在 <code>for</code> 循环中使用 <code>defer</code> 语句天然存在的问题，如果你不知道如何解决，可以参考我的另一篇文章<a href="https://jianghushinian.cn/2023/06/23/how-to-implement-a-context-manager-similar-to-python-s-with-in-go/" target="_blank" rel="noopener">《在 Go 中如何实现类似 Python 中的 with 上下文管理器》</a>。</p>
+<p>现在我们尝试将第一个测试用例故意改错，将 <code>want</code> 值修改为 <code>2</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	name: <span class="string">"positive"</span>,</span><br><span class="line">	args: args&#123;x: <span class="number">1</span>&#125;,</span><br><span class="line">	want: <span class="number">2</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>再次使用 <code>go test</code> 来执行测试函数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -v -run=<span class="string">"TestAbsWithTable"</span></span><br><span class="line">&gt; setup completed</span><br><span class="line">=== RUN   TestAbsWithTable</span><br><span class="line">&gt;&gt; setup Test</span><br><span class="line">&gt;&gt;&gt; call abs(1)</span><br><span class="line">    main_test.go:42: Abs() = 1, want 2</span><br><span class="line">&gt;&gt; teardown Test</span><br><span class="line">--- FAIL: TestAbsWithTable (0.00s)</span><br><span class="line">FAIL</span><br><span class="line">&gt; teardown completed</span><br><span class="line"><span class="built_in">exit</span> status 1</span><br><span class="line">FAIL    github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/supplement       0.541s</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，第一个测试用例执行报错了，并且测试直接终止，没有继续执行第二个测试用例。</p>
+<p>这个表现与我们直接在多个函数中编写的测试用例有所不同，如果我们像下面这样定义两个测试用例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestAbs1</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	teardownTest := setupTest(t)</span><br><span class="line">	<span class="keyword">defer</span> teardownTest(t)</span><br><span class="line">	want := <span class="number">2</span></span><br><span class="line">	<span class="keyword">if</span> got := Abs(<span class="number">-1</span>); got != want &#123;</span><br><span class="line">		t.Fatalf(<span class="string">"Abs() = %v, want %v"</span>, got, want)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestAbs2</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	teardownTest := setupTest(t)</span><br><span class="line">	<span class="keyword">defer</span> teardownTest(t)</span><br><span class="line">	want := <span class="number">1</span></span><br><span class="line">	<span class="keyword">if</span> got := Abs(<span class="number">-1</span>); got != want &#123;</span><br><span class="line">		t.Fatalf(<span class="string">"Abs() = %v, want %v"</span>, got, want)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>那么当使用 <code>go test</code> 执行这两个测试用例时，<code>TestAbs1</code> 同样会失败退出，但这并不会影响 <code>TestAbs2</code> 测试用例的执行。</p>
+<p>要解决这个问题，就该 <code>Subtests</code> 登场了。</p>
+<h3 id="Subtests"><a href="#Subtests" class="headerlink" title="Subtests"></a>Subtests</h3><p>Subtests 被译为子测试，子测试可以解决我们在表格测试中遇到的所有问题。</p>
+<p>Subtests 用法很简单，仅需要将我们原来在表格测试时 <code>for</code> 循环中执行的代码，迁移到 <code>(*testing.T).Run()</code> 函数中来执行即可，实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestAbsWithTableAndSubtests</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	<span class="keyword">type</span> args <span class="keyword">struct</span> &#123;</span><br><span class="line">		x <span class="keyword">int</span></span><br><span class="line">	&#125;</span><br><span class="line">	tests := []<span class="keyword">struct</span> &#123;</span><br><span class="line">		name <span class="keyword">string</span></span><br><span class="line">		args args</span><br><span class="line">		want <span class="keyword">int</span></span><br><span class="line">	&#125;&#123;</span><br><span class="line">		&#123;</span><br><span class="line">			name: <span class="string">"positive"</span>,</span><br><span class="line">			args: args&#123;x: <span class="number">1</span>&#125;,</span><br><span class="line">			want: <span class="number">2</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">		&#123;</span><br><span class="line">			name: <span class="string">"negative"</span>,</span><br><span class="line">			args: args&#123;x: <span class="number">-1</span>&#125;,</span><br><span class="line">			want: <span class="number">1</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> _, tt := <span class="keyword">range</span> tests &#123;</span><br><span class="line">		t.Run(tt.name, <span class="function"><span class="keyword">func</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">			teardownTest := setupTest(t)</span><br><span class="line">			<span class="keyword">defer</span> teardownTest(t)</span><br><span class="line">			<span class="keyword">if</span> got := Abs(tt.args.x); got != tt.want &#123;</span><br><span class="line">				t.Fatalf(<span class="string">"Abs() = %v, want %v"</span>, got, tt.want)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们将原来的这段代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">teardownTest := setupTest(t)</span><br><span class="line"><span class="keyword">defer</span> teardownTest(t)</span><br><span class="line"><span class="keyword">if</span> got := Abs(tt.args.x); got != tt.want &#123;</span><br><span class="line">	t.Fatalf(<span class="string">"Abs() = %v, want %v"</span>, got, tt.want)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>迁移到了 <code>t.Run()</code> 中：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">t.Run(tt.name, <span class="function"><span class="keyword">func</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	teardownTest := setupTest(t)</span><br><span class="line">	<span class="keyword">defer</span> teardownTest(t)</span><br><span class="line">	<span class="keyword">if</span> got := Abs(tt.args.x); got != tt.want &#123;</span><br><span class="line">		t.Fatalf(<span class="string">"Abs() = %v, want %v"</span>, got, tt.want)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p><code>t.Run()</code> 第一个参数用来记录测试用例名称，第二个参数是一个匿名的函数，参数为 <code>*testing.T</code>，可以将表格测试中 <code>for</code> 内的代码全部放在这个匿名函数中来执行。</p>
+<p>使用 <code>go test</code> 来执行测试函数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -v -run=<span class="string">"TestAbsWithTableAndSubtests"</span></span><br><span class="line">&gt; setup completed</span><br><span class="line">=== RUN   TestAbsWithTableAndSubtests</span><br><span class="line">=== RUN   TestAbsWithTableAndSubtests/positive</span><br><span class="line">&gt;&gt; setup Test</span><br><span class="line">&gt;&gt;&gt; call abs(1)</span><br><span class="line">    main_test.go:72: Abs() = 1, want 2</span><br><span class="line">&gt;&gt; teardown Test</span><br><span class="line">=== RUN   TestAbsWithTableAndSubtests/negative</span><br><span class="line">&gt;&gt; setup Test</span><br><span class="line">&gt;&gt;&gt; call abs(-1)</span><br><span class="line">&gt;&gt; teardown Test</span><br><span class="line">--- FAIL: TestAbsWithTableAndSubtests (0.00s)</span><br><span class="line">    --- FAIL: TestAbsWithTableAndSubtests/positive (0.00s)</span><br><span class="line">    --- PASS: TestAbsWithTableAndSubtests/negative (0.00s)</span><br><span class="line">FAIL</span><br><span class="line">&gt; teardown completed</span><br><span class="line"><span class="built_in">exit</span> status 1</span><br><span class="line">FAIL    github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/supplement       0.524s</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，使用 Subtests 后，即使第一个测试用例执行退出了，也不会影响第二个测试用例的执行。并且，这也避免了在 <code>for</code> 循环中直接使用 <code>defer</code> 语句，<code>teardownTest(t)</code> 函数的执行时机也正常了。</p>
+<p>此外，我们还可以发现，Subtests 是有层级关系的，并且每一个测试用例成功和失败都会被单独标记：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">--- FAIL: TestAbsWithTableAndSubtests (0.00s)</span><br><span class="line">    --- FAIL: TestAbsWithTableAndSubtests/positive (0.00s)</span><br><span class="line">    --- PASS: TestAbsWithTableAndSubtests/negative (0.00s)</span><br></pre></td></tr></table></figure>
+
+<p>根据这几行日志，我们能够发现 <code>TestAbsWithTableAndSubtests</code> 测试执行失败了，它包含了两个子测试，其中 <code>TestAbsWithTableAndSubtests/positive</code> 子测试执行失败，而 <code>TestAbsWithTableAndSubtests/negative</code> 子测试执行通过。子测试的名称是测试函数名 + <code>/</code> + 传递给 <code>t.Run()</code> 的第一个参数 <code>tt.name</code>。</p>
+<p>我们可以单独指定需要执行的子测试，这也是普通的表格测试无法做到的。</p>
+<p>使用 <code>go test</code> 执行子测试：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">go <span class="built_in">test</span> -v -run=<span class="string">"TestAbsWithTableAndSubtests/negative"</span></span><br><span class="line">&gt; setup completed</span><br><span class="line">=== RUN   TestAbsWithTableAndSubtests</span><br><span class="line">=== RUN   TestAbsWithTableAndSubtests/negative</span><br><span class="line">&gt;&gt; setup Test</span><br><span class="line">&gt;&gt;&gt; call abs(-1)</span><br><span class="line">&gt;&gt; teardown Test</span><br><span class="line">--- PASS: TestAbsWithTableAndSubtests (0.00s)</span><br><span class="line">    --- PASS: TestAbsWithTableAndSubtests/negative (0.00s)</span><br><span class="line">PASS</span><br><span class="line">&gt; teardown completed</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/supplement       0.569s</span><br></pre></td></tr></table></figure>
+
+<p>不过，Subtests 也存在缺点，就是不支持并发执行。</p>
+<p>如果想让其支持并行，可以使用 <code>t.Parallel()</code> 将其标记为可并行执行：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestAbs</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> _, tt := <span class="keyword">range</span> tests &#123;</span><br><span class="line">        t.Run(tt.Name, <span class="function"><span class="keyword">func</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">            t.Parallel()</span><br><span class="line">            ...</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Subtests 的常见用法我们就介绍完了。</p>
+<p>根据上面的测试结果，我们要牢记，表格测试一定要与子测试一起配合使用。</p>
+<h3 id="自动生成测试代码"><a href="#自动生成测试代码" class="headerlink" title="自动生成测试代码"></a>自动生成测试代码</h3><p>通过前文的示例讲解，我们不难发现，其实表格测试是有套路的，表格测试基本框架如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestAbs</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	<span class="keyword">type</span> args <span class="keyword">struct</span> &#123;</span><br><span class="line">		x <span class="keyword">int</span></span><br><span class="line">	&#125;</span><br><span class="line">	tests := []<span class="keyword">struct</span> &#123;</span><br><span class="line">		name <span class="keyword">string</span></span><br><span class="line">		args args</span><br><span class="line">		want <span class="keyword">int</span></span><br><span class="line">	&#125;&#123;</span><br><span class="line">		<span class="comment">// <span class="doctag">TODO:</span> Add test cases.</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> _, tt := <span class="keyword">range</span> tests &#123;</span><br><span class="line">		t.Run(tt.name, <span class="function"><span class="keyword">func</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">			<span class="keyword">if</span> got := Abs(tt.args.x); got != tt.want &#123;</span><br><span class="line">				t.Errorf(<span class="string">"Abs() = %v, want %v"</span>, got, tt.want)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>既然基本测试框架不会变化，那么我们就可以使用程序来自动生成单元测试模板代码。</p>
+<p><code>gotests</code> 就提供了这样的功能，可以使用如下命令进行安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go get -u github.com/cweill/gotests/...</span><br></pre></td></tr></table></figure>
+
+<p>使用如下命令为所有代码生成测试：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ gotests -all -w .</span><br></pre></td></tr></table></figure>
+
+<p><code>-all</code> 表示为所有代码都生成测试。</p>
+<p><code>-w</code> 表示将输出写入指定文件，而不是标准输出。后面的 <code>.</code> 参数代表当前目录，<code>gotests</code> 会在当前目录下创建 <code>xxx_test.go</code> 文件并写入生成的测试代码模板。</p>
+<p>如果只为 <code>Abs</code> 函数生成测试用例，可以使用 <code>-only</code> 参数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ gotests -only Abs -w .</span><br><span class="line">Generated TestAbs</span><br></pre></td></tr></table></figure>
+
+<p>输出 <code>Generated TestAbs</code> 表示测试代码模板已经生成。</p>
+<p>如下输出则表示没有生成测试，可能是测试函数已经存在。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">No tests generated <span class="keyword">for</span> .</span><br></pre></td></tr></table></figure>
+
+<p><code>-only</code> 标志接收正则参数，可以指定为 <code>Abs</code>、<code>Add</code> 两个函数生成测试：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ gotests -only <span class="string">"Abs|Add"</span> -w .</span><br></pre></td></tr></table></figure>
+
+<p><code>-excl</code> 标志与 <code>-only</code> 标志作用相反，为指定的函数 <code>Abs</code> 以外的其他函数生成测试：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ gotests -excl Abs -w .</span><br></pre></td></tr></table></figure>
+
+<p><code>gotests</code> 更多功能可以使用 <code>gotests --help</code> 进行查看。</p>
+<h3 id="何时编写测试"><a href="#何时编写测试" class="headerlink" title="何时编写测试"></a>何时编写测试</h3><p>我花了好几篇文章来讲解如何编写测试代码，但还没讲解过应该在何时编写测试代码，现在就来简单聊聊这个话题。</p>
+<p>根据开发周期来看，编写测试的时机有三个：</p>
+<ol>
+<li><p>编写代码之前，先编写测试代码，即测试驱动开发 —— TDD。</p>
+</li>
+<li><p>编写代码过程中，每实现一个小功能（函数、方法等），就为这个小功能编写测试代码，相当于同步进行。</p>
+</li>
+<li><p>整个项目前期先不写测试，等项目上线稳定后，再统一为项目编写测试代码。</p>
+</li>
+</ol>
+<p>在这里，我最推荐第二种做法。</p>
+<p>在我了解的国内开发团队，很少有使用 TDD 模式来编写测试代码的（也可能是我见识比较少），这跟市场环境有关。不过 TDD 开发模式在很多外企非常流行，比如 Thoughtworks 就在采用 TDD 开发模式，所以 Thoughtworks 也培养了一批大师级的 TDD 信奉者。</p>
+<p>至于第三种做法，根据我的经验，基本上是项目周期非常短，着急上线，但最后的结果大概率是没有动力再为项目编写测试代码的。</p>
+<h3 id="何时执行测试"><a href="#何时执行测试" class="headerlink" title="何时执行测试"></a>何时执行测试</h3><p>我们再来聊聊何时执行测试代码。</p>
+<p>首先，我们每写一个单元测试，都要立即执行，验证测试程序和被测程序的正确性，这个过程中可能要多次修改和执行单元测试。</p>
+<p>其次，在每个 feature 完成后，要执行当前项目的全部测试代码，以此来验证开发当前的功能是否对其他功能组件产生影响，这也被称作回归测试。</p>
+<p>接着，代码会被 push 到代码仓库，此时应该在 CI 环境完整的执行一次全部测试代码，以此来保证代码被合并到主分支前是没有问题的。不过，这个过程中，可能有些测试没必要在 CI 环境执行，那么可以使用 <code>(*testing.T).Skip</code> 跳过这些单元测试。</p>
+<p>最终被合并到主分支的代码，一定是测试全部通过的。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文中我们介绍了 <code>TestMain</code> 的用法，以及利用 <code>TestMain</code> 来实现全局的 <code>setup/teardown</code> 函数。接着又教大家如何实现单个测试用例级别的 <code>setup/teardown</code> 函数。</p>
+<p>我们还学习了表格测试和子测试的用法，搞清楚了为什么要用子测试以及它能解决哪些问题。我们应该牢记，表格测试一定要与子测试一起配合使用。</p>
+<p>最后，我又和大家聊了编写单元测试的时机以及执行单元测试的时机。</p>
+<p>至此，关于在 Go 中如何编写测试相关的文章就告一段落了。</p>
+<p>本文完整代码示例我放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/supplement" target="_blank" rel="noopener">GitHub</a> 上，欢迎点击查看。</p>
+<p>希望此文能对你有所帮助。</p>
+<h3 id="P-S"><a href="#P-S" class="headerlink" title="P.S."></a>P.S.</h3><p>本文完结后，我写的这一系列关于测试的文章，应该可以覆盖到我们平时工作和开发中超过 90% 的测试场景。虽然可能还会有一些遗漏的内容没有讲解，但既然被遗漏，说明不太常见，所以这个系列的文章暂时不会再继续深究下去，很长一段时间内我应该不会再写这个主题的文章了。</p>
+<p>如果你在编写测试代码方面有一些心得想和我讨论分享，欢迎你联系我。</p>
+<p><strong>联系我</strong></p>
+<ul>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客地址：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+<p><strong>参考</strong></p>
+<ul>
+<li>testing 文档：<a href="https://pkg.go.dev/testing@go1.20.1" target="_blank" rel="noopener">https://pkg.go.dev/testing@go1.20.1</a></li>
+<li>Using Setup and Teardown in Golang’s Tests：<a href="https://www.sobyte.net/post/2022-07/go-setup-and-teardown/" target="_blank" rel="noopener">https://www.sobyte.net/post/2022-07/go-setup-and-teardown/</a></li>
+<li>gotests 源码仓库：<a href="https://github.com/cweill/gotests" target="_blank" rel="noopener">https://github.com/cweill/gotests</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:13.036Z" itemprop="dateUpdated">2025-02-15 09:45:13</time>
+</span><br>
+
+
+        
+        <a href="/2023/07/23/how-to-write-testing-in-go-content-supplement/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/07/23/how-to-write-testing-in-go-content-supplement/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Test/" rel="tag">Test</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/07/23/how-to-write-testing-in-go-content-supplement/&title=《在 Go 中如何编写测试代码内容补充》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/07/23/how-to-write-testing-in-go-content-supplement/&title=《在 Go 中如何编写测试代码内容补充》 — 江湖十年&source=最近一直在写 Go 语言测试相关的文章，从《在 Go 中如何编写测试代码》开始，已经更新了七篇文章。本来打算测试系列文章就此告一段落，近期不再写相关内容了..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/07/23/how-to-write-testing-in-go-content-supplement/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中如何编写测试代码内容补充》 — 江湖十年&url=http://www.jianghushinian.cn/2023/07/23/how-to-write-testing-in-go-content-supplement/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/07/23/how-to-write-testing-in-go-content-supplement/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2023/07/23/use-fomepay-to-recharge-chatgpt-plus/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">十分钟搞定 ChatGPT Plus 升级</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/07/22/the-ultimate-solution-to-test-code-monkey-patching/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">测试代码终极解决方案 Monkey Patching</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/07/23/how-to-write-testing-in-go-content-supplement/&title=《在 Go 中如何编写测试代码内容补充》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/07/23/how-to-write-testing-in-go-content-supplement/&title=《在 Go 中如何编写测试代码内容补充》 — 江湖十年&source=最近一直在写 Go 语言测试相关的文章，从《在 Go 中如何编写测试代码》开始，已经更新了七篇文章。本来打算测试系列文章就此告一段落，近期不再写相关内容了..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/07/23/how-to-write-testing-in-go-content-supplement/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 中如何编写测试代码内容补充》 — 江湖十年&url=http://www.jianghushinian.cn/2023/07/23/how-to-write-testing-in-go-content-supplement/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/07/23/how-to-write-testing-in-go-content-supplement/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/07/23/how-to-write-testing-in-go-content-supplement/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

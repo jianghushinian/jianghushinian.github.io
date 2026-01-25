@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Python Type Hints 从入门到实践 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Python">
+    <meta name="description" content="Python 想必大家都已经很熟悉了，甚至关于它有用或者无用的论点大家可能也已经看腻了。但是无论如何，它作为一个将加入高考科目的语言还是有它独到之处的。今天我们就再展开聊聊 Python。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python Type Hints 从入门到实践">
+<meta property="og:url" content="http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="Python 想必大家都已经很熟悉了，甚至关于它有用或者无用的论点大家可能也已经看腻了。但是无论如何，它作为一个将加入高考科目的语言还是有它独到之处的。今天我们就再展开聊聊 Python。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/python_strongly_typed.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/js_weakly_typed.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/python_dynamic_typed.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/simple_example_type_hint.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/custom_type.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/args_kwargs.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/union.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/type_var.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/ref_self.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/duck_type.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/tornado_Requesthandler.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/pyi.png">
+<meta property="article:published_time" content="2022-03-12T13:36:58.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.749Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Python">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/python_strongly_typed.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Python Type Hints 从入门到实践</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Python Type Hints 从入门到实践</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2022-03-12T13:36:58.000Z" itemprop="datePublished" class="page-time">
+  2022-03-12
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Python-是一门动态强类型语言"><span class="post-toc-number">1.</span> <span class="post-toc-text">Python 是一门动态强类型语言</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Type-Hints-初探"><span class="post-toc-number">2.</span> <span class="post-toc-text">Type Hints 初探</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#常见数据结构的-Type-Hints-写法"><span class="post-toc-number">3.</span> <span class="post-toc-text">常见数据结构的 Type Hints 写法</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#默认参数"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">默认参数</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#自定义类型"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">自定义类型</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#容器类型"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">容器类型</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#类型别名"><span class="post-toc-number">3.4.</span> <span class="post-toc-text">类型别名</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#可变参数"><span class="post-toc-number">3.5.</span> <span class="post-toc-text">可变参数</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#泛型"><span class="post-toc-number">3.6.</span> <span class="post-toc-text">泛型</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#TypeVar"><span class="post-toc-number">3.6.1.</span> <span class="post-toc-text">TypeVar</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#Union"><span class="post-toc-number">3.6.2.</span> <span class="post-toc-text">Union</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#TypeVar-和-Union-区别"><span class="post-toc-number">3.6.3.</span> <span class="post-toc-text">TypeVar 和 Union 区别</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#Optional"><span class="post-toc-number">3.6.4.</span> <span class="post-toc-text">Optional</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#Any"><span class="post-toc-number">3.6.5.</span> <span class="post-toc-text">Any</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#可调用对象（函数、类等）"><span class="post-toc-number">3.7.</span> <span class="post-toc-text">可调用对象（函数、类等）</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#自引用"><span class="post-toc-number">3.8.</span> <span class="post-toc-text">自引用</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#鸭子类型"><span class="post-toc-number">3.9.</span> <span class="post-toc-text">鸭子类型</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Type-Hints-的其他写法"><span class="post-toc-number">4.</span> <span class="post-toc-text">Type Hints 的其他写法</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用注释编写"><span class="post-toc-number">4.1.</span> <span class="post-toc-text">使用注释编写</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用单独文件编写（-pyi）"><span class="post-toc-number">4.2.</span> <span class="post-toc-text">使用单独文件编写（.pyi）</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Type-Hints-实践"><span class="post-toc-number">5.</span> <span class="post-toc-text">Type Hints 实践</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#dataclass-——-数据类"><span class="post-toc-number">5.1.</span> <span class="post-toc-text">dataclass —— 数据类</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Pydantic"><span class="post-toc-number">5.2.</span> <span class="post-toc-text">Pydantic</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#MySQLHandler"><span class="post-toc-number">5.3.</span> <span class="post-toc-text">MySQLHandler</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#运行期类型检查"><span class="post-toc-number">5.4.</span> <span class="post-toc-text">运行期类型检查</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#附录"><span class="post-toc-number">6.</span> <span class="post-toc-text">附录</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-Python-Type-Hints-从入门到实践"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Python Type Hints 从入门到实践</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2022-03-12 21:36:58" datetime="2022-03-12T13:36:58.000Z"  itemprop="datePublished">2022-03-12</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>Python 想必大家都已经很熟悉了，甚至关于它有用或者无用的论点大家可能也已经看腻了。但是无论如何，它作为一个将加入高考科目的语言还是有它独到之处的。今天我们就再展开聊聊 Python。</p>
+<a id="more"></a>
+
+<h3 id="Python-是一门动态强类型语言"><a href="#Python-是一门动态强类型语言" class="headerlink" title="Python 是一门动态强类型语言"></a>Python 是一门动态强类型语言</h3><p>《流畅的Python》一书中提到，如果一门语言很少隐式转换类型，说明它是强类型语言；Java、C++ 和 Python 是强类型语言。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="python_strongly_typed.png" alt="△ Python 的强类型体现" title="">
+                </div>
+                <div class="image-caption">△ Python 的强类型体现</div>
+            </figure>
+
+<p>同时如果一门语言经常隐式转换类型，说明它是弱类型语言。PHP、JavaScript 和 Perl 是弱类型语言。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="js_weakly_typed.png" alt="△ 动态弱类型语言 ：JavaScript" title="">
+                </div>
+                <div class="image-caption">△ 动态弱类型语言 ：JavaScript</div>
+            </figure> 
+
+<p>当然上面这种简单的示例对比，并不能确切的说 Python 是一门 强类型 语言，因为 Java 同样支持 integer 和 string 相加操作，且 Java 是 强类型 语言。<br>因此《流畅的Python》一书中还有关于静态类型和动态类型的定义：在编译时检查类型的语言是静态类型语言，在运行时检查类型的语言是动态类型语言。静态语言需要声明类型(有些现代语言使用类型推导避免部分类型声明)。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="python_dynamic_typed.png" alt="△ Python 的动态类型体现" title="">
+                </div>
+                <div class="image-caption">△ Python 的动态类型体现</div>
+            </figure>
+
+<p>综上所述，关于 Python 是动态强类型语言是比较显而易见没什么争议的。</p>
+<h3 id="Type-Hints-初探"><a href="#Type-Hints-初探" class="headerlink" title="Type Hints 初探"></a>Type Hints 初探</h3><p>Python 在 PEP 484（Python Enhancement Proposals，Python 增强建议书）中提出了 Type Hints（类型注解）。进一步强化了 Python 是一门 强类型语言的特性，它在 Python3.5 中第一次被引入。使用 Type Hints 可以让我们编写出带有类型的 Python 代码，看起来更加符合强类型语言风格。</p>
+<p>这里定义了两个 greeting 函数，一个是普通的写法，另一个是加入了 Type Hints 的写法</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">name = <span class="string">"world"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">greeting</span><span class="params">(name)</span>:</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">"Hello "</span> + name</span><br><span class="line"></span><br><span class="line">greeting(name)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">name: str = <span class="string">"world"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">greeting</span><span class="params">(name: str)</span> -&gt; str:</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">"Hello "</span> + name</span><br><span class="line"></span><br><span class="line">greeting(name)</span><br></pre></td></tr></table></figure>
+
+<p>以 PyCharm 为例，在编写代码的过程中，IDE 会根据函数的类型标注，对传递给函数的参数进行类型检查。如果发现实参类型与函数的形参类型标注不符，就会有提示：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="simple_example_type_hint.png" alt="△ PyCharm 类型提示" title="">
+                </div>
+                <div class="image-caption">△ PyCharm 类型提示</div>
+            </figure>
+
+<h3 id="常见数据结构的-Type-Hints-写法"><a href="#常见数据结构的-Type-Hints-写法" class="headerlink" title="常见数据结构的 Type Hints 写法"></a>常见数据结构的 Type Hints 写法</h3><p>上面通过一个 greeting 函数展示了 Type Hints 的用法，接下来我们就 Python 常见数据结构的 Type Hints 写法进行更加深入的学习。</p>
+<h4 id="默认参数"><a href="#默认参数" class="headerlink" title="默认参数"></a>默认参数</h4><p>Python 函数支持默认参数，以下是默认参数的 Type Hints 写法，只需要将类型写到变量和默认参数之间即可。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">greeting</span><span class="params">(name: str = <span class="string">"world"</span>)</span> -&gt; str:</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">"Hello "</span> + name</span><br><span class="line"></span><br><span class="line">greeting()</span><br></pre></td></tr></table></figure>
+
+<h4 id="自定义类型"><a href="#自定义类型" class="headerlink" title="自定义类型"></a>自定义类型</h4><p>对于自定义类型，Type Hints 同样能够很好的支持，写法跟 Python 内置类型并无区别。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Student</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, name, age)</span>:</span></span><br><span class="line">        self.name = name</span><br><span class="line">        self.age = age</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">student_to_string</span><span class="params">(s: Student)</span> -&gt; str:</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">f"student name: <span class="subst">&#123;s.name&#125;</span>, age: <span class="subst">&#123;s.age&#125;</span>."</span></span><br><span class="line"></span><br><span class="line">student_to_string(Student(<span class="string">"Tim"</span>, <span class="number">18</span>))</span><br></pre></td></tr></table></figure>
+
+<p>当类型标注为自定义类型时，IDE 同样能够对类型进行检查。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="custom_type.png" alt="△ 自定义类型" title="">
+                </div>
+                <div class="image-caption">△ 自定义类型</div>
+            </figure>
+
+<h4 id="容器类型"><a href="#容器类型" class="headerlink" title="容器类型"></a>容器类型</h4><p>当我们要给内置容器类型添加类型标注时，由于类型注解运算符 <code>[]</code> 在 Python 中代表切片操作，因此会引发语法错误，所以不能直接使用内置容器类型当作注解，需要从 <code>typing</code> 模块中导入对应的容器类型注解（通常为内置类型的首字母大写形式）。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> typing <span class="keyword">import</span> List, Tuple, Dict</span><br><span class="line"></span><br><span class="line">l: List[int] = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]</span><br><span class="line"></span><br><span class="line">t: Tuple[str, ...] = (<span class="string">"a"</span>, <span class="string">"b"</span>)</span><br><span class="line"></span><br><span class="line">d: Dict[str, int] = &#123;</span><br><span class="line">    <span class="string">"a"</span>: <span class="number">1</span>,</span><br><span class="line">    <span class="string">"b"</span>: <span class="number">2</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>不过在 <a href="https://www.python.org/dev/peps/pep-0585/" target="_blank" rel="noopener">PEP 585</a> 的出现解决了这个问题，我们可以直接使用 Python 的内置类型，而不会出现语法错误。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">l: list[int] = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]</span><br><span class="line"></span><br><span class="line">t: tuple[str, ...] = (<span class="string">"a"</span>, <span class="string">"b"</span>)</span><br><span class="line"></span><br><span class="line">d: dict[str, int] = &#123;</span><br><span class="line">    <span class="string">"a"</span>: <span class="number">1</span>,</span><br><span class="line">    <span class="string">"b"</span>: <span class="number">2</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="类型别名"><a href="#类型别名" class="headerlink" title="类型别名"></a>类型别名</h4><p>有些复杂的嵌套类型写起来很长，当出现重复，就会很痛苦，代码也不够整洁。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">config: list[tuple[str, int], dict[str, str]] = [</span><br><span class="line">    (<span class="string">"127.0.0.1"</span>, <span class="number">8080</span>),</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="string">"MYSQL_DB"</span>: <span class="string">"db"</span>,</span><br><span class="line">        <span class="string">"MYSQL_USER"</span>: <span class="string">"user"</span>,</span><br><span class="line">        <span class="string">"MYSQL_PASS"</span>: <span class="string">"pass"</span>,</span><br><span class="line">        <span class="string">"MYSQL_HOST"</span>: <span class="string">"127.0.0.1"</span>,</span><br><span class="line">        <span class="string">"MYSQL_PORT"</span>: <span class="string">"3306"</span>,</span><br><span class="line">    &#125;,</span><br><span class="line">]</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">start_server</span><span class="params">(config: list[tuple[str, int], dict[str, str]])</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">start_server(config)</span><br></pre></td></tr></table></figure>
+
+<p>此时可以通过给类型起别名的方式来解决，类似变量命名。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">Config = list[tuple[str, int], dict[str, str]]</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">config: Config = [</span><br><span class="line">    (<span class="string">"127.0.0.1"</span>, <span class="number">8080</span>),</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="string">"MYSQL_DB"</span>: <span class="string">"zaiwu"</span>,</span><br><span class="line">        <span class="string">"MYSQL_USER"</span>: <span class="string">"root"</span>,</span><br><span class="line">        <span class="string">"MYSQL_PASS"</span>: <span class="string">"pass"</span>,</span><br><span class="line">        <span class="string">"MYSQL_HOST"</span>: <span class="string">"127.0.0.1"</span>,</span><br><span class="line">        <span class="string">"MYSQL_PORT"</span>: <span class="string">"3306"</span>,</span><br><span class="line">    &#125;,</span><br><span class="line">]</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">start_server</span><span class="params">(config: Config)</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">start_server(config)</span><br></pre></td></tr></table></figure>
+
+<p>这样代码看起来就舒服多了。</p>
+<h4 id="可变参数"><a href="#可变参数" class="headerlink" title="可变参数"></a>可变参数</h4><p>Python 函数一个非常灵活的地方就是支持可变参数，Type Hints 同样支持可变参数的类型标注。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span><span class="params">(*args: str, **kwargs: int)</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">foo(<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="number">1</span>, x=<span class="number">2</span>, y=<span class="string">"c"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>IDE 仍能够检查出来。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="args_kwargs.png" alt="△ 可变参数" title="">
+                </div>
+                <div class="image-caption">△ 可变参数</div>
+            </figure>
+
+<h4 id="泛型"><a href="#泛型" class="headerlink" title="泛型"></a>泛型</h4><p>使用动态语言少不了泛型的支持，Type Hints 针对泛型也提供了多种解决方案。</p>
+<h5 id="TypeVar"><a href="#TypeVar" class="headerlink" title="TypeVar"></a>TypeVar</h5><p>使用 <code>TypeVar</code> 可以接收任意类型。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> typing <span class="keyword">import</span> TypeVar</span><br><span class="line"></span><br><span class="line">T = TypeVar(<span class="string">"T"</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span><span class="params">(*args: T, **kwargs: T)</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">foo(<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="number">1</span>, x=<span class="number">2</span>, y=<span class="string">"c"</span>)</span><br></pre></td></tr></table></figure>
+
+<h5 id="Union"><a href="#Union" class="headerlink" title="Union"></a>Union</h5><p>如果不想使用泛型，只想使用几种指定的类型，那么可以使用 <code>Union</code> 来做。比如定义 <code>concat</code> 函数只想接收 <code>str</code> 或 <code>bytes</code> 类型。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> typing <span class="keyword">import</span> Union</span><br><span class="line"></span><br><span class="line">T = Union[str, bytes]</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">concat</span><span class="params">(s1: T, s2: T)</span> -&gt; T:</span></span><br><span class="line">    <span class="keyword">return</span> s1 + s2</span><br><span class="line"></span><br><span class="line">concat(<span class="string">"hello"</span>, <span class="string">"world"</span>)</span><br><span class="line">concat(<span class="string">b"hello"</span>, <span class="string">b"world"</span>)</span><br><span class="line">concat(<span class="string">"hello"</span>, <span class="string">b"world"</span>)</span><br><span class="line">concat(<span class="string">b"hello"</span>, <span class="string">"world"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>IDE 的检查提示。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="union.png" alt="△ Union" title="">
+                </div>
+                <div class="image-caption">△ Union</div>
+            </figure>
+
+<h5 id="TypeVar-和-Union-区别"><a href="#TypeVar-和-Union-区别" class="headerlink" title="TypeVar 和 Union 区别"></a>TypeVar 和 Union 区别</h5><p><code>TypeVar</code> 不只可以接收泛型，它也可以像 <code>Union</code> 一样使用，只需要在实例化时将想要指定的类型范围当作参数依次传进来来即可。跟 <code>Union</code> 不同的是，使用 <code>TypeVar</code> 声明的函数，多参数类型必须相同，<code>Union</code> 不做限制。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> typing <span class="keyword">import</span> TypeVar</span><br><span class="line"></span><br><span class="line">T = TypeVar(<span class="string">"T"</span>, str, bytes)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">concat</span><span class="params">(s1: T, s2: T)</span> -&gt; T:</span></span><br><span class="line">    <span class="keyword">return</span> s1 + s2</span><br><span class="line"></span><br><span class="line">concat(<span class="string">"hello"</span>, <span class="string">"world"</span>)</span><br><span class="line">concat(<span class="string">b"hello"</span>, <span class="string">b"world"</span>)</span><br><span class="line">concat(<span class="string">"hello"</span>, <span class="string">b"world"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>以下是使用 TypeVar 做限定类型时的 IDE 提示。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="type_var.png" alt="△ TypeVar" title="">
+                </div>
+                <div class="image-caption">△ TypeVar</div>
+            </figure>
+
+<h5 id="Optional"><a href="#Optional" class="headerlink" title="Optional"></a>Optional</h5><p>Type Hints 提供了 <code>Optional</code> 来作为 <code>Union[X, None]</code> 的简写形式，表示被标注的参数要么为 <code>X</code> 类型，要么为 <code>None</code>，<code>Optional[X]</code> 等价于 <code>Union[X, None]</code>。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> typing <span class="keyword">import</span> Optional, Union</span><br><span class="line"></span><br><span class="line"><span class="comment"># None =&gt; type(None)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span><span class="params">(arg: Union[int, None] = None)</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span><span class="params">(arg: Optional[int] = None)</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    ...</span><br></pre></td></tr></table></figure>
+
+<h5 id="Any"><a href="#Any" class="headerlink" title="Any"></a>Any</h5><p><code>Any</code> 是一种特殊的类型，可以代表所有类型，未指定返回值与参数类型的函数，都隐式地默认使用 <code>Any</code>，所以以下两个 <code>greeting</code> 函数写法等价。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> typing <span class="keyword">import</span> Any</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">greeting</span><span class="params">(name)</span>:</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">"Hello "</span> + name</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">greeting</span><span class="params">(name: Any)</span> -&gt; Any:</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">"Hello "</span> + name</span><br></pre></td></tr></table></figure>
+
+<p>当我们既想使用 Type Hints 来实现静态类型的写法，也不想失去动态语言特有的灵活性时，即可使用 <code>Any</code>。<code>Any</code> 类型值赋给更精确的类型时，不执行类型检查，如下代码 IDE 并不会有错误提示。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> typing <span class="keyword">import</span> Any</span><br><span class="line"></span><br><span class="line">a: Any = <span class="literal">None</span></span><br><span class="line">a = []  <span class="comment"># 动态语言特性</span></span><br><span class="line">a = <span class="number">2</span></span><br><span class="line"></span><br><span class="line">s: str = <span class="string">''</span></span><br><span class="line">s = a  <span class="comment"># Any 类型值赋给更精确的类型</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="可调用对象（函数、类等）"><a href="#可调用对象（函数、类等）" class="headerlink" title="可调用对象（函数、类等）"></a>可调用对象（函数、类等）</h4><p>Python 中的任何可调用类型都可以使用 <code>Callable</code> 进行标注。如下代码标注中 <code>Callable[[int], str]</code>，<code>[int]</code> 表示可调用类型的参数列表，<code>str</code> 表示返回值。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> typing <span class="keyword">import</span> Callable</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">int_to_str</span><span class="params">(i: int)</span> -&gt; str:</span></span><br><span class="line">    <span class="keyword">return</span> str(i)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">f</span><span class="params">(fn: Callable[[int], str], i: int)</span> -&gt; str:</span></span><br><span class="line">    <span class="keyword">return</span> fn(i)</span><br><span class="line"></span><br><span class="line">f(int_to_str, <span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+
+<h4 id="自引用"><a href="#自引用" class="headerlink" title="自引用"></a>自引用</h4><p>当我们需要定义树型结构时，往往需要自引用。当执行到 <code>__init__</code> 方法时 <code>Tree</code> 类型还没有生成，所以不能像使用 <code>str</code> 这种内置类型一样直接进行标注，需要采用字符串形式 <code>Tree</code> 来对未生成的对象进行引用。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Tree</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, left: <span class="string">"Tree"</span> = None, right: <span class="string">"Tree"</span> = None)</span>:</span></span><br><span class="line">        self.left = left</span><br><span class="line">        self.right = right</span><br><span class="line"></span><br><span class="line">tree1 = Tree(Tree(), Tree())</span><br></pre></td></tr></table></figure>
+
+<p>IDE 同样能够对自引用类型进行检查。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="ref_self.png" alt="△ 自引用" title="">
+                </div>
+                <div class="image-caption">△ 自引用</div>
+            </figure>
+
+<p>此形式不仅能够用于自引用，前置引用同样适用。</p>
+<h4 id="鸭子类型"><a href="#鸭子类型" class="headerlink" title="鸭子类型"></a>鸭子类型</h4><p>Python 一个显著的特点是其对鸭子类型的大量应用，Type Hints 提供了 <code>Protocol</code> 来对鸭子类型进行支持。定义类时只需要继承 <code>Protocol</code> 就可以声明一个接口类型，当遇到接口类型的注解时，只要接收到的对象实现了接口类型的所有方法，即可通过类型注解的检查，IDE 便不会报错。这里的 <code>Stream</code> 无需显式继承 <code>Interface</code> 类，只需要实现了 <code>close</code> 方法即可。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> typing <span class="keyword">import</span> Protocol</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Interface</span><span class="params">(Protocol)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">close</span><span class="params">(self)</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">        ...</span><br><span class="line"></span><br><span class="line"><span class="comment"># class Stream(Interface):</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Stream</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">close</span><span class="params">(self)</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">        ...</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">close_resource</span><span class="params">(r: Interface)</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    r.close()</span><br><span class="line"></span><br><span class="line">f = open(<span class="string">"a.txt"</span>)</span><br><span class="line">close_resource(f)</span><br><span class="line"></span><br><span class="line">s: Stream = Stream()</span><br><span class="line">close_resource(s)</span><br></pre></td></tr></table></figure>
+
+<p>由于内置的 <code>open</code> 函数返回的文件对象和 <code>Stream</code> 对象都实现了 <code>close</code> 方法，所以能够通过 Type Hints 的检查，而字符串 <code>&quot;s&quot;</code> 并没有实现 <code>close</code> 方法，所以 IDE 会提示类型错误。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="duck_type.png" alt="△ 鸭子类型" title="">
+                </div>
+                <div class="image-caption">△ 鸭子类型</div>
+            </figure>
+
+<h3 id="Type-Hints-的其他写法"><a href="#Type-Hints-的其他写法" class="headerlink" title="Type Hints 的其他写法"></a>Type Hints 的其他写法</h3><p>实际上 Type Hints 不只有一种写法，Python 为了兼容不同人的喜好和老代码的迁移还实现了另外两种写法。</p>
+<h4 id="使用注释编写"><a href="#使用注释编写" class="headerlink" title="使用注释编写"></a>使用注释编写</h4><p>来看一个 <code>tornado</code> 框架的例子（<code>tornado/web.py</code>）。适用于在已有的项目上做修改，代码已经写好了，后期需要增加类型标注。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="tornado_Requesthandler.png" alt="△ tornado" title="">
+                </div>
+                <div class="image-caption">△ tornado</div>
+            </figure>
+
+<h4 id="使用单独文件编写（-pyi）"><a href="#使用单独文件编写（-pyi）" class="headerlink" title="使用单独文件编写（.pyi）"></a>使用单独文件编写（.pyi）</h4><p>可以在源代码相同的目录下新建一个与 <code>.py</code> 同名的 <code>.pyi</code> 文件，IDE 同样能够自动做类型检查。<br>这么做的优点是可以对原来的代码不做任何改动，完全解耦。缺点是相当于要同时维护两份代码。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="pyi.png" alt="△ pyi" title="">
+                </div>
+                <div class="image-caption">△ pyi</div>
+            </figure>
+
+<h3 id="Type-Hints-实践"><a href="#Type-Hints-实践" class="headerlink" title="Type Hints 实践"></a>Type Hints 实践</h3><p>基本上，日常编码中常用的 Type Hints 写法都已经介绍给大家了，下面就让我们一起来看看如何在实际编码中中应用 Type Hints。</p>
+<h4 id="dataclass-——-数据类"><a href="#dataclass-——-数据类" class="headerlink" title="dataclass —— 数据类"></a>dataclass —— 数据类</h4><p>dataclass 是一个装饰器，它可以对类进行装饰，用于给类添加魔法方法，例如 <code>__init__()</code> 和 <code>__repr__()</code> 等，它在 <a href="https://www.python.org/dev/peps/pep-0557/" target="_blank" rel="noopener">PEP 557</a> 中被定义。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> dataclasses <span class="keyword">import</span> dataclass, field</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@dataclass</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">User</span><span class="params">(object)</span>:</span></span><br><span class="line">    id: int</span><br><span class="line">    name: str</span><br><span class="line">    friends: list[int] = field(default_factory=list)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">data = &#123;</span><br><span class="line">    <span class="string">"id"</span>: <span class="number">123</span>,</span><br><span class="line">    <span class="string">"name"</span>: <span class="string">"Tim"</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">user = User(**data)</span><br><span class="line">print(user.id, user.name, user.friends)</span><br><span class="line"><span class="comment"># &gt; 123 Tim []</span></span><br></pre></td></tr></table></figure>
+
+<p>以上使用 <code>dataclass</code> 编写的代码同如下代码等价。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">User</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, id: int, name: str, friends=None)</span>:</span></span><br><span class="line">        self.id = id</span><br><span class="line">        self.name = name</span><br><span class="line">        self.friends = friends <span class="keyword">or</span> []</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">data = &#123;</span><br><span class="line">    <span class="string">"id"</span>: <span class="number">123</span>,</span><br><span class="line">    <span class="string">"name"</span>: <span class="string">"Tim"</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">user = User(**data)</span><br><span class="line">print(user.id, user.name, user.friends)</span><br><span class="line"><span class="comment"># &gt; 123 Tim []</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>注意</strong>：<code>dataclass</code> 并不会对字段类型进行检查。<br>可以发现，使用 <code>dataclass</code> 来编写类可以减少很多重复的样板代码，语法上也更加清晰。</p>
+<h4 id="Pydantic"><a href="#Pydantic" class="headerlink" title="Pydantic"></a>Pydantic</h4><p><code>Pydantic</code> 是一个基于 Python Type Hints 的第三方库，它提供了数据验证、序列化和文档的功能，是一个非常值得学习借鉴的库。以下是一段使用 <code>Pydantic</code> 的示例代码。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> datetime <span class="keyword">import</span> datetime</span><br><span class="line"><span class="keyword">from</span> typing <span class="keyword">import</span> Optional</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> pydantic <span class="keyword">import</span> BaseModel</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">User</span><span class="params">(BaseModel)</span>:</span></span><br><span class="line">    id: int</span><br><span class="line">    name = <span class="string">'John Doe'</span></span><br><span class="line">    signup_ts: Optional[datetime] = <span class="literal">None</span></span><br><span class="line">    friends: list[int] = []</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">external_data = &#123;</span><br><span class="line">    <span class="string">'id'</span>: <span class="string">'123'</span>,</span><br><span class="line">    <span class="string">'signup_ts'</span>: <span class="string">'2021-09-02 17:00'</span>,</span><br><span class="line">    <span class="string">'friends'</span>: [<span class="number">1</span>, <span class="number">2</span>, <span class="string">'3'</span>],</span><br><span class="line">&#125;</span><br><span class="line">user = User(**external_data)</span><br><span class="line"></span><br><span class="line">print(user.id)</span><br><span class="line"><span class="comment"># &gt; 123</span></span><br><span class="line">print(repr(user.signup_ts))</span><br><span class="line"><span class="comment"># &gt; datetime.datetime(2021, 9, 2, 17, 0)</span></span><br><span class="line">print(user.friends)</span><br><span class="line"><span class="comment"># &gt; [1, 2, 3]</span></span><br><span class="line">print(user.dict())</span><br><span class="line"><span class="string">"""</span></span><br><span class="line"><span class="string">&#123;</span></span><br><span class="line"><span class="string">    'id': 123,</span></span><br><span class="line"><span class="string">    'signup_ts': datetime.datetime(2021, 9, 2, 17, 0),</span></span><br><span class="line"><span class="string">    'friends': [1, 2, 3],</span></span><br><span class="line"><span class="string">    'name': 'John Doe',</span></span><br><span class="line"><span class="string">&#125;</span></span><br><span class="line"><span class="string">"""</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>注意</strong>：<code>Pydantic</code> 会对字段类型进行强制检查。</p>
+<p><code>Pydantic</code> 写法上跟 <code>dataclass</code> 非常类似，但它做了更多的额外工作，还提供了如 <code>.dict()</code> 这样非常方便的方法。<br>来看一个 <code>Pydantic</code> 进行数据验证的示例，当 User 类接收到的参数不符合预期时，会抛出 <code>ValidationError</code> 异常，异常对象提供了 <code>.json()</code> 方法方便查看异常原因。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pydantic <span class="keyword">import</span> ValidationError</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    User(signup_ts=<span class="string">'broken'</span>, friends=[<span class="number">1</span>, <span class="number">2</span>, <span class="string">'not number'</span>])</span><br><span class="line"><span class="keyword">except</span> ValidationError <span class="keyword">as</span> e:</span><br><span class="line">    print(e.json())</span><br><span class="line"><span class="string">"""</span></span><br><span class="line"><span class="string">[</span></span><br><span class="line"><span class="string">  &#123;</span></span><br><span class="line"><span class="string">    "loc": [</span></span><br><span class="line"><span class="string">      "id"</span></span><br><span class="line"><span class="string">    ],</span></span><br><span class="line"><span class="string">    "msg": "field required",</span></span><br><span class="line"><span class="string">    "type": "value_error.missing"</span></span><br><span class="line"><span class="string">  &#125;,</span></span><br><span class="line"><span class="string">  &#123;</span></span><br><span class="line"><span class="string">    "loc": [</span></span><br><span class="line"><span class="string">      "signup_ts"</span></span><br><span class="line"><span class="string">    ],</span></span><br><span class="line"><span class="string">    "msg": "invalid datetime format",</span></span><br><span class="line"><span class="string">    "type": "value_error.datetime"</span></span><br><span class="line"><span class="string">  &#125;,</span></span><br><span class="line"><span class="string">  &#123;</span></span><br><span class="line"><span class="string">    "loc": [</span></span><br><span class="line"><span class="string">      "friends",</span></span><br><span class="line"><span class="string">      2</span></span><br><span class="line"><span class="string">    ],</span></span><br><span class="line"><span class="string">    "msg": "value is not a valid integer",</span></span><br><span class="line"><span class="string">    "type": "type_error.integer"</span></span><br><span class="line"><span class="string">  &#125;</span></span><br><span class="line"><span class="string">]</span></span><br><span class="line"><span class="string">"""</span></span><br></pre></td></tr></table></figure>
+
+<p>所有报错信息都保存在一个 <code>list</code> 中，每个字段的报错又保存在嵌套的 <code>dict</code> 中，其中 <code>loc</code> 标识了异常字段和报错位置，<code>msg</code> 为报错提示信息，<code>type</code> 则为报错类型，这样整个报错原因一目了然。</p>
+<h4 id="MySQLHandler"><a href="#MySQLHandler" class="headerlink" title="MySQLHandler"></a>MySQLHandler</h4><p><code>MySQLHandler</code> 是我对 <code>pymysql</code> 库的封装，使其支持使用 <code>with</code> 语法调用 <code>execute</code> 方法，并且将查询结果从 <code>tuple</code> 替换成 <code>object</code>，同样也是对 Type Hints 的应用。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MySQLHandler</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="string">"""MySQL handler"""</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self)</span>:</span></span><br><span class="line">        self.conn = pymysql.connect(</span><br><span class="line">            host=DB_HOST,</span><br><span class="line">            port=DB_PORT,</span><br><span class="line">            user=DB_USER,</span><br><span class="line">            password=DB_PASS,</span><br><span class="line">            database=DB_NAME,</span><br><span class="line">            charset=DB_CHARSET,</span><br><span class="line">            client_flag=CLIENT.MULTI_STATEMENTS,  <span class="comment"># execute multi sql statements</span></span><br><span class="line">        )</span><br><span class="line">        self.cursor = self.conn.cursor()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__del__</span><span class="params">(self)</span>:</span></span><br><span class="line">        self.cursor.close()</span><br><span class="line">        self.conn.close()</span><br><span class="line"></span><br><span class="line"><span class="meta">    @contextmanager</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">execute</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="keyword">yield</span> self.cursor.execute</span><br><span class="line">            self.conn.commit()</span><br><span class="line">        <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">            self.conn.rollback()</span><br><span class="line">            logging.exception(e)</span><br><span class="line"></span><br><span class="line"><span class="meta">    @contextmanager</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">executemany</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="keyword">yield</span> self.cursor.executemany</span><br><span class="line">            self.conn.commit()</span><br><span class="line">        <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">            self.conn.rollback()</span><br><span class="line">            logging.exception(e)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">_tuple_to_object</span><span class="params">(self, data: List[tuple])</span> -&gt; List[FetchObject]:</span></span><br><span class="line">        obj_list = []</span><br><span class="line">        attrs = [desc[<span class="number">0</span>] <span class="keyword">for</span> desc <span class="keyword">in</span> self.cursor.description]</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> data:</span><br><span class="line">            obj = FetchObject()</span><br><span class="line">            <span class="keyword">for</span> attr, value <span class="keyword">in</span> zip(attrs, i):</span><br><span class="line">                setattr(obj, attr, value)</span><br><span class="line">            obj_list.append(obj)</span><br><span class="line">        <span class="keyword">return</span> obj_list</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">fetchone</span><span class="params">(self)</span> -&gt; Optional[FetchObject]:</span></span><br><span class="line">        result = self.cursor.fetchone()</span><br><span class="line">        <span class="keyword">return</span> self._tuple_to_object([result])[<span class="number">0</span>] <span class="keyword">if</span> result <span class="keyword">else</span> <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">fetchmany</span><span class="params">(self, size: Optional[int] = None)</span> -&gt; Optional[List[FetchObject]]:</span></span><br><span class="line">        result = self.cursor.fetchmany(size)</span><br><span class="line">        <span class="keyword">return</span> self._tuple_to_object(result) <span class="keyword">if</span> result <span class="keyword">else</span> <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">fetchall</span><span class="params">(self)</span> -&gt; Optional[List[FetchObject]]:</span></span><br><span class="line">        result = self.cursor.fetchall()</span><br><span class="line">        <span class="keyword">return</span> self._tuple_to_object(result) <span class="keyword">if</span> result <span class="keyword">else</span> <span class="literal">None</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="运行期类型检查"><a href="#运行期类型检查" class="headerlink" title="运行期类型检查"></a>运行期类型检查</h4><p>Type Hints 之所以叫 <code>Hints</code> 而不是 <code>Check</code>，就是因为它只是一个类型的提示而非真正的检查。上面演示的 Type Hints 用法，实际上都是 IDE 在帮我们完成类型检查的功能，但实际上，IDE 的类型检查并不能决定代码执行期间是否报错，仅能在静态期做到语法检查提示的功能。</p>
+<p>要想实现在代码执行阶段强制对类型进行检查，则需要我们通过自己编写代码或引入第三方库的形式（如上面介绍的 <code>Pydantic</code>）。下面我通过一个 <code>type_check</code> 函数实现了运行期动态检查类型，来供你参考。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> inspect <span class="keyword">import</span> getfullargspec</span><br><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"><span class="keyword">from</span> typing <span class="keyword">import</span> get_type_hints</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">type_check</span><span class="params">(fn)</span>:</span></span><br><span class="line"><span class="meta">    @wraps(fn)</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span><span class="params">(*args, **kwargs)</span>:</span></span><br><span class="line">        fn_args = getfullargspec(fn)[<span class="number">0</span>]</span><br><span class="line">        kwargs.update(dict(zip(fn_args, args)))</span><br><span class="line">        hints = get_type_hints(fn)</span><br><span class="line">        hints.pop(<span class="string">"return"</span>, <span class="literal">None</span>)</span><br><span class="line">        <span class="keyword">for</span> name, type_ <span class="keyword">in</span> hints.items():</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> isinstance(kwargs[name], type_):</span><br><span class="line">                <span class="keyword">raise</span> TypeError(<span class="string">f"expected <span class="subst">&#123;type_.__name__&#125;</span>, got <span class="subst">&#123;type(kwargs[name]).__name__&#125;</span> instead"</span>)</span><br><span class="line">        <span class="keyword">return</span> fn(**kwargs)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># name: str = "world"</span></span><br><span class="line">name: int = <span class="number">2</span></span><br><span class="line"></span><br><span class="line"><span class="meta">@type_check</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">greeting</span><span class="params">(name: str)</span> -&gt; str:</span></span><br><span class="line">    <span class="keyword">return</span> str(name)</span><br><span class="line"></span><br><span class="line">print(greeting(name))</span><br><span class="line"><span class="comment"># &gt; TypeError: expected str, got int instead</span></span><br></pre></td></tr></table></figure>
+
+<p>只要给 <code>greeting</code> 函数打上 <code>type_check</code> 装饰器，即可实现运行期类型检查。</p>
+<h3 id="附录"><a href="#附录" class="headerlink" title="附录"></a>附录</h3><p>如果你想继续深入学习使用 Python Type Hints，以下是一些我推荐的开源项目供你参考。</p>
+<blockquote>
+<ul>
+<li><a href="https://github.com/samuelcolvin/pydantic" target="_blank" rel="noopener">Pydantic</a></li>
+<li><a href="https://github.com/tiangolo/fastapi" target="_blank" rel="noopener">FastAPI</a></li>
+<li><a href="https://github.com/tornadoweb/tornado" target="_blank" rel="noopener">Tornado</a></li>
+<li><a href="https://github.com/pallets/flask" target="_blank" rel="noopener">Flask</a></li>
+<li><a href="https://github.com/Chia-Network/pool-reference" target="_blank" rel="noopener">Chia-pool</a></li>
+<li><a href="https://github.com/jianghushinian/python-scripts/blob/main/scripts/mysql_handler_type_hints.py" target="_blank" rel="noopener">MySQLHandler</a></li>
+</ul>
+</blockquote>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.749Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/" target="_blank" rel="external">http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/&title=《Python Type Hints 从入门到实践》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/&title=《Python Type Hints 从入门到实践》 — 江湖十年&source=Python 想必大家都已经很熟悉了，甚至关于它有用或者无用的论点大家可能也已经看腻了。但是无论如何，它作为一个将加入高考科目的语言还是有它独到之处的。今..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Python Type Hints 从入门到实践》 — 江湖十年&url=http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2022/09/10/Python-%E6%90%AD%E5%BB%BA%E7%A7%81%E6%9C%89-PyPI-%E4%BB%93%E5%BA%93%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Python 搭建私有 PyPI 仓库不完全指南</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2022/03/04/Golang-%E5%B8%B8%E8%A7%81%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 常见设计模式之单例模式</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/&title=《Python Type Hints 从入门到实践》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/&title=《Python Type Hints 从入门到实践》 — 江湖十年&source=Python 想必大家都已经很熟悉了，甚至关于它有用或者无用的论点大家可能也已经看腻了。但是无论如何，它作为一个将加入高考科目的语言还是有它独到之处的。今..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Python Type Hints 从入门到实践》 — 江湖十年&url=http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2022/03/12/Python-Type-Hints-%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

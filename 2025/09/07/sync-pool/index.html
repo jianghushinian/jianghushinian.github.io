@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 并发控制：sync.Pool 详解 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,并发编程">
+    <meta name="description" content="sync.Pool 是 Go 并发原语中用于对象池化的工具，主要用于缓存和复用临时对象，以减少内存分配和垃圾回收的压力。 本文将带大家一起来深入探讨 sync.Pool，包括使用示例和源码解读，让你彻底理解 sync.Pool 的设计。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 并发控制：sync.Pool 详解">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/09/07/sync-pool/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="sync.Pool 是 Go 并发原语中用于对象池化的工具，主要用于缓存和复用临时对象，以减少内存分配和垃圾回收的压力。 本文将带大家一起来深入探讨 sync.Pool，包括使用示例和源码解读，让你彻底理解 sync.Pool 的设计。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/09/07/sync-pool/Pool_Put.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/09/07/sync-pool/Pool_Get.png">
+<meta property="article:published_time" content="2025-09-07T09:43:04.000Z">
+<meta property="article:modified_time" content="2026-01-25T04:52:54.180Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="并发编程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2025/09/07/sync-pool/Pool_Put.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 并发控制：sync.Pool 详解</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 并发控制：sync.Pool 详解</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-09-07T09:43:04.000Z" itemprop="datePublished" class="page-time">
+  2025-09-07
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#简介"><span class="post-toc-number">1.</span> <span class="post-toc-text">简介</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用示例"><span class="post-toc-number">2.</span> <span class="post-toc-text">使用示例</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#实现原理"><span class="post-toc-number">3.</span> <span class="post-toc-text">实现原理</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#sync-Pool-结构体"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">sync.Pool 结构体</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Put-方法"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">Put 方法</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Get-方法"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">Get 方法</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#pin-操作"><span class="post-toc-number">3.4.</span> <span class="post-toc-text">pin 操作</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#GC-垃圾回收"><span class="post-toc-number">3.5.</span> <span class="post-toc-text">GC 垃圾回收</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#sync-Pool-执行流"><span class="post-toc-number">3.6.</span> <span class="post-toc-text">sync.Pool 执行流</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-sync-pool"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 并发控制：sync.Pool 详解</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-09-07 17:43:04" datetime="2025-09-07T09:43:04.000Z"  itemprop="datePublished">2025-09-07</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p><code>sync.Pool</code> 是 Go 并发原语中用于对象池化的工具，主要用于缓存和复用临时对象，以减少内存分配和垃圾回收的压力。</p>
+<p>本文将带大家一起来深入探讨 <code>sync.Pool</code>，包括使用示例和源码解读，让你彻底理解 <code>sync.Pool</code> 的设计。</p>
+<a id="more"></a>
+
+<h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p><code>sync.Pool</code> 核心功能是能够缓存对象，避免其缓存的对象在一定时间内被垃圾回收掉。</p>
+<p>因此 <code>sync.Pool</code> 的主要作用也就体现了出来：减少内存分配和回收压力。</p>
+<p>如果一个对象被频繁的创建和删除，那么对内存分配和 GC 压力就会比较大，使用 <code>sync.Pool</code> 能够将对象缓存到池中，避免频繁创建和删除对象。</p>
+<p><code>sync.Pool</code> 是一个结构体，其全部公开属性如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Pool</span><br><span class="line">    New <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">any</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">Get</span><span class="params">()</span> <span class="title">any</span></span></span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">Put</span><span class="params">(x any)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>每个属性含义如下：</p>
+<ul>
+<li><code>New</code> 字段：当池中没有可用对象时，调用 <code>New</code> 函数创建一个新对象。</li>
+<li><code>Get</code> 方法：从池中获取一个对象。如果池为空，则调用 <code>New</code> 创建新对象。</li>
+<li><code>Put</code> 方法：将对象放回池中，以便复用。</li>
+</ul>
+<p>接下来我们一起来看下 <code>sync.Pool</code> 如何使用。</p>
+<h3 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h3><p><code>sync.Pool</code> 使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"bytes"</span></span><br><span class="line">	<span class="string">"io"</span></span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> bufPool = sync.Pool&#123;</span><br><span class="line">	New: <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">any</span></span> &#123;</span><br><span class="line">		<span class="comment">// The Pool's New function should generally only return pointer</span></span><br><span class="line">		<span class="comment">// types, since a pointer can be put into the return interface</span></span><br><span class="line">		<span class="comment">// value without an allocation:</span></span><br><span class="line">		<span class="keyword">return</span> <span class="built_in">new</span>(bytes.Buffer)</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// timeNow is a fake version of time.Now for tests.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">timeNow</span><span class="params">()</span> <span class="title">time</span>.<span class="title">Time</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> time.Unix(<span class="number">1136214245</span>, <span class="number">0</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Log</span><span class="params">(w io.Writer, key, val <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	b := bufPool.Get().(*bytes.Buffer)</span><br><span class="line">	b.Reset()</span><br><span class="line">	<span class="comment">// Replace this with time.Now() in a real logger.</span></span><br><span class="line">	b.WriteString(timeNow().UTC().Format(time.RFC3339))</span><br><span class="line">	b.WriteByte(<span class="string">' '</span>)</span><br><span class="line">	b.WriteString(key)</span><br><span class="line">	b.WriteByte(<span class="string">'='</span>)</span><br><span class="line">	b.WriteString(val)</span><br><span class="line">	w.Write(b.Bytes())</span><br><span class="line">	bufPool.Put(b)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	Log(os.Stdout, <span class="string">"path"</span>, <span class="string">"/search?q=flowers"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这是 <a href="https://pkg.go.dev/sync@go1.25.0#Pool" target="_blank" rel="noopener">sync.Pool</a> 官方文档中示例代码。</p>
+<p>首先，在第 11 行直接通过 <code>sync.Pool{}</code> 语法实例化一个 <code>Pool</code> 对象 <code>bufPool</code>，并且这里还初始化了 <code>New</code> 函数，其返回一个 <code>*bytes.Buffer</code> 对象。</p>
+<p>接着，在第 25 行的 <code>Log</code> 函数内部使用了 <code>bufPool</code>，通过 <code>Get</code> 方法得到一个 <code>*bytes.Buffer</code> 类型的对象 <code>b</code>，然后向 <code>b</code> 中写入数据，最后别忘了使用 <code>Put</code> 方法将 <code>*bytes.Buffer</code> 对象“还回去”，将其缓存在池中，以便下次使用。</p>
+<p>最后，在 <code>main</code> 函数中调用 <code>Log</code> 函数，并将结果写入标准输出。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">2006-01-02T15:04:05Z path=/search?q=flowers</span><br></pre></td></tr></table></figure>
+
+<p>根据以上使用示例，我们可以总结 <code>sync.Pool</code> 使用套路：</p>
+<ol>
+<li>实例化一个 <code>sync.Pool</code> 对象，并且赋值 <code>New</code> 属性，用户构造缓存对象。</li>
+<li>通过 <code>p.Get()</code> 取出对象 <code>obj</code> 使用。<ol>
+<li>如果池中有，就直接返回。</li>
+<li>如果没有，调用 <code>New</code> 属性构造函数，构造一个新的对象并返回（如果没有 <code>New</code> 属性，则返回 <code>nil</code>）。</li>
+</ol>
+</li>
+<li>对象使用完成后记得调用 <code>p.Put(obj)</code> 重新放入池中，以便下次使用。</li>
+</ol>
+<p>由此可见，<code>sync.Pool</code> 适用于以下场景：</p>
+<ul>
+<li>频繁创建和销毁的对象：如临时缓冲区。</li>
+<li>减少内存分配：通过复用对象，减少 GC 压力。</li>
+<li>无状态对象：池中的对象不应包含与特定上下文相关的状态。</li>
+</ul>
+<p>此外，在使用 <code>sync.Pool</code> 时有两点需要我们特别注意：</p>
+<ul>
+<li>对象重置：从池中获取的对象可能包含之前的状态，使用前需要重置。</li>
+<li>对象生命周期：池中的对象可能会被 GC 回收，因此不能依赖池中的对象长期存在。</li>
+</ul>
+<p><code>sync.Pool</code> 的设计中有一个比较有意思的点，一个对象被放入池中以后，如果没被使用，则连续两次 GC 后，这个对象一定会被释放。</p>
+<p>那么，你是否好奇，<code>sync.Pool</code> 内部是如何实现这一机制的呢？咱们接着往下看，我们一起通过源码来揭开 <code>sync.Pool</code> 的神秘面纱。</p>
+<h3 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h3><p>学习了 <code>sync.Pool</code> 如何使用，接下来我们一起通过阅读源码的方式来深入到 <code>sync.Pool</code> 的原理学习。</p>
+<h4 id="sync-Pool-结构体"><a href="#sync-Pool-结构体" class="headerlink" title="sync.Pool 结构体"></a>sync.Pool 结构体</h4><p><code>sync.Pool</code> 是一个结构体，其定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Pool <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// 禁止复制</span></span><br><span class="line">	noCopy noCopy</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 空闲对象，poolLocal 指针类型</span></span><br><span class="line">	local unsafe.Pointer</span><br><span class="line">	<span class="comment">// 数组大小</span></span><br><span class="line">	localSize <span class="keyword">uintptr</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 回收站</span></span><br><span class="line">	victim unsafe.Pointer</span><br><span class="line">	<span class="comment">// 数组大小</span></span><br><span class="line">	victimSize <span class="keyword">uintptr</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// New 是一个可选的函数，调用 Get 方法时，如果缓存池中没有可用对象，则调用此方法生成一个新的值并返回，否则返回 nil</span></span><br><span class="line">	<span class="comment">// 该函数不能在并发调用 Get 时被修改</span></span><br><span class="line">	New <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">any</span></span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>New</code> 属性我们已经使用过了，调用 <code>Get</code> 方法时，如果缓存池中没有可用对象，则调用此方法生成一个新的值并返回。</p>
+<p><code>noCopy</code> 属性用来标记禁止复制，所以我们在拿到 <code>sync.Pool</code> 实例化对象后，记得一定不要让其产生复制操作。</p>
+<p><code>sync.Pool</code> 有两个核心字段分别是 <code>local</code> 和 <code>victim</code>，二者都是 <code>poolLocal</code> 指针类型，用来存储缓存对象。<code>local</code> 是当前 P 本地缓存的对象，而 <code>victim</code> 则可以理解为 Windows 操作系统的“回收站”。</p>
+<p>Go 在触发垃圾回收时，<code>sync.Pool</code> 会做两件事：</p>
+<ol>
+<li>将所有缓存的 <code>victim</code> 中的对象移除。</li>
+<li>把所有缓存的 <code>local</code> 中对象移动到 <code>victim</code>。</li>
+</ol>
+<p>进入到 <code>victim</code> 中的对象最终会有两种结果：</p>
+<ol>
+<li>当发生 GC 时，对象会被移除。</li>
+<li>如果还未发生 GC，而是优先调用了 <code>Get</code> 方法，那么这个对象就会被重新使用。</li>
+</ol>
+<p>所以说，<code>victim</code> 就是 Windows 电脑中的“回收站”，我们在电脑中删除文件时，先到回收站，然后在回收站里可以彻底删除。</p>
+<p><code>poolLocal</code> 同样是一个结构体，其定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> poolLocalInternal <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// 私有对象</span></span><br><span class="line">	private any</span><br><span class="line">	<span class="comment">// 共享队列，这是一个 lock-free 双向队列</span></span><br><span class="line">	shared poolChain <span class="comment">// Local P can pushHead/popHead; any P can popTail.</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> poolLocal <span class="keyword">struct</span> &#123;</span><br><span class="line">	poolLocalInternal</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Prevents false sharing on widespread platforms with</span></span><br><span class="line">	<span class="comment">// 128 mod (cache line size) = 0 .</span></span><br><span class="line">	pad [<span class="number">128</span> - unsafe.Sizeof(poolLocalInternal&#123;&#125;)%<span class="number">128</span>]<span class="keyword">byte</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>poolLocal</code> 中包含了 <code>poolLocalInternal</code> 和 <code>pad</code> 两个属性。</p>
+<p>其中 <code>pad</code> 属性并不是用来存放数据的，而是用于将 <code>poolLocal</code> 结构体所占用的内存对齐到 128 的整数倍。这是为了解决伪共享（<code>false sharing</code>）问题，以此来独占 CPU 高速缓存的 CacheLine。</p>
+<p>而 <code>poolLocalInternal</code> 结构体内部，才是用来存储缓存数据的。其中 <code>private</code> 是一个私有对象，用于记录当前 P 下缓存的对象，<code>shared</code> 是一个双向队列（一个 <code>lock-free</code> 的双向链表结构），用于记录多个 P 中共享的缓存对象，当前 P 能够进行 <code>pushHead/popHead</code> 操作，其他 P 能够进行 <code>popTail</code> 操作，从而在当前 P 中窃取缓存对象。</p>
+<p>这里所说的 P 是指 Go GMP 模型中的处理器（P），之所以设计为当前 P 从队头进行读写，其他 P 从队尾进行获取操作，目的是在不加锁的情况下保证并发安全。</p>
+<p><code>sync.Pool</code> 为每个处理器（P）维护一个本地的 <code>poolLocal</code> 结构，其中包含一个 <code>shared</code> 队列。这个 <code>shared</code> 队列的类型是 <code>poolChain</code>，它是一个由多个 <code>poolDequeue</code> 节点组成的双向链表结构。每个 <code>poolDequeue</code> 都是一个固定大小的环形队列（r<code>ing buffer</code>），并且每个新节点的容量通常是前一个节点的两倍。</p>
+<p><code>poolDequeue</code> 被设计为一个单生产者（<code>single-producer</code>）/多消费者（<code>multi-consumer</code>） 的无锁队列（<code>lock-free</code>）：</p>
+<ul>
+<li>生产者：即当前 <code>P</code>，可以执行 <code>pushHead</code>（在头部添加）和 <code>popHead</code>（从头部弹出）操作。</li>
+<li>消费者：包括当前 <code>P</code>（也可以消费）和其他 <code>P</code>。其他 <code>P</code>只能执行 <code>popTail</code>（从尾部弹出）操作。</li>
+</ul>
+<p>对于 <code>poolChain</code> 的介绍就到这里，不再继续深入，避免陷入其中，我们应该继续回到 <code>sync.Pool</code> 本身方法的学习。</p>
+<h4 id="Put-方法"><a href="#Put-方法" class="headerlink" title="Put 方法"></a>Put 方法</h4><p><code>Put</code> 方法用于添加一个对象到池中，其实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Put 添加一个元素到池中</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">Put</span><span class="params">(x any)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> x == <span class="literal">nil</span> &#123; <span class="comment">// x 为 nil 直接返回</span></span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// pin() 把当前 goroutine 固定在当前的 P 上</span></span><br><span class="line">	<span class="comment">// 同时返回 local 对象（*poolLocal）和当前 P id</span></span><br><span class="line">	l, _ := p.pin()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> l.private == <span class="literal">nil</span> &#123;</span><br><span class="line">		l.private = x <span class="comment">// 如果 private 为 nil，则直接将 x 赋值给它</span></span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		l.shared.pushHead(x) <span class="comment">// 否则，将 x push 到共享队列队头</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 将当前 goroutine 从当前 P 上解除固定</span></span><br><span class="line">	runtime_procUnpin()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>Put</code> 方法实现逻辑相当简单。</p>
+<p>其中 <code>p.pin()</code> 和 <code>runtime_procUnpin()</code> 是必须成对出现的调用，有点类似互斥锁的加锁/解锁操作，并且同样是用来解决并发问题的。不同的是，<code>pin</code> 操作更加轻量，<code>p.pin()</code> 能够将当前 goroutine 固定在当前的 P 上。因为在一个 P 上，同一时刻只会运行一个 goroutine，所以，接下来在当前 goroutine 中操作当前 P 上的任何对象都无需加锁，从而避免的并发问题。</p>
+<p>调用 <code>p.pin()</code> 能够拿到存储在当前 P 中的 <code>*poolLocal</code> 对象和当前 P <code>ID</code>，有了 <code>*poolLocal</code> 对象，就可以判断 <code>l.private</code> 是否为空，如果值为 <code>nil</code>，那么直接将对象 <code>x</code> 赋值到 <code>private</code> 属性中缓存起来。否则，将对象 <code>x</code> 存储到共享队列 <code>l.shared</code> 中。</p>
+<p>最后，记得调用 <code>runtime_procUnpin()</code> 解除 goroutine 和 P 的绑定。</p>
+<h4 id="Get-方法"><a href="#Get-方法" class="headerlink" title="Get 方法"></a>Get 方法</h4><p><code>Get</code> 方法用于从池中获取一个对象，其实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Get 从 [Pool] 中选择一个任意项，将其从 Pool 中移除，然后返回给调用者。</span></span><br><span class="line"><span class="comment">// Get 可以选择忽略池并将其视为空。</span></span><br><span class="line"><span class="comment">// 调用者不应假设传递给 [Pool.Put] 的值与 Get 返回的值之间存在任何关系。</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// 如果 Get 返回 nil 且 p.New 非零，则 Get 返回调用 p.New 的结果。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">Get</span><span class="params">()</span> <span class="title">any</span></span> &#123;</span><br><span class="line">	<span class="comment">// 把当前 goroutine 固定在当前的 P 上</span></span><br><span class="line">	<span class="comment">// 拿到 local 对象（*poolLocal，该 P 的本地池）和当前 P id</span></span><br><span class="line">	l, pid := p.pin()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 获取当前 P 中的 private</span></span><br><span class="line">	x := l.private</span><br><span class="line">	l.private = <span class="literal">nil</span></span><br><span class="line">	<span class="keyword">if</span> x == <span class="literal">nil</span> &#123; <span class="comment">// private 不存在</span></span><br><span class="line">		<span class="comment">// 尝试从当前 P 的共享队列中弹出空闲对象</span></span><br><span class="line">		<span class="comment">// 因为 shared 队列只有所属的 P 会操作头部（生产者），所以 popHead 操作也无需加锁</span></span><br><span class="line">		x, _ = l.shared.popHead()</span><br><span class="line">		<span class="keyword">if</span> x == <span class="literal">nil</span> &#123; <span class="comment">// 触发慢路径</span></span><br><span class="line">			<span class="comment">// 当前 P 的本地池为空，则尝试从其他 P 窃取或从 victim 缓存获取</span></span><br><span class="line">			x = p.getSlow(pid)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 解除 pin</span></span><br><span class="line">	runtime_procUnpin()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> x == <span class="literal">nil</span> &amp;&amp; p.New != <span class="literal">nil</span> &#123;</span><br><span class="line">		x = p.New() <span class="comment">// 如果所有缓存都未找到对象，且用户提供了 New 函数，则创建一个新对象</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> x</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>与 <code>Put</code> 方法一样，<code>Get</code> 方法的逻辑也通过 <code>p.pin()</code> 和 <code>runtime_procUnpin()</code> 进行保护。</p>
+<p>Get 方法在缓存中获取空闲对象的搜索路径如下：</p>
+<ol>
+<li>从 <code>l.private</code> 中获取对象。</li>
+<li>从本地共享队列 <code>l.shared</code> 中获取对象。</li>
+<li>慢路径（尝试从其他 P 窃取或从 <code>victim</code> 回收站中获取）。</li>
+</ol>
+<p>慢路径源码实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">getSlow</span><span class="params">(pid <span class="keyword">int</span>)</span> <span class="title">any</span></span> &#123;</span><br><span class="line">	<span class="comment">// See the comment in pin regarding ordering of the loads.</span></span><br><span class="line">	size := runtime_LoadAcquintptr(&amp;p.localSize) <span class="comment">// load-acquire</span></span><br><span class="line">	locals := p.local                            <span class="comment">// load-consume</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 尝试从其他进 P 的共享队列中窃取一个元素</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="keyword">int</span>(size); i++ &#123;</span><br><span class="line">		l := indexLocal(locals, (pid+i+<span class="number">1</span>)%<span class="keyword">int</span>(size)) <span class="comment">// 计算其他 P 的索引</span></span><br><span class="line">		<span class="keyword">if</span> x, _ := l.shared.popTail(); x != <span class="literal">nil</span> &#123;    <span class="comment">// 从尾部窃取</span></span><br><span class="line">			<span class="keyword">return</span> x</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 如果窃取也失败了，则转而检查 victim 缓存</span></span><br><span class="line">	size = atomic.LoadUintptr(&amp;p.victimSize) <span class="comment">// 获取 victim 缓存大小</span></span><br><span class="line">	<span class="keyword">if</span> <span class="keyword">uintptr</span>(pid) &gt;= size &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	locals = p.victim</span><br><span class="line">	l := indexLocal(locals, pid)</span><br><span class="line">	<span class="keyword">if</span> x := l.private; x != <span class="literal">nil</span> &#123; <span class="comment">// 先检查 victim 的 private</span></span><br><span class="line">		l.private = <span class="literal">nil</span> <span class="comment">// 从 victim 中移除后再返回</span></span><br><span class="line">		<span class="keyword">return</span> x</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="keyword">int</span>(size); i++ &#123; <span class="comment">// 再检查 victim 的 shared</span></span><br><span class="line">		l := indexLocal(locals, (pid+i)%<span class="keyword">int</span>(size))</span><br><span class="line">		<span class="keyword">if</span> x, _ := l.shared.popTail(); x != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> x</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	atomic.StoreUintptr(&amp;p.victimSize, <span class="number">0</span>) <span class="comment">// 标记 victim 为空</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 根据给定的索引 i，计算出指向 local 数组（[P]poolLocal）中第 i 个 poolLocal 元素的指针</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">indexLocal</span><span class="params">(l unsafe.Pointer, i <span class="keyword">int</span>)</span> *<span class="title">poolLocal</span></span> &#123;</span><br><span class="line">	lp := unsafe.Pointer(<span class="keyword">uintptr</span>(l) + <span class="keyword">uintptr</span>(i)*unsafe.Sizeof(poolLocal&#123;&#125;))</span><br><span class="line">	<span class="keyword">return</span> (*poolLocal)(lp)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>getSlow</code> 方法内部会逐个计算其他 P 的索引，然后从对应 P 的共享队列尾部 <code>l.shared.popTail()</code> 窃取缓存对象。</p>
+<p>如果遍历完所有 P 的共享缓存，都没能找到缓存对象，则继续检查 <code>victim</code> 中的缓存数据。</p>
+<p>如果 <code>victim</code> 的 <code>private</code> 中有数据，则直接返回，否则继续检查 <code>victim</code> 的共享队列，如果 <code>victim</code> 的共享队列中没能找到数据，最终才会返回 <code>nil</code>。</p>
+<p>现在 <code>sync.Pool</code> 实现缓存对象的主体逻辑已经串通了，但是还有一点没有串接起来，<code>victim</code> 是何时被赋值的？</p>
+<h4 id="pin-操作"><a href="#pin-操作" class="headerlink" title="pin 操作"></a>pin 操作</h4><p>要找到 <code>victim</code> 的赋值操作，还需要先理解 <code>pin</code> 方法的内部实现，其实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 将当前 goroutine 固定（pin）到其运行的 P（逻辑处理器）上，并返回该 P 对应的本地缓存池 (*poolLocal) 和 P 的 id</span></span><br><span class="line"><span class="comment">// 调用方必须在使用完成后调用 runtime_procUnpin() 取消固定</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">pin</span><span class="params">()</span> <span class="params">(*poolLocal, <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> p == <span class="literal">nil</span> &#123; <span class="comment">// 空指针检查</span></span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"nil Pool"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 固定 P，调用 runtime 函数，禁止当前 G 被抢占，并将其固定到当前 P，同时返回 P 的 id</span></span><br><span class="line">	<span class="comment">// 这是后续无锁操作的基础</span></span><br><span class="line">	pid := runtime_procPin()</span><br><span class="line">	<span class="comment">// 原子加载本地池信息</span></span><br><span class="line">	s := runtime_LoadAcquintptr(&amp;p.localSize) <span class="comment">// load-acquire</span></span><br><span class="line">	l := p.local                              <span class="comment">// load-consume</span></span><br><span class="line">	<span class="keyword">if</span> <span class="keyword">uintptr</span>(pid) &lt; s &#123;                     <span class="comment">// 快速路径（常见情况）</span></span><br><span class="line">		<span class="comment">// 如果当前 P 的 id 在 local 数组的有效大小范围内，则通过 indexLocal 函数计算地址，直接返回对应的 poolLocal 和 pid</span></span><br><span class="line">		<span class="keyword">return</span> indexLocal(l, pid), pid</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 慢路径（初始化或扩容）</span></span><br><span class="line">	<span class="keyword">return</span> p.pinSlow()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// pin 方法的“慢路径”（slow path）</span></span><br><span class="line"><span class="comment">// 负责在特定情况下初始化或重新分配 Pool 的本地存储数组 (local)，</span></span><br><span class="line"><span class="comment">// 并确保该 Pool 被注册到全局的 allPools 列表中以便垃圾回收 (GC) 时进行清理</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">pinSlow</span><span class="params">()</span> <span class="params">(*poolLocal, <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="comment">// Retry under the mutex.</span></span><br><span class="line">	<span class="comment">// Can not lock the mutex while pinned.</span></span><br><span class="line">	runtime_procUnpin() <span class="comment">// 解除当前 G 与 P 的绑定，为获取全局锁做准备</span></span><br><span class="line"></span><br><span class="line">	allPoolsMu.Lock() <span class="comment">// 加全局互斥锁，保护对 allPools 和 Pool 的 local 等字段的并发访问</span></span><br><span class="line">	<span class="keyword">defer</span> allPoolsMu.Unlock()</span><br><span class="line"></span><br><span class="line">	pid := runtime_procPin() <span class="comment">// 重新固定 G 到 P</span></span><br><span class="line">	<span class="comment">// poolCleanup won't be called while we are pinned.</span></span><br><span class="line">	s := p.localSize</span><br><span class="line">	l := p.local</span><br><span class="line">	<span class="keyword">if</span> <span class="keyword">uintptr</span>(pid) &lt; s &#123; <span class="comment">// 在锁保护下再次检查 local 数组是否已由其他 goroutine 初始化（双重检查锁定模式）</span></span><br><span class="line">		<span class="keyword">return</span> indexLocal(l, pid), pid</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 如果 Pool 尚未注册，则将其添加到 allPools 全局切片中，以便后续 GC 时能执行 poolCleanup 清理其缓存</span></span><br><span class="line">	<span class="keyword">if</span> p.local == <span class="literal">nil</span> &#123;</span><br><span class="line">		allPools = <span class="built_in">append</span>(allPools, p)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// If GOMAXPROCS changes between GCs, we re-allocate the array and lose the old one.</span></span><br><span class="line">	size := runtime.GOMAXPROCS(<span class="number">0</span>)</span><br><span class="line">	local := <span class="built_in">make</span>([]poolLocal, size) <span class="comment">// 根据当前的 GOMAXPROCS（即 P 的数量）创建一个新的 poolLocal 数组</span></span><br><span class="line">	<span class="comment">// 记录初始化的 poolLocal 数组</span></span><br><span class="line">	atomic.StorePointer(&amp;p.local, unsafe.Pointer(&amp;local[<span class="number">0</span>])) <span class="comment">// store-release</span></span><br><span class="line">	runtime_StoreReluintptr(&amp;p.localSize, <span class="keyword">uintptr</span>(size))     <span class="comment">// store-release</span></span><br><span class="line">	<span class="keyword">return</span> &amp;local[pid], pid                                  <span class="comment">// 返回新创建的、当前 P 对应的 *poolLocal 和 P 的 id</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，<code>pin</code> 操作也有快慢路径之分，慢路径 <code>p.pinSlow()</code> 一般出现在初始化场景中。</p>
+<p>这里，我们需要重点关注的是如下这段代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> p.local == <span class="literal">nil</span> &#123;</span><br><span class="line">    allPools = <span class="built_in">append</span>(allPools, p)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果 <code>Pool</code> 尚未注册，即 <code>p.local == nil</code>，则将其添加到 <code>allPools</code> 全局切片变量中，以便后续 GC 时能执行 <code>poolCleanup</code> 操作清理其缓存。</p>
+<p>那么这个 <code>allPools</code> 是干什么的？我们接着往下看与 GC 相关的代码。</p>
+<h4 id="GC-垃圾回收"><a href="#GC-垃圾回收" class="headerlink" title="GC 垃圾回收"></a>GC 垃圾回收</h4><p><code>sync.Pool</code> 中与 GC 相关的代码实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//go:linkname poolCleanup</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">poolCleanup</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 此函数在垃圾回收（GC）开始，程序暂停（STW）时被调用</span></span><br><span class="line">	<span class="comment">// 它自身一定不能分配内存，并且很可能不应调用任何运行时函数（runtime functions）</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Drop victim caches from all pools.</span></span><br><span class="line">	<span class="keyword">for</span> _, p := <span class="keyword">range</span> oldPools &#123;</span><br><span class="line">		p.victim = <span class="literal">nil</span> <span class="comment">// 清空回收站</span></span><br><span class="line">		p.victimSize = <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Move primary cache to victim cache.</span></span><br><span class="line">	<span class="keyword">for</span> _, p := <span class="keyword">range</span> allPools &#123;</span><br><span class="line">		p.victim = p.local <span class="comment">// 从主缓存移到回收站</span></span><br><span class="line">		p.victimSize = p.localSize</span><br><span class="line">		p.local = <span class="literal">nil</span> <span class="comment">// 主缓存置空</span></span><br><span class="line">		p.localSize = <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	oldPools, allPools = allPools, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	<span class="comment">// 保护 allPools 的互斥锁</span></span><br><span class="line">	allPoolsMu Mutex</span><br><span class="line"></span><br><span class="line">	<span class="comment">// allPools 是拥有非空主缓存（non-empty primary caches）的 pool 的集合</span></span><br><span class="line">	<span class="comment">// 保证并发安全的机制有两种：1) 通过 allPoolsMu 互斥锁和 pinning（固定）机制；2) 通过垃圾回收时的程序暂停 STW（Stop-The-World）</span></span><br><span class="line">	allPools []*Pool</span><br><span class="line"></span><br><span class="line">	<span class="comment">// oldPools 是可能拥有非空 victim 缓存（non-empty victim caches）的 pool 的集合</span></span><br><span class="line">	<span class="comment">// 保证并发安全机制为 STW（Stop-The-World）</span></span><br><span class="line">	oldPools []*Pool</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 将 poolCleanup 注册到 runtime，确保每次 GC 开始时自动被调用</span></span><br><span class="line">	runtime_registerPoolCleanup(poolCleanup)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码要从下往上解读。</p>
+<p>首先在 <code>init</code> 函数中 将 <code>poolCleanup</code> 注册到 <code>runtime</code>，这样 <code>poolCleanup</code> 函数会在每次 GC 开始时自动被调用。</p>
+<p><code>poolCleanup</code> 函数内部会操作 <code>allPools</code> 和 <code>oldPools</code> 两个全局变量，因为是在 GC STW 时执行，不会存在并发问题，所以无需加锁。</p>
+<p>而 <code>poolCleanup</code> 函数内的源码实现，正是我们在前文中所讲的，Go 在触发垃圾回收时，<code>sync.Pool</code> 会做两件事：</p>
+<ol>
+<li>将所有缓存的 <code>victim</code> 中的对象移除。</li>
+<li>把所有缓存的 <code>local</code> 中对象移动到 <code>victim</code>。</li>
+</ol>
+<p>现在 <code>victim</code> 的赋值操作也找到了。当然，<code>sync.Pool</code> 的核心源码也随之解读完了。</p>
+<h4 id="sync-Pool-执行流"><a href="#sync-Pool-执行流" class="headerlink" title="sync.Pool 执行流"></a>sync.Pool 执行流</h4><p>通过以上源码的分析，你可能还有些发懵，没关系，这是正常现象，我也是阅读了好几遍 <code>sync.Pool</code> 源码，才搞清楚其逻辑的。</p>
+<p>如果你坚持阅读到这里，那么恭喜你，离真正理解 <code>sync.Pool</code> 更近了一步。</p>
+<p>我们可以通过几张流程图，再来梳理一下 <code>sync.Pool</code> 的执行流，以此来加深对 <code>sync.Pool</code> 源码的理解。</p>
+<p><code>Put</code> 操作执行流程如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Pool_Put.png" alt="Put" title="">
+                </div>
+                <div class="image-caption">Put</div>
+            </figure>
+
+<p>Get 操作执行流程如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Pool_Get.png" alt="Get" title="">
+                </div>
+                <div class="image-caption">Get</div>
+            </figure>
+
+
+<p>至此，<code>sync.Pool</code> 原理就解读完了。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文带大家一起学习了 Go 并发原语 <code>sync.Pool</code>，这是一个在并发场景下非常有效的解决对象复用的手段。</p>
+<p>通过源码解读，我们知道 <code>sync.Pool</code> 默认缓存数据会存储在 <code>local</code> 中，在触发 GC 时则被移动到 <code>victim</code>,<code>victim</code> 就像一个回收站，其内部的数据要被重新利用，要么被彻底删除。</p>
+<p>你有没有想过，<code>sync.Pool</code> 为什么要设计成调用两次 GC 才会回收对象呢？</p>
+<p>其实这是为了防止 GC 引起的性能抖动。如果只调用一次 GC，就回收对象，则可能导致对象被频繁的创建和回收，并不能有效起到缓存的作用。那如果调用 3 次 GC 再回收行不行呢？理论上可以，但不建议这样做，其实这是一个内存和性能之间的取舍问题，如果缓存数据没有被使用，还长期存放在内存中，则势必会造成内存的浪费。两次 GC 才回收对象，应该是一个比较合理的经验值。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/sync/pool" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>sync.Pool Documentation：<a href="https://pkg.go.dev/sync@go1.25.0#Pool" target="_blank" rel="noopener">https://pkg.go.dev/sync@go1.25.0#Pool</a></li>
+<li>sync.Pool GitHub 源码：<a href="https://github.com/golang/go/blob/go1.25.1/src/sync/pool.go" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.25.1/src/sync/pool.go</a></li>
+<li>10 | Pool：性能提升大杀器：<a href="https://time.geekbang.org/column/article/301716" target="_blank" rel="noopener">https://time.geekbang.org/column/article/301716</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/sync/pool" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/sync/pool</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2025/09/07/sync-pool/" target="_blank" rel="noopener">https://jianghushinian.cn/2025/09/07/sync-pool/</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-01-25T04:52:54.180Z" itemprop="dateUpdated">2026-01-25 12:52:54</time>
+</span><br>
+
+
+        
+        <a href="/2025/09/07/sync-pool/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/09/07/sync-pool/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/" rel="tag">并发编程</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/09/07/sync-pool/&title=《Go 并发控制：sync.Pool 详解》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/09/07/sync-pool/&title=《Go 并发控制：sync.Pool 详解》 — 江湖十年&source=sync.Pool 是 Go 并发原语中用于对象池化的工具，主要用于缓存和复用临时对象，以减少内存分配和垃圾回收的压力。
+本文将带大家一起来深入探讨 sy..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/09/07/sync-pool/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 并发控制：sync.Pool 详解》 — 江湖十年&url=http://www.jianghushinian.cn/2025/09/07/sync-pool/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/09/07/sync-pool/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2025/09/29/go-kratos-blades/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">AI Agent 生态再添一员，Kratos 带着他的武器 Blades 走来了！</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/09/05/testing-synctest/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">使用 testing/synctest 测试并发代码</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/09/07/sync-pool/&title=《Go 并发控制：sync.Pool 详解》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/09/07/sync-pool/&title=《Go 并发控制：sync.Pool 详解》 — 江湖十年&source=sync.Pool 是 Go 并发原语中用于对象池化的工具，主要用于缓存和复用临时对象，以减少内存分配和垃圾回收的压力。
+本文将带大家一起来深入探讨 sy..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/09/07/sync-pool/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 并发控制：sync.Pool 详解》 — 江湖十年&url=http://www.jianghushinian.cn/2025/09/07/sync-pool/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/09/07/sync-pool/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/09/07/sync-pool/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>如何在两个镜像仓库之间迁移 Docker 跨平台镜像 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Docker">
+    <meta name="description" content="大家好，我是江湖十年。久违了，这是我的 2026 年第一篇技术文章。  Docker 镜像迁移的需求想必大家都有，比如因为众所周知的原因需要做镜像加速，将 Docker Hub 中的某个镜像上传到 Mirror 镜像站。今天来介绍下如何在两个镜像仓库之间迁移 Docker 跨平台镜像。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="如何在两个镜像仓库之间迁移 Docker 跨平台镜像">
+<meta property="og:url" content="http://www.jianghushinian.cn/2026/01/25/docker-images-migration/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="大家好，我是江湖十年。久违了，这是我的 2026 年第一篇技术文章。  Docker 镜像迁移的需求想必大家都有，比如因为众所周知的原因需要做镜像加速，将 Docker Hub 中的某个镜像上传到 Mirror 镜像站。今天来介绍下如何在两个镜像仓库之间迁移 Docker 跨平台镜像。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-01-25T05:02:30.000Z">
+<meta property="article:modified_time" content="2026-01-25T05:05:09.435Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Docker">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">如何在两个镜像仓库之间迁移 Docker 跨平台镜像</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">如何在两个镜像仓库之间迁移 Docker 跨平台镜像</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2026-01-25T05:02:30.000Z" itemprop="datePublished" class="page-time">
+  2026-01-25
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Docker/">Docker</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#单平台镜像迁移"><span class="post-toc-number">1.</span> <span class="post-toc-text">单平台镜像迁移</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#跨平台镜像迁移"><span class="post-toc-number">2.</span> <span class="post-toc-text">跨平台镜像迁移</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#方案一：使用-Docker-Buildx"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">方案一：使用 Docker Buildx</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#方案二：使用传统-Docker-Pull-Push"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">方案二：使用传统 Docker Pull&#x2F;Push</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#方案选型"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">方案选型</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">3.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-docker-images-migration"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">如何在两个镜像仓库之间迁移 Docker 跨平台镜像</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2026-01-25 13:02:30" datetime="2026-01-25T05:02:30.000Z"  itemprop="datePublished">2026-01-25</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Docker/">Docker</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <blockquote>
+<p>大家好，我是江湖十年。久违了，这是我的 2026 年第一篇技术文章。</p>
+</blockquote>
+<p>Docker 镜像迁移的需求想必大家都有，比如因为众所周知的原因需要做镜像加速，将 Docker Hub 中的某个镜像上传到 Mirror 镜像站。今天来介绍下如何在两个镜像仓库之间迁移 Docker 跨平台镜像。</p>
+<a id="more"></a>
+
+<blockquote>
+<p><strong>提示：</strong>如果你对 Docker Manifest 以及 Buildx 不了解，可以参考我之前写过的文章：《<a href="https://mp.weixin.qq.com/s/DsqD_iQTPGu1HjiF0czckg" target="_blank" rel="noopener">使用 docker manifest 构建跨平台镜像》</a>，《<a href="https://mp.weixin.qq.com/s/OvOIjj4ser-QWd2BsfsY-Q" target="_blank" rel="noopener">使用 buildx 构建跨平台镜像</a>》。</p>
+</blockquote>
+<h3 id="单平台镜像迁移"><a href="#单平台镜像迁移" class="headerlink" title="单平台镜像迁移"></a>单平台镜像迁移</h3><p>如果是非跨平台镜像迁移，则非常简单。</p>
+<ol>
+<li>拉取源镜像：先通过 <code>docker pull &lt;IMAGE&gt;</code> 命令将 Docker Hub 中的镜像拉到本地（或中转）主机。</li>
+<li>重命名标签：然后使用 <code>docker tag &lt;SOURCE_IMAGE&gt; &lt;TARGET_IMAGE&gt;</code> 将镜像标记为目标仓库的地址。</li>
+<li>推送到目标仓库：执行 <code>docker push &lt;TARGET_IMAGE&gt;</code> 将镜像上传至私有仓库。</li>
+<li>清理本地缓存（可选）：迁移完成后，建议使用 <code>docker rmi &lt;IMAGE&gt;</code> 命令删除本地残留的镜像，以释放磁盘空间。</li>
+</ol>
+<blockquote>
+<p><strong>提示：</strong> 在执行第 3 步之前，请确保已通过 <code>docker login</code> 完成目标仓库的身份验证。对于生产环境，建议在标签（Tag）中明确标注版本号，避免使用不稳定的 <code>latest</code> 标签。</p>
+</blockquote>
+<p>这个方案在处理单架构镜像时简单高效，但存在一个关键的局限性：<code>docker pull &lt;IMAGE&gt;</code> 默认只会拉取与当前主机 CPU 架构相匹配的镜像。</p>
+<p>随着 ARM64 架构在生产环境的广泛应用，传统的“本地中转”模式已无法满足现代云原生架构的需求。如果我们在 x86 机器上进行迁移，最终分发的镜像将无法在 ARM 节点上运行。</p>
+<p>为了解决这一痛点，我们需要一种能够同时迁移多种架构（amd64、arm64 等）并保持其 Manifest List（清单列表）关联性的优化方案。于是，就有了迁移跨平台镜像的需求。</p>
+<h3 id="跨平台镜像迁移"><a href="#跨平台镜像迁移" class="headerlink" title="跨平台镜像迁移"></a>跨平台镜像迁移</h3><p>本小节演示以 Docker Hub 中的 <a href="https://hub.docker.com/_/golang/tags?name=1.25-alpine" target="_blank" rel="noopener">golang:1.25-alpine</a> 镜像为例，演示将其迁移至阿里云私有镜像仓库。</p>
+<h4 id="方案一：使用-Docker-Buildx"><a href="#方案一：使用-Docker-Buildx" class="headerlink" title="方案一：使用 Docker Buildx"></a>方案一：使用 Docker Buildx</h4><p>Docker 早在很久以前就开始推行 Buildx 构建跨平台镜像，非常方便。</p>
+<ol>
+<li>初始化构建器（若尚未配置）</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ docker buildx create --name mybuilder --use</span><br><span class="line">$ docker buildx inspect --bootstrap</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>执行一键迁移命令</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 变量定义，私有仓库地址</span></span><br><span class="line">TARGET=<span class="string">"crpi-1ql0kmu5z0c9xt5q.cn-hangzhou.personal.cr.aliyuncs.com/jianghushinian/golang:1.25-alpine"</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用 buildx 同时构建并推送 amd64 和 arm64 架构</span></span><br><span class="line">$ <span class="built_in">echo</span> <span class="string">"FROM golang:1.25-alpine"</span> | docker buildx build \</span><br><span class="line">  --platform linux/amd64,linux/arm64 \</span><br><span class="line">  -t <span class="variable">$&#123;TARGET&#125;</span> \</span><br><span class="line">  --push -</span><br></pre></td></tr></table></figure>
+
+<p>只需要一行简单的命令，即可实现同时构建并推送 amd64 和 arm64 架构镜像到私有仓库。此外，这里使用了取巧的办法在不创建创建物理 Dockerfile 情况下，直接通过标准输入传入内容。</p>
+<p>当然，还有更简单的方式：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 变量定义</span></span><br><span class="line">SOURCE=<span class="string">"golang:1.25-alpine"</span></span><br><span class="line">TARGET=<span class="string">"crpi-1ql0kmu5z0c9xt5q.cn-hangzhou.personal.cr.aliyuncs.com/jianghushinian/golang:1.25-alpine"</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 直接创建并推送新的 manifest</span></span><br><span class="line">$ docker buildx imagetools create --tag <span class="variable">$&#123;TARGET&#125;</span> <span class="variable">$&#123;SOURCE&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>你甚至连 buildx 构建器都无需创建，直接将跨平台镜像从一个仓库迁移至另一个仓库。</p>
+<p>使用 <code>docker buildx build</code> 和  <code>docker buildx imagetools</code> 迁移镜像的区别是什么呢？我总结了如下表格供你参考：</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>docker buildx build</th>
+<th>docker buildx imagetools</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>操作本质</td>
+<td>重新构建 (Rebuilding)</td>
+<td>清单操作 (Manifest Manipulation)</td>
+</tr>
+<tr>
+<td>流量消耗</td>
+<td>高，需要下载和重新上传所有镜像层</td>
+<td>极低，仅传输几 KB 的元数据 JSON</td>
+</tr>
+<tr>
+<td>性能/速度</td>
+<td>取决于网络带宽和镜像大小</td>
+<td>秒级完成</td>
+</tr>
+<tr>
+<td>多架构处理</td>
+<td>需要通过 <code>--platform</code> 指定并逐一处理</td>
+<td>自动合并源镜像中的所有平台架构</td>
+</tr>
+<tr>
+<td>内容修改</td>
+<td>可修改，可以更换基础镜像或增删文件</td>
+<td>不可修改，源镜像是什么，目标就是什么</td>
+</tr>
+<tr>
+<td>依赖环境</td>
+<td>需要运行中的 BuildKit 实例（Builder）</td>
+<td>仅需能连接两个 Registry 的 API</td>
+</tr>
+</tbody></table>
+<p><code>docker buildx imagetools</code> 命令有个很大的优点，就是镜像不经过本机，也就是说执行完成后，本机是没有目标镜像的。</p>
+<p>如果你的 Docker 版本比较老旧，没有 buildx 支持，那么可以选择更加保守的 <code>pull/push</code> 命令。</p>
+<h4 id="方案二：使用传统-Docker-Pull-Push"><a href="#方案二：使用传统-Docker-Pull-Push" class="headerlink" title="方案二：使用传统 Docker Pull/Push"></a>方案二：使用传统 Docker Pull/Push</h4><p>当然，在某些场景下，最原始的方式反而是最有效的。通过 <code>docker pull/push</code> 命令再结合 <code>docker manifest</code> 我们同样可以实现跨平台镜像的迁移。</p>
+<p>步骤如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 变量定义</span></span><br><span class="line">VERSION=<span class="string">"1.25-alpine"</span></span><br><span class="line">SOURCE_IMAGE=<span class="string">"golang:<span class="variable">$&#123;VERSION&#125;</span>"</span></span><br><span class="line">TARGET_REPO=<span class="string">"crpi-1ql0kmu5z0c9xt5q.cn-hangzhou.personal.cr.aliyuncs.com/jianghushinian/golang"</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 1. 处理 amd64 架构</span></span><br><span class="line">$ docker pull --platform=linux/amd64 <span class="variable">$&#123;SOURCE_IMAGE&#125;</span></span><br><span class="line">$ docker tag <span class="variable">$&#123;SOURCE_IMAGE&#125;</span> <span class="variable">$&#123;TARGET_REPO&#125;</span>:<span class="variable">$&#123;VERSION&#125;</span>-amd64</span><br><span class="line">$ docker push <span class="variable">$&#123;TARGET_REPO&#125;</span>:<span class="variable">$&#123;VERSION&#125;</span>-amd64</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 处理 arm64 架构</span></span><br><span class="line">$ docker pull --platform=linux/arm64 <span class="variable">$&#123;SOURCE_IMAGE&#125;</span></span><br><span class="line">$ docker tag <span class="variable">$&#123;SOURCE_IMAGE&#125;</span> <span class="variable">$&#123;TARGET_REPO&#125;</span>:<span class="variable">$&#123;VERSION&#125;</span>-arm64</span><br><span class="line">$ docker push <span class="variable">$&#123;TARGET_REPO&#125;</span>:<span class="variable">$&#123;VERSION&#125;</span>-arm64</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 创建多架构 Manifest</span></span><br><span class="line"><span class="comment"># 这会将 amd64 和 arm64 两个镜像关联到同一个标签 $&#123;VERSION&#125; 下</span></span><br><span class="line">$ docker manifest create \</span><br><span class="line">  <span class="variable">$&#123;TARGET_REPO&#125;</span>:<span class="variable">$&#123;VERSION&#125;</span> \</span><br><span class="line">  <span class="variable">$&#123;TARGET_REPO&#125;</span>:<span class="variable">$&#123;VERSION&#125;</span>-amd64 \</span><br><span class="line">  <span class="variable">$&#123;TARGET_REPO&#125;</span>:<span class="variable">$&#123;VERSION&#125;</span>-arm64</span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. 推送 Manifest 到阿里云</span></span><br><span class="line">$ docker manifest push <span class="variable">$&#123;TARGET_REPO&#125;</span>:<span class="variable">$&#123;VERSION&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>这没什么好解释的，纯体力活。</p>
+<h4 id="方案选型"><a href="#方案选型" class="headerlink" title="方案选型"></a>方案选型</h4><p>其实使用那种方式都行，能够达到目的即可。但有些时候，封装更好的工具可能有一些限制。</p>
+<p>比如使用 <code>docker buildx imagetools</code> 命令迁移镜像，你可能遇到如下错误：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ERROR: failed commit on ref <span class="string">"layer-sha256:4bd07550e32f74fc2f29bbf38b34a2138634737d53907ad72ea1f4f7923129de"</span>: unexpected size 0, expected 126</span><br></pre></td></tr></table></figure>
+
+<p>这通常与 Registry 的底层实现有关。所以有些功能并不支持。那么 <code>docker buildx build</code> 或者 <code>docker manifest</code> 都是保底的解决方案。</p>
+<p>甚至，你还可以选择第三方软件，如 Skopeo / Crane 等，他们都支持一行命令迁移，对 CI/CD 也更友好。</p>
+<p><strong>没有最好的工具，只有最适合场景的策略。</strong> 自动化工具是提高效率的利器，但理解 <code>docker manifest</code> 这种底层逻辑，才是你解决突发故障、确保镜像在多架构环境下准时上线的核心底气。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>在本篇文章中，我们探讨了三种不同维度的路径实现跨平台镜像迁移：</p>
+<ul>
+<li>追求极致效率：首选 <code>docker buildx imagetools</code>，利用“逻辑同步”实现秒级迁移，且不占用本地带宽与磁盘。</li>
+<li>确保物理落地：使用 <code>docker buildx build</code> 通过 BuildKit 重新封装，是应对复杂网络环境和 Registry 兼容性问题的强力手段。</li>
+<li>回归底层原理：通过传统的 <code>pull/push</code> 结合 <code>docker manifest</code> 手动操作，虽然步骤略显繁琐，但它是理解镜像分发机制的基石，更是故障排查时的终极“保底方案”。</li>
+</ul>
+<p>至于第三方软件的方案，你可以自行尝试。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>P.S.</strong></p>
+<p>很久没写文章了，一个原因是忙，另一个原因是感觉现在 AI 已经如此强大了，有些文章确实没必要花心思写了。比如这篇文章，里面提到的方案，我想你通过 AI 也能很容易搜到答案，甚至让 AI 来写这样一篇文章，可能一分钟就搞定了。那我为什么还要写下这篇文章呢？</p>
+<p>我能保证文中出现的每一个代码片段，都是我执行验证过的，这是一个真实人能给出的确定性。里面还会夹杂一些我个人对某个问题的看法。</p>
+<p>但不得不承认，一篇文章能给读者带来的价值越来越低了，反而可能会作为模型的语料最终被训练进去。通过另外一种方式，与未来的读者见面。</p>
+<p>也许，未来的哪一天，一篇技术文章最大的价值，可能仅剩下作为个人笔记而存在了。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>Docker Hub Go 镜像：<a href="https://hub.docker.com/_/golang/tags?name=1.25-alpine" target="_blank" rel="noopener">https://hub.docker.com/_/golang/tags?name=1.25-alpine</a></li>
+<li>使用 docker manifest 构建跨平台镜像：<a href="https://mp.weixin.qq.com/s/DsqD_iQTPGu1HjiF0czckg" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/DsqD_iQTPGu1HjiF0czckg</a></li>
+<li>使用 buildx 构建跨平台镜像：<a href="https://mp.weixin.qq.com/s/OvOIjj4ser-QWd2BsfsY-Q" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/OvOIjj4ser-QWd2BsfsY-Q</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2026/01/25/docker-images-migration/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/01/25/docker-images-migration/</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-01-25T05:05:09.435Z" itemprop="dateUpdated">2026-01-25 13:05:09</time>
+</span><br>
+
+
+        
+        <a href="/2026/01/25/docker-images-migration/" target="_blank" rel="external">http://www.jianghushinian.cn/2026/01/25/docker-images-migration/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Docker/" rel="tag">Docker</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/01/25/docker-images-migration/&title=《如何在两个镜像仓库之间迁移 Docker 跨平台镜像》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/01/25/docker-images-migration/&title=《如何在两个镜像仓库之间迁移 Docker 跨平台镜像》 — 江湖十年&source=
+大家好，我是江湖十年。久违了，这是我的 2026 年第一篇技术文章。
+
+Docker 镜像迁移的需求想必大家都有，比如因为众所周知的原因需要做镜像加速，..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/01/25/docker-images-migration/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《如何在两个镜像仓库之间迁移 Docker 跨平台镜像》 — 江湖十年&url=http://www.jianghushinian.cn/2026/01/25/docker-images-migration/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/01/25/docker-images-migration/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/11/09/aio-sandbox/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">AIO Sandbox：一个为智能体而生的全能沙盒</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/01/25/docker-images-migration/&title=《如何在两个镜像仓库之间迁移 Docker 跨平台镜像》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/01/25/docker-images-migration/&title=《如何在两个镜像仓库之间迁移 Docker 跨平台镜像》 — 江湖十年&source=
+大家好，我是江湖十年。久违了，这是我的 2026 年第一篇技术文章。
+
+Docker 镜像迁移的需求想必大家都有，比如因为众所周知的原因需要做镜像加速，..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/01/25/docker-images-migration/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《如何在两个镜像仓库之间迁移 Docker 跨平台镜像》 — 江湖十年&url=http://www.jianghushinian.cn/2026/01/25/docker-images-migration/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/01/25/docker-images-migration/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2026/01/25/docker-images-migration/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

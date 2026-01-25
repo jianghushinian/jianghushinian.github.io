@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>用 Python 撸一个 Web 服务器-第5章：处理静态资源 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Python,Web">
+    <meta name="description" content="处理静态文件由于我们实现的模板引擎不支持直接将 CSS 嵌入在 HTML 中的写法，所以要将 CSS 独立出来。在 todo&#x2F; 目录下新建 static&#x2F; 目录，专门用来存储 CSS、JavaScript、图片等静态文件，在 static&#x2F; 目录下新建 css&#x2F; 目录用来存储 CSS 样式。我们把之前在 todo&#x2F;templates&#x2F;index.html HTML 页面中写的 CSS 移动到 to">
+<meta property="og:type" content="article">
+<meta property="og:title" content="用 Python 撸一个 Web 服务器-第5章：处理静态资源">
+<meta property="og:url" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="处理静态文件由于我们实现的模板引擎不支持直接将 CSS 嵌入在 HTML 中的写法，所以要将 CSS 独立出来。在 todo&#x2F; 目录下新建 static&#x2F; 目录，专门用来存储 CSS、JavaScript、图片等静态文件，在 static&#x2F; 目录下新建 css&#x2F; 目录用来存储 CSS 样式。我们把之前在 todo&#x2F;templates&#x2F;index.html HTML 页面中写的 CSS 移动到 to">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/Todo_List_Index_Use_CSS.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/Todo_List_ICO.png">
+<meta property="article:published_time" content="2020-07-17T13:21:43.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:13.421Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="Web">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/Todo_List_Index_Use_CSS.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">用 Python 撸一个 Web 服务器-第5章：处理静态资源</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">用 Python 撸一个 Web 服务器-第5章：处理静态资源</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2020-07-17T13:21:43.000Z" itemprop="datePublished" class="page-time">
+  2020-07-17
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#处理静态文件"><span class="post-toc-number">1.</span> <span class="post-toc-text">处理静态文件</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-用-Python-撸一个-Web-服务器-第5章：处理静态资源"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">用 Python 撸一个 Web 服务器-第5章：处理静态资源</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2020-07-17 21:21:43" datetime="2020-07-17T13:21:43.000Z"  itemprop="datePublished">2020-07-17</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <h3 id="处理静态文件"><a href="#处理静态文件" class="headerlink" title="处理静态文件"></a>处理静态文件</h3><p>由于我们实现的模板引擎不支持直接将 CSS 嵌入在 HTML 中的写法，所以要将 CSS 独立出来。在 <code>todo/</code> 目录下新建 <code>static/</code> 目录，专门用来存储 CSS、JavaScript、图片等静态文件，在 <code>static/</code> 目录下新建 <code>css/</code> 目录用来存储 CSS 样式。我们把之前在 <code>todo/templates/index.html</code> HTML 页面中写的 CSS 移动到 <code>todo/static/css/</code> 目录下的 <code>style.css</code> 文件中：</p>
+<a id="more"></a>
+
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* todo_list/todo/static/css/style.css */</span></span><br><span class="line"></span><br><span class="line">* &#123;</span><br><span class="line">    <span class="attribute">margin</span>: <span class="number">0</span>;</span><br><span class="line">    <span class="attribute">padding</span>: <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="selector-tag">ul</span> &#123;</span><br><span class="line">    <span class="attribute">list-style</span>: none;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="selector-tag">a</span> &#123;</span><br><span class="line">    <span class="attribute">text-decoration</span>: none;</span><br><span class="line">    <span class="attribute">outline</span>: none;</span><br><span class="line">    <span class="attribute">color</span>: <span class="number">#000000</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="selector-tag">h1</span> &#123;</span><br><span class="line">    <span class="attribute">margin</span>: <span class="number">20px</span> auto;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="selector-class">.container</span> &#123;</span><br><span class="line">    <span class="attribute">display</span>: flex;</span><br><span class="line">    <span class="attribute">justify-content</span>: center;</span><br><span class="line">    <span class="attribute">align-items</span>: center;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="selector-class">.container</span> <span class="selector-tag">ul</span> &#123;</span><br><span class="line">    <span class="attribute">width</span>: <span class="number">100%</span>;</span><br><span class="line">    <span class="attribute">max-width</span>: <span class="number">600px</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="selector-class">.container</span> <span class="selector-tag">ul</span> <span class="selector-tag">li</span> &#123;</span><br><span class="line">    <span class="attribute">height</span>: <span class="number">40px</span>;</span><br><span class="line">    <span class="attribute">line-height</span>: <span class="number">40px</span>;</span><br><span class="line">    <span class="attribute">margin-bottom</span>: <span class="number">4px</span>;</span><br><span class="line">    <span class="attribute">padding</span>: <span class="number">0</span> <span class="number">6px</span>;</span><br><span class="line">    <span class="attribute">display</span>: flex;</span><br><span class="line">    <span class="attribute">justify-content</span>: space-between;</span><br><span class="line">    <span class="attribute">background-color</span>: <span class="number">#d2d2d2</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接下来在首页 HTML 中引入 <code>style.css</code>：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- todo_list/todo/templates/index.html --&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>Todo List<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 引入外部 CSS 样式 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">link</span> <span class="attr">rel</span>=<span class="string">"stylesheet"</span> <span class="attr">href</span>=<span class="string">"/static/css/style.css"</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">h1</span> <span class="attr">class</span>=<span class="string">"container"</span>&gt;</span>Todo List<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"container"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">ul</span>&gt;</span></span><br><span class="line">        &#123;% for todo in todo_list %&#125;</span><br><span class="line">            <span class="tag">&lt;<span class="name">li</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">div</span>&gt;</span>&#123;&#123; todo.content &#125;&#125;<span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">li</span>&gt;</span></span><br><span class="line">        &#123;% endfor %&#125;</span><br><span class="line">    <span class="tag">&lt;/<span class="name">ul</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>浏览器在访问 Todo List 程序首页得到 <code>index.html</code> 源码后，发现 HTML 顶部的 <code>link</code> 标签，浏览器会自动再次发送一个请求到 <code>link</code> 标签 <code>href</code> 属性所指定的网址来获取 CSS 样式。所以我们还要编写一个视图函数来处理 <code>/static/css/style.css</code> 路径的请求，返回 <code>style.css</code> 内容。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/controllers.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> todo.config <span class="keyword">import</span> BASE_DIR</span><br><span class="line"><span class="keyword">from</span> todo.utils <span class="keyword">import</span> Response, render_template</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 此处省略了 index 视图函数</span></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">static</span><span class="params">(request)</span>:</span></span><br><span class="line">    <span class="string">"""读取静态资源视图函数"""</span></span><br><span class="line">    <span class="comment"># 能够处理的静态资源类型</span></span><br><span class="line">    content_type = &#123;</span><br><span class="line">        <span class="string">'css'</span>: <span class="string">'text/css'</span>,</span><br><span class="line">        <span class="string">'.js'</span>: <span class="string">'text/javascript'</span>,</span><br><span class="line">        <span class="string">'png'</span>: <span class="string">'image/png'</span>,  <span class="comment"># 文件需要返回二进制</span></span><br><span class="line">        <span class="string">'jpg'</span>: <span class="string">'image/jpeg'</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 请求路径格式：/static/css/style.css</span></span><br><span class="line">    <span class="comment"># 根据请求路径中的文件名后缀判断静态文件类型，指定响应首部字段 Content-Type</span></span><br><span class="line">    headers = &#123;</span><br><span class="line">        <span class="string">'Content-Type'</span>: content_type.get(request.path[<span class="number">-3</span>:], <span class="string">'text/plain'</span>),</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 获取静态资源绝对路径</span></span><br><span class="line">    path = request.path.lstrip(<span class="string">'/'</span>)</span><br><span class="line">    file_path = os.path.join(BASE_DIR, path)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 读取静态资源内容，构造响应对象并返回</span></span><br><span class="line">    <span class="keyword">with</span> open(file_path, <span class="string">'r'</span>) <span class="keyword">as</span> f:</span><br><span class="line">        body = f.read()</span><br><span class="line">    <span class="keyword">return</span> Response(body, headers=headers)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">routes = &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="string">'/static'</span>: (static, [<span class="string">'GET'</span>]),</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>编写 <code>static</code> 视图函数来专门处理静态文件，它不只能够处理 CSS 类型文件，还支持 JavaScript 文件和图片。实际上静态资源的访问路径被我故意设计为以 <code>/static</code> 开头加上静态文件类型 <code>css</code> 再加上文件名 <code>style.css</code> 的形式，这样只需要编写一个 <code>static</code> 视图函数就能够处理多种类型的静态文件，而不需给 CSS、JavaScript 等静态资源都单独编写一个视图函数。服务器在收到客户端发过来的请求时，判断请求路径以 <code>/static</code> 开头即可断定客户端需要请求静态资源，然后将请求交由 <code>static</code> 视图函数来处理。</p>
+<p>假如程序需要用到 JavaScript，只需要在 <code>todo/static/</code> 目录下新建 <code>js/index.js</code> 文件，当收到请求路径为 <code>/static/js/index.js</code> 的客户端请求时，<code>static</code> 视图函数就能够正确处理响应。</p>
+<p><code>static</code> 视图函数根据不同的资源类型，会指定对应的响应首部字段。浏览器根据响应首部字段 <code>Content-Type</code> 的值来判断响应报文类型，<code>Content-Type: text/html</code> 指明响应报文类型为  HTML，<code>Content-Type: text/css</code> 指明响应报文类型为 CSS。</p>
+<p>由于需要指定响应首部字段，所以 <code>static</code> 视图函数返回的并不是响应体，而是直接构造了一个 <code>Response</code> 对象。因此之前编写的 <code>make_response</code> 函数逻辑相应的也需要做些修改：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/server.py</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">make_response</span><span class="params">(request, headers=None)</span>:</span></span><br><span class="line">    <span class="string">"""构造响应报文"""</span></span><br><span class="line">    <span class="comment"># 默认状态码为 200</span></span><br><span class="line">    status = <span class="number">200</span></span><br><span class="line">    <span class="comment"># 处理静态资源请求</span></span><br><span class="line">    <span class="keyword">if</span> request.path.startswith(<span class="string">'/static'</span>):</span><br><span class="line">        route, methods = routes.get(<span class="string">'/static'</span>)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        route, methods = routes.get(request.path)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 如果请求方法不被允许返回 405 状态码</span></span><br><span class="line">    <span class="keyword">if</span> request.method <span class="keyword">not</span> <span class="keyword">in</span> methods:</span><br><span class="line">        status = <span class="number">405</span></span><br><span class="line">        data = <span class="string">'Method Not Allowed'</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="comment"># 请求首页时 route 实际上就是我们在 controllers.py 中定义的 index 视图函数</span></span><br><span class="line">        data = route(request)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 如果返回结果为 Response 对象，直接获取响应报文</span></span><br><span class="line">    <span class="keyword">if</span> isinstance(data, Response):</span><br><span class="line">        response_bytes = bytes(data)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="comment"># 返回结果为字符串，需要先构造 Response 对象，然后再获取响应报文</span></span><br><span class="line">        response = Response(data, headers=headers, status=status)</span><br><span class="line">        response_bytes = bytes(response)</span><br><span class="line"></span><br><span class="line">    print(<span class="string">f'response_bytes: <span class="subst">&#123;response_bytes&#125;</span>'</span>)</span><br><span class="line">    <span class="keyword">return</span> response_bytes</span><br></pre></td></tr></table></figure>
+
+<p>修改后的 <code>make_response</code> 函数会判断请求路径如果以是 <code>/static</code> 开头则将请求交给 <code>static</code> 视图函数来处理。同时还修改了视图函数的调用接口 <code>data = route(request)</code>，每次调用视图函数时需要将 <code>request</code> 对象传递进去，所以记得修改 <code>index</code> 视图函数让其能够接收 <code>request</code> 参数。 <code>make_response</code> 函数最后还对视图函数返回结果 <code>data</code> 做了类型检查，如果返回的是 <code>Response</code> 对象，则可以直接获取响应报文，否则需要先构造 <code>Response</code> 对象，然后再获取响应报文。</p>
+<p>终端中进入项目根目录 <code>todo_list/</code> 下，使用 Python 运行 <code>server.py</code> 文件，就能看到带有 CSS 样式的 Todo List 程序首页了：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Todo_List_Index_Use_CSS.png" alt="Todo List 首页" title="">
+                </div>
+                <div class="image-caption">Todo List 首页</div>
+            </figure>
+
+<p>现在 Todo List 程序已经有了处理静态资源的能力，接下来再给 Todo List 程序添加一个网页图标。</p>
+<p>网页图标格式通常为 <code>.ico</code> 文件，将其放到 <code>todo/static/</code> 目录下。然后在控制器中编写一个 <code>favicon</code> 视图函数用来处理 <code>ICO</code> 图标：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/controllers.py</span></span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">favicon</span><span class="params">(request)</span>:</span></span><br><span class="line">    <span class="string">"""读取网页 ICO 图标"""</span></span><br><span class="line">    headers = &#123;</span><br><span class="line">        <span class="string">'Content-Type'</span>: <span class="string">'image/x-icon'</span>,</span><br><span class="line">    &#125;</span><br><span class="line">    path = <span class="string">f'static/<span class="subst">&#123;request.path.lstrip(<span class="string">"/"</span>)&#125;</span>'</span></span><br><span class="line">    file_path = os.path.join(BASE_DIR, path)</span><br><span class="line">    <span class="comment"># ICO 图标文件需要读取为二进制</span></span><br><span class="line">    <span class="keyword">with</span> open(file_path, <span class="string">'rb'</span>) <span class="keyword">as</span> f:</span><br><span class="line">        body = f.read()</span><br><span class="line">    <span class="keyword">return</span> Response(body, headers=headers)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">routes = &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="string">'/favicon.ico'</span>: (favicon, [<span class="string">'GET'</span>]),</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当请求路径为 <code>/favicon.ico</code> 时匹配到 <code>favicon</code> 视图函数进行处理。因为 <code>ICO</code> 图标文件需要以二进制格式来读取，并且不能够直接转换为字符串类型，所以在构造 <code>Response</code> 对象时传入的响应体不再是 <code>str</code> 类型，而是 <code>bytes</code> 类型。因此还要修改下 <code>Response</code> 类，使其能够接收 <code>bytes</code> 类型：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># todo_list/todo/utils.py</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Response</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="string">"""响应类"""</span></span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__bytes__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""构造响应报文"""</span></span><br><span class="line">        <span class="comment"># 状态行 'HTTP/1.1 200 OK\r\n'</span></span><br><span class="line">        header = <span class="string">f'HTTP/1.1 <span class="subst">&#123;self.status&#125;</span> <span class="subst">&#123;self.reason_phrase.get(self.status, <span class="string">""</span>)&#125;</span>\r\n'</span></span><br><span class="line">        <span class="comment"># 响应首部</span></span><br><span class="line">        header += <span class="string">''</span>.join(<span class="string">f'<span class="subst">&#123;k&#125;</span>: <span class="subst">&#123;v&#125;</span>\r\n'</span> <span class="keyword">for</span> k, v <span class="keyword">in</span> self.headers.items())</span><br><span class="line">        <span class="comment"># 空行</span></span><br><span class="line">        blank_line = <span class="string">'\r\n'</span></span><br><span class="line">        <span class="comment"># 响应体</span></span><br><span class="line">        body = self.body</span><br><span class="line"></span><br><span class="line">        <span class="comment"># body 支持 str 或 bytes 类型</span></span><br><span class="line">        <span class="keyword">if</span> isinstance(body, str):</span><br><span class="line">            body = body.encode(<span class="string">'utf-8'</span>)</span><br><span class="line">        response_message = (header + blank_line).encode(<span class="string">'utf-8'</span>) + body</span><br><span class="line">        <span class="keyword">return</span> response_message</span><br></pre></td></tr></table></figure>
+
+<p>只需要修改 <code>Response</code> 类的 <code>__bytes__</code> 方法即可，根据 <code>body</code> 类型来决定如何构造响应报文。</p>
+<p>现在重启 Todo List 程序，浏览器中刷新首页，你会看到浏览器标签页已经显示出 <code>ICO</code> 图标了：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="Todo_List_ICO.png" alt="Todo List 图标" title="">
+                </div>
+                <div class="image-caption">Todo List 图标</div>
+            </figure>
+
+<blockquote>
+<p>本章源码：<a href="https://github.com/jianghushinian/todo-list/tree/master/chapter5" target="_blank" rel="noopener">chapter5</a></p>
+</blockquote>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:13.421Z" itemprop="dateUpdated">2025-02-15 09:45:13</time>
+</span><br>
+
+
+        
+        <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/" target="_blank" rel="external">http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/&title=《用 Python 撸一个 Web 服务器-第5章：处理静态资源》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/&title=《用 Python 撸一个 Web 服务器-第5章：处理静态资源》 — 江湖十年&source=处理静态文件由于我们实现的模板引擎不支持直接将 CSS 嵌入在 HTML 中的写法，所以要将 CSS 独立出来。在 todo/ 目录下新建 static/..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《用 Python 撸一个 Web 服务器-第5章：处理静态资源》 — 江湖十年&url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC6%E7%AB%A0%EF%BC%9A%E5%AE%8C%E5%96%84-Todo-List-%E5%BA%94%E7%94%A8/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">用 Python 撸一个 Web 服务器-第6章：完善 Todo List 应用</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC4%E7%AB%A0%EF%BC%9A%E5%8A%A8%E6%80%81%E6%B8%B2%E6%9F%93%E6%95%B0%E6%8D%AE/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">用 Python 撸一个 Web 服务器-第4章：动态渲染数据</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/&title=《用 Python 撸一个 Web 服务器-第5章：处理静态资源》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/&title=《用 Python 撸一个 Web 服务器-第5章：处理静态资源》 — 江湖十年&source=处理静态文件由于我们实现的模板引擎不支持直接将 CSS 嵌入在 HTML 中的写法，所以要将 CSS 独立出来。在 todo/ 目录下新建 static/..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《用 Python 撸一个 Web 服务器-第5章：处理静态资源》 — 江湖十年&url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2020/07/17/%E7%94%A8-Python-%E6%92%B8%E4%B8%80%E4%B8%AA-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8-%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

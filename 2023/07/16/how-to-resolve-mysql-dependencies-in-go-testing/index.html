@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Go 语言单元测试中如何解决 MySQL 存储依赖问题 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,Test">
+    <meta name="description" content="在编写单元测试的过程中，如果被测试代码有外部依赖，为了便于测试，我们就要想办法来解决这些外部依赖问题。在做 Web 开发时，MySQL 存储就是一个非常常见的外部依赖，本文就来探讨在 Go 语言中编写单元测试时，如何解决 MySQL 存储依赖。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Go 语言单元测试中如何解决 MySQL 存储依赖问题">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在编写单元测试的过程中，如果被测试代码有外部依赖，为了便于测试，我们就要想办法来解决这些外部依赖问题。在做 Web 开发时，MySQL 存储就是一个非常常见的外部依赖，本文就来探讨在 Go 语言中编写单元测试时，如何解决 MySQL 存储依赖。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/user-handler.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/fake-user-store.png">
+<meta property="article:published_time" content="2023-07-16T07:53:33.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:13.019Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="Test">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/user-handler.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Go 语言单元测试中如何解决 MySQL 存储依赖问题</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Go 语言单元测试中如何解决 MySQL 存储依赖问题</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-07-16T07:53:33.000Z" itemprop="datePublished" class="page-time">
+  2023-07-16
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#HTTP-服务程序示例"><span class="post-toc-number">1.</span> <span class="post-toc-text">HTTP 服务程序示例</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Fake-测试"><span class="post-toc-number">2.</span> <span class="post-toc-text">Fake 测试</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Mock-测试"><span class="post-toc-number">3.</span> <span class="post-toc-text">Mock 测试</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#gomock-更多用法"><span class="post-toc-number">4.</span> <span class="post-toc-text">gomock 更多用法</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#mockgen"><span class="post-toc-number">4.1.</span> <span class="post-toc-text">mockgen</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#gomock"><span class="post-toc-number">4.2.</span> <span class="post-toc-text">gomock</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">5.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-how-to-resolve-mysql-dependencies-in-go-testing"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Go 语言单元测试中如何解决 MySQL 存储依赖问题</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-07-16 15:53:33" datetime="2023-07-16T07:53:33.000Z"  itemprop="datePublished">2023-07-16</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在编写单元测试的过程中，如果被测试代码有外部依赖，为了便于测试，我们就要想办法来解决这些外部依赖问题。在做 Web 开发时，MySQL 存储就是一个非常常见的外部依赖，本文就来探讨在 Go 语言中编写单元测试时，如何解决 MySQL 存储依赖。</p>
+<a id="more"></a>
+
+<h3 id="HTTP-服务程序示例"><a href="#HTTP-服务程序示例" class="headerlink" title="HTTP 服务程序示例"></a>HTTP 服务程序示例</h3><p>假设我们有一个 HTTP 服务程序对外提供服务，代码如下：</p>
+<blockquote>
+<p>main.go</p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"encoding/json"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"gorm.io/gorm"</span></span><br><span class="line">	<span class="string">"io"</span></span><br><span class="line">	<span class="string">"net/http"</span></span><br><span class="line">	<span class="string">"strconv"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/julienschmidt/httprouter"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/jianghushinian/blog-go-example/test/mysql/store"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewUserHandler</span><span class="params">(db *gorm.DB)</span> *<span class="title">UserHandler</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;UserHandler&#123;</span><br><span class="line">		store: store.NewUserStore(db),</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> UserHandler <span class="keyword">struct</span> &#123;</span><br><span class="line">	store store.UserStore</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *UserHandler)</span> <span class="title">CreateUser</span><span class="params">(w http.ResponseWriter, r *http.Request, _ httprouter.Params)</span></span> &#123;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *UserHandler)</span> <span class="title">GetUser</span><span class="params">(w http.ResponseWriter, r *http.Request, ps httprouter.Params)</span></span> &#123;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">setupRouter</span><span class="params">(handler *UserHandler)</span> *<span class="title">httprouter</span>.<span class="title">Router</span></span> &#123;</span><br><span class="line">	router := httprouter.New()</span><br><span class="line">	router.POST(<span class="string">"/users"</span>, handler.CreateUser)</span><br><span class="line">	router.GET(<span class="string">"/users/:id"</span>, handler.GetUser)</span><br><span class="line">	<span class="keyword">return</span> router</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	mysqlDB, _ := store.NewMySQLDB(<span class="string">"localhost"</span>, <span class="string">"3306"</span>, <span class="string">"user"</span>, <span class="string">"password"</span>, <span class="string">"test"</span>)</span><br><span class="line">	handler := NewUserHandler(mysqlDB)</span><br><span class="line">	router := setupRouter(handler)</span><br><span class="line"></span><br><span class="line">	_ = http.ListenAndServe(<span class="string">":8000"</span>, router)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个服务监听 <code>8000</code> 端口，分别提供了两个 HTTP 接口：</p>
+<p><code>POST /users</code> 用来创建用户。</p>
+<p><code>GET /users/:id</code> 用来获取指定 ID 对应的用户信息。</p>
+<p><code>UserHandler</code> 是一个结构体，它依赖外部存储接口 <code>store.UserStore</code>，这个接口定义如下：</p>
+<blockquote>
+<p>store/store.go</p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> store</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"gorm.io/gorm"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> UserStore <span class="keyword">interface</span> &#123;</span><br><span class="line">	Create(user *User) error</span><br><span class="line">	Get(id <span class="keyword">int</span>) (*User, error)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewUserStore</span><span class="params">(db *gorm.DB)</span> <span class="title">UserStore</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;userStore&#123;db&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> userStore <span class="keyword">struct</span> &#123;</span><br><span class="line">	db *gorm.DB</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *userStore)</span> <span class="title">Create</span><span class="params">(user *User)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> s.db.Create(user).Error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *userStore)</span> <span class="title">Get</span><span class="params">(id <span class="keyword">int</span>)</span> <span class="params">(*User, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> user User</span><br><span class="line">	err := s.db.First(&amp;user, id).Error</span><br><span class="line">	<span class="keyword">return</span> &amp;user, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>store.UserStore</code> 定义了两个方法，分别用来创建、获取用户信息。</p>
+<p><code>User</code> 模型定义如下：</p>
+<blockquote>
+<p>store/model.go</p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	ID   <span class="keyword">int</span>    <span class="string">`gorm:"id"`</span></span><br><span class="line">	Name <span class="keyword">string</span> <span class="string">`gorm:"name"`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>store.userStore</code> 结构体则实现了 <code>store.UserStore</code> 接口。</p>
+<p><code>store.userStore</code> 结构体又依赖了 <a href="https://github.com/go-gorm/gorm" target="_blank" rel="noopener">GORM</a> 库的 <code>*gorm.DB</code> 类型，表示一个数据库连接对象。</p>
+<p>我们可以使用 <code>NewMySQLDB</code> 建立数据库连接得到 <code>*gorm.DB</code> 对象：</p>
+<blockquote>
+<p>store/mysql.go</p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewMySQLDB</span><span class="params">(host, port, user, pass, dbname <span class="keyword">string</span>)</span> <span class="params">(*gorm.DB, error)</span></span> &#123;</span><br><span class="line">	dsn := fmt.Sprintf(<span class="string">"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&amp;parseTime=True&amp;loc=Local"</span>,</span><br><span class="line">		user, pass, host, port, dbname)</span><br><span class="line">	<span class="keyword">return</span> gorm.Open(mysql.Open(dsn), &amp;gorm.Config&#123;&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>至此，这个 HTTP 服务程序整体逻辑就基本介绍完了。</p>
+<p>其目录结构如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ tree</span><br><span class="line">.</span><br><span class="line">├── go.mod</span><br><span class="line">├── go.sum</span><br><span class="line">├── main.go</span><br><span class="line">└── store</span><br><span class="line">    ├── model.go</span><br><span class="line">    ├── mysql.go</span><br><span class="line">    └── store.go</span><br></pre></td></tr></table></figure>
+
+<p>为了保证业务的正确性，我们应该对 <code>(*UserHandler).CreateUser</code> 和 <code>(*UserHandler).GetUser</code> 这两个 Handler 进行单元测试。</p>
+<p>这两个 Handler 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *UserHandler)</span> <span class="title">CreateUser</span><span class="params">(w http.ResponseWriter, r *http.Request, _ httprouter.Params)</span></span> &#123;</span><br><span class="line">	w.Header().Set(<span class="string">"Content-Type"</span>, <span class="string">"application/json"</span>)</span><br><span class="line"></span><br><span class="line">	body, err := io.ReadAll(r.Body)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		w.WriteHeader(http.StatusBadRequest)</span><br><span class="line">		_, _ = fmt.Fprintf(w, <span class="string">`&#123;"msg":"%s"&#125;`</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; _ = r.Body.Close() &#125;()</span><br><span class="line"></span><br><span class="line">	u := store.User&#123;&#125;</span><br><span class="line">	<span class="keyword">if</span> err := json.Unmarshal(body, &amp;u); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		w.WriteHeader(http.StatusInternalServerError)</span><br><span class="line">		_, _ = fmt.Fprintf(w, <span class="string">`&#123;"msg":"%s"&#125;`</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := h.store.Create(&amp;u); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		w.WriteHeader(http.StatusInternalServerError)</span><br><span class="line">		_, _ = fmt.Fprintf(w, <span class="string">`&#123;"msg":"%s"&#125;`</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	w.WriteHeader(http.StatusCreated)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *UserHandler)</span> <span class="title">GetUser</span><span class="params">(w http.ResponseWriter, r *http.Request, ps httprouter.Params)</span></span> &#123;</span><br><span class="line">	id := ps[<span class="number">0</span>].Value</span><br><span class="line">	uid, _ := strconv.Atoi(id)</span><br><span class="line"></span><br><span class="line">	w.Header().Set(<span class="string">"Content-Type"</span>, <span class="string">"application/json"</span>)</span><br><span class="line">	u, err := h.store.Get(uid)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		w.WriteHeader(http.StatusInternalServerError)</span><br><span class="line">		_, _ = fmt.Fprintf(w, <span class="string">`&#123;"msg":"%s"&#125;`</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	_, _ = fmt.Fprintf(w, <span class="string">`&#123;"id":%d,"name":"%s"&#125;`</span>, u.ID, u.Name)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>不过，由于文章篇幅所限，我这里仅以测试 <code>(*UserHandler).GetUser</code> 方法为例，演示如何在测试过程中解决 MySQL 依赖问题，对 <code>(*UserHandler).CreateUser</code> 方法的测试就当做作业留给你自己来完成了（当然，你也可以到我的 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/mysql" target="_blank" rel="noopener">GitHub</a> 上查看我的实现）。</p>
+<h3 id="Fake-测试"><a href="#Fake-测试" class="headerlink" title="Fake 测试"></a>Fake 测试</h3><p>我们要为 <code>(*UserHandler).GetUser</code> 方法编写单元测试，首先就要分析下这个方法的外部依赖。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *UserHandler)</span> <span class="title">GetUser</span><span class="params">(w http.ResponseWriter, r *http.Request, ps httprouter.Params)</span></span> &#123;</span><br><span class="line">	id := ps[<span class="number">0</span>].Value</span><br><span class="line">	uid, _ := strconv.Atoi(id)</span><br><span class="line"></span><br><span class="line">	w.Header().Set(<span class="string">"Content-Type"</span>, <span class="string">"application/json"</span>)</span><br><span class="line">	u, err := h.store.Get(uid)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		w.WriteHeader(http.StatusInternalServerError)</span><br><span class="line">		_, _ = fmt.Fprintf(w, <span class="string">`&#123;"msg":"%s"&#125;`</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	_, _ = fmt.Fprintf(w, <span class="string">`&#123;"id":%d,"name":"%s"&#125;`</span>, u.ID, u.Name)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>UserHandler</code> 结构本身依赖了 <code>store.UserStore</code>，这是一个接口，定义了创建和获取用户信息的两个方法。</p>
+<p>我们使用实现了 <code>store.UserStore</code> 接口的 <code>store.userStore</code> 结构体来初始化 <code>UserHandler</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewUserHandler</span><span class="params">(db *gorm.DB)</span> *<span class="title">UserHandler</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;UserHandler&#123;</span><br><span class="line">		store: store.NewUserStore(db),</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewUserStore</span><span class="params">(db *gorm.DB)</span> <span class="title">UserStore</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;userStore&#123;db&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>store.userStore</code> 结构体会使用 GORM 来完成对 MySQL 数据库的操作。所以，我们分析出 <code>GetUser</code> 方法的第一个外部依赖实际上就是 MySQL 存储。</p>
+<p><code>GetUser</code> 方法还接收三个参数，它们都属于 HTTP 网络相关的外部依赖，你可以在我的另一篇文章<a href="https://jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/" target="_blank" rel="noopener">《在 Go 语言单元测试中如何解决 HTTP 网络依赖问题》</a>中找到解决方案，就不在本文中进行讲解了。</p>
+<p>所以，我们现在重点要关注的就只有一个问题，如何解决 MySQL 存储依赖。</p>
+<p>我们来整理下 MySQL 外部依赖的程序调用链：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="user-handler.png" alt="MySQL 外部依赖" title="">
+                </div>
+                <div class="image-caption">MySQL 外部依赖</div>
+            </figure>
+
+<p>可以发现，<code>store.UserStore</code> 接口是 <code>UserHandler</code> 和 <code>store.userStore</code> 结构体建立连接的桥梁，我们可以将它作为突破口，实现一个 Fake object，来替换 <code>store.userStore</code> 结构体。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="fake-user-store.png" alt="Fake object" title="">
+                </div>
+                <div class="image-caption">Fake object</div>
+            </figure>
+
+<p>所谓 Fake object，其实就是我们同样要定义一个结构体，并实现 <code>Create</code> 和 <code>Get</code> 两个方法，以此来实现 <code>store.UserStore</code> 接口。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> fakeUserStore <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *fakeUserStore)</span> <span class="title">Create</span><span class="params">(user *store.User)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *fakeUserStore)</span> <span class="title">Get</span><span class="params">(id <span class="keyword">int</span>)</span> <span class="params">(*store.User, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;store.User&#123;ID: id, Name: <span class="string">"test"</span>&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>与 <code>store.userStore</code> 结构体不同，<code>fakeUserStore</code> 并不依赖 <code>*gorm.DB</code>，也就不涉及 MySQL 数据库操作了，这样就解决了 MySQL 外部存储依赖。</p>
+<p><code>(*fakeUserStore).Create</code> 方法没做任何操作，直接返回 <code>nil</code>，<code>(*fakeUserStore).Get</code> 方法则根据传进来的 <code>id</code> 返回固定的 <code>User</code> 信息。这也是 Fake object 的特点，为真实对象实现一个简化版本。</p>
+<p>这样，我们在编写测试代码时，只需要取代 <code>store.userStore</code> 结构体，使用 <code>fakeUserStore</code> 来实例化 <code>UserHandler</code>，就可以避免与 MySQL 数据库打交道了。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">handler := &amp;UserHandler&#123;store: &amp;fakeUserStore&#123;&#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>为 <code>(*UserHandler).GetUser</code> 方法编写的单元测试完整代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestUserHandler_GetUser_by_fake</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	handler := &amp;UserHandler&#123;store: &amp;fakeUserStore&#123;&#125;&#125;</span><br><span class="line">	router := setupRouter(handler)</span><br><span class="line"></span><br><span class="line">	w := httptest.NewRecorder()</span><br><span class="line">	req := httptest.NewRequest(<span class="string">"GET"</span>, <span class="string">"/users/1"</span>, <span class="literal">nil</span>)</span><br><span class="line">	router.ServeHTTP(w, req)</span><br><span class="line"></span><br><span class="line">	assert.Equal(t, <span class="number">200</span>, w.Code)</span><br><span class="line">	assert.Equal(t, <span class="string">"application/json"</span>, w.Header().Get(<span class="string">"Content-Type"</span>))</span><br><span class="line">	assert.Equal(t, <span class="string">`&#123;"id":1,"name":"test"&#125;`</span>, w.Body.String())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在被测试的 <code>(*UserHandler).GetUser</code> 方法中通过 <code>h.store.Get(uid)</code> 从数据库中获取用户信息时，就不用再去查询 MySQL 了，而是由 <code>(*fakeUserStore).Get</code> 方法直接返回 Fake 数据。</p>
+<p>使用 <code>go test</code> 来执行测试函数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -v -run=<span class="string">"TestUserHandler_GetUser_by_fake"</span></span><br><span class="line">=== RUN   TestUserHandler_GetUser_by_fake</span><br><span class="line">--- PASS: TestUserHandler_GetUser_by_fake (0.00s)</span><br><span class="line">PASS</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/mysql    0.465s</span><br></pre></td></tr></table></figure>
+
+<p>测试通过。</p>
+<p>可以发现，使用 Fake 测试来解决 MySQL 外部依赖还是比较简单的，我们仅需要参考 <code>store.userStore</code> 实现一个简化版本的 <code>fakeUserStore</code>，然后在测试过程中，使用简化版本的 <code>fakeUserStore</code> 对象替换掉 <code>store.userStore</code> 即可。</p>
+<h3 id="Mock-测试"><a href="#Mock-测试" class="headerlink" title="Mock 测试"></a>Mock 测试</h3><p>前文中，我们使用 <code>fakeUserStore</code> 来替换 <code>store.userStore</code>，以此来接口 MySQL 依赖问题。</p>
+<p>不过，这种使用 Fake object 来解决外部依赖的方式存在两个较为常见的弊端：</p>
+<p>一个是使用 Fake object 需要手动编写大量代码，这里的 <code>store.UserStore</code> 接口仅定义了两个方法还好，但一个线上的复杂业务，可能有几十个接口，每个接口又有几十个方法，此时如果还是手动来编写这些代码，需要消耗大量时间。</p>
+<p>另一个是 Fake object 返回结果比较固定，如果想测试其他情况，比如查询的 <code>User</code> 不存在，需要报错的情况，就得在 <code>(*fakeUserStore).Get</code> 方法中编写更多的逻辑，这增加了实现 Fake object 的复杂度。</p>
+<p>那么有没有一种替代方案，来弥补 Fake object 的这两个弊端呢？</p>
+<p>答案是使用 Mock 测试。</p>
+<p>Mock 和 Fake 类似，本质上都是使用一个对象，去替代另一个对象。Fake 测试是实现了一个真实对象（<code>store.userStore</code>）的简化版本（<code>fakeUserStore</code>），Mock 测试则是使用模拟对象来断言真实对象被调用时的输入符合预期，然后通过模拟对象返回指定输出。</p>
+<p>在 Go 中，我们可以使用 <a href="https://github.com/uber/mock" target="_blank" rel="noopener">gomock</a> 来实现 Mock 测试。</p>
+<p><code>gomock</code> 项目起源于 Google 的 <a href="https://github.com/golang/mock/" target="_blank" rel="noopener">golang/mock</a> 仓库。不幸的是，谷歌不再维护这个项目了。幸运的是，这个项目由 Uber <a href="https://github.com/uber/mock" target="_blank" rel="noopener">fork</a> 了一份，并继续维护。</p>
+<p><code>gomock</code> 包含两个部分：<code>gomock</code> 包和 <code>mockgen</code> 命令行工具。<code>gomock</code> 包用来完成对被 Mock 对象的生命周期管理，<code>mockgen</code> 工具则用来自动生成 Mock 代码。</p>
+<p>可以通过如下方式来安装 <code>gomock</code> 包和 <code>mockgen</code> 工具：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go get go.uber.org/mock/gomock@latest</span><br><span class="line">$ go install go.uber.org/mock/mockgen@latest</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注意：在项目根目录下通过 <code>go get</code> 命令获取 <code>gomock</code> 包后，不要急着执行 <code>go mod tidy</code>，因为现在 <code>gomock</code> 包属于 <code>indirect</code> 依赖，还没有被使用。当通过 <code>mockgen</code> 工具生成了 Mock 代码以后，再来执行 <code>go mod tidy</code>，<code>go.mod</code> 文件中才不会丢失 <code>gomock</code> 依赖。</p>
+</blockquote>
+<p>要想使用 <code>gomock</code> 来模拟 <code>store.UserStore</code> 接口的实现，我们先要使用 <code>mockgen</code> 工具来生成 Mock 代码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ mockgen -<span class="built_in">source</span> store/store.go -destination store/mocks/gomock.go -package mocks</span><br></pre></td></tr></table></figure>
+
+<p><code>-source</code> 参数指明需要 Mock 的接口文件路径，即 <code>store.UserStore</code> 接口所在文件。</p>
+<p><code>-destination</code> 参数指明生成的 Mock 文件路径。</p>
+<p><code>-package</code> 参数指明生成的 Mock 文件包名。</p>
+<p>在项目根目录下执行 <code>mockgen</code> 命令，即可生成 Mock 文件：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Code generated by MockGen. DO NOT EDIT.</span></span><br><span class="line"><span class="comment">// Source: store/store.go</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Package mocks is a generated GoMock package.</span></span><br><span class="line"><span class="keyword">package</span> mocks</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	reflect <span class="string">"reflect"</span></span><br><span class="line"></span><br><span class="line">	store <span class="string">"github.com/jianghushinian/blog-go-example/test/mysql/store"</span></span><br><span class="line">	gomock <span class="string">"go.uber.org/mock/gomock"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// MockUserStore is a mock of UserStore interface.</span></span><br><span class="line"><span class="keyword">type</span> MockUserStore <span class="keyword">struct</span> &#123;</span><br><span class="line">	ctrl     *gomock.Controller</span><br><span class="line">	recorder *MockUserStoreMockRecorder</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// MockUserStoreMockRecorder is the mock recorder for MockUserStore.</span></span><br><span class="line"><span class="keyword">type</span> MockUserStoreMockRecorder <span class="keyword">struct</span> &#123;</span><br><span class="line">	mock *MockUserStore</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewMockUserStore creates a new mock instance.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewMockUserStore</span><span class="params">(ctrl *gomock.Controller)</span> *<span class="title">MockUserStore</span></span> &#123;</span><br><span class="line">	mock := &amp;MockUserStore&#123;ctrl: ctrl&#125;</span><br><span class="line">	mock.recorder = &amp;MockUserStoreMockRecorder&#123;mock&#125;</span><br><span class="line">	<span class="keyword">return</span> mock</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// EXPECT returns an object that allows the caller to indicate expected use.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *MockUserStore)</span> <span class="title">EXPECT</span><span class="params">()</span> *<span class="title">MockUserStoreMockRecorder</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> m.recorder</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Create mocks base method.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *MockUserStore)</span> <span class="title">Create</span><span class="params">(user *store.User)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	m.ctrl.T.Helper()</span><br><span class="line">	ret := m.ctrl.Call(m, <span class="string">"Create"</span>, user)</span><br><span class="line">	ret0, _ := ret[<span class="number">0</span>].(error)</span><br><span class="line">	<span class="keyword">return</span> ret0</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Create indicates an expected call of Create.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(mr *MockUserStoreMockRecorder)</span> <span class="title">Create</span><span class="params">(user <span class="keyword">interface</span>&#123;&#125;)</span> *<span class="title">gomock</span>.<span class="title">Call</span></span> &#123;</span><br><span class="line">	mr.mock.ctrl.T.Helper()</span><br><span class="line">	<span class="keyword">return</span> mr.mock.ctrl.RecordCallWithMethodType(mr.mock, <span class="string">"Create"</span>, reflect.TypeOf((*MockUserStore)(<span class="literal">nil</span>).Create), user)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Get mocks base method.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *MockUserStore)</span> <span class="title">Get</span><span class="params">(id <span class="keyword">int</span>)</span> <span class="params">(*store.User, error)</span></span> &#123;</span><br><span class="line">	m.ctrl.T.Helper()</span><br><span class="line">	ret := m.ctrl.Call(m, <span class="string">"Get"</span>, id)</span><br><span class="line">	ret0, _ := ret[<span class="number">0</span>].(*store.User)</span><br><span class="line">	ret1, _ := ret[<span class="number">1</span>].(error)</span><br><span class="line">	<span class="keyword">return</span> ret0, ret1</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Get indicates an expected call of Get.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(mr *MockUserStoreMockRecorder)</span> <span class="title">Get</span><span class="params">(id <span class="keyword">interface</span>&#123;&#125;)</span> *<span class="title">gomock</span>.<span class="title">Call</span></span> &#123;</span><br><span class="line">	mr.mock.ctrl.T.Helper()</span><br><span class="line">	<span class="keyword">return</span> mr.mock.ctrl.RecordCallWithMethodType(mr.mock, <span class="string">"Get"</span>, reflect.TypeOf((*MockUserStore)(<span class="literal">nil</span>).Get), id)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>提示：生成的 mocks 包代码你无需全部看懂，仅知道它大概生成了什么内容，如何使用即可。</p>
+</blockquote>
+<p>可以发现，<code>mockgen</code> 为我们生成了 <code>mocks.MockUserStore</code> 结构体，并且实现了 <code>Create</code>、<code>Get</code> 两个方法，即实现了 <code>store.UserStore</code> 接口。</p>
+<p>现在，我们就可以使用生成的 Mock 对象来编写单元测试代码了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestUserHandler_GetUser_by_mock</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	ctrl := gomock.NewController(t)</span><br><span class="line">	<span class="comment">// 断言 mockUserStore.Get 方法会被调用</span></span><br><span class="line">	<span class="keyword">defer</span> ctrl.Finish()</span><br><span class="line"></span><br><span class="line">	mockUserStore := mocks.NewMockUserStore(ctrl)</span><br><span class="line">	mockUserStore.EXPECT().Get(<span class="number">2</span>).Return(&amp;store.User&#123;</span><br><span class="line">		ID:   <span class="number">2</span>,</span><br><span class="line">		Name: <span class="string">"user2"</span>,</span><br><span class="line">	&#125;, <span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line">	handler := &amp;UserHandler&#123;store: mockUserStore&#125;</span><br><span class="line">	router := setupRouter(handler)</span><br><span class="line"></span><br><span class="line">	w := httptest.NewRecorder()</span><br><span class="line">	req := httptest.NewRequest(<span class="string">"GET"</span>, <span class="string">"/users/2"</span>, <span class="literal">nil</span>)</span><br><span class="line">	router.ServeHTTP(w, req)</span><br><span class="line"></span><br><span class="line">	assert.Equal(t, <span class="number">200</span>, w.Code)</span><br><span class="line">	assert.Equal(t, <span class="string">"application/json"</span>, w.Header().Get(<span class="string">"Content-Type"</span>))</span><br><span class="line">	assert.Equal(t, <span class="string">`&#123;"id":2,"name":"user2"&#125;`</span>, w.Body.String())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>gomock.NewController(t)</code> 用来创建一个 Mock 控制器，该对象可以控制整个 Mock 生命周期。</p>
+<p><code>ctrl.Finish()</code> 用来断言 Mock 对象使用 <code>EXPECT()</code> 方法设置的期待执行方法会被调用，一般使用 <code>defer</code> 语句来调用，防止最后忘记。不过，如果你使用的 Go 版本大于 1.14，则可以不必显式调用 <code>ctrl.Finish()</code>。</p>
+<p><code>mocks.NewMockUserStore(ctrl)</code> 使用 Mock 控制器创建了 <code>*mocks.MockUserStore</code> 对象，有了它，我们就可以模拟调用 <code>store.UserStore</code> 接口对应方法的逻辑了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">mockUserStore.EXPECT().Get(<span class="number">2</span>).Return(&amp;store.User&#123;</span><br><span class="line">    ID:   <span class="number">2</span>,</span><br><span class="line">    Name: <span class="string">"user2"</span>,</span><br><span class="line">&#125;, <span class="literal">nil</span>)</span><br></pre></td></tr></table></figure>
+
+<p><code>mockUserStore</code> 对象就相当于我们前文中实现的 <code>fakeUserStore</code>。</p>
+<p>Mock 对象的 <code>EXPECT()</code> 方法用来设置预期被调用的方法，以及被调用方法所期望的输入，它支持链式调用，<code>.Get(2)</code> 表示期望在测试中调用 Mock 对象 <code>mockUserStore</code> 的 <code>Get</code> 方法时，输入参数是 <code>2</code>，<code>Return</code> 方法用来设置输出，即返回值内容。</p>
+<p>这就相当于，我们实现了 <code>fakeUserStore</code> 的 <code>Get</code> 方法。</p>
+<p>我们可以使用 <code>mockUserStore</code> 来实例化 <code>UserHandler</code> 对象。</p>
+<p>在 <code>req</code> 请求中，我们设置请求的用户 ID 值为 <code>2</code>，即 <code>mockUserStore</code> 对象断言中的参数，二者参数匹配，Mock 对象才能生效。</p>
+<p>单元测试最后，断言了返回结果为 <code>{&quot;id&quot;:2,&quot;name&quot;:&quot;user2&quot;}</code>，即 <code>mockUserStore</code> 对象期望的返回结果。</p>
+<p>现在我们就可以测试 <code>(*UserHandler).GetUser</code> 方法了。</p>
+<p>使用 <code>go test</code> 来执行测试函数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -v -run=<span class="string">"TestUserHandler_GetUser_by_mock"</span></span><br><span class="line">=== RUN   TestUserHandler_GetUser_by_mock</span><br><span class="line">--- PASS: TestUserHandler_GetUser_by_mock (0.00s)</span><br><span class="line">PASS</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/mysql    0.220s</span><br></pre></td></tr></table></figure>
+
+<p>测试通过。</p>
+<p>使用 Mock 测试来解决 MySQL 外部依赖问题，我们无需手动编写 Mock 对象的代码，可以使用 <code>mockgen</code> 工具为我们自动生成，简化了 Fake 测试中编写 <code>fakeUserStore</code> 的过程。</p>
+<p>并且，如果想要测试其他情况，仅需要再次使用 Mock 对象的 <code>EXPECT()</code> 方法来设置 <code>Get</code> 方法的期望输入和输出即可。</p>
+<p>比如设置预期查询 ID 为 <code>3</code> 的用户信息时，返回 <code>user not found</code> 错误：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mockUserStore.EXPECT().Get(<span class="number">3</span>).Return(<span class="literal">nil</span>, errors.New(<span class="string">"user not found"</span>))</span><br></pre></td></tr></table></figure>
+
+<p>Mock 测试更方便我们测试不同业务场景。</p>
+<h3 id="gomock-更多用法"><a href="#gomock-更多用法" class="headerlink" title="gomock 更多用法"></a>gomock 更多用法</h3><p><code>gomock</code> 还有一些使用技巧值得分享。</p>
+<h4 id="mockgen"><a href="#mockgen" class="headerlink" title="mockgen"></a>mockgen</h4><p>前文中，我们使用 <code>mockgen</code> 通过指定源码文件形式生成了 Mock 代码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ mockgen -<span class="built_in">source</span> store/store.go -destination store/mocks/gomock.go -package mocks</span><br></pre></td></tr></table></figure>
+
+<p><code>mockgen</code> 工具还支持通过反射模式来生成 Mock 代码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ mockgen -package mocks -destination store/mocks/gomock.go github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/mysql/store UserStore</span><br></pre></td></tr></table></figure>
+
+<p>命令最后的两个参数分别代表需要生成 Mock 代码的包的导入路径和逗号分隔的接口列表。</p>
+<p>执行以上命令同样能够成功生成 Mock 代码。</p>
+<p>此外，我们还可以将 <code>mockgen</code> 命令写到 Go 文件中，然后使用 Go <code>generate</code> 工具来生成 Mock 代码：</p>
+<blockquote>
+<p>store/generate.go</p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> store</span><br><span class="line"></span><br><span class="line"><span class="comment">//go:generate mockgen -package mocks -destination ./mocks/gomock.go . UserStore</span></span><br></pre></td></tr></table></figure>
+
+<p>这次我们的 <code>mockgen</code> 命令又有所不同，包的导入路径仅为一个 <code>.</code>，表示当前目录，这也是被支持的。</p>
+<p>这时候，我们只需要在项目根目录下执行 <code>go generate ./...</code> 命令即可生成 Mock 代码。<code>./...</code> 表示查找项目下全部文件，<code>go generate</code> 会自动找到带有 <code>//go:generate</code> 注释的命令并执行。</p>
+<p>如果我们有多个源码文件要生成 Mock 代码，<code>go generate</code> 方式就非常合适，仅需要在 Go 文件中分多行依次写出 <code>mockgen</code> 命令即可使用一条命令一次全部生成。</p>
+<h4 id="gomock"><a href="#gomock" class="headerlink" title="gomock"></a>gomock</h4><p>前文中，我们使用了 Mock 对象 <code>mockUserStore</code> 的 <code>EXPECT()</code> 方法来设置 <code>Get</code> 方法所期待的输入和输出。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">mockUserStore.EXPECT().Get(<span class="number">2</span>).Return(&amp;store.User&#123;</span><br><span class="line">    ID:   <span class="number">2</span>,</span><br><span class="line">    Name: <span class="string">"user2"</span>,</span><br><span class="line">&#125;, <span class="literal">nil</span>)</span><br></pre></td></tr></table></figure>
+
+<p>有时候，<code>EXPECT()</code> 所作用的方法可能存在多个参数，且有些参数不容易模拟，比如最常见的 <code>context.Context</code> 参数，针对这些情况，<code>gomock</code> 提供了更多的参数匹配方法：</p>
+<p><code>gomock.Any()</code> 表示匹配任意参数，适合参数模拟困难的情况。</p>
+<p><code>gomock.Eq(x)</code> 表示匹配与 <code>x</code> 相等的参数。</p>
+<p><code>gomock.Not(x)</code> 表示匹配与 <code>x</code> 不想等的参数。</p>
+<p><code>gomock.Nil()</code> 表示匹配 <code>nil</code> 参数。</p>
+<p><code>gomock.Len(i)</code> 表示匹配长度为 <code>i</code> 的参数。</p>
+<p><code>gomock.All(ms)</code> 表示传入的所有参数都想等才能匹配。</p>
+<p>以上这些参数匹配方法都可以像如下这样使用：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">mockUserStore.EXPECT().Get(gomock.Eq(<span class="number">2</span>)).Return(&amp;store.User&#123;</span><br><span class="line">    ID:   <span class="number">2</span>,</span><br><span class="line">    Name: <span class="string">"user2"</span>,</span><br><span class="line">&#125;, <span class="literal">nil</span>)</span><br></pre></td></tr></table></figure>
+
+<p>此外，我们可以约束 <code>EXPECT()</code> 所作用方法的执行次数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">.Return(xxx).Times(<span class="number">2</span>) <span class="comment">// 预期方法会被调用 2 次</span></span><br><span class="line">.Return(xxx).MaxTimes(<span class="number">2</span>) <span class="comment">// 预期方法最多执行 2 次</span></span><br><span class="line">.Return(xxx).MinTimes(<span class="number">2</span>) <span class="comment">// 预期方法至少执行 2 次</span></span><br><span class="line">.Return(xxx).AnyTimes() <span class="comment">// 预期方法执行任意次都能匹配</span></span><br></pre></td></tr></table></figure>
+
+<p>还可以约束 <code>EXPECT()</code> 所作用方法的执行顺序：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">.Return(xxx).After(preReq) <span class="comment">// 当前预期方法在 preReq 预期方法执行完成之后执行</span></span><br></pre></td></tr></table></figure>
+
+<p>以上便是我认为 <code>gomock</code> 中比较常用的功能讲解，更多功能可参考<a href="https://pkg.go.dev/go.uber.org/mock/gomock" target="_blank" rel="noopener">官方文档</a>。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文向大家介绍了在 Go 中编写单元测试时，如何解决 MySQL 外部依赖的问题。</p>
+<p>我们分别使用了 Fake object 和 Mock 两种方式，来替换原有的外部依赖。</p>
+<p>Web 服务的代码不是随意设计的，有意将 <code>UserHandler</code> 依赖的类型设为 <code>store.UserStore</code> 接口，而不是 <code>store.userStore</code> 结构体，是为了解耦。通过使用接口，解决了 <code>UserHandler</code> 与 <code>store.userStore</code> 结构体强绑定的问题，这就给我们使用 <code>fakeUserStore</code> 或 <code>mockUserStore</code> 来替代 <code>store.userStore</code> 创造了机会。</p>
+<p>可以发现，本文介绍的两种方法其实不仅能够用于解决 MySQL 外部依赖问题。任何使用接口编写的代码，在测试时都可以使用这两种方式来替换依赖。这就是 Go 面向接口编程的好处。</p>
+<p>本文完整代码示例我放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/mysql" target="_blank" rel="noopener">GitHub</a> 上，欢迎点击查看。</p>
+<p>希望此文能对你有所帮助。</p>
+<p><strong>联系我</strong></p>
+<ul>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客地址：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+<p><strong>参考</strong></p>
+<ul>
+<li>gomock 源码：<a href="https://github.com/golang/mock/" target="_blank" rel="noopener">https://github.com/golang/mock/</a></li>
+<li>Uber gomock 源码：<a href="https://github.com/uber/mock" target="_blank" rel="noopener">https://github.com/uber/mock</a></li>
+<li>Uber gomock 文档：<a href="https://pkg.go.dev/go.uber.org/mock/gomock" target="_blank" rel="noopener">https://pkg.go.dev/go.uber.org/mock/gomock</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:13.019Z" itemprop="dateUpdated">2025-02-15 09:45:13</time>
+</span><br>
+
+
+        
+        <a href="/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Test/" rel="tag">Test</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/&title=《在 Go 语言单元测试中如何解决 MySQL 存储依赖问题》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/&title=《在 Go 语言单元测试中如何解决 MySQL 存储依赖问题》 — 江湖十年&source=在编写单元测试的过程中，如果被测试代码有外部依赖，为了便于测试，我们就要想办法来解决这些外部依赖问题。在做 Web 开发时，MySQL 存储就是一个非常常..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 语言单元测试中如何解决 MySQL 存储依赖问题》 — 江湖十年&url=http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">在 Go 语言单元测试中如何解决 Redis 存储依赖问题</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">在 Go 语言单元测试中如何解决 HTTP 网络依赖问题</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/&title=《在 Go 语言单元测试中如何解决 MySQL 存储依赖问题》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/&title=《在 Go 语言单元测试中如何解决 MySQL 存储依赖问题》 — 江湖十年&source=在编写单元测试的过程中，如果被测试代码有外部依赖，为了便于测试，我们就要想办法来解决这些外部依赖问题。在做 Web 开发时，MySQL 存储就是一个非常常..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 语言单元测试中如何解决 MySQL 存储依赖问题》 — 江湖十年&url=http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

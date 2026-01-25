@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 第三方 log 库之 logrus 使用 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,Log">
+    <meta name="description" content="Logrus 是目前 GitHub 上 Star 数量最多的 Go 日志库。尽管目前 Logrus 处于维护模式，不再引入新功能，但这并不意味着它已经死了。Logrus 仍将继续维护，以确保安全性、错误修复和提高性能。作为 Go 社区中最受欢迎的日志库之一，Logrus 最大的贡献是推动了 Go 社区广泛使用结构化的日志记录。著名的 Docker 项目就在使用 Logrus 记录日志，这进一步证明">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 第三方 log 库之 logrus 使用">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="Logrus 是目前 GitHub 上 Star 数量最多的 Go 日志库。尽管目前 Logrus 处于维护模式，不再引入新功能，但这并不意味着它已经死了。Logrus 仍将继续维护，以确保安全性、错误修复和提高性能。作为 Go 社区中最受欢迎的日志库之一，Logrus 最大的贡献是推动了 Go 社区广泛使用结构化的日志记录。著名的 Docker 项目就在使用 Logrus 记录日志，这进一步证明">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/logrus.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/basic-use.png">
+<meta property="article:published_time" content="2023-03-15T12:51:51.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:13.263Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="Log">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/logrus.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 第三方 log 库之 logrus 使用</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 第三方 log 库之 logrus 使用</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-03-15T12:51:51.000Z" itemprop="datePublished" class="page-time">
+  2023-03-15
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#特点"><span class="post-toc-number">1.</span> <span class="post-toc-text">特点</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用"><span class="post-toc-number">2.</span> <span class="post-toc-text">使用</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#替代-Go-log-标准库"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">替代 Go log 标准库</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#基本使用"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">基本使用</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#自定义-Logger"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">自定义 Logger</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Hooks"><span class="post-toc-number">2.4.</span> <span class="post-toc-text">Hooks</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#处理不同环境"><span class="post-toc-number">2.5.</span> <span class="post-toc-text">处理不同环境</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#测试"><span class="post-toc-number">2.6.</span> <span class="post-toc-text">测试</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">3.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-use-of-logrus-in-go-third-party-log-library"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 第三方 log 库之 logrus 使用</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-03-15 20:51:51" datetime="2023-03-15T12:51:51.000Z"  itemprop="datePublished">2023-03-15</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>Logrus 是目前 GitHub 上 Star 数量最多的 Go 日志库。尽管目前 Logrus 处于维护模式，不再引入新功能，但这并不意味着它已经死了。Logrus 仍将继续维护，以确保安全性、错误修复和提高性能。作为 Go 社区中最受欢迎的日志库之一，Logrus 最大的贡献是推动了 Go 社区广泛使用结构化的日志记录。著名的 Docker 项目就在使用 Logrus 记录日志，这进一步证明了其在实际应用中的可靠性和实用性。</p>
+<a id="more"></a>
+
+<h3 id="特点"><a href="#特点" class="headerlink" title="特点"></a>特点</h3><p>Logrus 具有如下特点：</p>
+<ul>
+<li><p>与 Go log 标准库 API 完全兼容，这意味着任何使用 log 标准库的代码都可以将日志库无缝切换到 Logrus。</p>
+</li>
+<li><p>支持七种日志级别：<code>Trace</code>、<code>Debug</code>、<code>Info</code>、<code>Warn</code>、<code>Error</code>、<code>Fatal</code>、<code>Panic</code>。</p>
+</li>
+<li><p>支持结构化日志记录（key-value 形式，容易被程序解析，如 JSON 格式），通过 Filed 机制进行结构化的日志记录。</p>
+</li>
+<li><p>支持自定义日志格式，内置两种格式 <code>JSONFormatter</code>（JSON 格式） 和 <code>TextFormatter</code>（文本格式），并允许用户通过实现 <code>Formatter</code> 接口来自定义日志格式。</p>
+</li>
+<li><p>支持可扩展的 Hooks 机制，可以为不同级别的日志添加 Hooks 将日志记录到不同位置，例如将 <code>Error</code>、<code>Fatal</code> 和 <code>Panic</code> 级别的错误日志发送到 logstash、kafka 等。</p>
+</li>
+<li><p>支持在控制台输出带有不同颜色的日志。</p>
+</li>
+<li><p>并发安全。</p>
+</li>
+</ul>
+<h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><h4 id="替代-Go-log-标准库"><a href="#替代-Go-log-标准库" class="headerlink" title="替代 Go log 标准库"></a>替代 Go log 标准库</h4><p>我在<a href="https://jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/" target="_blank" rel="noopener">深入探究 Go log 标准库</a>一文中举过一个使用 Go log 标准库的简单<a href="https://jianghushinian.cn/2023/03/11/dive-into-the-go-log-standard-library/#%E4%BD%BF%E7%94%A8" target="_blank" rel="noopener">示例</a>，现在可以将其无缝切换到 Logrus，只需要把 <code>import &quot;log&quot;</code> 改成 <code>import log &quot;github.com/sirupsen/logrus&quot;</code> 即可实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="comment">// 替代 import "log"</span></span><br><span class="line"><span class="keyword">import</span> log <span class="string">"github.com/sirupsen/logrus"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	log.Print(<span class="string">"Print"</span>)</span><br><span class="line">	log.Printf(<span class="string">"Printf: %s"</span>, <span class="string">"print"</span>)</span><br><span class="line">	log.Println(<span class="string">"Println"</span>)</span><br><span class="line"></span><br><span class="line">	log.Fatal(<span class="string">"Fatal"</span>)</span><br><span class="line">	log.Fatalf(<span class="string">"Fatalf: %s"</span>, <span class="string">"fatal"</span>)</span><br><span class="line">	log.Fatalln(<span class="string">"Fatalln"</span>)</span><br><span class="line"></span><br><span class="line">	log.Panic(<span class="string">"Panic"</span>)</span><br><span class="line">	log.Panicf(<span class="string">"Panicf: %s"</span>, <span class="string">"panic"</span>)</span><br><span class="line">	log.Panicln(<span class="string">"Panicln"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行以上代码，得到如下输出：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="logrus.png" alt="日志输出" title="">
+                </div>
+                <div class="image-caption">日志输出</div>
+            </figure>
+
+<p>虽然输出格式与使用 Go log 标准库表现略有不同，但程序执行并不会报错，说明二者完全兼容。</p>
+<p>另外，根据截图可以发现不同级别的日志输出颜色也不相同。</p>
+<h4 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h4><p>Logrus 基本使用方式如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/sirupsen/logrus"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	logrus.Debug(<span class="string">"Debug msg"</span>) <span class="comment">// 不会输出，因为默认日志级别为 logrus.InfoLevel</span></span><br><span class="line">	logrus.Debugf(<span class="string">"%s msg"</span>, <span class="string">"Debug"</span>)</span><br><span class="line">	logrus.Debugln(<span class="string">"Debugln msg"</span>)</span><br><span class="line">	logrus.Info(<span class="string">"Info msg"</span>) <span class="comment">// 会被输出</span></span><br><span class="line">	logrus.Infof(<span class="string">"%s msg"</span>, <span class="string">"Infof"</span>)</span><br><span class="line">	logrus.Infoln(<span class="string">"Infoln msg"</span>)</span><br><span class="line">	logrus.SetFormatter(&amp;logrus.TextFormatter&#123; <span class="comment">// 输出格式 logfmt 风格</span></span><br><span class="line">		DisableColors: <span class="literal">true</span>,</span><br><span class="line">		FullTimestamp: <span class="literal">true</span>,</span><br><span class="line">	&#125;)</span><br><span class="line">	logrus.Warn(<span class="string">"Warn msg"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 设置项</span></span><br><span class="line">	logrus.SetOutput(os.Stdout)                  <span class="comment">// 设置日志输出位置，一个实现 io.Writer 接口的对象，默认值为 os.Stderr</span></span><br><span class="line">	logrus.SetLevel(logrus.TraceLevel)           <span class="comment">// 设置日志级别，默认值为 logrus.InfoLevel</span></span><br><span class="line">	logrus.SetFormatter(&amp;logrus.JSONFormatter&#123;&#125;) <span class="comment">// 设置日志输出格式，默认值为 logrus.TextFormatter</span></span><br><span class="line">	logrus.SetReportCaller(<span class="literal">true</span>)                 <span class="comment">// 设置日志是否记录被调用的位置，默认值为 false</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 日志级别由低到高</span></span><br><span class="line">	logrus.Trace(<span class="string">"Trace msg"</span>)</span><br><span class="line">	logrus.Debug(<span class="string">"Debug msg"</span>)</span><br><span class="line">	logrus.Info(<span class="string">"Info msg"</span>)</span><br><span class="line">	logrus.Warn(<span class="string">"Warn msg"</span>)</span><br><span class="line">	logrus.Warning(<span class="string">"Warning msg"</span>) <span class="comment">// 与 Warn 等价，内部会调用 Warn</span></span><br><span class="line">	logrus.Error(<span class="string">"Error msg"</span>)</span><br><span class="line">	<span class="comment">// logrus.Fatal("Fatal msg") // 输出日志后会调用 os.Exit(1)</span></span><br><span class="line">	<span class="comment">// logrus.Panic("Panic msg") // 输出日志后会调用 panic()</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 日志字段</span></span><br><span class="line">	logrus.WithFields(logrus.Fields&#123;</span><br><span class="line">		<span class="string">"animal"</span>: <span class="string">"walrus"</span>,</span><br><span class="line">		<span class="string">"size"</span>:   <span class="number">10</span>,</span><br><span class="line">	&#125;).Info(<span class="string">"Info msg"</span>)</span><br><span class="line">	logrus.WithField(<span class="string">"omg"</span>, <span class="literal">true</span>).WithField(<span class="string">"number"</span>, <span class="number">122</span>).Error(<span class="string">"Error msg"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Logrus 默认日志级别为 <code>Info</code>，所以默认情况下 <code>logrus.Debug</code> 不会被输出。</p>
+<p>Logrus 提供了 <code>JSONFormatter</code> 和 <code>TextFormatter</code> 来分别实现 JSON 和 Text 格式的日志输出，它们都实现了 <code>Formatter</code> 接口。除此之外，这里还有一个第三方实现的 <code>Formatter</code> <a href="https://github.com/sirupsen/logrus#formatters" target="_blank" rel="noopener">列表</a>可供选择，如果这些依然无法满足你的需求，则可以自己实现 <code>Formatter</code> 接口对象定制日志格式。</p>
+<p>默认输出格式为 <code>TextFormatter</code>，可以通过修改 <code>TextFormatter</code> 的 <code>DisableColors</code> 属性为 <code>true</code> 来关闭控制台日志颜色，如果同时设置 <code>FullTimestamp</code> 属性为 <code>true</code>，则可以输出 <a href="https://pkg.go.dev/github.com/kr/logfmt" target="_blank" rel="noopener">logfmt</a> 风格的日志，除了记录日志消息内容，还会包含记录日志的时间和日志级别。</p>
+<blockquote>
+<p>笔记：如果你对 <code>logfmt</code> 格式不熟悉，可以参考<a href="https://brandur.org/logfmt" target="_blank" rel="noopener">此文</a>进行了解。</p>
+</blockquote>
+<p>Logrus 还提供了 <code>SetXxx</code> 来修改属性，其中 <code>SetReportCaller</code> 可以用来开启记录日志在文件中所在的位置（<code>file</code> 字段）和方法名（<code>func</code> 字段）。</p>
+<p>Logrus 鼓励用户通过日志字段记录结构化日志，可以使用 <code>WithFields</code> 和 <code>WithField</code> 两种形式，并且可以链式调用 <code>logrus.WithField(&quot;omg&quot;, true).WithField(&quot;number&quot;, 122).Error(&quot;Error msg&quot;)</code>。这有别于 <code>logrus.Fatalf(&quot;Failed to send event %s to topic %s with key %d&quot;)</code> 这种纯文本形式，结构化日志有利于工具提取并分析日志。</p>
+<p>执行以上代码，得到如下输出：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="basic-use.png" alt="日志输出" title="">
+                </div>
+                <div class="image-caption">日志输出</div>
+            </figure>
+
+<p>根据日志输出可以发现，前三行输出 <code>Info</code> 级别日志，并且带有颜色。</p>
+<p>第四行使用 <code>TextFormatter</code> 输出了 logfmt 风格日志，并且从这行开始不再带有颜色，默认输出了 <code>time</code>、<code>level</code>、<code>msg</code> 三个字段。</p>
+<p>从第五行开始，因为使用了 <code>JSONFormatter</code>，所以日志输出为 JSON 格式，并且还增加了 <code>file</code>、<code>func</code> 两个字段，分别记录了输出日志所在的文件和函数名，这是 <code>SetReportCaller(true)</code> 的作用。</p>
+<h4 id="自定义-Logger"><a href="#自定义-Logger" class="headerlink" title="自定义 Logger"></a>自定义 Logger</h4><p>除了通过 <code>logrus.Info(&quot;Info msg&quot;)</code> 这种开箱即用的方式使用 Logrus 默认的 <code>Logger</code>，我们还可以自定义 <code>Logger</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"io"</span></span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/sirupsen/logrus"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 自定义 Logger</span></span><br><span class="line">	log := logrus.New()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 同时写到多个输出</span></span><br><span class="line">	w1 := os.Stdout</span><br><span class="line">	w2, _ := os.OpenFile(<span class="string">"demo.log"</span>, os.O_WRONLY|os.O_CREATE, <span class="number">0644</span>)</span><br><span class="line">	log.SetOutput(io.MultiWriter(w1, w2)) <span class="comment">// io.MultiWriter 返回一个 io.Writer 对象</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Logger 对象的属性基本都是导出字段，可以通过 SetXxx 方法修改，也可以直接赋值修改</span></span><br><span class="line">	log.SetFormatter(&amp;logrus.JSONFormatter&#123;&#125;)</span><br><span class="line">	log.Formatter = &amp;logrus.TextFormatter&#123;</span><br><span class="line">		DisableColors: <span class="literal">true</span>, <span class="comment">// 关闭控制台颜色输出</span></span><br><span class="line">		FieldMap: logrus.FieldMap&#123; <span class="comment">// 允许用户自定义默认字段的键名</span></span><br><span class="line">			logrus.FieldKeyMsg: <span class="string">"message"</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 默认字段</span></span><br><span class="line">	logger := log.WithFields(logrus.Fields&#123;</span><br><span class="line">		<span class="string">"omg"</span>:    <span class="literal">true</span>,</span><br><span class="line">		<span class="string">"number"</span>: <span class="number">122</span>,</span><br><span class="line">	&#125;)</span><br><span class="line">	logger.Warn(<span class="string">"Warn msg"</span>)</span><br><span class="line">	logger.Error(<span class="string">"Error msg"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 还可以继续添加日志字段</span></span><br><span class="line">	logger.WithFields(logrus.Fields&#123;</span><br><span class="line">		<span class="string">"animal"</span>: <span class="string">"walrus"</span>,</span><br><span class="line">		<span class="string">"size"</span>:   <span class="number">10</span>,</span><br><span class="line">	&#125;).Info(<span class="string">"Info msg"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以通过 <code>logrus.New()</code> 创建新的 <code>Logger</code>，默认使用的 <code>std</code> <code>Logger</code> 对象也是这么创建的。<code>logrus.Info(&quot;Info msg&quot;)</code> 调用的是包级别的导出函数，但在 <code>Info</code> 函数内部会调用 <code>std.Info()</code> 方法，这个设计思路跟内置 log 标准库很像。</p>
+<p>我们可以通过使用 <code>io.MultiWriter(w1, w2, ...)</code> 将日志同时输出到多个位置，<code>io.MultiWriter</code> 返回一个 <code>io.Writer</code> 对象。</p>
+<p>用户可以通过 <code>Formatter</code> 中的 <code>FieldMap</code> 字段来对默认字段的键名进行重命名，如日志输出中默认有一个 <code>msg</code> 字段记录日志信息，这里将其修改为 <code>message</code>。</p>
+<p><code>FieldMap</code> 支持重命名的默认字段如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	defaultTimestampFormat = time.RFC3339</span><br><span class="line">	FieldKeyMsg            = <span class="string">"msg"</span></span><br><span class="line">	FieldKeyLevel          = <span class="string">"level"</span></span><br><span class="line">	FieldKeyTime           = <span class="string">"time"</span></span><br><span class="line">	FieldKeyLogrusError    = <span class="string">"logrus_error"</span></span><br><span class="line">	FieldKeyFunc           = <span class="string">"func"</span></span><br><span class="line">	FieldKeyFile           = <span class="string">"file"</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>另外，由于 <code>WithFields</code> 支持链式调用，那么我们就可以利用这个特点来创建一个带有默认字段的 <code>logger</code> 对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">logger := log.WithFields(logrus.Fields&#123;</span><br><span class="line">    <span class="string">"omg"</span>:    <span class="literal">true</span>,</span><br><span class="line">    <span class="string">"number"</span>: <span class="number">122</span>,</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>接下来，只要使用 <code>logger.Xxx</code> 来记录日志，则每条日志都会带有默认字段。</p>
+<p>执行以上代码，控制台和日志文件 <code>demo.log</code> 得到如下输出：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">time&#x3D;&quot;2023-03-15T22:01:48+08:00&quot; level&#x3D;warning message&#x3D;&quot;Warn msg&quot; number&#x3D;122 omg&#x3D;true</span><br><span class="line">time&#x3D;&quot;2023-03-15T22:01:48+08:00&quot; level&#x3D;error message&#x3D;&quot;Error msg&quot; number&#x3D;122 omg&#x3D;true</span><br><span class="line">time&#x3D;&quot;2023-03-15T22:01:48+08:00&quot; level&#x3D;info message&#x3D;&quot;Info msg&quot; animal&#x3D;walrus number&#x3D;122 omg&#x3D;true size&#x3D;10</span><br></pre></td></tr></table></figure>
+
+<h4 id="Hooks"><a href="#Hooks" class="headerlink" title="Hooks"></a>Hooks</h4><p>Logrus 最令人心动的两个功能，一个是结构化日志，另一个就是 Hooks 了。</p>
+<p>Hooks 为 Logrus 提供了极大的灵活性，通过 Hooks 可以实现各种扩展功能。比如可以通过 Hooks 实现：<code>Error</code> 以上级别日志发送邮件通知、重要日志告警、日志切割、程序优雅退出等，非常实用。</p>
+<p>Logrus 提供了 <code>Hook</code> 接口，只要我们实现了这个接口，并将其注册到 Logrus 中，就可以使用 Hooks 的强大能力了。<code>Hook</code> 接口定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Hook <span class="keyword">interface</span> &#123;</span><br><span class="line">	Levels() []Level</span><br><span class="line">	Fire(*Entry) error</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Levels</code> 方法返回一个日志级别切片，Logrus 记录的日志级别如果存在于切片中，则会触发 Hooks，即调用 <code>Fire</code> 方法。</p>
+<p>以下代码是 Hooks 功能使用示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/orandin/lumberjackrus"</span></span><br><span class="line">	<span class="string">"github.com/sirupsen/logrus"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> emailHook <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hook *emailHook)</span> <span class="title">Levels</span><span class="params">()</span> []<span class="title">logrus</span>.<span class="title">Level</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> logrus.AllLevels <span class="comment">// 所有日志级别都会执行 Fire 方法</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hook *emailHook)</span> <span class="title">Fire</span><span class="params">(entry *logrus.Entry)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// 修改日志内容</span></span><br><span class="line">	entry.Data[<span class="string">"app"</span>] = <span class="string">"email"</span></span><br><span class="line">	<span class="comment">// 发送邮件</span></span><br><span class="line">	msg, _ := entry.String()</span><br><span class="line">	fakeSendEmail(msg)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">fakeSendEmail</span><span class="params">(msg <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	fmt.Printf(<span class="string">"fakeSendEmail: %s"</span>, msg)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newRotateHook</span><span class="params">()</span> <span class="title">logrus</span>.<span class="title">Hook</span></span> &#123;</span><br><span class="line">	hook, _ := lumberjackrus.NewHook(</span><br><span class="line">		&amp;lumberjackrus.LogFile&#123; <span class="comment">// 通用日志配置</span></span><br><span class="line">			Filename:   <span class="string">"general.log"</span>,</span><br><span class="line">			MaxSize:    <span class="number">100</span>,</span><br><span class="line">			MaxBackups: <span class="number">1</span>,</span><br><span class="line">			MaxAge:     <span class="number">1</span>,</span><br><span class="line">			Compress:   <span class="literal">false</span>,</span><br><span class="line">			LocalTime:  <span class="literal">false</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">		logrus.InfoLevel,</span><br><span class="line">		&amp;logrus.TextFormatter&#123;DisableColors: <span class="literal">true</span>&#125;,</span><br><span class="line">		&amp;lumberjackrus.LogFileOpts&#123; <span class="comment">// 针对不同日志级别的配置</span></span><br><span class="line">			logrus.TraceLevel: &amp;lumberjackrus.LogFile&#123;</span><br><span class="line">				Filename: <span class="string">"trace.log"</span>,</span><br><span class="line">			&#125;,</span><br><span class="line">			logrus.ErrorLevel: &amp;lumberjackrus.LogFile&#123;</span><br><span class="line">				Filename:   <span class="string">"error.log"</span>,</span><br><span class="line">				MaxSize:    <span class="number">10</span>,    <span class="comment">// 日志文件在轮转之前的最大大小，默认 100 MB</span></span><br><span class="line">				MaxBackups: <span class="number">10</span>,    <span class="comment">// 保留旧日志文件的最大数量</span></span><br><span class="line">				MaxAge:     <span class="number">10</span>,    <span class="comment">// 保留旧日志文件的最大天数</span></span><br><span class="line">				Compress:   <span class="literal">true</span>,  <span class="comment">// 是否使用 gzip 对日志文件进行压缩归档</span></span><br><span class="line">				LocalTime:  <span class="literal">false</span>, <span class="comment">// 是否使用本地时间，默认 UTC 时间</span></span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;,</span><br><span class="line">	)</span><br><span class="line">	<span class="keyword">return</span> hook</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	logrus.Trace(<span class="string">"Trace msg"</span>) <span class="comment">// not be written</span></span><br><span class="line">	logrus.Warn(<span class="string">"Warn msg"</span>)   <span class="comment">// written in general.log</span></span><br><span class="line">	logrus.Error(<span class="string">"Error msg"</span>) <span class="comment">// written in error.log</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	logrus.SetFormatter(&amp;logrus.JSONFormatter&#123;&#125;)</span><br><span class="line">	logrus.SetLevel(logrus.InfoLevel) <span class="comment">// default</span></span><br><span class="line"></span><br><span class="line">	logrus.AddHook(&amp;emailHook&#123;&#125;)</span><br><span class="line">	logrus.AddHook(newRotateHook())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里实现了两个 Hooks，分别用来提供发送邮件和日志切割功能。</p>
+<p><code>emailHook</code> 实现了一个简单的发送邮件 <code>Hook</code>，其 <code>Levels</code> 方法返回 <code>logrus.AllLevels</code>，代表所有日志级别。<code>Fire</code> 方法接收一个 <code>*logrus.Entry</code> 参数，它包含了一条日志相关的所有信息，日志内容保存在 <code>entry.Data</code> Map 中，通过 <code>entry.String()</code> 能够获取日志的字符串格式内容。这里使用 <code>fakeSendEmail</code> 来模拟发送邮件。</p>
+<p><code>newRotateHook()</code> 利用第三方库 <a href="https://github.com/orandin/lumberjackrus" target="_blank" rel="noopener">lumberjackrus</a> 实现了日志切割和归档功能，并且能够将不同级别的日志输出到不同文件。<code>lumberjackrus</code> 是专门为 Logrus 而打造的文件日志 Hooks，其官方介绍为 <code>local filesystem hook for Logrus</code>。</p>
+<p>执行以上代码，控制台得到如下输出：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">fakeSendEmail: &#123;&quot;app&quot;:&quot;email&quot;,&quot;level&quot;:&quot;warning&quot;,&quot;msg&quot;:&quot;Warn msg&quot;,&quot;time&quot;:&quot;2023-03-15T23:00:48+08:00&quot;&#125;</span><br><span class="line">&#123;&quot;app&quot;:&quot;email&quot;,&quot;level&quot;:&quot;warning&quot;,&quot;msg&quot;:&quot;Warn msg&quot;,&quot;time&quot;:&quot;2023-03-15T23:00:48+08:00&quot;&#125;</span><br><span class="line">fakeSendEmail: &#123;&quot;app&quot;:&quot;email&quot;,&quot;level&quot;:&quot;error&quot;,&quot;msg&quot;:&quot;Error msg&quot;,&quot;time&quot;:&quot;2023-03-15T23:00:48+08:00&quot;&#125;</span><br><span class="line">&#123;&quot;app&quot;:&quot;email&quot;,&quot;level&quot;:&quot;error&quot;,&quot;msg&quot;:&quot;Error msg&quot;,&quot;time&quot;:&quot;2023-03-15T23:00:48+08:00&quot;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由于 <code>emailHook</code> 支持所有日志级别，所以每次输出日志，都会发送邮件，并且在 <code>fakeSendEmail</code> 中打印的消息内容会附加一个 <code>&quot;app&quot;:&quot;email&quot;</code> 键值对。</p>
+<p><code>general.log</code> 日志文件得到如下输出：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">time&#x3D;&quot;2023-03-15T23:00:48+08:00&quot; level&#x3D;warning msg&#x3D;&quot;Warn msg&quot; app&#x3D;email</span><br></pre></td></tr></table></figure>
+
+<p><code>error.log</code> 日志文件得到如下输出：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">time&#x3D;&quot;2023-03-15T23:00:48+08:00&quot; level&#x3D;error msg&#x3D;&quot;Error msg&quot; app&#x3D;email</span><br></pre></td></tr></table></figure>
+
+<p>通过 <code>lumberjackrus</code> 的能力，将不同级别日志分别输出到不同文件，并且如果日志达到 10MB 还会得到一个文件名类似 <code>error-2023-03-15T15-03-24.279.log.gz</code> 的压缩文件，这是由于为 <code>lumberjackrus.LogFile</code> 结构体的属性 <code>Compress</code> 设置为 <code>true</code> 导致的，将旧的日志文件归档可以节省日志文件所占用的磁盘空间。</p>
+<p>可以发现，通过 Hooks 的强大能力，可以极大的拓宽 Logrus 的能力边界。如果你想自己实现一个日志库，同样建议支持 Hooks 功能。</p>
+<blockquote>
+<p>笔记：<br>Logrus 内置 Hooks 列表：<a href="https://github.com/sirupsen/logrus/tree/master/hooks" target="_blank" rel="noopener">https://github.com/sirupsen/logrus/tree/master/hooks</a><br>第三方开发的 Hooks 列表：<a href="https://github.com/sirupsen/logrus/wiki/Hooks" target="_blank" rel="noopener">https://github.com/sirupsen/logrus/wiki/Hooks</a></p>
+</blockquote>
+<h4 id="处理不同环境"><a href="#处理不同环境" class="headerlink" title="处理不同环境"></a>处理不同环境</h4><p>Logrus 并没有像 <a href="https://github.com/uber-go/zap" target="_blank" rel="noopener">zap</a> 那样提供现成的 API 来支持在不同的环境下使用（Production 和 Development），如果你想在生产和测试环境使用不同的格式输出日志，则需要通过代码判断在不同环境设置不同的 <code>Formatter</code> 来实现。示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> (</span><br><span class="line">  log <span class="string">"github.com/sirupsen/logrus"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">  <span class="keyword">if</span> Environment == <span class="string">"production"</span> &#123;</span><br><span class="line">    log.SetFormatter(&amp;log.JSONFormatter&#123;&#125;)</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    log.SetFormatter(&amp;log.TextFormatter&#123;&#125;)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h4><p>如果你的单元测试程序中需要测试日志内容，Logrus 提供了 <code>test.NewNullLogger</code> 日志记录器，它只会记录日志，不输出任何内容。使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span>(</span><br><span class="line">  <span class="string">"testing"</span></span><br><span class="line"></span><br><span class="line">  <span class="string">"github.com/sirupsen/logrus"</span></span><br><span class="line">  <span class="string">"github.com/sirupsen/logrus/hooks/test"</span></span><br><span class="line">  <span class="string">"github.com/stretchr/testify/assert"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestSomething</span><span class="params">(t*testing.T)</span></span>&#123;</span><br><span class="line">  logger, hook := test.NewNullLogger()</span><br><span class="line">  logger.Error(<span class="string">"Helloerror"</span>)</span><br><span class="line"></span><br><span class="line">  assert.Equal(t, <span class="number">1</span>, <span class="built_in">len</span>(hook.Entries))</span><br><span class="line">  assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)</span><br><span class="line">  assert.Equal(t, <span class="string">"Helloerror"</span>, hook.LastEntry().Message)</span><br><span class="line"></span><br><span class="line">  hook.Reset()</span><br><span class="line">  assert.Nil(t, hook.LastEntry())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文介绍了 Logrus 的基本特点，以及如何使用。</p>
+<p>Logrus 完全兼容 log 标准库，所以可以实现无缝替换。其 API 设计思路跟 log 标准库的风格也有很多相似之处，都提供了一个默认的 <code>std</code> 日志对象达到开箱即用的效果。Logrus 最实用的两个功能，一个是支持结构化日志，一个是支持 Hooks 机制，这极大的提升了可用性和灵活性，也使得 Logrus 成为最受欢迎的 Go 日志库。</p>
+<p><strong>参考</strong></p>
+<blockquote>
+<p>Logrus: <a href="https://github.com/sirupsen/logrus" target="_blank" rel="noopener">https://github.com/sirupsen/logrus</a><br>lumberjackrus: <a href="https://github.com/orandin/lumberjackrus" target="_blank" rel="noopener">https://github.com/orandin/lumberjackrus</a></p>
+</blockquote>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:13.263Z" itemprop="dateUpdated">2025-02-15 09:45:13</time>
+</span><br>
+
+
+        
+        <a href="/2023/03/15/use-of-logrus-in-go-third-party-log-library/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Log/" rel="tag">Log</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/&title=《Go 第三方 log 库之 logrus 使用》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/&title=《Go 第三方 log 库之 logrus 使用》 — 江湖十年&source=Logrus 是目前 GitHub 上 Star 数量最多的 Go 日志库。尽管目前 Logrus 处于维护模式，不再引入新功能，但这并不意味着它已经死了..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 第三方 log 库之 logrus 使用》 — 江湖十年&url=http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2023/03/19/use-of-zap-in-go-third-party-log-library/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Go 第三方 log 库之 zap 使用</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/03/11/dive-into-the-go-log-standard-library/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">深入探究 Go log 标准库</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/&title=《Go 第三方 log 库之 logrus 使用》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/&title=《Go 第三方 log 库之 logrus 使用》 — 江湖十年&source=Logrus 是目前 GitHub 上 Star 数量最多的 Go 日志库。尽管目前 Logrus 处于维护模式，不再引入新功能，但这并不意味着它已经死了..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 第三方 log 库之 logrus 使用》 — 江湖十年&url=http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/03/15/use-of-logrus-in-go-third-party-log-library/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>在 Go 语言单元测试中如何解决 Redis 存储依赖问题 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,Test">
+    <meta name="description" content="在编写单元测试时，除了 MySQL 这个外部存储依赖，Redis 应该是另一个最为常见的外部存储依赖了。我在《在 Go 语言单元测试中如何解决 MySQL 存储依赖问题》一文中讲解了如何解决 MySQL 外部依赖，本文就来讲解下如何解决 Redis 外部依赖。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 Go 语言单元测试中如何解决 Redis 存储依赖问题">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在编写单元测试时，除了 MySQL 这个外部存储依赖，Redis 应该是另一个最为常见的外部存储依赖了。我在《在 Go 语言单元测试中如何解决 MySQL 存储依赖问题》一文中讲解了如何解决 MySQL 外部依赖，本文就来讲解下如何解决 Redis 外部依赖。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/redis-mock.png">
+<meta property="article:published_time" content="2023-07-18T04:20:48.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:13.020Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="Test">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/redis-mock.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">在 Go 语言单元测试中如何解决 Redis 存储依赖问题</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">在 Go 语言单元测试中如何解决 Redis 存储依赖问题</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-07-18T04:20:48.000Z" itemprop="datePublished" class="page-time">
+  2023-07-18
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#登录程序示例"><span class="post-toc-number">1.</span> <span class="post-toc-text">登录程序示例</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用-redismock-测试"><span class="post-toc-number">2.</span> <span class="post-toc-text">使用 redismock 测试</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用-Testcontainers-测试"><span class="post-toc-number">3.</span> <span class="post-toc-text">使用 Testcontainers 测试</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-how-to-resolve-redis-dependencies-in-go-testing"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">在 Go 语言单元测试中如何解决 Redis 存储依赖问题</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-07-18 12:20:48" datetime="2023-07-18T04:20:48.000Z"  itemprop="datePublished">2023-07-18</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在编写单元测试时，除了 MySQL 这个外部存储依赖，Redis 应该是另一个最为常见的外部存储依赖了。我在<a href="https://jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/" target="_blank" rel="noopener">《在 Go 语言单元测试中如何解决 MySQL 存储依赖问题》</a>一文中讲解了如何解决 MySQL 外部依赖，本文就来讲解下如何解决 Redis 外部依赖。</p>
+<a id="more"></a>
+
+<h3 id="登录程序示例"><a href="#登录程序示例" class="headerlink" title="登录程序示例"></a>登录程序示例</h3><p>在 Web 开发中，登录需求是一个较为常见的功能。假设我们有一个 <code>Login</code> 函数，可以实现用户登录功能。它接收用户手机号 + 短信验证码，然后根据手机号从 Redis 中获取保存的验证码（验证码通常是在发送验证码这一操作时保存的），如果 Redis 中验证码与用户输入的验证码相同，则表示用户信息正确，然后生成一个随机 token 作为登录凭证，之后先将 token 写入 Redis 中，再返回给用户，表示登录操作成功。</p>
+<p>程序代码实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Login</span><span class="params">(mobile, smsCode <span class="keyword">string</span>, rdb *redis.Client, generateToken <span class="keyword">func</span>(<span class="keyword">int</span>)</span> <span class="params">(<span class="keyword">string</span>, error)</span>) <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">	ctx := context.Background()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 查找验证码</span></span><br><span class="line">	captcha, err := GetSmsCaptchaFromRedis(ctx, rdb, mobile)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err == redis.Nil &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="string">""</span>, fmt.Errorf(<span class="string">"invalid sms code or expired"</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="string">""</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> captcha != smsCode &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="string">""</span>, fmt.Errorf(<span class="string">"invalid sms code"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 登录，生成 token 并写入 Redis</span></span><br><span class="line">	token, _ := generateToken(<span class="number">32</span>)</span><br><span class="line">	err = SetAuthTokenToRedis(ctx, rdb, token, mobile)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="string">""</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> token, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Login</code> 函数有 4 个参数，分别是用户手机号、验证码、Redis 客户端连接对象、辅助生成随机 token 的函数。</p>
+<p>Redis 客户端连接对象 <code>*redis.Client</code> 属于 <code>github.com/redis/go-redis/v9</code> 包。</p>
+<p>我们可以使用如下方式获得：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewRedisClient</span><span class="params">()</span> *<span class="title">redis</span>.<span class="title">Client</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> redis.NewClient(&amp;redis.Options&#123;</span><br><span class="line">		Addr:     <span class="string">"localhost:6379"</span>,</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>generateToken</code> 用来生成随机长度 token，定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GenerateToken</span><span class="params">(length <span class="keyword">int</span>)</span> <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">	token := <span class="built_in">make</span>([]<span class="keyword">byte</span>, length)</span><br><span class="line">	_, err := rand.Read(token)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="string">""</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> base64.URLEncoding.EncodeToString(token)[:length], <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们还要为 Redis 操作编写几个函数，用来存取 Redis 中的验证码和 token：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	smsCaptchaExpire    = <span class="number">5</span> * time.Minute</span><br><span class="line">	smsCaptchaKeyPrefix = <span class="string">"sms:captcha:%s"</span></span><br><span class="line"></span><br><span class="line">	authTokenExpire    = <span class="number">24</span> * time.Hour</span><br><span class="line">	authTokenKeyPrefix = <span class="string">"auth:token:%s"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SetSmsCaptchaToRedis</span><span class="params">(ctx context.Context, redis *redis.Client, mobile, captcha <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	key := fmt.Sprintf(smsCaptchaKeyPrefix, mobile)</span><br><span class="line">	<span class="keyword">return</span> redis.Set(ctx, key, captcha, smsCaptchaExpire).Err()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetSmsCaptchaFromRedis</span><span class="params">(ctx context.Context, redis *redis.Client, mobile <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">	key := fmt.Sprintf(smsCaptchaKeyPrefix, mobile)</span><br><span class="line">	<span class="keyword">return</span> redis.Get(ctx, key).Result()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SetAuthTokenToRedis</span><span class="params">(ctx context.Context, redis *redis.Client, token, mobile <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	key := fmt.Sprintf(authTokenKeyPrefix, mobile)</span><br><span class="line">	<span class="keyword">return</span> redis.Set(ctx, key, token, authTokenExpire).Err()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetAuthTokenFromRedis</span><span class="params">(ctx context.Context, redis *redis.Client, token <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">	key := fmt.Sprintf(authTokenKeyPrefix, token)</span><br><span class="line">	<span class="keyword">return</span> redis.Get(ctx, key).Result()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Login</code> 函数使用方式如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	rdb := NewRedisClient()</span><br><span class="line">	token, err := Login(<span class="string">"13800001111"</span>, <span class="string">"123456"</span>, rdb, GenerateToken)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Println(err)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Println(token)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="使用-redismock-测试"><a href="#使用-redismock-测试" class="headerlink" title="使用 redismock 测试"></a>使用 redismock 测试</h3><p>现在，我们要对 <code>Login</code> 函数进行单元测试。</p>
+<p><code>Login</code> 函数依赖了 <code>*redis.Client</code> 以及 <code>generateToken</code> 函数。</p>
+<p>由于我们设计的代码是 <code>Login</code> 函数直接依赖了 <code>*redis.Client</code>，没有通过接口来解耦，所以不能使用 <code>gomock</code> 工具来生成 Mock 代码。</p>
+<p>不过，我们可以看看 <code>go-redis</code> 包的源码仓库有没有什么线索。</p>
+<p>很幸运，在 <code>go-redis</code> 包的 <a href="https://github.com/redis/go-redis#ecosystem" target="_blank" rel="noopener">README.md</a> 文档里，我们可以看到一个 <a href="https://github.com/go-redis/redismock" target="_blank" rel="noopener">Redis Mock</a> 链接：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="redis-mock.png" alt="Redis Mock" title="">
+                </div>
+                <div class="image-caption">Redis Mock</div>
+            </figure>
+
+<p>点击进去，我们就来到了一个叫 <code>redismock</code> 的仓库，<code>redismock</code> 为我们实现了一个模拟的 Redis 客户端。</p>
+<p>使用如下方式安装 <code>redismock</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go get github.com/go-redis/redismock/v9</span><br></pre></td></tr></table></figure>
+
+<p>使用如下方式导入 <code>redismock</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">"github.com/go-redis/redismock/v9"</span></span><br></pre></td></tr></table></figure>
+
+<p>切记安装和导入的 <code>redismock</code> 包版本要与 <code>go-redis</code> 包版本一致，这里都为 <code>v9</code>。</p>
+<p>可以通过如下方式快速创建一个 Redis 客户端 <code>rdb</code>，以及客户端 Mock 对象 <code>mock</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rdb, mock := redismock.NewClientMock()</span><br></pre></td></tr></table></figure>
+
+<p>在测试代码中，调用 <code>Login</code> 函数时，就可以使用这个 <code>rdb</code> 作为 Redis 客户端了。</p>
+<p><code>mock</code> 对象提供了 <code>ExpectXxx</code> 方法，用来指定 <code>rdb</code> 客户端预期会调用哪些方法以及对应参数。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// login success</span></span><br><span class="line">mock.ExpectGet(<span class="string">"sms:captcha:13800138000"</span>).SetVal(<span class="string">"123456"</span>)</span><br><span class="line">mock.ExpectSet(<span class="string">"auth:token:Ta5EVtRgUD-HFmRwrujAwKZnx247lFfe"</span>, <span class="string">"13800138000"</span>, <span class="number">24</span>*time.Hour).SetVal(<span class="string">"OK"</span>)</span><br></pre></td></tr></table></figure>
+
+<p><code>mock.ExpectGet</code> 表示期待一个 Redis <code>Get</code> 操作，Key 为 <code>sms:captcha:13800138000</code>，<code>SetVal(&quot;123456&quot;)</code> 用来设置当前 <code>Get</code> 操作返回值为 <code>123456</code>。</p>
+<p>同理，<code>mock.ExpectSet</code> 表示期待一个 Redis <code>Set</code> 操作，Key 为 <code>auth:token:Ta5EVtRgUD-HFmRwrujAwKZnx247lFfe</code>，Value 为 <code>13800138000</code>，过期时间为 <code>24*time.Hour</code>，返回 <code>OK</code> 表示这个 <code>Set</code> 操作成功。</p>
+<p>以上指定的两个预期方法调用，是用来匹配 <code>Login</code> 成功时的用例。</p>
+<p><code>Login</code> 函数还有两种失败情况，当通过 <code>GetSmsCaptchaFromRedis</code> 函数查询 Redis 中验证码不存在时，返回 <code>invalid sms code or expired</code> 错误。当从 Redis 中查询的验证码与用户传递进来的验证码不匹配时，返回 <code>invalid sms code</code> 错误。</p>
+<p>这两种用例可以按照如下方式模拟：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// invalid sms code or expired</span></span><br><span class="line">mock.ExpectGet(<span class="string">"sms:captcha:13900139000"</span>).RedisNil()</span><br><span class="line"><span class="comment">// invalid sms code</span></span><br><span class="line">mock.ExpectGet(<span class="string">"sms:captcha:13700137000"</span>).SetVal(<span class="string">"123123"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>现在，我们已经解决了 Redis 依赖，还需要解决 <code>generateToken</code> 函数依赖。</p>
+<p>这时候 Fake object 就派上用场了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">fakeGenerateToken</span><span class="params">(<span class="keyword">int</span>)</span> <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="string">"Ta5EVtRgUD-HFmRwrujAwKZnx247lFfe"</span>, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们使用 <code>fakeGenerateToken</code> 函数来替代 <code>GenerateToken</code> 函数，这样生成的 token 就固定下来了，方便测试。</p>
+<p><code>Login</code> 函数完整单元测试代码实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestLogin</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	<span class="comment">// mock redis client</span></span><br><span class="line">	rdb, mock := redismock.NewClientMock()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// login success</span></span><br><span class="line">	mock.ExpectGet(<span class="string">"sms:captcha:13800138000"</span>).SetVal(<span class="string">"123456"</span>)</span><br><span class="line">	mock.ExpectSet(<span class="string">"auth:token:Ta5EVtRgUD-HFmRwrujAwKZnx247lFfe"</span>, <span class="string">"13800138000"</span>, <span class="number">24</span>*time.Hour).SetVal(<span class="string">"OK"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// invalid sms code or expired</span></span><br><span class="line">	mock.ExpectGet(<span class="string">"sms:captcha:13900139000"</span>).RedisNil()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// invalid sms code</span></span><br><span class="line">	mock.ExpectGet(<span class="string">"sms:captcha:13700137000"</span>).SetVal(<span class="string">"123123"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">type</span> args <span class="keyword">struct</span> &#123;</span><br><span class="line">		mobile  <span class="keyword">string</span></span><br><span class="line">		smsCode <span class="keyword">string</span></span><br><span class="line">	&#125;</span><br><span class="line">	tests := []<span class="keyword">struct</span> &#123;</span><br><span class="line">		name    <span class="keyword">string</span></span><br><span class="line">		args    args</span><br><span class="line">		want    <span class="keyword">string</span></span><br><span class="line">		wantErr <span class="keyword">string</span></span><br><span class="line">	&#125;&#123;</span><br><span class="line">		&#123;</span><br><span class="line">			name: <span class="string">"login success"</span>,</span><br><span class="line">			args: args&#123;</span><br><span class="line">				mobile:  <span class="string">"13800138000"</span>,</span><br><span class="line">				smsCode: <span class="string">"123456"</span>,</span><br><span class="line">			&#125;,</span><br><span class="line">			want: <span class="string">"Ta5EVtRgUD-HFmRwrujAwKZnx247lFfe"</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">		&#123;</span><br><span class="line">			name: <span class="string">"invalid sms code or expired"</span>,</span><br><span class="line">			args: args&#123;</span><br><span class="line">				mobile:  <span class="string">"13900139000"</span>,</span><br><span class="line">				smsCode: <span class="string">"123459"</span>,</span><br><span class="line">			&#125;,</span><br><span class="line">			wantErr: <span class="string">"invalid sms code or expired"</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">		&#123;</span><br><span class="line">			name: <span class="string">"invalid sms code"</span>,</span><br><span class="line">			args: args&#123;</span><br><span class="line">				mobile:  <span class="string">"13700137000"</span>,</span><br><span class="line">				smsCode: <span class="string">"123457"</span>,</span><br><span class="line">			&#125;,</span><br><span class="line">			wantErr: <span class="string">"invalid sms code"</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> _, tt := <span class="keyword">range</span> tests &#123;</span><br><span class="line">		t.Run(tt.name, <span class="function"><span class="keyword">func</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">			got, err := Login(tt.args.mobile, tt.args.smsCode, rdb, fakeGenerateToken)</span><br><span class="line">			<span class="keyword">if</span> tt.wantErr != <span class="string">""</span> &#123;</span><br><span class="line">				assert.Error(t, err)</span><br><span class="line">				assert.Equal(t, tt.wantErr, err.Error())</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				assert.NoError(t, err)</span><br><span class="line">				assert.Equal(t, tt.want, got)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里使用了表格测试，提供了 3 个测试用例，覆盖了登录成功、验证码无效或过期、验证码无效 3 种场景。</p>
+<p>使用 <code>go test</code> 来执行测试函数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -v .                 </span><br><span class="line">=== RUN   TestLogin</span><br><span class="line">=== RUN   TestLogin/login_success</span><br><span class="line">=== RUN   TestLogin/invalid_sms_code_or_expired</span><br><span class="line">=== RUN   TestLogin/invalid_sms_code</span><br><span class="line">--- PASS: TestLogin (0.00s)</span><br><span class="line">    --- PASS: TestLogin/login_success (0.00s)</span><br><span class="line">    --- PASS: TestLogin/invalid_sms_code_or_expired (0.00s)</span><br><span class="line">    --- PASS: TestLogin/invalid_sms_code (0.00s)</span><br><span class="line">PASS</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/redis    0.152s</span><br></pre></td></tr></table></figure>
+
+<p>测试通过。</p>
+<p><code>Login</code> 函数将 <code>*redis.Client</code> 和 <code>generateToken</code> 这两个外部依赖定义成了函数参数，而不是在函数内部直接使用这两个依赖。</p>
+<p>这主要参考了「依赖注入」的思想，将依赖当作参数传入，而不是在函数内部直接引用。</p>
+<p>这样，我们才有机会使用 Fake 对象 <code>fakeGenerateToken</code> 来替代真实对象 <code>GenerateToken</code>。</p>
+<p>而对于 <code>*redis.Client</code>，我们也能够使用 <code>redismock</code> 提供的 Mock 对象来替代。</p>
+<p><code>redismock</code> 不仅能够模拟 RedisClient，它还支持模拟 RedisCluster，更多使用示例可以在<a href="https://github.com/go-redis/redismock/blob/master/example" target="_blank" rel="noopener">官方示例</a>中查看。</p>
+<h3 id="使用-Testcontainers-测试"><a href="#使用-Testcontainers-测试" class="headerlink" title="使用 Testcontainers 测试"></a>使用 Testcontainers 测试</h3><p>虽然我们使用 <code>redismock</code> 提供的 Mock 对象解决了 <code>Login</code> 函数对 <code>*redis.Client</code> 的依赖问题。</p>
+<p>但这需要运气，当我们使用其他数据库时，也许找不到现成的 Mock 库。</p>
+<p>此时，我们还有另一个强大的工具「容器」可以使用。</p>
+<p>如果程序所依赖的某个外部服务，实在找不到现成的 Mock 工具，自己实现 Fack object 又比较麻烦，这时就可以考虑使用容器来运行一个真正的外部服务了。</p>
+<p><a href="https://github.com/testcontainers/testcontainers-go" target="_blank" rel="noopener">Testcontainers</a> 就是用来解决这个问题的，我们可以用它来启动容器，运行任何外部服务。</p>
+<p><code>Testcontainers</code> 非常强大，不仅支持 Go 语言，还支持 Java、Python、Rust 等其他主流编程语言。它可以很容易地创建和清理基于容器的依赖，常被用于集成测试和冒烟测试。所以这也提醒我们在单元测试中慎用，因为容器也是一个外部依赖。</p>
+<p>我们可以按照如下方式使用 <code>Testcontainers</code> 在容器中启动一个 Redis 服务：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"context"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/redis/go-redis/v9"</span></span><br><span class="line">	<span class="string">"github.com/testcontainers/testcontainers-go"</span></span><br><span class="line">	<span class="string">"github.com/testcontainers/testcontainers-go/wait"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 在容器中运行一个 Redis 服务</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">RunWithRedisInContainer</span><span class="params">()</span> <span class="params">(*redis.Client, <span class="keyword">func</span>()</span>)</span> &#123;</span><br><span class="line">	ctx := context.Background()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建容器请求参数</span></span><br><span class="line">	req := testcontainers.ContainerRequest&#123;</span><br><span class="line">		Image:        <span class="string">"redis:6.0.20-alpine"</span>,                      <span class="comment">// 指定容器镜像</span></span><br><span class="line">		ExposedPorts: []<span class="keyword">string</span>&#123;<span class="string">"6379/tcp"</span>&#125;,                       <span class="comment">// 指定容器暴露端口</span></span><br><span class="line">		WaitingFor:   wait.ForLog(<span class="string">"Ready to accept connections"</span>), <span class="comment">// 等待输出容器 Ready 日志</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建 Redis 容器</span></span><br><span class="line">	redisC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest&#123;</span><br><span class="line">		ContainerRequest: req,</span><br><span class="line">		Started:          <span class="literal">true</span>,</span><br><span class="line">	&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(fmt.Sprintf(<span class="string">"failed to start container: %s"</span>, err.Error()))</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 获取容器中 Redis 连接地址，e.g. localhost:50351</span></span><br><span class="line">	endpoint, err := redisC.Endpoint(ctx, <span class="string">""</span>) <span class="comment">// 如果暴露多个端口，可以指定第二个参数</span></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(fmt.Sprintf(<span class="string">"failed to get endpoint: %s"</span>, err.Error()))</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 连接容器中的 Redis</span></span><br><span class="line">	client := redis.NewClient(&amp;redis.Options&#123;</span><br><span class="line">		Addr: endpoint,</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 返回 Redis Client 和 cleanup 函数</span></span><br><span class="line">	<span class="keyword">return</span> client, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err := redisC.Terminate(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(fmt.Sprintf(<span class="string">"failed to terminate container: %s"</span>, err.Error()))</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码中我写了比较详细的注释，就不带大家一一解释代码内容了。</p>
+<p>我们可以将容器的启动和释放操作放到 <code>TestMain</code> 函数中，这样在执行测试函数之前先启动容器，然后进行测试，最后在测试结束时销毁容器。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> rdbClient *redis.Client</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestMain</span><span class="params">(m *testing.M)</span></span> &#123;</span><br><span class="line">	client, f := RunWithRedisInContainer()</span><br><span class="line">	<span class="keyword">defer</span> f()</span><br><span class="line">	rdbClient = client</span><br><span class="line">	m.Run()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用容器编写的 <code>Login</code> 单元测试函数如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestLogin_by_container</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 准备测试数据</span></span><br><span class="line">	err := SetSmsCaptchaToRedis(context.Background(), rdbClient, <span class="string">"18900001111"</span>, <span class="string">"123456"</span>)</span><br><span class="line">	assert.NoError(t, err)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 测试登录成功情况</span></span><br><span class="line">	gotToken, err := Login(<span class="string">"18900001111"</span>, <span class="string">"123456"</span>, rdbClient, GenerateToken)</span><br><span class="line">	assert.NoError(t, err)</span><br><span class="line">	assert.Equal(t, <span class="number">32</span>, <span class="built_in">len</span>(gotToken))</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 检查 Redis 中是否存在 token</span></span><br><span class="line">	gotMobile, err := GetAuthTokenFromRedis(context.Background(), rdbClient, gotToken)</span><br><span class="line">	assert.NoError(t, err)</span><br><span class="line">	assert.Equal(t, <span class="string">"18900001111"</span>, gotMobile)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在因为有了容器的存在，我们有了一个真实的 Redis 服务。所以编写测试代码时，无需再考虑如何模拟 Redis 客户端，只需要使用通过 <code>RunWithRedisInContainer()</code> 函数创建的真实客户端 <code>rdbClient</code> 即可，一切操作都是真实的。</p>
+<p>并且，我们也不再需要实现 <code>fakeGenerateToken</code> 函数来固定生成的 token，直接使用 <code>GenerateToken</code> 生成真实的随机 token 即可。想要验证得到的 token 是否正确，可以直接从 Redis 服务中读取。</p>
+<p>执行测试前，确保主机上已经安装了 Docker，<code>Testcontainers</code> 会使用主机上的 Docker 来运行容器。</p>
+<p>使用 <code>go test</code> 来执行测试函数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -v -run=<span class="string">"TestLogin_by_container"</span></span><br><span class="line">2023/07/17 22:59:34 github.com/testcontainers/testcontainers-go - Connected to docker: </span><br><span class="line">  Server Version: 20.10.21</span><br><span class="line">  API Version: 1.41</span><br><span class="line">  Operating System: Docker Desktop</span><br><span class="line">  Total Memory: 7851 MB</span><br><span class="line">2023/07/17 22:59:34 🐳 Creating container <span class="keyword">for</span> image docker.io/testcontainers/ryuk:0.5.1</span><br><span class="line">2023/07/17 22:59:34 ✅ Container created: 92e327ad7b70</span><br><span class="line">2023/07/17 22:59:34 🐳 Starting container: 92e327ad7b70</span><br><span class="line">2023/07/17 22:59:35 ✅ Container started: 92e327ad7b70</span><br><span class="line">2023/07/17 22:59:35 🚧 Waiting <span class="keyword">for</span> container id 92e327ad7b70 image: docker.io/testcontainers/ryuk:0.5.1. Waiting <span class="keyword">for</span>: &amp;&#123;Port:8080/tcp timeout:&lt;nil&gt; PollInterval:100ms&#125;</span><br><span class="line">2023/07/17 22:59:35 🐳 Creating container <span class="keyword">for</span> image redis:6.0.20-alpine</span><br><span class="line">2023/07/17 22:59:35 ✅ Container created: 2b5e40d40af0</span><br><span class="line">2023/07/17 22:59:35 🐳 Starting container: 2b5e40d40af0</span><br><span class="line">2023/07/17 22:59:35 ✅ Container started: 2b5e40d40af0</span><br><span class="line">2023/07/17 22:59:35 🚧 Waiting <span class="keyword">for</span> container id 2b5e40d40af0 image: redis:6.0.20-alpine. Waiting <span class="keyword">for</span>: &amp;&#123;timeout:&lt;nil&gt; Log:Ready to accept connections Occurrence:1 PollInterval:100ms&#125;</span><br><span class="line">=== RUN   TestLogin_by_container</span><br><span class="line">--- PASS: TestLogin_by_container (0.00s)</span><br><span class="line">PASS</span><br><span class="line">2023/07/17 22:59:36 🐳 Terminating container: 2b5e40d40af0</span><br><span class="line">2023/07/17 22:59:36 🚫 Container terminated: 2b5e40d40af0</span><br><span class="line">ok      github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/redis    1.545s</span><br></pre></td></tr></table></figure>
+
+<p>测试通过。</p>
+<p>根据输出日志可以发现，我们的确在主机上创建了一个 Redis 容器来运行 Redis 服务：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Creating container for image redis:6.0.20-alpine</span><br></pre></td></tr></table></figure>
+
+<p>容器 ID 为 <code>2b5e40d40af0</code>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Container created: 2b5e40d40af0</span><br></pre></td></tr></table></figure>
+
+<p>并且测试结束后清理了容器：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Container terminated: 2b5e40d40af0</span><br></pre></td></tr></table></figure>
+
+<p>以上，我们就利用容器技术，为 <code>Login</code> 函数登录成功情况编写了一个测试用例，登录失败情况的测试用例就留做作业交给你自己来完成吧。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文向大家介绍了在 Go 中编写单元测试时，如何解决 Redis 外部依赖的问题。</p>
+<p>值得庆幸的是 <code>redismock</code> 包提供了模拟的 Redis 客户端，方便我们在测试过程中替换 Redis 外部依赖。</p>
+<p>但有些时候，我们可能找不到这种现成的第三方包。<code>Testcontainers</code> 库则为我们提供了另一种解决方案，运行一个真实的容器，以此来提供 Redis 服务。</p>
+<p>不过，虽然 <code>Testcontainers</code> 足够强大，但不到万不得已，不推荐使用。毕竟我们又引入了容器这个外部依赖，如果网络情况不好，如何拉取 Redis 镜像也是需要解决的问题。</p>
+<p>更好的解决办法，是我们在编写代码时，就要考虑如何写出可测试的代码，好的代码设计，能够大大降低编写测试的难度。</p>
+<p>本文完整代码示例我放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/redis" target="_blank" rel="noopener">GitHub</a> 上，欢迎点击查看。</p>
+<p>希望此文能对你有所帮助。</p>
+<p><strong>联系我</strong></p>
+<ul>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客地址：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+<p><strong>参考</strong></p>
+<ul>
+<li>Redis client for Go：<a href="https://github.com/redis/go-redis" target="_blank" rel="noopener">https://github.com/redis/go-redis</a></li>
+<li>Redis client Mock：<a href="https://github.com/go-redis/redismock" target="_blank" rel="noopener">https://github.com/go-redis/redismock</a></li>
+<li>Testcontainers：<a href="https://github.com/testcontainers/testcontainers-go" target="_blank" rel="noopener">https://github.com/testcontainers/testcontainers-go</a></li>
+<li>Testcontainers 文档：<a href="https://golang.testcontainers.org/quickstart/" target="_blank" rel="noopener">https://golang.testcontainers.org/quickstart/</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:13.020Z" itemprop="dateUpdated">2025-02-15 09:45:13</time>
+</span><br>
+
+
+        
+        <a href="/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Test/" rel="tag">Test</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/&title=《在 Go 语言单元测试中如何解决 Redis 存储依赖问题》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/&title=《在 Go 语言单元测试中如何解决 Redis 存储依赖问题》 — 江湖十年&source=在编写单元测试时，除了 MySQL 这个外部存储依赖，Redis 应该是另一个最为常见的外部存储依赖了。我在《在 Go 语言单元测试中如何解决 MySQL..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 语言单元测试中如何解决 Redis 存储依赖问题》 — 江湖十年&url=http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2023/07/19/how-to-resolve-file-dependencies-in-go-testing/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">在 Go 语言单元测试中如何解决文件依赖问题</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">在 Go 语言单元测试中如何解决 MySQL 存储依赖问题</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/&title=《在 Go 语言单元测试中如何解决 Redis 存储依赖问题》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/&title=《在 Go 语言单元测试中如何解决 Redis 存储依赖问题》 — 江湖十年&source=在编写单元测试时，除了 MySQL 这个外部存储依赖，Redis 应该是另一个最为常见的外部存储依赖了。我在《在 Go 语言单元测试中如何解决 MySQL..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《在 Go 语言单元测试中如何解决 Redis 存储依赖问题》 — 江湖十年&url=http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/07/18/how-to-resolve-redis-dependencies-in-go-testing/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

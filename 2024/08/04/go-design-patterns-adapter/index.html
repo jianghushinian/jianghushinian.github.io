@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>适配器模式在 Go 语言中的应用 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,设计模式">
+    <meta name="description" content="前段时间我负责对一个项目进行临时性的技术方案改造，用到了适配器模式，今天就来跟大家简单分享下适配器模式在 Go 语言中的应用。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="适配器模式在 Go 语言中的应用">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="前段时间我负责对一个项目进行临时性的技术方案改造，用到了适配器模式，今天就来跟大家简单分享下适配器模式在 Go 语言中的应用。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/adapter.jpeg">
+<meta property="article:published_time" content="2024-08-04T01:15:28.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.970Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="设计模式">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/adapter.jpeg">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">适配器模式在 Go 语言中的应用</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">适配器模式在 Go 语言中的应用</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-08-04T01:15:28.000Z" itemprop="datePublished" class="page-time">
+  2024-08-04
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#适配器模式"><span class="post-toc-number">1.</span> <span class="post-toc-text">适配器模式</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#生活中的适配器模式"><span class="post-toc-number">1.1.</span> <span class="post-toc-text">生活中的适配器模式</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Go-语言中的适配器模式"><span class="post-toc-number">1.2.</span> <span class="post-toc-text">Go 语言中的适配器模式</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#生产实践"><span class="post-toc-number">2.</span> <span class="post-toc-text">生产实践</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#多云管理平台的应用"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">多云管理平台的应用</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#模型训练平台的应用"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">模型训练平台的应用</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">3.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go-design-patterns-adapter"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">适配器模式在 Go 语言中的应用</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-08-04 09:15:28" datetime="2024-08-04T01:15:28.000Z"  itemprop="datePublished">2024-08-04</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>前段时间我负责对一个项目进行临时性的技术方案改造，用到了适配器模式，今天就来跟大家简单分享下适配器模式在 Go 语言中的应用。</p>
+<a id="more"></a>
+
+<h3 id="适配器模式"><a href="#适配器模式" class="headerlink" title="适配器模式"></a>适配器模式</h3><p>适配器模式（Adapter Pattern）是 23 种经典设计模式中的一种，属于行为型模式，<strong>它允许不兼容的接口协同工作</strong>。该模式通过创建一个适配器类，封装不兼容的接口，并对外提供一个兼容的接口。</p>
+<p><a href="https://book.douban.com/subject/34262305/" target="_blank" rel="noopener">《设计模式：可复用面向对象软件的基础》</a>一书中对适配器的意图定义如下：</p>
+<blockquote>
+<p>将一个类的接口转换成客户希望的另外一个接口。Adapter 模式使得原本由于接口不兼容而不能一起工作的那些类可以一起工作。</p>
+</blockquote>
+<p>这么说比较抽象，我来举一个现实生活中的例子，帮助你理解。</p>
+<h4 id="生活中的适配器模式"><a href="#生活中的适配器模式" class="headerlink" title="生活中的适配器模式"></a>生活中的适配器模式</h4><p>在现实生活中，我们平时使用的手机、电脑等充电器，实际上叫电源适配器（Power adapter）。</p>
+<p>下图中插座上有一个白色的电源适配器和一个黑色的普通插头：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="adapter.jpeg" alt="电源适配器" title="">
+                </div>
+                <div class="image-caption">电源适配器</div>
+            </figure>
+
+<p>因为手机和电脑无法直接接收 220V 交流电，一般只会接收如 9V3A 这种直流小电压输入才能进行充电。所以不能直接使用一个普通插头来为手机充电，而是需要使用电源适配器进行转换。</p>
+<p>这就是现实生活中的<strong>适配器模式</strong>。</p>
+<h4 id="Go-语言中的适配器模式"><a href="#Go-语言中的适配器模式" class="headerlink" title="Go 语言中的适配器模式"></a>Go 语言中的适配器模式</h4><p>那么在 Go 代码中如何实现适配器呢？我们以一个简单的支付系统作为示例进行讲解。</p>
+<p>比如，我们有一个支付的功能，核心代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// PaymentProcessor 是一个统一的支付接口</span></span><br><span class="line"><span class="keyword">type</span> PaymentProcessor <span class="keyword">interface</span> &#123;</span><br><span class="line">	Pay(amount <span class="keyword">float64</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// OldPaymentSystem 是旧的支付系统</span></span><br><span class="line"><span class="keyword">type</span> OldPaymentSystem <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ops *OldPaymentSystem)</span> <span class="title">Pay</span><span class="params">(amount <span class="keyword">float64</span>)</span></span> &#123;</span><br><span class="line">	fmt.Printf(<span class="string">"Processing payment of %.2f using old payment system\n"</span>, amount)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以这样使用：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 声明支付接口</span></span><br><span class="line"><span class="keyword">var</span> processor PaymentProcessor</span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用旧支付系统</span></span><br><span class="line">processor = &amp;OldPaymentSystem&#123;&#125;</span><br><span class="line">processor.Pay(<span class="number">100</span>)</span><br></pre></td></tr></table></figure>
+
+<p>现在我们需要接入一个新支付系统，核心代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewPaymentSystem 是新的支付系统</span></span><br><span class="line"><span class="keyword">type</span> NewPaymentSystem <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(nps *NewPaymentSystem)</span> <span class="title">MakePayment</span><span class="params">(amount <span class="keyword">float64</span>)</span></span> &#123;</span><br><span class="line">	fmt.Printf(<span class="string">"Making payment of %.2f using new payment system\n"</span>, amount)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>新的支付系统没有 <code>Pay</code> 方法，所以没有实现统一支付接口 <code>PaymentProcessor</code>。</p>
+<p>我们不能按照原来使用旧的支付系统的方式来使用新的支付系统：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">processor = &amp;NewPaymentSystem&#123;&#125;</span><br><span class="line">processor.Pay(<span class="number">100</span>)</span><br></pre></td></tr></table></figure>
+
+<p>这段代码是行不通的，会编译报错。</p>
+<p>因为 <code>NewPaymentSystem</code> 并没有实现 <code>PaymentProcessor</code> 接口，无法赋值给 <code>processor</code> 变量。</p>
+<p>此时，我们<strong>可以创建一个适配器，来解决此问题</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewPaymentAdapter 是新支付系统的适配器</span></span><br><span class="line"><span class="keyword">type</span> NewPaymentAdapter <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// 内部持有新支付系统</span></span><br><span class="line">	NewSystem *NewPaymentSystem</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(npa *NewPaymentAdapter)</span> <span class="title">Pay</span><span class="params">(amount <span class="keyword">float64</span>)</span></span> &#123;</span><br><span class="line">	npa.NewSystem.MakePayment(amount)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>定义 <code>NewPaymentAdapter</code> 作为新支付系统 <code>NewPaymentSystem</code> 的适配器，其内部持有新的支付系统 <code>NewPaymentSystem</code>，并为适配器定义 <code>Pay</code> 方法。</p>
+<p>有了适配器，我们就可以按照原来使用旧的支付系统的方式来使用新的支付系统了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 使用新支付系统</span></span><br><span class="line">newPayment := &amp;NewPaymentSystem&#123;&#125;</span><br><span class="line"><span class="comment">// 使用适配器模式</span></span><br><span class="line">processor = &amp;NewPaymentAdapter&#123;NewSystem: newPayment&#125;</span><br><span class="line">processor.Pay(<span class="number">200</span>)</span><br></pre></td></tr></table></figure>
+
+<p>因为适配器 <code>NewPaymentAdapter</code> 实现了 <code>PaymentProcessor</code> 接口，所以经过它包装的新支付系统 <code>NewPaymentSystem</code> 可以赋值给 <code>processor</code> 变量。</p>
+<p>在调用 <code>processor.Pay(200)</code> 时，<code>NewPaymentAdapter.Pay</code> 方法内部会调用 <code>npa.NewSystem.MakePayment(200)</code> 方法，将请求转发到新支付系统。</p>
+<p>我们也就实现了使用统一的支付接口，来完成使用新支付系统进行支付。</p>
+<p><strong>这里的 <code>NewPaymentAdapter</code> 就是适配器模式中的「适配器」</strong>。</p>
+<p><strong><code>NewPaymentAdapter</code> 实现了将不兼容的接口（<code>NewPaymentSystem</code>）转换为成客户希望的另外一个接口（<code>PaymentProcessor</code>），使得不兼容的二者可以协同工作</strong>。</p>
+<p>这就是一个简单的适配器模式在 Go 语言中的应用示例。</p>
+<h3 id="生产实践"><a href="#生产实践" class="headerlink" title="生产实践"></a>生产实践</h3><p>通过前文的描述，我们对适配器模式有了一定了解。</p>
+<p>接下来我带你看下我在生产实践过程中是如何使用适配器模式的。</p>
+<h4 id="多云管理平台的应用"><a href="#多云管理平台的应用" class="headerlink" title="多云管理平台的应用"></a>多云管理平台的应用</h4><p>我曾经参与开发过一个多云管理平台，这是一个用 Go 编写的管理多个第三方云主机的平台。可以在管理平台上操作如阿里云、腾讯云、AWS 等平台的云主机，实现创建、续费、删除等。</p>
+<p>每家云主机厂商都提供了非常方便的 Go SDK 来操作云主机，遗憾的是，每家的 SDK 接口又都不一样。</p>
+<p>为了统一操作，抹平不同云主机厂商之间 SDK 接口的差异，我们定义了如下接口：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Provider 定义云厂商统一接口</span></span><br><span class="line"><span class="keyword">type</span> Provider <span class="keyword">interface</span> &#123;</span><br><span class="line">	<span class="comment">// Type 返回 Provider 类型</span></span><br><span class="line">	Type() ProviderType</span><br><span class="line">	<span class="comment">// RunInstance 创建云主机</span></span><br><span class="line">	RunInstance(r *RunInstanceRequest) (*RunInstanceResponse, error)</span><br><span class="line">	<span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>NOTE: 这里我仅列出接口的了 <code>Type</code> 和 <code>RunInstance</code> 两个方法，代码意图不变。</p>
+</blockquote>
+<p>所有云主机相关操作，都必须遵循 <code>Provider</code> 接口。</p>
+<p>为了区分不同云主机厂商类型，我们还需要为每个云主机厂商定义一个常量：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> ProviderType <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	ProviderTypeAliyun  ProviderType = <span class="string">"aliyun"</span></span><br><span class="line">	ProviderTypeTencent ProviderType = <span class="string">"tencent"</span></span><br><span class="line">	<span class="comment">// ...</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>接下来就要为每一个云主机厂商都各自封装一个 <code>XxxProvider</code> 来适配 <code>Provider</code> 接口。</p>
+<p>阿里云 <code>Provider</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// AliCloudProvider 阿里云 Provider</span></span><br><span class="line"><span class="keyword">type</span> AliCloudProvider <span class="keyword">struct</span> &#123;</span><br><span class="line">	typ ProviderType</span><br><span class="line">	<span class="comment">// 包装 alibaba-cloud-sdk-go</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewAliCloudProvider</span><span class="params">(typ ProviderType)</span> *<span class="title">AliCloudProvider</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;AliCloudProvider&#123;</span><br><span class="line">		typ: typ,</span><br><span class="line">		<span class="comment">// ...</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a AliCloudProvider)</span> <span class="title">Type</span><span class="params">()</span> <span class="title">ProviderType</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> a.typ</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// RunInstance https://help.aliyun.com/zh/ecs/developer-reference/api-ecs-2014-05-26-runinstances</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a AliCloudProvider)</span> <span class="title">RunInstance</span><span class="params">(r *RunInstanceRequest)</span> <span class="params">(*RunInstanceResponse, error)</span></span> &#123;</span><br><span class="line">	<span class="built_in">panic</span>(<span class="string">"implement me"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>AliCloudProvider</code> 是对阿里云提供的 <code>alibaba-cloud-sdk-go</code> 的包装，其实现了 <code>Provider</code> 接口，并将 <code>Provider</code> 所有方法转换成对 <code>alibaba-cloud-sdk-go</code> 的调用。</p>
+<p>腾讯云 <code>Provider</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// TencentCloudProvider 腾讯云 Provider</span></span><br><span class="line"><span class="keyword">type</span> TencentCloudProvider <span class="keyword">struct</span> &#123;</span><br><span class="line">	typ ProviderType</span><br><span class="line">	<span class="comment">// 包装 tencentcloud-sdk-go</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewTencentCloudProvider</span><span class="params">(typ ProviderType)</span> *<span class="title">TencentCloudProvider</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;TencentCloudProvider&#123;</span><br><span class="line">		typ: typ,</span><br><span class="line">		<span class="comment">// ...</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t TencentCloudProvider)</span> <span class="title">Type</span><span class="params">()</span> <span class="title">ProviderType</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> t.typ</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// RunInstance https://cloud.tencent.com/document/api/213/15730</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t TencentCloudProvider)</span> <span class="title">RunInstance</span><span class="params">(r *RunInstanceRequest)</span> <span class="params">(*RunInstanceResponse, error)</span></span> &#123;</span><br><span class="line">	<span class="built_in">panic</span>(<span class="string">"implement me"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>同理，<code>TencentCloudProvider</code> 是对腾讯云提供的 <code>tencentcloud-sdk-go</code> 的包装，其实现了 <code>Provider</code> 接口，并将 <code>Provider</code> 所有方法转换成对 <code>tencentcloud-sdk-go</code> 的调用。</p>
+<p>定义 <code>Provider</code> 构造函数如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewProvider</span><span class="params">(typ ProviderType)</span> <span class="title">Provider</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> typ &#123;</span><br><span class="line">	<span class="keyword">case</span> ProviderTypeAliyun:</span><br><span class="line">		<span class="keyword">return</span> NewAliCloudProvider(typ)</span><br><span class="line">	<span class="keyword">case</span> ProviderTypeTencent:</span><br><span class="line">		<span class="keyword">return</span> NewTencentCloudProvider(typ)</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"unknown provider"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在使用时，我们可以根据多云管理平台前端用户选择的不同云主机厂商 <code>ProviderType</code>，来构造不同的 <code>Provider</code> 对象，然后去操作云主机，实现创建、删除等。</p>
+<p>使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> p Provider</span><br><span class="line"></span><br><span class="line"><span class="comment">// 阿里云</span></span><br><span class="line">p = NewProvider(ProviderTypeAliyun)</span><br><span class="line">resp, err := p.RunInstance(&amp;RunInstanceRequest&#123;&#125;)</span><br><span class="line">fmt.Println(resp, err)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 腾讯云</span></span><br><span class="line">p = NewProvider(ProviderTypeTencent)</span><br><span class="line">resp, err = p.RunInstance(&amp;RunInstanceRequest&#123;&#125;)</span><br><span class="line">fmt.Println(resp, err)</span><br></pre></td></tr></table></figure>
+
+<p>以上，就是我从多云管理平台生产实践中抽离出来的适配器模式使用示例。</p>
+<p>这里去掉了业务逻辑，仅保留了代码整体思路。这个示例中适配器代码的命名并没有使用 <code>Adapter</code>，但这其实也是一种适配器模式。</p>
+<p><code>AliCloudProvider</code> 和 <code>TencentCloudProvider</code> 都是适配器，它们分别包装了阿里云和腾讯云的 SDK，然后适配云厂商统一操作接口 <code>Provider</code>。</p>
+<p>在使用时，可以根据需要，指定 <code>ProviderType</code> 构造不同类型的 <code>Provider</code>，然后操作对应厂商的云主机。</p>
+<h4 id="模型训练平台的应用"><a href="#模型训练平台的应用" class="headerlink" title="模型训练平台的应用"></a>模型训练平台的应用</h4><p>再举一个我在生产实践中使用适配器模式的例子。</p>
+<p>前段时间我负责对一个项目进行临时性的技术方案改造，就用到了适配器模式。</p>
+<p>这是一个支持大语言模型训练和推理的综合平台，本小结以部署模型推理任务为例进行讲解。</p>
+<p>部署推理任务步骤如下：</p>
+<ol>
+<li><p>构造推理任务的 Kubernetes <code>Deployment</code> 资源。</p>
+</li>
+<li><p>部署推理任务 <code>Deployment</code> 到 Kubernetes 集群。</p>
+</li>
+</ol>
+<p>示例代码大致如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> appsv1 <span class="string">"k8s.io/api/apps/v1"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">BuildDeployment</span><span class="params">()</span> *<span class="title">appsv1</span>.<span class="title">Deployment</span></span> &#123;</span><br><span class="line">	<span class="comment">// ...</span></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DeployPredictService</span><span class="params">(deployment *appsv1.Deployment)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// ...</span></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>BuildDeployment</code> 用于构造 <code>Deployment</code> 资源对象。</p>
+<p><code>DeployPredictService</code> 用于将这个 <code>Deployment</code> 资源对象部署到 Kubernetes 中，来启动模型推理服务。</p>
+<p>所以部署模型推理服务代码流程如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">deployment := BuildDeployment()</span><br><span class="line">err := DeployPredictService(deployment)</span><br><span class="line">fmt.Println(err)</span><br></pre></td></tr></table></figure>
+
+<p>现在要对这个平台代码进行临时性改造，需要新建一个 <code>feature</code> 分支，使用微软开源的 <a href="https://github.com/microsoft/pai" target="_blank" rel="noopener">OpenPAI</a> 平台来部署模型推理服务，而不再直接使用 Kubernetes <code>Deployment</code> 资源进行部署。</p>
+<blockquote>
+<p>NOTE: OpenPAI 是一个提供完整的人工智能模型训练和资源管理能力开源平台，它易于扩展，支持各种规模的 on-premise、on-cloud 和混合环境。</p>
+</blockquote>
+<p>OpenPAI 平台有自己的 CRD（Custom Resource Definition）来定义和管理部署资源，并且 OpenPAI 提供了 RESTful 接口，可以创建 CR（Custom Resource） 来生成 OpenPAI 的资源对象。</p>
+<p>因为是临时性的改造，未来有很大不确定性，并且旧有代码经过多人次维护，结构变来变去早已成为屎山，借着这一次的需求改造，索性引入适配器模式，来规范代码结构。</p>
+<p>首先，抽象出一个模型推理任务统一操作接口 <code>Predictor</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Predictor <span class="keyword">interface</span> &#123;</span><br><span class="line">	Deploy(deployment *appsv1.Deployment) error</span><br><span class="line">	Scale(namespace, name <span class="keyword">string</span>, replicas <span class="keyword">int</span>) error</span><br><span class="line">	Delete(namespace, name <span class="keyword">string</span>) error</span><br><span class="line">	<span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Predictor</code> 接口定义了模型推理服务的所有操作，包括部署、伸缩、删除等。</p>
+<p>然后为 OpenPAI 提供一个适配器来适配 <code>Predictor</code> 接口：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> OpenPAIAdapter <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// ...</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewOpenPAIAdapter</span><span class="params">()</span> *<span class="title">OpenPAIAdapter</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;OpenPAIAdapter&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *OpenPAIAdapter)</span> <span class="title">Deploy</span><span class="params">(deployment *appsv1.Deployment)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// 将 K8s Deployment 资源转换成 OpenPAI 的 RESTful 接口调用</span></span><br><span class="line">	<span class="built_in">panic</span>(<span class="string">"implement me"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *OpenPAIAdapter)</span> <span class="title">Scale</span><span class="params">(namespace, name <span class="keyword">string</span>, replicas <span class="keyword">int</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="built_in">panic</span>(<span class="string">"implement me"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *OpenPAIAdapter)</span> <span class="title">Delete</span><span class="params">(namespace, name <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="built_in">panic</span>(<span class="string">"implement me"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以在 <code>OpenPAIAdapter</code> 的每个方法中，将对 Kubernetes <code>Deployment</code> 资源的每种操作，转换成对应的 OpenPAI 的 RESTful 接口调用。</p>
+<p>使用 <code>OpenPAIAdapter</code> 适配器部署模型推理服务代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 推理任务统一接口</span></span><br><span class="line"><span class="keyword">var</span> predictor Predictor</span><br><span class="line"></span><br><span class="line"><span class="comment">// 根据业务逻辑构造不同的适配器</span></span><br><span class="line"><span class="comment">// switch expr &#123;</span></span><br><span class="line"><span class="comment">// case:</span></span><br><span class="line">predictor = NewOpenPAIAdapter()</span><br><span class="line"><span class="comment">// &#125;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 部署推理服务</span></span><br><span class="line">deployment := BuildDeployment()</span><br><span class="line">err := predictor.Deploy(deployment)</span><br><span class="line">fmt.Println(err)</span><br></pre></td></tr></table></figure>
+
+<p>通过引入适配器模式，来支撑 OpenPAI 资源的部署，能够最小化改动代码，且定义统一的规范。</p>
+<p>这里 <code>Predictor</code> 接口其实是围绕着 Kubernetes <code>Deployment</code> 资源的操作来定义的。</p>
+<p>之所以这样定义，实际上是为了对代码只做最小化改动。因为之前的代码全部都是围绕一个 <code>Deployment</code> 资源来写的，且开发周期有限，抽象出 <code>Predictor</code> 接口已经足以引入适配器模式，以此来方便部署 OpenPAI 资源。</p>
+<p>并且，将来哪一天想要改回来，再次使用 Kubernetes <code>Deployment</code> 资源部署模型推理服务，只需要将旧代码也进行适配，写一个 <code>DeploymentAdapter</code> 适配器即可。</p>
+<p>以后可能还会对接其他平台，都可以参照 <code>OpenPAIAdapter</code> 来设计新的适配器。</p>
+<p>以上，同样是我从生产实践中抽离出来的适配器模式使用示例。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文主要介绍了什么是适配器模式，以及适配器模式在 Go 语言中的应用。</p>
+<p>既然这个设计模式叫「适配器」模式，那么其作用必然是为了适配，更多的时候是<strong>作为一种事后补偿机制</strong>。所以其实这个设计模式往往并不是首选。</p>
+<p>我列举的适配器模式应用场景，都是我在生产实践中的探索。</p>
+<p>在讲解什么是适配器模式的示例中，为了兼容旧版本支付接口，我们将新版本支付接口做了修改，对旧版本支付接口进行适配，这其实就是一种所谓的事后补偿机制。</p>
+<p>在多云管理平台使用示例中，适配器模式的应用属于统一多个外部系统编程接口。还有一种场景最为常见，就是对接多个第三方支付系统，如支付宝、微信等。</p>
+<p>在模型训练平台使用示例中，适配器模式的应用场景属于替换依赖的外部系统，当我们把项目中依赖的一个外部系统替换为另一个外部系统的时候，使用适配器模式，可以减少对代码的改动。</p>
+<p>本文介绍的这几种应用场景算是适配器模式典型的使用场景了。</p>
+<p>你认为适配器模式还有哪些应用场景，可以一起交流学习。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/design-patterns/adapter" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>《设计模式：可复用面向对象软件的基础》：<a href="https://book.douban.com/subject/34262305/" target="_blank" rel="noopener">https://book.douban.com/subject/34262305/</a></li>
+<li>51 | 适配器模式：代理、适配器、桥接、装饰，这四个模式有何区别？：<a href="https://time.geekbang.org/column/article/205912" target="_blank" rel="noopener">https://time.geekbang.org/column/article/205912</a></li>
+<li>Kubernetes 中的 Adapter 示例：<a href="https://github.com/kubernetes/kubernetes/blob/v1.30.0/pkg/controller/replication/conversion.go#L56" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.30.0/pkg/controller/replication/conversion.go#L56</a></li>
+<li>Go 常见设计模式之选项模式：<a href="https://jianghushinian.cn/2021/12/12/Golang-常见设计模式之选项模式/" target="_blank" rel="noopener">https://jianghushinian.cn/2021/12/12/Golang-常见设计模式之选项模式/</a></li>
+<li>Go 常见设计模式之装饰模式：<a href="https://jianghushinian.cn/2022/02/28/Golang-常见设计模式之装饰模式/" target="_blank" rel="noopener">https://jianghushinian.cn/2022/02/28/Golang-常见设计模式之装饰模式/</a></li>
+<li>Go 常见设计模式之单例模式：<a href="https://jianghushinian.cn/2022/03/04/Golang-常见设计模式之单例模式/" target="_blank" rel="noopener">https://jianghushinian.cn/2022/03/04/Golang-常见设计模式之单例模式/</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/design-patterns/adapter" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/design-patterns/adapter</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.970Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2024/08/04/go-design-patterns-adapter/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" rel="tag">设计模式</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/&title=《适配器模式在 Go 语言中的应用》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/&title=《适配器模式在 Go 语言中的应用》 — 江湖十年&source=前段时间我负责对一个项目进行临时性的技术方案改造，用到了适配器模式，今天就来跟大家简单分享下适配器模式在 Go 语言中的应用。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《适配器模式在 Go 语言中的应用》 — 江湖十年&url=http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2024/08/10/k8s-dev-shm/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">K8s 如何设置容器 /dev/shm 控制共享内存大小</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/07/28/struct-encoding-json/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">在 Go 中如何使用反射实现简易版 encoding/json</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/&title=《适配器模式在 Go 语言中的应用》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/&title=《适配器模式在 Go 语言中的应用》 — 江湖十年&source=前段时间我负责对一个项目进行临时性的技术方案改造，用到了适配器模式，今天就来跟大家简单分享下适配器模式在 Go 语言中的应用。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《适配器模式在 Go 语言中的应用》 — 江湖十年&url=http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/08/04/go-design-patterns-adapter/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

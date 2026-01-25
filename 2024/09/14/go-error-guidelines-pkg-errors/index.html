@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 错误处理指北：pkg/errors 源码解读 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,Error">
+    <meta name="description" content="pkg&#x2F;errors 包在 Go 错误处理生态中可谓大名鼎鼎了，截止目前在 GitHub 上有 8.2k 的 star 量。虽然不是 Go 官方包，但却被很多团队当作事实标准来使用。 本文就来深入到 pkg&#x2F;errors 包源码中，一窥它的设计与实现。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 错误处理指北：pkg&#x2F;errors 源码解读">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="pkg&#x2F;errors 包在 Go 错误处理生态中可谓大名鼎鼎了，截止目前在 GitHub 上有 8.2k 的 star 量。虽然不是 Go 官方包，但却被很多团队当作事实标准来使用。 本文就来深入到 pkg&#x2F;errors 包源码中，一窥它的设计与实现。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-09-13T23:54:51.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.981Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="Error">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 错误处理指北：pkg/errors 源码解读</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 错误处理指北：pkg/errors 源码解读</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-09-13T23:54:51.000Z" itemprop="datePublished" class="page-time">
+  2024-09-14
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Go-错误处理诉求"><span class="post-toc-number">1.</span> <span class="post-toc-text">Go 错误处理诉求</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#pkg-errors-源码解读"><span class="post-toc-number">2.</span> <span class="post-toc-text">pkg&#x2F;errors 源码解读</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#errors-go"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">errors.go</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#go113-go"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">go113.go</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#stack-go"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">stack.go</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">3.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go-error-guidelines-pkg-errors"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 错误处理指北：pkg/errors 源码解读</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-09-14 07:54:51" datetime="2024-09-13T23:54:51.000Z"  itemprop="datePublished">2024-09-14</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p><code>pkg/errors</code> 包在 Go 错误处理生态中可谓大名鼎鼎了，截止目前在 <a href="https://github.com/pkg/errors" target="_blank" rel="noopener">GitHub</a> 上有 8.2k 的 star 量。虽然不是 Go 官方包，但却被很多团队当作事实标准来使用。</p>
+<p>本文就来深入到 <code>pkg/errors</code> 包源码中，一窥它的设计与实现。</p>
+<a id="more"></a>
+
+<h3 id="Go-错误处理诉求"><a href="#Go-错误处理诉求" class="headerlink" title="Go 错误处理诉求"></a>Go 错误处理诉求</h3><p>Go 语言的错误处理非常简单，秉承着 <a href="https://go.dev/blog/errors-are-values" target="_blank" rel="noopener">Errors are values</a> 的大道至简风格。不过也正是由于简单，也就暴露了 Go 错误处理的些许简陋。</p>
+<p>在日常开发中，我们对于错误处理会有两个最普遍的诉求：</p>
+<ol>
+<li>附加错误信息：在拿到原有的底层代码或第三方库返回的错误后，我们可能希望附加一些业务信息，比如 <code>userID</code>，这样就知道这条错误是由哪个用户产生的。</li>
+<li>附加错误堆栈：因为错误堆栈中有出错代码的位置，以及整个调用链路，这会方便我们定位问题。</li>
+</ol>
+<p>在错误中附加了这两个信息以后，输出的错误日志就非常有价值了，我们可以根据输出信息快速定位问题。</p>
+<p>在 Go 1.13 版本之前，给一个错误附加错误信息可以这样做：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">newErr := fmt.Errorf(<span class="string">"user %d is err: %s"</span>, userID, err)</span><br></pre></td></tr></table></figure>
+
+<p>不过，这里存在一个较大的问题，就是新的错误 <code>newErr</code> 与原来的 <code>err</code> 是<strong>两个完全不同的值</strong>，有时候我们想通过 <code>newErr</code> 找到错误的原始根因 <code>err</code>，就没办法了。</p>
+<p>好在 <a href="https://tip.golang.org/doc/go1.13#error_wrapping" target="_blank" rel="noopener">Go 1.13</a> 版本为 <code>fmt.Errorf</code> 提供了 <code>%w</code> 动词，能给解决无法通过 <code>newErr</code> 找到 <code>err</code> 的问题，我们只需要把原来的 <code>%s</code> 换成 <code>%w</code> 即可：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">newErr := fmt.Errorf(<span class="string">"user %d is err: %w"</span>, userID, err)</span><br></pre></td></tr></table></figure>
+
+<p>这样，我们就可以用 <code>err = errors.Unwrap(newErr)</code> 拿到错误根因 <code>err</code> 了。</p>
+<p>但是，Go 依然没有提供获取错误堆栈信息的方法，只能我们自己想办法解决。</p>
+<p>幸运的是，以上这两个问题 <code>pkg/errors</code> 包都可以帮我们解决。</p>
+<p><code>pkg/errors</code> 包使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/pkg/errors"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">a</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// 初始错误</span></span><br><span class="line">	<span class="keyword">return</span> errors.New(<span class="string">"a error"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">b</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	err := a()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// 包装新的错误并返回</span></span><br><span class="line">		newErr := errors.WithMessage(err, <span class="string">"b error"</span>)</span><br><span class="line">		<span class="comment">// newErr := errors.Wrap(err, "b error")</span></span><br><span class="line"></span><br><span class="line">		<span class="comment">// 可以从包装后的错误中还原出初始错误</span></span><br><span class="line">		fmt.Printf(<span class="string">"newErr cause == err: %t\n"</span>, errors.Cause(newErr) == err)</span><br><span class="line"></span><br><span class="line">		<span class="keyword">return</span> newErr</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := b()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// %v 打印错误信息</span></span><br><span class="line">		fmt.Printf(<span class="string">"%v\n"</span>, err)</span><br><span class="line"></span><br><span class="line">		fmt.Println(<span class="string">"============================================"</span>)</span><br><span class="line"></span><br><span class="line">		<span class="comment">// %+v 打印错误信息和错误堆栈</span></span><br><span class="line">		fmt.Printf(<span class="string">"%+v\n"</span>, err)</span><br><span class="line"></span><br><span class="line">		fmt.Println(<span class="string">"============================================"</span>)</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 打印错误根因</span></span><br><span class="line">		fmt.Printf(<span class="string">"%v\n"</span>, errors.Cause(err))</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Println(<span class="string">"success"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>示例代码中，函数调用链为：<code>main() -&gt; b() -&gt; a()</code>。</p>
+<p>函数 <code>a</code> 直接返回一个错误 <code>errors.New(&quot;a error&quot;)</code>。函数 <code>b</code> 在得到错误后，对其进行了包装，附加了新的错误信息 <code>newErr := errors.WithMessage(err, &quot;b error&quot;)</code>，使用 <code>errors.Cause(newErr)</code> 可以从包装后的错误中还原出初始的错误根因。最后在 <code>main</code> 函数中，我们分别以不同形式打印了三次错误信息，<code>%v</code> 动词可以打印错误信息，<code>%+v</code> 可以打印错误信息和错误堆栈。</p>
+<blockquote>
+<p>NOTE:<br>示例代码中有一行被注释了 <code>newErr := errors.Wrap(err, &quot;b error&quot;)</code>，你可以自行尝试下如果使用 <code>errors.Wrap</code> 来包装 <code>err</code>，最终程序输出结果有何变化。</p>
+</blockquote>
+<p>执行示例代码，输出结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">newErr cause == err: <span class="literal">true</span></span><br><span class="line">b error: a error</span><br><span class="line">============================================</span><br><span class="line">a error</span><br><span class="line">main.a</span><br><span class="line">        /go/blog-go-example/error/pkg-errors/main.go:11</span><br><span class="line">main.b</span><br><span class="line">        /go/blog-go-example/error/pkg-errors/main.go:15</span><br><span class="line">main.main</span><br><span class="line">        /go/blog-go-example/error/pkg-errors/main.go:30</span><br><span class="line">runtime.main</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.7.darwin-arm64/src/runtime/proc.go:271</span><br><span class="line">runtime.goexit</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.7.darwin-arm64/src/runtime/asm_arm64.s:1222</span><br><span class="line">b error</span><br><span class="line">============================================</span><br><span class="line">a error</span><br></pre></td></tr></table></figure>
+
+<p>输出结果一目了然，使用 <code>errors.Cause(newErr)</code> 拿到的错误根因就是 <code>err</code>。使用 <code>errors.WithMessage(err, &quot;b error&quot;)</code> 对 <code>err</code> 包装后得到的 <code>newErr</code> 使用 <code>%v</code> 输出结果为 <code>b error: a error</code>，而使用 <code>%+v</code> 输出结果则包含了整个错误调用链的堆栈信息。</p>
+<p>这就是 <code>pkg/errors</code> 的“威力”，非常好用。</p>
+<p>虽然由于 <a href="https://go.googlesource.com/proposal/+/master/design/go2draft.md" target="_blank" rel="noopener">Go 2 错误提案</a> 的存在，现在 <code>pkg/errors</code> 包 <a href="https://github.com/pkg/errors" target="_blank" rel="noopener">GitHub</a> 仓库已经归档，但等待 Go 2 演进的路上遥遥无期，<code>pkg/errors</code> 包依然是最有竞争力的选择。</p>
+<p>所以 <code>pkg/errors</code> 仍然推荐使用，并且源码也值得一读。</p>
+<h3 id="pkg-errors-源码解读"><a href="#pkg-errors-源码解读" class="headerlink" title="pkg/errors 源码解读"></a>pkg/errors 源码解读</h3><p><code>pkg/errors</code> 提供了这些公开函数供我们使用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ go doc pkg/errors | grep <span class="string">"^func"</span></span><br><span class="line"><span class="built_in">functions</span> destructure errors.Wrap into its component operations: annotating an</span><br><span class="line">func As(err error, target interface&#123;&#125;) bool</span><br><span class="line">func Cause(err error) error</span><br><span class="line">func Errorf(format string, args ...interface&#123;&#125;) error</span><br><span class="line">func Is(err, target error) bool</span><br><span class="line">func New(message string) error</span><br><span class="line">func Unwrap(err error) error</span><br><span class="line">func WithMessage(err error, message string) error</span><br><span class="line">func WithMessagef(err error, format string, args ...interface&#123;&#125;) error</span><br><span class="line">func WithStack(err error) error</span><br><span class="line">func Wrap(err error, message string) error</span><br><span class="line">func Wrapf(err error, format string, args ...interface&#123;&#125;) error</span><br></pre></td></tr></table></figure>
+
+<p>这些函数的用法，我就不一一演示了，先有个印象，讲解完源码以后，你自己就会用了。</p>
+<p>接下来我们一起对源码进行详细解读，看看 <code>pkg/errors</code> 底层到底是如何实现的。</p>
+<p><code>pkg/errors</code> 项目目录结构如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ tree github.com/pkg/errors@v0.9.1</span><br><span class="line">errors</span><br><span class="line">├── LICENSE</span><br><span class="line">├── Makefile</span><br><span class="line">├── README.md</span><br><span class="line">├── appveyor.yml</span><br><span class="line">├── bench_test.go</span><br><span class="line">├── errors.go</span><br><span class="line">├── errors_test.go</span><br><span class="line">├── example_test.go</span><br><span class="line">├── format_test.go</span><br><span class="line">├── go113.go</span><br><span class="line">├── go113_test.go</span><br><span class="line">├── json_test.go</span><br><span class="line">├── stack.go</span><br><span class="line">└── stack_test.go</span><br><span class="line"></span><br><span class="line">1 directory, 14 files</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，此项目采用平铺式目录结构，除了非 Go 代码文件以及测试文件，我们需要关注的 Go 文件就仅有 3 个：<code>errors.go</code>、<code>go113.go</code> 以及 <code>stack.go</code>。</p>
+<p>看到这里，你也就可以放宽心了，<code>pkg/errors</code> 包源码其实并没有多少。</p>
+<h4 id="errors-go"><a href="#errors-go" class="headerlink" title="errors.go"></a>errors.go</h4><p>我们先来看 <code>errors.go</code> 文件。</p>
+<p>这个文件中的代码量并不多，即使算上全部的注释，也才不到 <code>300</code> 行。</p>
+<p><code>pkg/errors</code> 提供的第一个表示错误的结构体 <code>fundamental</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(message <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;fundamental&#123;</span><br><span class="line">		msg:   message,</span><br><span class="line">		stack: callers(),</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Errorf</span><span class="params">(format <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;fundamental&#123;</span><br><span class="line">		msg:   fmt.Sprintf(format, args...),</span><br><span class="line">		stack: callers(),</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> fundamental <span class="keyword">struct</span> &#123;</span><br><span class="line">	msg <span class="keyword">string</span></span><br><span class="line">	*stack</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *fundamental)</span> <span class="title">Error</span><span class="params">()</span> <span class="title">string</span></span> &#123; <span class="keyword">return</span> f.msg &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *fundamental)</span> <span class="title">Format</span><span class="params">(s fmt.State, verb <span class="keyword">rune</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> verb &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'v'</span>:</span><br><span class="line">		<span class="keyword">if</span> s.Flag(<span class="string">'+'</span>) &#123;</span><br><span class="line">			io.WriteString(s, f.msg)</span><br><span class="line">			f.stack.Format(s, verb)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">fallthrough</span></span><br><span class="line">	<span class="keyword">case</span> <span class="string">'s'</span>:</span><br><span class="line">		io.WriteString(s, f.msg)</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'q'</span>:</span><br><span class="line">		fmt.Fprintf(s, <span class="string">"%q"</span>, f.msg)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>fundamental</code> 结构体定义非常简单，仅有两个字段：</p>
+<ul>
+<li><code>msg</code> 用来记录错误信息。</li>
+<li>指针字段 <code>*stack</code> 用来记录出错时的错误堆栈信息。这里我们现在仅需要知道 <code>*stack</code> 是什么即可，暂且不去深究它的底层实现。</li>
+</ul>
+<p>有两个函数都可以构造 <code>fundamental</code> 类型的错误：</p>
+<ul>
+<li><code>New</code> 函数通过错误信息 <code>message</code> 来构造错误对象，并在内部调用 <code>callers()</code> 获取错误堆栈。</li>
+<li><code>Errorf</code> 函数接收变长参数，内部使用 <code>fmt.Sprintf</code> 来格式化错误信息。</li>
+</ul>
+<p><code>New</code> 其实对标的就是 Go 自带的 <code>errors.New()</code>，这两个函数签名相同。而 <code>Errorf</code> 对标的是 Go 自带的 <code>fmt.Errorf()</code>，两个函数签名也相同。</p>
+<p><code>pkg/errors</code> 的函数命名还是比较考究的，与内置库同名。这样能够减少迁移成本，并且降低理解的心智负担。</p>
+<p><code>fundamental</code> 错误类还实现了两个方法 <code>Error</code> 和 <code>Format</code>。</p>
+<ul>
+<li><code>Error</code> 方法没什么好说的，就是用来实现标准的 <code>error</code> 接口。这里只返回了 <code>msg</code> 信息，没有对错误堆栈信息做任何处理。</li>
+<li><code>Format</code> 方法是格式化输出用的，实现了 <code>fmt.Formatter</code> 接口，而参数 <code>s fmt.State</code> 也是个接口。</li>
+</ul>
+<p>这两个接口定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Formatter <span class="keyword">interface</span> &#123;</span><br><span class="line">	Format(f State, verb <span class="keyword">rune</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> State <span class="keyword">interface</span> &#123;</span><br><span class="line">	Write(b []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">	Width() (wid <span class="keyword">int</span>, ok <span class="keyword">bool</span>)</span><br><span class="line">	Precision() (prec <span class="keyword">int</span>, ok <span class="keyword">bool</span>)</span><br><span class="line">	Flag(c <span class="keyword">int</span>) <span class="keyword">bool</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当我们使用 <code>fmt.Printf(&quot;%v\n&quot;, err)</code> 格式化打印错误对象信息时，就会调用 <code>err</code> 对象的 <code>Format</code> 方法。</p>
+<p><code>Format</code> 方法的参数 <code>s fmt.State</code> 又实现了 <code>io.Writer</code> 接口，我们向这个参数中写入的任何内容，都会被替换到 <code>%v</code> 占位符处。</p>
+<p>而通过 <code>verb</code> 参数，我们可以拿到 <code>fmt.Printf</code> 的格式化动词，就是 <code>%</code> 后面紧挨着的字符，比如 <code>%s</code>、<code>%v</code> 中的 <code>s</code> 和 <code>v</code>。</p>
+<p>有了 <code>verb</code> 就可以定制化不同输出了，<code>%v</code> 会被 <code>Format</code> 方法内部的第一个 <code>case</code> 匹配，如果是 <code>%+v</code> 则进入 <code>if s.Flag(&#39;+&#39;)</code> 逻辑。</p>
+<p>根据 <code>Format</code> 方法源码，可以总结 <code>fundamental</code> 类型错误输出格式有如下几种：</p>
+<table>
+<thead>
+<tr>
+<th>verb</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>%s</td>
+<td>错误信息</td>
+</tr>
+<tr>
+<td>%v</td>
+<td>错误信息</td>
+</tr>
+<tr>
+<td>%+v</td>
+<td>错误信息 + 堆栈信息</td>
+</tr>
+<tr>
+<td>%q</td>
+<td>转义后的错误信息</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>NOTE:<br>如果你对这几个 <code>verb</code> 不是很熟悉，可以查看 Go <a href="https://pkg.go.dev/fmt" target="_blank" rel="noopener">fmt 文档</a>。</p>
+</blockquote>
+<p>我们再来看下 <code>pkg/errors</code> 提供的第二个表示错误的结构体 <code>withStack</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithStack</span><span class="params">(err error)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;withStack&#123;</span><br><span class="line">		err,</span><br><span class="line">		callers(),</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> withStack <span class="keyword">struct</span> &#123;</span><br><span class="line">	error</span><br><span class="line">	*stack</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *withStack)</span> <span class="title">Cause</span><span class="params">()</span> <span class="title">error</span></span> &#123; <span class="keyword">return</span> w.error &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Unwrap provides compatibility for Go 1.13 error chains.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *withStack)</span> <span class="title">Unwrap</span><span class="params">()</span> <span class="title">error</span></span> &#123; <span class="keyword">return</span> w.error &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *withStack)</span> <span class="title">Format</span><span class="params">(s fmt.State, verb <span class="keyword">rune</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> verb &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'v'</span>:</span><br><span class="line">		<span class="keyword">if</span> s.Flag(<span class="string">'+'</span>) &#123;</span><br><span class="line">			fmt.Fprintf(s, <span class="string">"%+v"</span>, w.Cause())</span><br><span class="line">			w.stack.Format(s, verb)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">fallthrough</span></span><br><span class="line">	<span class="keyword">case</span> <span class="string">'s'</span>:</span><br><span class="line">		io.WriteString(s, w.Error())</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'q'</span>:</span><br><span class="line">		fmt.Fprintf(s, <span class="string">"%q"</span>, w.Error())</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>withStack</code> 结构体同样包含两个字段，分别是 <code>error</code> 和错误堆栈。顾名思义，这个结构体就是为了给一个错误对象，携带错误堆栈信息用的。</p>
+<p><code>WithStack</code> 构造函数也确实是干这件事的，它接收一个 <code>error</code>，并返回一个 <code>withStack</code> 类型错误，这时已经附加上了错误堆栈信息。</p>
+<p><code>withStack</code> 结构体的 <code>Cause</code> 方法返回 <code>error</code> 字段，表示错误根因，即 <code>withStack</code> 错误的初始原因。</p>
+<p>至于 <code>Unwrap</code> 方法，根据注释可以了解，是为了兼容 Go 1.13 而适配的方法，功能与 <code>Cause</code> 一样。</p>
+<p><code>withStack</code> 结构体同样定义了 <code>Format</code> 方法，这没什么好解释的了。</p>
+<p>总结 <code>withStack</code> 类型错误输出格式有如下几种：</p>
+<table>
+<thead>
+<tr>
+<th>verb</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>%s</td>
+<td>错误信息</td>
+</tr>
+<tr>
+<td>%v</td>
+<td>错误信息</td>
+</tr>
+<tr>
+<td>%+v</td>
+<td>错误根因 + 堆栈信息</td>
+</tr>
+<tr>
+<td>%q</td>
+<td>转义后的错误信息</td>
+</tr>
+</tbody></table>
+<p><code>pkg/errors</code> 提供的最后一个表示错误的结构体为 <code>withMessage</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithMessage</span><span class="params">(err error, message <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;withMessage&#123;</span><br><span class="line">		cause: err,</span><br><span class="line">		msg:   message,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithMessagef</span><span class="params">(err error, format <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;withMessage&#123;</span><br><span class="line">		cause: err,</span><br><span class="line">		msg:   fmt.Sprintf(format, args...),</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> withMessage <span class="keyword">struct</span> &#123;</span><br><span class="line">	cause error</span><br><span class="line">	msg   <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *withMessage)</span> <span class="title">Error</span><span class="params">()</span> <span class="title">string</span></span> &#123; <span class="keyword">return</span> w.msg + <span class="string">": "</span> + w.cause.Error() &#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *withMessage)</span> <span class="title">Cause</span><span class="params">()</span> <span class="title">error</span></span>  &#123; <span class="keyword">return</span> w.cause &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Unwrap provides compatibility for Go 1.13 error chains.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *withMessage)</span> <span class="title">Unwrap</span><span class="params">()</span> <span class="title">error</span></span> &#123; <span class="keyword">return</span> w.cause &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *withMessage)</span> <span class="title">Format</span><span class="params">(s fmt.State, verb <span class="keyword">rune</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> verb &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'v'</span>:</span><br><span class="line">		<span class="keyword">if</span> s.Flag(<span class="string">'+'</span>) &#123;</span><br><span class="line">			fmt.Fprintf(s, <span class="string">"%+v\n"</span>, w.Cause())</span><br><span class="line">			io.WriteString(s, w.msg)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">fallthrough</span></span><br><span class="line">	<span class="keyword">case</span> <span class="string">'s'</span>, <span class="string">'q'</span>:</span><br><span class="line">		io.WriteString(s, w.Error())</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>withMessage</code> 是给一个错误附加新的错误信息，这里并没有包含错误堆栈信息。</p>
+<p>它的方法功能一目了然，无需我多解释什么了。</p>
+<p>总结 <code>withMessage</code> 类型错误输出格式有如下几种：</p>
+<table>
+<thead>
+<tr>
+<th>verb</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>%s</td>
+<td>错误信息</td>
+</tr>
+<tr>
+<td>%v</td>
+<td>错误信息</td>
+</tr>
+<tr>
+<td>%+v</td>
+<td>错误根因 + 错误信息</td>
+</tr>
+<tr>
+<td>%q</td>
+<td>错误信息</td>
+</tr>
+</tbody></table>
+<p>现在我们将 <code>pkg/errors</code> 包提供的三种错误放在一起进行对比：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> fundamental <span class="keyword">struct</span> &#123;</span><br><span class="line">	msg <span class="keyword">string</span></span><br><span class="line">	*stack</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> withStack <span class="keyword">struct</span> &#123;</span><br><span class="line">	error</span><br><span class="line">	*stack</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> withMessage <span class="keyword">struct</span> &#123;</span><br><span class="line">	cause error</span><br><span class="line">	msg   <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，其实这三个错误就是 <code>error</code>、<code>msg</code> 以及 <code>stack</code> 三者的两两组合。</p>
+<p><code>error</code> 就是初始错误，<code>msg</code> 是附加的错误信息，<code>stack</code> 则是附加的堆栈信息。</p>
+<p>那么你可能会想，<code>pkg/errors</code> 包有没有提供将这三个信息放在一起的方法？</p>
+<p>当然有，<code>errors.go</code> 源码中剩下的最后三个函数定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Wrap</span><span class="params">(err error, message <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	err = &amp;withMessage&#123;</span><br><span class="line">		cause: err,</span><br><span class="line">		msg:   message,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;withStack&#123;</span><br><span class="line">		err,</span><br><span class="line">		callers(),</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Wrapf</span><span class="params">(err error, format <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	err = &amp;withMessage&#123;</span><br><span class="line">		cause: err,</span><br><span class="line">		msg:   fmt.Sprintf(format, args...),</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;withStack&#123;</span><br><span class="line">		err,</span><br><span class="line">		callers(),</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Cause</span><span class="params">(err error)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">type</span> causer <span class="keyword">interface</span> &#123;</span><br><span class="line">		Cause() error</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		cause, ok := err.(causer)</span><br><span class="line">		<span class="keyword">if</span> !ok &#123;</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">		err = cause.Cause()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Wrap</code> 函数，接收一个 <code>err</code>，和一个错误信息 <code>message</code>，如果 <code>err</code> 为 <code>nil</code>，直接返回，否则，先使用这两个信息构造 <code>withMessage</code> 错误类型，然后再用这个新的 <code>error</code> 对象和通过调用 <code>callers()</code> 得到的错误堆栈 <code>*stack</code> 一起构造一个新的 <code>withStack</code> 错误。</p>
+<p><code>Wrap</code> 函数最终返回的 <code>error</code> 就完整的包含了 <code>error</code>、<code>msg</code> 以及 <code>stack</code> 三个信息。</p>
+<p><code>Wrapf</code> 函数同理。</p>
+<p><code>Cause</code> 函数则用来递归的拆解嵌套错误，直到取出错误对象的最原始的错误，即错误根因。</p>
+<p>以上，就是 <code>errors.go</code> 文件的全部代码了。</p>
+<h4 id="go113-go"><a href="#go113-go" class="headerlink" title="go113.go"></a>go113.go</h4><p>然后我们再一起看看 <code>go113.go</code> 文件中的代码。</p>
+<p><code>go113.go</code> 文件源码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// +build go1.13</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> errors</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	stderrors <span class="string">"errors"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Is</span><span class="params">(err, target error)</span> <span class="title">bool</span></span> &#123; <span class="keyword">return</span> stderrors.Is(err, target) &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">As</span><span class="params">(err error, target <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">bool</span></span> &#123; <span class="keyword">return</span> stderrors.As(err, target) &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Unwrap</span><span class="params">(err error)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> stderrors.Unwrap(err)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>根据这个文件的名称，想必你也能猜测出来，这里的代码是与 Go 1.13 版本相关的，<a href="https://pkg.go.dev/cmd/go#hdr-Build_constraints" target="_blank" rel="noopener">构建约束</a> <code>// +build go1.13</code> 也证实了这一点。</p>
+<p><code>Is</code>、<code>As</code>、<code>Unwrap</code> 这三个函数都是 Go 1.13 版本引入的。</p>
+<ul>
+<li><code>Is</code> 函数用来判断两个错误是否为同一个，它用来替代 <code>==</code> 运算符。</li>
+<li><code>As</code> 用来替代错误断言。</li>
+<li><code>Unwrap</code> 用来解包错误，跟 <code>Cause</code> 函数作用相同。</li>
+</ul>
+<p>这个文件就是用来兼容 Go 1.13 的，并无其他额外功能。</p>
+<h4 id="stack-go"><a href="#stack-go" class="headerlink" title="stack.go"></a>stack.go</h4><p>接下来我们要阅读源码的文件就只剩下 <code>stack.go</code> 了。</p>
+<p>首先我们要看的就是在 <code>errors.go</code> 中见的最多的 <code>callers()</code> 函数调用，<code>callers</code> 函数就出自这个文件，来看看这个函数是怎么定义的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">callers</span><span class="params">()</span> *<span class="title">stack</span></span> &#123;</span><br><span class="line">	<span class="keyword">const</span> depth = <span class="number">32</span></span><br><span class="line">	<span class="keyword">var</span> pcs [depth]<span class="keyword">uintptr</span></span><br><span class="line">	n := runtime.Callers(<span class="number">3</span>, pcs[:])</span><br><span class="line">	<span class="keyword">var</span> st stack = pcs[<span class="number">0</span>:n]</span><br><span class="line">	<span class="keyword">return</span> &amp;st</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>callers</code> 函数内部使用 <code>runtime.Callers</code> 获取当前的调用栈信息。这在代码调试、生成错误报告、记录日志等场景非常有用。</p>
+<p><code>runtime.Callers</code> 函数签名如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Callers</span><span class="params">(skip <span class="keyword">int</span>, pc []<span class="keyword">uintptr</span>)</span> <span class="title">int</span></span></span><br></pre></td></tr></table></figure>
+
+<p><code>skip</code> 参数用于指定要跳过的栈帧数量。<code>0</code> 表示包括 <code>runtime.Callers</code> 自己的调用帧，<code>1</code> 表示从调用 <code>runtime.Callers</code> 的函数开始，依此类推。通常设置 <code>skip</code> 为 <code>1</code> 或更高，以跳过对错误检测或日志记录功能本身的调用。这里设为 <code>3</code> 表示跳过 <code>runtime.Callers</code>、<code>callers</code> 以及 <code>errors.go</code> 中定义的 <code>New</code>、<code>Errorf</code> 等函数调用帧。</p>
+<p><code>runtime.Callers</code> 函数会填充传递给它的指针切片 <code>pc []uintptr</code> 当前 goroutine 调用栈的程序计数器（PC）值。这个 <code>pc</code> 可以用于进一步获取关于每个栈帧的详细信息，例如通过 <code>runtime.FuncForPC</code> 函数获取函数名称、行号等，稍后会进行演示讲解。<code>pc</code> 切片的大小决定了可以捕获的栈帧的数量。</p>
+<p><code>runtime.Callers</code> 函数返回值是 <code>int</code> 类型，它记录填充到 <code>pc</code> 切片中的项目数。如果实际的调用栈比提供的 <code>pc</code> 长度短，返回值就小于 <code>pc</code> 切片的长度。</p>
+<p>所以，<code>stack</code> 类型的变量 <code>st</code> 的赋值操作，只取了 <code>pcs[0:n]</code>，<code>n</code> 是返回的切片长度。</p>
+<p>既然 <code>pcs</code> 切片变量能赋值给 <code>stack</code> 类型变量 <code>st</code>，就说明二者类型一致。</p>
+<p><code>stack</code> 类型的底层类型也确实是 <code>[]uintptr</code>，定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// stack represents a stack of program counters.</span></span><br><span class="line"><span class="keyword">type</span> stack []<span class="keyword">uintptr</span></span><br></pre></td></tr></table></figure>
+
+<p><code>stack</code> 支持的方法定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *stack)</span> <span class="title">Format</span><span class="params">(st fmt.State, verb <span class="keyword">rune</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> verb &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'v'</span>:</span><br><span class="line">		<span class="keyword">switch</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> st.Flag(<span class="string">'+'</span>):</span><br><span class="line">			<span class="keyword">for</span> _, pc := <span class="keyword">range</span> *s &#123;</span><br><span class="line">				f := Frame(pc)</span><br><span class="line">				fmt.Fprintf(st, <span class="string">"\n%+v"</span>, f)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *stack)</span> <span class="title">StackTrace</span><span class="params">()</span> <span class="title">StackTrace</span></span> &#123;</span><br><span class="line">	f := <span class="built_in">make</span>([]Frame, <span class="built_in">len</span>(*s))</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="built_in">len</span>(f); i++ &#123;</span><br><span class="line">		f[i] = Frame((*s)[i])</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> f</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>你是否记得 <code>Format</code> 方法，会在 <code>error.Format</code> 方法中被调用，回忆下 <code>errors.go</code> 中的代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *fundamental)</span> <span class="title">Format</span><span class="params">(s fmt.State, verb <span class="keyword">rune</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> verb &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'v'</span>:</span><br><span class="line">		<span class="keyword">if</span> s.Flag(<span class="string">'+'</span>) &#123;</span><br><span class="line">			io.WriteString(s, f.msg)</span><br><span class="line">			f.stack.Format(s, verb)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">fallthrough</span></span><br><span class="line">	<span class="keyword">case</span> <span class="string">'s'</span>:</span><br><span class="line">		io.WriteString(s, f.msg)</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'q'</span>:</span><br><span class="line">		fmt.Fprintf(s, <span class="string">"%q"</span>, f.msg)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>f.stack.Format(s, verb)</code> 就是调用了 <code>Format</code> 方法，可以发现 <code>stack.Format</code> 方法只有在使用 <code>%+v</code> 时才生效，这也与我们之前总结的错误输出格式所对应。</p>
+<p>在遇到 <code>%+v</code> 这个 <code>case</code> 时，程序会遍历 <code>stack</code> 切片中的每一项，即每一个栈帧，并且使用 <code>f := Frame(pc)</code> 将其包装成 <code>Frame</code> 类型，然后对其进行格式化输出 <code>fmt.Fprintf(st, &quot;\n%+v&quot;, f)</code>。</p>
+<p>所以我们要再看一下 <code>Frame</code> 是什么：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Frame represents a program counter inside a stack frame.</span></span><br><span class="line"><span class="comment">// For historical reasons if Frame is interpreted as a uintptr</span></span><br><span class="line"><span class="comment">// its value represents the program counter + 1.</span></span><br><span class="line"><span class="keyword">type</span> Frame <span class="keyword">uintptr</span></span><br></pre></td></tr></table></figure>
+
+<p>实际上 <code>Frame</code> 底层类型正是 <code>uintptr</code> 类型，所以可以直接通过 <code>Frame(pc)</code> 进行转换。</p>
+<p><code>Frame</code> 支持的方法定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f Frame)</span> <span class="title">pc</span><span class="params">()</span> <span class="title">uintptr</span></span> &#123; <span class="keyword">return</span> <span class="keyword">uintptr</span>(f) - <span class="number">1</span> &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f Frame)</span> <span class="title">file</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	fn := runtime.FuncForPC(f.pc())</span><br><span class="line">	<span class="keyword">if</span> fn == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="string">"unknown"</span></span><br><span class="line">	&#125;</span><br><span class="line">	file, _ := fn.FileLine(f.pc())</span><br><span class="line">	<span class="keyword">return</span> file</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f Frame)</span> <span class="title">line</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	fn := runtime.FuncForPC(f.pc())</span><br><span class="line">	<span class="keyword">if</span> fn == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line">	_, line := fn.FileLine(f.pc())</span><br><span class="line">	<span class="keyword">return</span> line</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f Frame)</span> <span class="title">name</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	fn := runtime.FuncForPC(f.pc())</span><br><span class="line">	<span class="keyword">if</span> fn == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="string">"unknown"</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> fn.Name()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Format formats the frame according to the fmt.Formatter interface.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//    %s    source file</span></span><br><span class="line"><span class="comment">//    %d    source line</span></span><br><span class="line"><span class="comment">//    %n    function name</span></span><br><span class="line"><span class="comment">//    %v    equivalent to %s:%d</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Format accepts flags that alter the printing of some verbs, as follows:</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//    %+s   function name and path of source file relative to the compile time</span></span><br><span class="line"><span class="comment">//          GOPATH separated by \n\t (&lt;funcname&gt;\n\t&lt;path&gt;)</span></span><br><span class="line"><span class="comment">//    %+v   equivalent to %+s:%d</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f Frame)</span> <span class="title">Format</span><span class="params">(s fmt.State, verb <span class="keyword">rune</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> verb &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'s'</span>:</span><br><span class="line">		<span class="keyword">switch</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> s.Flag(<span class="string">'+'</span>):</span><br><span class="line">			io.WriteString(s, f.name())</span><br><span class="line">			io.WriteString(s, <span class="string">"\n\t"</span>)</span><br><span class="line">			io.WriteString(s, f.file())</span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">			io.WriteString(s, path.Base(f.file()))</span><br><span class="line">		&#125;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'d'</span>:</span><br><span class="line">		io.WriteString(s, strconv.Itoa(f.line()))</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'n'</span>:</span><br><span class="line">		io.WriteString(s, funcname(f.name()))</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'v'</span>:</span><br><span class="line">		f.Format(s, <span class="string">'s'</span>)</span><br><span class="line">		io.WriteString(s, <span class="string">":"</span>)</span><br><span class="line">		f.Format(s, <span class="string">'d'</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f Frame)</span> <span class="title">MarshalText</span><span class="params">()</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span> &#123;</span><br><span class="line">	name := f.name()</span><br><span class="line">	<span class="keyword">if</span> name == <span class="string">"unknown"</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> []<span class="keyword">byte</span>(name), <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> []<span class="keyword">byte</span>(fmt.Sprintf(<span class="string">"%s %s:%d"</span>, name, f.file(), f.line())), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们重点关注 <code>Format</code> 方法，在 <code>stack.Format</code> 中执行 <code>fmt.Fprintf(st, &quot;\n%+v&quot;, f)</code> 时就会调用 <code>Frame.Format</code> 方法。</p>
+<p>结合注释我们很容易能总结出 <code>Frame</code> 类型输出格式有如下几种：</p>
+<table>
+<thead>
+<tr>
+<th>verb</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>%s</td>
+<td>源码所在文件路径</td>
+</tr>
+<tr>
+<td>%d</td>
+<td>源码行号</td>
+</tr>
+<tr>
+<td>%n</td>
+<td>函数名称</td>
+</tr>
+<tr>
+<td>%v</td>
+<td>等价于 <code>%s:%d</code></td>
+</tr>
+<tr>
+<td>%+s</td>
+<td>函数名称 + <code>\n\t</code> + 源码所在文件路径</td>
+</tr>
+<tr>
+<td>%n</td>
+<td>等价于 <code>%+s:%d</code></td>
+</tr>
+</tbody></table>
+<p>另外几个辅助函数我就不逐行解释了，我给你讲个示例，你就都明白了。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"runtime"</span></span><br><span class="line">	<span class="string">"strconv"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">printStack</span><span class="params">(skip <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> pcs [<span class="number">30</span>]<span class="keyword">uintptr</span></span><br><span class="line">	n := runtime.Callers(skip, pcs[:])</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; n; i++ &#123;</span><br><span class="line">		pc := pcs[i]</span><br><span class="line">		fn := runtime.FuncForPC(pc - <span class="number">1</span>)</span><br><span class="line">		file, line := fn.FileLine(pc - <span class="number">1</span>)</span><br><span class="line">		fmt.Printf(<span class="string">"Func Name: %s\n"</span>, fn.Name())</span><br><span class="line">		fmt.Printf(<span class="string">"File: %s, Line: %s\n\n"</span>, file, strconv.Itoa(line))</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Print</span><span class="params">(skip <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	printStack(skip)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	Print(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">"============================================"</span>)</span><br><span class="line"></span><br><span class="line">	Print(<span class="number">3</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>示例代码中，函数调用链为：<code>main() -&gt; Print() -&gt; printStack()</code>。</p>
+<p><code>printStack</code> 函数参数 <code>skip</code> 用来指定跳过的函数调用栈帧数量。<code>runtime.FuncForPC</code> 函数接收一个程序计数器 <code>pc</code> 值，然后返回 <code>*runtime.Func</code> 类型对象 <code>fn</code>，通过 <code>fn.FileLine(pc - 1)</code> 可以拿到文件路径和行号，<code>fn.Name()</code> 可以拿到函数名。</p>
+<p>执行示例代码，输出结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">Func Name: runtime.Callers</span><br><span class="line">File: /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.7.darwin-arm64/src/runtime/extern.go, Line: 325</span><br><span class="line"></span><br><span class="line">Func Name: main.printStack</span><br><span class="line">File: /go/blog-go-example/error/pkg-errors/runtime-example/main.go, Line: 11</span><br><span class="line"></span><br><span class="line">Func Name: main.Print</span><br><span class="line">File: /go/blog-go-example/error/pkg-errors/runtime-example/main.go, Line: 23</span><br><span class="line"></span><br><span class="line">Func Name: main.main</span><br><span class="line">File: /go/blog-go-example/error/pkg-errors/runtime-example/main.go, Line: 27</span><br><span class="line"></span><br><span class="line">Func Name: runtime.main</span><br><span class="line">File: /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.7.darwin-arm64/src/runtime/proc.go, Line: 271</span><br><span class="line"></span><br><span class="line">Func Name: runtime.goexit</span><br><span class="line">File: /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.7.darwin-arm64/src/runtime/asm_arm64.s, Line: 1222</span><br><span class="line"></span><br><span class="line">============================================</span><br><span class="line">Func Name: main.main</span><br><span class="line">File: /go/blog-go-example/error/pkg-errors/runtime-example/main.go, Line: 31</span><br><span class="line"></span><br><span class="line">Func Name: runtime.main</span><br><span class="line">File: /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.7.darwin-arm64/src/runtime/proc.go, Line: 271</span><br><span class="line"></span><br><span class="line">Func Name: runtime.goexit</span><br><span class="line">File: /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.7.darwin-arm64/src/runtime/asm_arm64.s, Line: 1222</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，<code>Print(0)</code> 会从 <code>runtime.Callers</code> 栈帧开始输出，<code>Print(3)</code> 则会跳过 <code>runtime.Callers</code>、<code>main.printStack</code>、<code>main.Print</code> 这三个函数，从 <code>main.main</code> 开始输出。</p>
+<p>你也许会好奇，<code>runtime.FuncForPC(pc - 1)</code> 和 <code>fn.FileLine(pc - 1)</code> 函数的调用参数为什么是 <code>pc - 1</code>，而不是 <code>pc</code>？</p>
+<p>这个问题其实在 <code>Frame</code> 定义处的注释中有说明：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Frame represents a program counter inside a stack frame.</span></span><br><span class="line"><span class="comment">// For historical reasons if Frame is interpreted as a uintptr</span></span><br><span class="line"><span class="comment">// its value represents the program counter + 1.</span></span><br><span class="line"><span class="keyword">type</span> Frame <span class="keyword">uintptr</span></span><br></pre></td></tr></table></figure>
+
+<p>但看完了注释就更加疑惑了，由于历史原因 <code>runtime.Callers</code> 返回值是程序计数器 + 1，历史原因又是什么呢？</p>
+<p>我们可以深入到 <code>runtime.Callers</code> 源码，顺着 <code>runtime.Callers() -&gt; callers() -&gt; tracebackPCs()</code> 调用链路，一路跟踪到 <code>tracebackPCs</code> 函数的定义中：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">tracebackPCs</span><span class="params">(u *unwinder, skip <span class="keyword">int</span>, pcBuf []<span class="keyword">uintptr</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> cgoBuf [<span class="number">32</span>]<span class="keyword">uintptr</span></span><br><span class="line">	n := <span class="number">0</span></span><br><span class="line">	<span class="keyword">for</span> ; n &lt; <span class="built_in">len</span>(pcBuf) &amp;&amp; u.valid(); u.next() &#123;</span><br><span class="line">		f := u.frame.fn</span><br><span class="line">		cgoN := u.cgoCallers(cgoBuf[:])</span><br><span class="line"></span><br><span class="line">		<span class="comment">// <span class="doctag">TODO:</span> Why does &amp;u.cache cause u to escape? (Same in traceback2)</span></span><br><span class="line">		<span class="keyword">for</span> iu, uf := newInlineUnwinder(f, u.symPC()); n &lt; <span class="built_in">len</span>(pcBuf) &amp;&amp; uf.valid(); uf = iu.next(uf) &#123;</span><br><span class="line">			sf := iu.srcFunc(uf)</span><br><span class="line">			<span class="keyword">if</span> sf.funcID == abi.FuncIDWrapper &amp;&amp; elideWrapperCalling(u.calleeFuncID) &#123;</span><br><span class="line">				<span class="comment">// ignore wrappers</span></span><br><span class="line">			&#125; <span class="keyword">else</span> <span class="keyword">if</span> skip &gt; <span class="number">0</span> &#123;</span><br><span class="line">				skip--</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				<span class="comment">// Callers expect the pc buffer to contain return addresses</span></span><br><span class="line">				<span class="comment">// and do the -1 themselves, so we add 1 to the call PC to</span></span><br><span class="line">				<span class="comment">// create a return PC.</span></span><br><span class="line">				pcBuf[n] = uf.pc + <span class="number">1</span></span><br><span class="line">				n++</span><br><span class="line">			&#125;</span><br><span class="line">			u.calleeFuncID = sf.funcID</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// Add cgo frames (if we're done skipping over the requested number of</span></span><br><span class="line">		<span class="comment">// Go frames).</span></span><br><span class="line">		<span class="keyword">if</span> skip == <span class="number">0</span> &#123;</span><br><span class="line">			n += <span class="built_in">copy</span>(pcBuf[n:], cgoBuf[:cgoN])</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> n</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里也有一段注释：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Callers expect the pc buffer to contain return addresses</span></span><br><span class="line"><span class="comment">// and do the -1 themselves, so we add 1 to the call PC to</span></span><br><span class="line"><span class="comment">// create a return PC.</span></span><br></pre></td></tr></table></figure>
+
+<p>可以简单理解为，调用方期望拿到 <code>pc</code> 并自行执行 <code>-1</code> 操作，因此 <code>runtime.Callers</code> 函数内部会在调用时为 <code>pc</code> 加 <code>1</code> 来生成返回地址。</p>
+<p>不得不吐槽下这个逻辑隐藏的太深了，不深入源码看根本不知道其意图。我猜测可能会在 Go 仓库的某个历史 <a href="https://github.com/golang/go/issues" target="_blank" rel="noopener">issues</a> 中有一些说明，如果你感兴趣可以去翻一翻。</p>
+<blockquote>
+<p>NOTE:<br>其实 <code>runtime</code> 包提供了另外一个 <code>CallersFrames</code> 方法，也能过获取函数名称、行号等，与 <code>runtime.Callers</code> 搭配使用更佳方便，无需考虑 <code>pc - 1</code> 问题，你可以去我的 <a href="https://github.com/jianghushinian/blog-go-example/blob/main/error/pkg-errors/runtime-example/main.go#L34" target="_blank" rel="noopener">GitHub</a> 仓库查看我实现的示例代码。</p>
+</blockquote>
+<p>扯远了，最后我们再回过头来看看 <code>stack.StackTrace</code> 方法的逻辑：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *stack)</span> <span class="title">StackTrace</span><span class="params">()</span> <span class="title">StackTrace</span></span> &#123;</span><br><span class="line">	f := <span class="built_in">make</span>([]Frame, <span class="built_in">len</span>(*s))</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="built_in">len</span>(f); i++ &#123;</span><br><span class="line">		f[i] = Frame((*s)[i])</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> f</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，这里就是在组装 <code>[]Frame</code> 切片，然后返回。</p>
+<p>返回类型 <code>StackTrace</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// StackTrace is stack of Frames from innermost (newest) to outermost (oldest).</span></span><br><span class="line"><span class="keyword">type</span> StackTrace []Frame</span><br></pre></td></tr></table></figure>
+
+<p>它有两个方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Format formats the stack of Frames according to the fmt.Formatter interface.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//    %s	lists source files for each Frame in the stack</span></span><br><span class="line"><span class="comment">//    %v	lists the source file and line number for each Frame in the stack</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Format accepts flags that alter the printing of some verbs, as follows:</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//    %+v   Prints filename, function, and line number for each Frame in the stack.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(st StackTrace)</span> <span class="title">Format</span><span class="params">(s fmt.State, verb <span class="keyword">rune</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> verb &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'v'</span>:</span><br><span class="line">		<span class="keyword">switch</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> s.Flag(<span class="string">'+'</span>):</span><br><span class="line">			<span class="keyword">for</span> _, f := <span class="keyword">range</span> st &#123;</span><br><span class="line">				io.WriteString(s, <span class="string">"\n"</span>)</span><br><span class="line">				f.Format(s, verb)</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">case</span> s.Flag(<span class="string">'#'</span>):</span><br><span class="line">			fmt.Fprintf(s, <span class="string">"%#v"</span>, []Frame(st))</span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">			st.formatSlice(s, verb)</span><br><span class="line">		&#125;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">'s'</span>:</span><br><span class="line">		st.formatSlice(s, verb)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(st StackTrace)</span> <span class="title">formatSlice</span><span class="params">(s fmt.State, verb <span class="keyword">rune</span>)</span></span> &#123;</span><br><span class="line">	io.WriteString(s, <span class="string">"["</span>)</span><br><span class="line">	<span class="keyword">for</span> i, f := <span class="keyword">range</span> st &#123;</span><br><span class="line">		<span class="keyword">if</span> i &gt; <span class="number">0</span> &#123;</span><br><span class="line">			io.WriteString(s, <span class="string">" "</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		f.Format(s, verb)</span><br><span class="line">	&#125;</span><br><span class="line">	io.WriteString(s, <span class="string">"]"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>经过前面的源码分析，相信这两个方法你自己也能看懂了，就留给你自己分析吧。</p>
+<p>至此，<code>pkg/errors</code> 包的源码就全部解读完成了。</p>
+<p>现在的你已经掌握了 <code>pkg/errors</code> 包是如何设计的，它的更多使用技巧就等着你自行去探索了，我就不一一举例了。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文从 Go 错误处理常见的两个诉求说起，Go 自带的错误处理无法很好的处理附加错误信息和附加堆栈信息。而 <code>pkg/errors</code> 包则完全能够满足我们的诉求，并且有很好的兼容性。</p>
+<p>我带你分析了 <code>pkg/errors</code> 包的全部源码，<code>pkg/errors</code> 包含三个文件：</p>
+<ul>
+<li><code>errors.go</code> 定义了三种错误类型 <code>fundamental</code>、<code>withStack</code>、<code>withMessage</code> 供我们使用，借助这三种错误类型，我们可以很方便的组装 <code>error</code>、<code>msg</code> 和 <code>stack</code> 这些信息。</li>
+<li><code>go113.go</code> 是为了兼容 Go 1.13 版本而引入的文件，分别对 <code>Is</code>、<code>As</code>、<code>Unwrap</code> 这三个函数进行了代理。</li>
+<li><code>stack.go</code> 中的代码用来处理错误堆栈信息。通过此文件我们还学习到了 <code>runtime.Callers</code> 和 <code>runtime.FuncForPC</code> 的用法。</li>
+</ul>
+<p>这也是我写「Go 错误处理指北」系列的第二篇文章，接下来还会有更多的文章继续讲解 Go 中的错误处理，敬请期待。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/error/pkg-errors" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>pkg/errors Documentation：<a href="https://pkg.go.dev/github.com/pkg/errors" target="_blank" rel="noopener">https://pkg.go.dev/github.com/pkg/errors</a></li>
+<li>pkg/errors 源码：<a href="https://github.com/pkg/errors/" target="_blank" rel="noopener">https://github.com/pkg/errors/</a></li>
+<li>Go 1.13 Release Notes：<a href="https://tip.golang.org/doc/go1.13#error_wrapping" target="_blank" rel="noopener">https://tip.golang.org/doc/go1.13#error_wrapping</a></li>
+<li>Errors are values：<a href="https://go.dev/blog/errors-are-values" target="_blank" rel="noopener">https://go.dev/blog/errors-are-values</a></li>
+<li>Go 错误处理指北：Error vs Exception vs ErrNo：<a href="https://jianghushinian.cn/2024/09/06/go-error-guidelines-error-exception-errno/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/09/06/go-error-guidelines-error-exception-errno/</a></li>
+<li>如何规范 RESTful API 的业务错误处理：<a href="https://jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/" target="_blank" rel="noopener">https://jianghushinian.cn/2023/03/04/how-to-standardize-the-handling-of-restful-api-business-errors/</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/error/pkg-errors" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/error/pkg-errors</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.981Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2024/09/14/go-error-guidelines-pkg-errors/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Error/" rel="tag">Error</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/&title=《Go 错误处理指北：pkg/errors 源码解读》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/&title=《Go 错误处理指北：pkg/errors 源码解读》 — 江湖十年&source=pkg/errors 包在 Go 错误处理生态中可谓大名鼎鼎了，截止目前在 GitHub 上有 8.2k 的 star 量。虽然不是 Go 官方包，但却被..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 错误处理指北：pkg/errors 源码解读》 — 江湖十年&url=http://www.jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2024/09/17/mac-migration/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Mac 一键迁移初体验</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/09/06/go-error-guidelines-error-exception-errno/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 错误处理指北：Error vs Exception vs ErrNo</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/&title=《Go 错误处理指北：pkg/errors 源码解读》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/&title=《Go 错误处理指北：pkg/errors 源码解读》 — 江湖十年&source=pkg/errors 包在 Go 错误处理生态中可谓大名鼎鼎了，截止目前在 GitHub 上有 8.2k 的 star 量。虽然不是 Go 官方包，但却被..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 错误处理指北：pkg/errors 源码解读》 — 江湖十年&url=http://www.jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/09/14/go-error-guidelines-pkg-errors/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

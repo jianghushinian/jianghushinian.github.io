@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 语言现代命令行框架 Cobra 详解 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,命令行">
+    <meta name="description" content="Cobra 是一个 Go 语言开发的命令行（CLI）框架，它提供了简洁、灵活且强大的方式来创建命令行程序。它包含一个用于创建命令行程序的库（Cobra 库），以及一个用于快速生成基于 Cobra 库的命令行程序工具（Cobra 命令）。Cobra 是由 Go 团队成员 spf13 为 Hugo 项目创建的，并已被许多流行的 Go 项目所采用，如 Kubernetes、Helm、Docker (di">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 语言现代命令行框架 Cobra 详解">
+<meta property="og:url" content="http://www.jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="Cobra 是一个 Go 语言开发的命令行（CLI）框架，它提供了简洁、灵活且强大的方式来创建命令行程序。它包含一个用于创建命令行程序的库（Cobra 库），以及一个用于快速生成基于 Cobra 库的命令行程序工具（Cobra 命令）。Cobra 是由 Go 团队成员 spf13 为 Hugo 项目创建的，并已被许多流行的 Go 项目所采用，如 Kubernetes、Helm、Docker (di">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-05-08T15:12:19.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.983Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="命令行">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 语言现代命令行框架 Cobra 详解</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 语言现代命令行框架 Cobra 详解</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2023-05-08T15:12:19.000Z" itemprop="datePublished" class="page-time">
+  2023-05-08
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#概念"><span class="post-toc-number">1.</span> <span class="post-toc-text">概念</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#快速开始"><span class="post-toc-number">2.</span> <span class="post-toc-text">快速开始</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#创建一个命令"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">创建一个命令</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#创建-main-go"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">创建 main.go</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#编译并运行命令"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">编译并运行命令</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#添加子命令"><span class="post-toc-number">3.</span> <span class="post-toc-text">添加子命令</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用命令行标志"><span class="post-toc-number">4.</span> <span class="post-toc-text">使用命令行标志</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#持久标志"><span class="post-toc-number">4.1.</span> <span class="post-toc-text">持久标志</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#本地标志"><span class="post-toc-number">4.2.</span> <span class="post-toc-text">本地标志</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#父命令的本地标志"><span class="post-toc-number">4.3.</span> <span class="post-toc-text">父命令的本地标志</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#必选标志"><span class="post-toc-number">4.4.</span> <span class="post-toc-text">必选标志</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#处理配置"><span class="post-toc-number">5.</span> <span class="post-toc-text">处理配置</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#参数验证"><span class="post-toc-number">6.</span> <span class="post-toc-text">参数验证</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Hooks"><span class="post-toc-number">7.</span> <span class="post-toc-text">Hooks</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#定义自己的-Help-命令"><span class="post-toc-number">8.</span> <span class="post-toc-text">定义自己的 Help 命令</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#定义自己的-Usage-Message"><span class="post-toc-number">9.</span> <span class="post-toc-text">定义自己的 Usage Message</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#未知命令建议"><span class="post-toc-number">10.</span> <span class="post-toc-text">未知命令建议</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Shell-补全"><span class="post-toc-number">11.</span> <span class="post-toc-text">Shell 补全</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#生成文档"><span class="post-toc-number">12.</span> <span class="post-toc-text">生成文档</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用-Cobra-命令创建项目"><span class="post-toc-number">13.</span> <span class="post-toc-text">使用 Cobra 命令创建项目</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#初始化模块"><span class="post-toc-number">13.1.</span> <span class="post-toc-text">初始化模块</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#初始化命令行程序"><span class="post-toc-number">13.2.</span> <span class="post-toc-text">初始化命令行程序</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#可选标志"><span class="post-toc-number">13.3.</span> <span class="post-toc-text">可选标志</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#添加命令"><span class="post-toc-number">13.4.</span> <span class="post-toc-text">添加命令</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用配置取代标志"><span class="post-toc-number">13.5.</span> <span class="post-toc-text">使用配置取代标志</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">14.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go-modern-command-line-framework-cobra-details"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 语言现代命令行框架 Cobra 详解</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2023-05-08 23:12:19" datetime="2023-05-08T15:12:19.000Z"  itemprop="datePublished">2023-05-08</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>Cobra 是一个 Go 语言开发的命令行（CLI）框架，它提供了简洁、灵活且强大的方式来创建命令行程序。它包含一个用于创建命令行程序的库（Cobra 库），以及一个用于快速生成基于 Cobra 库的命令行程序工具（Cobra 命令）。Cobra 是由 Go 团队成员 <a href="https://spf13.com/" target="_blank" rel="noopener">spf13</a> 为 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 项目创建的，并已被许多流行的 Go 项目所采用，如 Kubernetes、Helm、Docker (distribution)、Etcd 等。</p>
+<a id="more"></a>
+
+<h3 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h3><p>Cobra 建立在命令、参数和标志这三个结构之上。要使用 Cobra 编写一个命令行程序，需要明确这三个概念。</p>
+<ul>
+<li><p>命令（COMMAND）：命令表示要执行的操作。</p>
+</li>
+<li><p>参数（ARG）：是命令的参数，一般用来表示操作的对象。</p>
+</li>
+<li><p>标志（FLAG）：是命令的修饰，可以调整操作的行为。</p>
+</li>
+</ul>
+<p>一个好的命令行程序在使用时读起来像句子，用户会自然的理解并知道如何使用该程序。</p>
+<p>要编写一个好的命令行程序，需要遵循的模式是 <code>APPNAME VERB NOUN --ADJECTIVE</code> 或 <code>APPNAME COMMAND ARG --FLAG</code>。</p>
+<p>在这里 <code>VERB</code> 代表动词，<code>NOUN</code> 代表名词，<code>ADJECTIVE</code> 代表形容词。</p>
+<p>以下是一个现实世界中好的命令行程序的例子：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hugo server --port=1313</span><br></pre></td></tr></table></figure>
+
+<p>以上示例中，<code>server</code> 是一个命令（子命令），<code>port</code> 是一个标志（<code>1313</code> 是标志的参数，但不是命令的参数 ARG）。</p>
+<p>下面是一个 <code>git</code> 命令的例子：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ git <span class="built_in">clone</span> URL --bare</span><br></pre></td></tr></table></figure>
+
+<p>以上示例中，<code>clone</code> 是一个命令（子命令），<code>URL</code> 是命令的参数，<code>bare</code> 是标志。</p>
+<h3 id="快速开始"><a href="#快速开始" class="headerlink" title="快速开始"></a>快速开始</h3><p>要使用 Cobra 创建命令行程序，需要先通过如下命令进行安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go get -u github.com/spf13/cobra/cobra</span><br></pre></td></tr></table></figure>
+
+<p>安装好后，就可以像其他 Go 语言库一样导入 Cobra 包并使用了。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">"github.com/spf13/cobra"</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="创建一个命令"><a href="#创建一个命令" class="headerlink" title="创建一个命令"></a>创建一个命令</h4><p>假设我们要创建的命令行程序叫作 <code>hugo</code>，可以编写如下代码创建一个命令：</p>
+<blockquote>
+<p><code>hugo/cmd/root.go</code></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> rootCmd = &amp;cobra.Command&#123;</span><br><span class="line">  Use:   <span class="string">"hugo"</span>,</span><br><span class="line">  Short: <span class="string">"Hugo is a very fast static site generator"</span>,</span><br><span class="line">  Long: <span class="string">`A Fast and Flexible Static Site Generator built with</span></span><br><span class="line"><span class="string">                love by spf13 and friends in Go.</span></span><br><span class="line"><span class="string">                Complete documentation is available at https://gohugo.io`</span>,</span><br><span class="line">  Run: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    fmt.Println(<span class="string">"run hugo..."</span>)</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Execute</span><span class="params">()</span></span> &#123;</span><br><span class="line">  <span class="keyword">if</span> err := rootCmd.Execute(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    fmt.Println(err)</span><br><span class="line">    os.Exit(<span class="number">1</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>cobra.Command</code> 是一个结构体，代表一个命令，其各个属性含义如下：</p>
+<p><code>Use</code> 是命令的名称。</p>
+<p><code>Short</code> 代表当前命令的简短描述。</p>
+<p><code>Long</code> 表示当前命令的完整描述。</p>
+<p><code>Run</code> 属性是一个函数，当执行命令时会调用此函数。</p>
+<p><code>rootCmd.Execute()</code> 是命令的执行入口，其内部会解析 <code>os.Args[1:]</code> 参数列表（默认情况下是这样，也可以通过 <code>Command.SetArgs</code> 方法设置参数），然后遍历命令树，为命令找到合适的匹配项和对应的标志。</p>
+<h4 id="创建-main-go"><a href="#创建-main-go" class="headerlink" title="创建 main.go"></a>创建 <code>main.go</code></h4><p>按照编写 Go 程序的惯例，我们要为 <code>hugo</code> 程序编写一个 <code>main.go</code> 文件，作为程序的启动入口。</p>
+<blockquote>
+<p><code>hugo/main.go</code></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"hugo/cmd"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	cmd.Execute()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>main.go</code> 代码实现非常简单，只在 <code>main</code> 函数中调用了 <code>cmd.Execute()</code> 函数，来执行命令。</p>
+<h4 id="编译并运行命令"><a href="#编译并运行命令" class="headerlink" title="编译并运行命令"></a>编译并运行命令</h4><p>现在，我们就可以编译并运行这个命令行程序了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 编译</span></span><br><span class="line">$ go build -o hugo</span><br><span class="line"><span class="comment"># 执行</span></span><br><span class="line">$ ./hugo</span><br><span class="line">run hugo...</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>笔记：示例代码里没有打印 <code>Run</code> 函数的 <code>args</code> 参数内容，你可以自行打印看看结果（提示：<code>args</code> 为命令行参数列表）。</p>
+</blockquote>
+<p>以上我们编译并执行了 <code>hugo</code> 程序，输出内容正是 <code>cobra.Command</code> 结构体中 <code>Run</code> 函数内部代码的执行结果。</p>
+<p>我们还可以使用 <code>--help</code> 查看这个命令行程序的使用帮助。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ ./hugo --<span class="built_in">help</span></span><br><span class="line">A Fast and Flexible Static Site Generator built with</span><br><span class="line">                love by spf13 and friends <span class="keyword">in</span> Go.</span><br><span class="line">                Complete documentation is available at https://gohugo.io</span><br><span class="line"></span><br><span class="line">Usage:</span><br><span class="line">  hugo [flags]</span><br><span class="line"></span><br><span class="line">Flags:</span><br><span class="line">  -h, --<span class="built_in">help</span>   <span class="built_in">help</span> <span class="keyword">for</span> hugo</span><br></pre></td></tr></table></figure>
+
+<p>这里打印了 <code>cobra.Command</code> 结构体中 <code>Long</code> 属性的内容，如果 <code>Long</code> 属性不存在，则打印 <code>Short</code> 属性内容。</p>
+<p><code>hugo</code> 命令用法为 <code>hugo [flags]</code>，如 <code>hugo --help</code>。</p>
+<p>这个命令行程序自动支持了 <code>-h/--help</code> 标志。</p>
+<p>以上就是使用 Cobra 编写一个命令行程序最常见的套路，这也是 Cobra 推荐写法。</p>
+<p>当前项目目录结构如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ tree hugo     </span><br><span class="line">hugo</span><br><span class="line">├── cmd</span><br><span class="line">│   └── root.go</span><br><span class="line">├── go.mod</span><br><span class="line">├── go.sum</span><br><span class="line">└── main.go</span><br></pre></td></tr></table></figure>
+
+<p>Cobra 程序目录结构基本如此，<code>main.go</code> 作为命令行程序的入口，不要写过多的业务逻辑，所有命令都应该放在 <code>cmd/</code> 目录下，以后不管编写多么复杂的命令行程序都可以这么来设计。</p>
+<h3 id="添加子命令"><a href="#添加子命令" class="headerlink" title="添加子命令"></a>添加子命令</h3><p>与定义 <code>rootCmd</code> 一样，我们可以使用 <code>cobra.Command</code> 定义其他命令，并通过 <code>rootCmd.AddCommand()</code> 方法将其添加为 <code>rootCmd</code> 的一个子命令。</p>
+<blockquote>
+<p><code>hugo/cmd/version.go</code></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> versionCmd = &amp;cobra.Command&#123;</span><br><span class="line">	Use:   <span class="string">"version"</span>,</span><br><span class="line">	Short: <span class="string">"Print the version number of Hugo"</span>,</span><br><span class="line">	Long:  <span class="string">`All software has versions. This is Hugo's`</span>,</span><br><span class="line">	Run: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"Hugo Static Site Generator v0.9 -- HEAD"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	rootCmd.AddCommand(versionCmd)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在重新编译并运行命令行程序。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go build -o hugo</span><br><span class="line">$ ./hugo version                       </span><br><span class="line">Hugo Static Site Generator v0.9 -- HEAD</span><br></pre></td></tr></table></figure>
+
+<p>可以发现 <code>version</code> 命令已经被加入进来了。</p>
+<p>再次查看帮助信息：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ ./hugo -h</span><br><span class="line">A Fast and Flexible Static Site Generator built with</span><br><span class="line">                love by spf13 and friends <span class="keyword">in</span> Go.</span><br><span class="line">                Complete documentation is available at https://gohugo.io</span><br><span class="line"></span><br><span class="line">Usage:</span><br><span class="line">  hugo [flags]</span><br><span class="line">  hugo [<span class="built_in">command</span>]</span><br><span class="line"></span><br><span class="line">Available Commands:</span><br><span class="line">  completion  Generate the autocompletion script <span class="keyword">for</span> the specified shell</span><br><span class="line">  <span class="built_in">help</span>        Help about any <span class="built_in">command</span></span><br><span class="line">  version     Print the version number of Hugo</span><br><span class="line"></span><br><span class="line">Flags:</span><br><span class="line">  -h, --<span class="built_in">help</span>   <span class="built_in">help</span> <span class="keyword">for</span> hugo</span><br><span class="line"></span><br><span class="line">Use <span class="string">"hugo [command] --help"</span> <span class="keyword">for</span> more information about a <span class="built_in">command</span>.</span><br></pre></td></tr></table></figure>
+
+<p>这次的帮助信息更为丰富，除了可以使用 <code>hugo [flags]</code> 语法，由于子命令的加入，又多了一个 <code>hugo [command]</code> 语法可以使用，如 <code>hugo version</code>。</p>
+<p>现在有三个可用命令：</p>
+<p><code>completion</code> 可以为指定的 Shell 生成自动补全脚本，将在 <a href="#Shell-补全">Shell 补全</a> 小节进行讲解。</p>
+<p><code>help</code> 用来查看帮助，同 <code>-h/--help</code> 类似，可以使用 <code>hugo help command</code> 语法查看 <code>command</code> 命令的帮助信息。</p>
+<p><code>version</code> 为新添加的子命令。</p>
+<p>查看子命令帮助信息：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ ./hugo <span class="built_in">help</span> version</span><br><span class="line">All software has versions. This is Hugo<span class="string">'s</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Usage:</span></span><br><span class="line"><span class="string">  hugo version [flags]</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Flags:</span></span><br><span class="line"><span class="string">  -h, --help   help for version</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="使用命令行标志"><a href="#使用命令行标志" class="headerlink" title="使用命令行标志"></a>使用命令行标志</h3><p>Cobra 完美适配 <a href="https://github.com/spf13/pflag" target="_blank" rel="noopener">pflag</a>，结合 pflag 可以更灵活的使用标志功能。</p>
+<blockquote>
+<p>提示：对 pflag 不熟悉的读者可以参考我的另一篇文章<a href="https://jianghushinian.cn/2023/03/27/use-of-go-command-line-parameter-parsing-tool-pflag/" target="_blank" rel="noopener">《Go 命令行参数解析工具 pflag 使用》</a>。</p>
+</blockquote>
+<h4 id="持久标志"><a href="#持久标志" class="headerlink" title="持久标志"></a>持久标志</h4><p>如果一个标志是<code>持久的</code>，则意味着该标志将可用于它所分配的命令以及该命令下的所有子命令。</p>
+<p>对于全局标志，可以定义在根命令 <code>rootCmd</code> 上。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> Verbose <span class="keyword">bool</span></span><br><span class="line">rootCmd.PersistentFlags().BoolVarP(&amp;Verbose, <span class="string">"verbose"</span>, <span class="string">"v"</span>, <span class="literal">false</span>, <span class="string">"verbose output"</span>)</span><br></pre></td></tr></table></figure>
+
+<h4 id="本地标志"><a href="#本地标志" class="headerlink" title="本地标志"></a>本地标志</h4><p>标志也可以是<code>本地的</code>，这意味着它只适用于该指定命令。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> Source <span class="keyword">string</span></span><br><span class="line">rootCmd.Flags().StringVarP(&amp;Source, <span class="string">"source"</span>, <span class="string">"s"</span>, <span class="string">""</span>, <span class="string">"Source directory to read from"</span>)</span><br></pre></td></tr></table></figure>
+
+<h4 id="父命令的本地标志"><a href="#父命令的本地标志" class="headerlink" title="父命令的本地标志"></a>父命令的本地标志</h4><p>默认情况下，Cobra 仅解析目标命令上的本地标志，忽略父命令上的本地标志。通过在父命令上启用 <code>Command.TraverseChildren</code> 属性，Cobra 将在执行目标命令之前解析每个命令的本地标志。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> rootCmd = &amp;cobra.Command&#123;</span><br><span class="line">	Use:   <span class="string">"hugo"</span>,</span><br><span class="line">	TraverseChildren: <span class="literal">true</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>提示：如果你不理解，没关系，继续往下看，稍后会有示例代码演示讲解。</p>
+</blockquote>
+<h4 id="必选标志"><a href="#必选标志" class="headerlink" title="必选标志"></a>必选标志</h4><p>默认情况下，标志是可选的。我们可以将其标记为必选，如果没有提供，则会报错。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> Region <span class="keyword">string</span></span><br><span class="line">rootCmd.Flags().StringVarP(&amp;Region, <span class="string">"region"</span>, <span class="string">"r"</span>, <span class="string">""</span>, <span class="string">"AWS region (required)"</span>)</span><br><span class="line">rootCmd.MarkFlagRequired(<span class="string">"region"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>定义好以上几个标志后，为了展示效果，我们对 <code>rootCmd.Run</code> 方法做些修改，分别打印 <code>Verbose</code>、<code>Source</code>、<code>Region</code> 几个变量。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> rootCmd = &amp;cobra.Command&#123;</span><br><span class="line">	Use:   <span class="string">"hugo"</span>,</span><br><span class="line">	Run: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"run hugo..."</span>)</span><br><span class="line">		fmt.Printf(<span class="string">"Verbose: %v\n"</span>, Verbose)</span><br><span class="line">		fmt.Printf(<span class="string">"Source: %v\n"</span>, Source)</span><br><span class="line">		fmt.Printf(<span class="string">"Region: %v\n"</span>, Region)</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>另外，为了测试启用 <code>Command.TraverseChildren</code> 的效果，我又添加了一个 <code>print</code> 子命令。</p>
+<blockquote>
+<p><code>hugo/cmd/print.go</code></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> printCmd = &amp;cobra.Command&#123;</span><br><span class="line">	Use: <span class="string">"print [OPTIONS] [COMMANDS]"</span>,</span><br><span class="line">	Run: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"run print..."</span>)</span><br><span class="line">		fmt.Printf(<span class="string">"printFlag: %v\n"</span>, printFlag)</span><br><span class="line">		fmt.Printf(<span class="string">"Source: %v\n"</span>, Source)</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	rootCmd.AddCommand(printCmd)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 本地标志</span></span><br><span class="line">	printCmd.Flags().StringVarP(&amp;printFlag, <span class="string">"flag"</span>, <span class="string">"f"</span>, <span class="string">""</span>, <span class="string">"print flag for local"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在，我们重新编译并运行 <code>hugo</code>，来对上面添加的这几个标志进行测试。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">$ go build -o hugo</span><br><span class="line">$ ./hugo -h                    </span><br><span class="line">A Fast and Flexible Static Site Generator built with</span><br><span class="line">                love by spf13 and friends <span class="keyword">in</span> Go.</span><br><span class="line">                Complete documentation is available at https://gohugo.io</span><br><span class="line"></span><br><span class="line">Usage:</span><br><span class="line">  hugo [flags]</span><br><span class="line">  hugo [<span class="built_in">command</span>]</span><br><span class="line"></span><br><span class="line">Available Commands:</span><br><span class="line">  completion  Generate the autocompletion script <span class="keyword">for</span> the specified shell</span><br><span class="line">  <span class="built_in">help</span>        Help about any <span class="built_in">command</span></span><br><span class="line">  <span class="built_in">print</span>       </span><br><span class="line">  version     Print the version number of Hugo</span><br><span class="line"></span><br><span class="line">Flags:</span><br><span class="line">  -h, --<span class="built_in">help</span>            <span class="built_in">help</span> <span class="keyword">for</span> hugo</span><br><span class="line">  -r, --region string   AWS region (required)</span><br><span class="line">  -s, --<span class="built_in">source</span> string   Source directory to <span class="built_in">read</span> from</span><br><span class="line">  -v, --verbose         verbose output</span><br><span class="line"></span><br><span class="line">Use <span class="string">"hugo [command] --help"</span> <span class="keyword">for</span> more information about a <span class="built_in">command</span>.</span><br></pre></td></tr></table></figure>
+
+<p>以上帮助信息清晰明了，我就不过多解释了。</p>
+<p>执行 <code>hugo</code> 命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ ./hugo -r <span class="built_in">test</span>-region</span><br><span class="line">run hugo...</span><br><span class="line">Verbose: <span class="literal">false</span></span><br><span class="line">Source: </span><br><span class="line">Region: <span class="built_in">test</span>-region</span><br></pre></td></tr></table></figure>
+
+<p>现在 <code>-r/--region</code> 为必选标志，不传将会得到 <code>Error: required flag(s) &quot;region&quot; not set</code> 报错。</p>
+<p>执行 <code>print</code> 子命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ ./hugo <span class="built_in">print</span> -f <span class="built_in">test</span>-flag</span><br><span class="line">run <span class="built_in">print</span>...</span><br><span class="line">printFlag: <span class="built_in">test</span>-flag</span><br><span class="line">Source:</span><br></pre></td></tr></table></figure>
+
+<p>以上执行结果可以发现，父命令的标志 <code>Source</code> 内容为空。</p>
+<p>现在使用如下命令执行 <code>print</code> 子命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ ./hugo -s <span class="built_in">test</span>-source <span class="built_in">print</span> -f <span class="built_in">test</span>-flag</span><br><span class="line">run <span class="built_in">print</span>...</span><br><span class="line">printFlag: <span class="built_in">test</span>-flag</span><br><span class="line">Source: <span class="built_in">test</span>-source</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>print</code> 子命令前，我们指定了 <code>-s test-source</code> 标志，<code>-s/--source</code> 是父命令 <code>hugo</code> 的标志，也能够被正确解析，这就是启用 <code>Command.TraverseChildren</code> 的效果。</p>
+<p>如果我们将 <code>rootCmd</code> 的 <code>TraverseChildren</code> 属性置为 <code>false</code>，则会得到 <code>Error: unknown shorthand flag: &#39;s&#39; in -s</code> 报错。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 指定 rootCmd.TraverseChildren = false 后，重新编译程序</span></span><br><span class="line">$ go build -o hugo</span><br><span class="line"><span class="comment"># 执行同样的命令，现在会得到报错</span></span><br><span class="line">$ ./hugo -s <span class="built_in">test</span>-source <span class="built_in">print</span> -f <span class="built_in">test</span>-flag</span><br><span class="line">Error: unknown shorthand flag: <span class="string">'s'</span> <span class="keyword">in</span> -s</span><br><span class="line">Usage:</span><br><span class="line">  hugo <span class="built_in">print</span> [OPTIONS] [COMMANDS] [flags]</span><br><span class="line"></span><br><span class="line">Flags:</span><br><span class="line">  -f, --flag string   <span class="built_in">print</span> flag <span class="keyword">for</span> <span class="built_in">local</span></span><br><span class="line">  -h, --<span class="built_in">help</span>          <span class="built_in">help</span> <span class="keyword">for</span> <span class="built_in">print</span></span><br><span class="line"></span><br><span class="line">Global Flags:</span><br><span class="line">  -v, --verbose   verbose output</span><br><span class="line"></span><br><span class="line">unknown shorthand flag: <span class="string">'s'</span> <span class="keyword">in</span> -s</span><br></pre></td></tr></table></figure>
+
+<h3 id="处理配置"><a href="#处理配置" class="headerlink" title="处理配置"></a>处理配置</h3><p>除了将命令行标志的值绑定到变量，我们也可以将标志绑定到 <a href="https://github.com/spf13/viper" target="_blank" rel="noopener">Viper</a>，这样就可以使用 <code>viper.Get()</code> 来获取标志的值了。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> author <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">  rootCmd.PersistentFlags().StringVar(&amp;author, <span class="string">"author"</span>, <span class="string">"YOUR NAME"</span>, <span class="string">"Author name for copyright attribution"</span>)</span><br><span class="line">  viper.BindPFlag(<span class="string">"author"</span>, rootCmd.PersistentFlags().Lookup(<span class="string">"author"</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>提示：对 Viper 不熟悉的读者可以参考我的另一篇文章<a href="https://jianghushinian.cn/2023/04/25/how-to-use-viper-for-configuration-management-in-go/" target="_blank" rel="noopener">《在 Go 中如何使用 Viper 来管理配置》</a>。</p>
+</blockquote>
+<p>另外，我们可以使用 <code>cobra.OnInitialize()</code> 来初始化配置文件。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> cfgFile <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	cobra.OnInitialize(initConfig)</span><br><span class="line">	rootCmd.Flags().StringVarP(&amp;cfgFile, <span class="string">"config"</span>, <span class="string">"c"</span>, <span class="string">""</span>, <span class="string">"config file"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">initConfig</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> cfgFile != <span class="string">""</span> &#123;</span><br><span class="line">		viper.SetConfigFile(cfgFile)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		home, err := homedir.Dir()</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(err)</span><br><span class="line">			os.Exit(<span class="number">1</span>)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		viper.AddConfigPath(home)</span><br><span class="line">		viper.SetConfigName(<span class="string">".cobra"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := viper.ReadInConfig(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"Can't read config:"</span>, err)</span><br><span class="line">		os.Exit(<span class="number">1</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>传递给 <code>cobra.OnInitialize()</code> 的函数 <code>initConfig</code> 函数将在调用命令的 <code>Execute</code> 方法时运行。</p>
+<p>为了展示使用 Cobra 处理配置的效果，需要修改 <code>rootCmd.Run</code> 函数的打印代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> rootCmd = &amp;cobra.Command&#123;</span><br><span class="line">	Use:   <span class="string">"hugo"</span>,</span><br><span class="line">	Run: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"run hugo..."</span>)</span><br><span class="line">		fmt.Printf(<span class="string">"Verbose: %v\n"</span>, Verbose)</span><br><span class="line">		fmt.Printf(<span class="string">"Source: %v\n"</span>, Source)</span><br><span class="line">		fmt.Printf(<span class="string">"Region: %v\n"</span>, Region)</span><br><span class="line">		fmt.Printf(<span class="string">"Author: %v\n"</span>, viper.Get(<span class="string">"author"</span>))</span><br><span class="line">		fmt.Printf(<span class="string">"Config: %v\n"</span>, viper.AllSettings())</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>提供 <code>config.yaml</code> 配置文件内容如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">username:</span> <span class="string">jianghushinian</span></span><br><span class="line"><span class="attr">password:</span> <span class="number">123456</span></span><br><span class="line"><span class="attr">server:</span></span><br><span class="line">  <span class="attr">ip:</span> <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span></span><br><span class="line">  <span class="attr">port:</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
+
+<p>现在重新编译并运行 <code>hugo</code> 命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 编译</span></span><br><span class="line">$ go build -o hugo</span><br><span class="line"><span class="comment"># 执行</span></span><br><span class="line">$ ./hugo -r <span class="built_in">test</span>-region --author jianghushinian -c ./config.yaml </span><br><span class="line">run hugo...</span><br><span class="line">Verbose: <span class="literal">false</span></span><br><span class="line">Source: </span><br><span class="line">Region: <span class="built_in">test</span>-region</span><br><span class="line">Author: jianghushinian</span><br><span class="line">Config: map[author:jianghushinian password:123456 server:map[ip:127.0.0.1 port:8080] username:jianghushinian]</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>笔记：Cobra 同时支持 pflag 和 Viper 两个库，实际上这三个库出自同一作者 <a href="https://spf13.com/" target="_blank" rel="noopener">spf13</a>。</p>
+</blockquote>
+<h3 id="参数验证"><a href="#参数验证" class="headerlink" title="参数验证"></a>参数验证</h3><p>在执行命令行程序时，我们可能需要对命令参数进行合法性验证，<code>cobra.Command</code> 的 <code>Args</code> 属性提供了此功能。</p>
+<p><code>Args</code> 属性类型为一个函数：<code>func(cmd *Command, args []string) error</code>，可以用来验证参数。</p>
+<p>Cobra 内置了以下验证函数：</p>
+<ul>
+<li><p><code>NoArgs</code>：如果存在任何命令参数，该命令将报错。</p>
+</li>
+<li><p><code>ArbitraryArgs</code>：该命令将接受任意参数。</p>
+</li>
+<li><p><code>OnlyValidArgs</code>：如果有任何命令参数不在 <code>Command</code> 的 <code>ValidArgs</code> 字段中，该命令将报错。</p>
+</li>
+<li><p><code>MinimumNArgs(int)</code>：如果没有至少 N 个命令参数，该命令将报错。</p>
+</li>
+<li><p><code>MaximumNArgs(int)</code>：如果有超过 N 个命令参数，该命令将报错。</p>
+</li>
+<li><p><code>ExactArgs(int)</code>：如果命令参数个数不为 N，该命令将报错。</p>
+</li>
+<li><p><code>ExactValidArgs(int)</code>：如果命令参数个数不为 N，或者有任何命令参数不在 <code>Command</code> 的 <code>ValidArgs</code> 字段中，该命令将报错。</p>
+</li>
+<li><p><code>RangeArgs(min, max)</code>：如果命令参数的数量不在预期的最小数量 <code>min</code> 和最大数量 <code>max</code> 之间，该命令将报错。</p>
+</li>
+</ul>
+<p>内置验证函数用法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> versionCmd = &amp;cobra.Command&#123;</span><br><span class="line">	Use:   <span class="string">"version"</span>,</span><br><span class="line">	Run: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"Hugo Static Site Generator v0.9 -- HEAD"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">	Args: cobra.MaximumNArgs(<span class="number">2</span>), <span class="comment">// 使用内置的验证函数，位置参数多于 2 个则报错</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>重新编译并运行 <code>hugo</code> 命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 编译</span></span><br><span class="line">$ go build -o hugo</span><br><span class="line"><span class="comment"># 两个命令参数满足验证函数的要求</span></span><br><span class="line">$ ./hugo version a b  </span><br><span class="line">Hugo Static Site Generator v0.9 -- HEAD</span><br><span class="line"><span class="comment"># 超过两个参数则报错</span></span><br><span class="line">$ ./hugo version a b c</span><br><span class="line">Error: accepts at most 2 arg(s), received 3</span><br></pre></td></tr></table></figure>
+
+<p>当然，我们也可以自定义验证函数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> printCmd = &amp;cobra.Command&#123;</span><br><span class="line">	Use: <span class="string">"print [OPTIONS] [COMMANDS]"</span>,</span><br><span class="line">	Run: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"run print..."</span>)</span><br><span class="line">		<span class="comment">// 命令行位置参数列表：例如执行 `hugo print a b c d` 将得到 [a b c d]</span></span><br><span class="line">		fmt.Printf(<span class="string">"args: %v\n"</span>, args)</span><br><span class="line">	&#125;,</span><br><span class="line">	<span class="comment">// 使用自定义验证函数</span></span><br><span class="line">	Args: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> <span class="built_in">len</span>(args) &lt; <span class="number">1</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> errors.New(<span class="string">"requires at least one arg"</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> <span class="built_in">len</span>(args) &gt; <span class="number">4</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> errors.New(<span class="string">"the number of args cannot exceed 4"</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> args[<span class="number">0</span>] != <span class="string">"a"</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> errors.New(<span class="string">"first argument must be 'a'"</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>重新编译并运行 <code>hugo</code> 命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 编译</span></span><br><span class="line">$ go build -o hugo</span><br><span class="line"><span class="comment"># 4 个参数满足条件</span></span><br><span class="line">$ ./hugo <span class="built_in">print</span> a b c d</span><br><span class="line">run <span class="built_in">print</span>...</span><br><span class="line">args: [a b c d]</span><br><span class="line"><span class="comment"># 没有参数则报错</span></span><br><span class="line">$ ./hugo <span class="built_in">print</span>  </span><br><span class="line">Error: requires at least one arg</span><br><span class="line"><span class="comment"># 第一个参数不满足验证函数逻辑，也会报错</span></span><br><span class="line">$ ./hugo <span class="built_in">print</span> x      </span><br><span class="line">Error: first argument must be <span class="string">'a'</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="Hooks"><a href="#Hooks" class="headerlink" title="Hooks"></a>Hooks</h3><p>在执行 <code>Run</code> 函数前后，我们可以执行一些钩子函数，其作用和执行顺序如下：</p>
+<ol>
+<li><p><code>PersistentPreRun</code>：在 <code>PreRun</code> 函数执行之前执行，对此命令的子命令同样生效。</p>
+</li>
+<li><p><code>PreRun</code>：在 <code>Run</code> 函数执行之前执行。</p>
+</li>
+<li><p><code>Run</code>：执行命令时调用的函数，用来编写命令的业务逻辑。</p>
+</li>
+<li><p><code>PostRun</code>：在 <code>Run</code> 函数执行之后执行。</p>
+</li>
+<li><p><code>PersistentPostRun</code>：在 <code>PostRun</code> 函数执行之后执行，对此命令的子命令同样生效。</p>
+</li>
+</ol>
+<p>修改 <code>rootCmd</code> 如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> rootCmd = &amp;cobra.Command&#123;</span><br><span class="line">	Use:   <span class="string">"hugo"</span>,</span><br><span class="line">	PersistentPreRun: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"hugo PersistentPreRun"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">	PreRun: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"hugo PreRun"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">	Run: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"run hugo..."</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">	PostRun: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"hugo PostRun"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">	PersistentPostRun: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"hugo PersistentPostRun"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>重新编译并运行 <code>hugo</code> 命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 编译</span></span><br><span class="line">$ go build -o hugo</span><br><span class="line"><span class="comment"># 执行</span></span><br><span class="line">$ ./hugo</span><br><span class="line">hugo PersistentPreRun</span><br><span class="line">hugo PreRun</span><br><span class="line">run hugo...</span><br><span class="line">hugo PostRun</span><br><span class="line">hugo PersistentPostRun</span><br></pre></td></tr></table></figure>
+
+<p>输出顺序符合预期。</p>
+<p>其中 <code>PersistentPreRun</code>、<code>PersistentPostRun</code> 两个函数对子命令同样生效。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ ./hugo version </span><br><span class="line">hugo PersistentPreRun</span><br><span class="line">Hugo Static Site Generator v0.9 -- HEAD</span><br><span class="line">hugo PersistentPostRun</span><br></pre></td></tr></table></figure>
+
+<p>以上几个函数都有对应的 <code>&lt;Hooks&gt;E</code> 版本，<code>E</code> 表示 <code>Error</code>，即函数执行出错将会返回 <code>Error</code>，执行顺序不变：</p>
+<ol>
+<li><p><code>PersistentPreRunE</code></p>
+</li>
+<li><p><code>PreRunE</code></p>
+</li>
+<li><p><code>RunE</code></p>
+</li>
+<li><p><code>PostRunE</code></p>
+</li>
+<li><p><code>PersistentPostRunE</code></p>
+</li>
+</ol>
+<p>如果定义了 <code>&lt;Hooks&gt;E</code> 函数，则 <code>&lt;Hooks&gt;</code> 函数不会执行。比如同时定义了 <code>Run</code> 和 <code>RunE</code>，则只会执行 <code>RunE</code>，不会执行 <code>Run</code>，其他 <code>Hooks</code> 函数同理。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> rootCmd = &amp;cobra.Command&#123;</span><br><span class="line">	Use:   <span class="string">"hugo"</span>,</span><br><span class="line">	PersistentPreRun: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"hugo PersistentPreRun"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">	PersistentPreRunE: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"hugo PersistentPreRunE"</span>)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;,</span><br><span class="line">	PreRun: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"hugo PreRun"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">	PreRunE: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"hugo PreRunE"</span>)</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">"PreRunE err"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">	Run: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"run hugo..."</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">	PostRun: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"hugo PostRun"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">	PersistentPostRun: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"hugo PersistentPostRun"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>重新编译并运行 <code>hugo</code> 命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 编译</span></span><br><span class="line">$ go build -o hugo</span><br><span class="line"><span class="comment"># 执行</span></span><br><span class="line">$ ./hugo          </span><br><span class="line">hugo PersistentPreRunE</span><br><span class="line">hugo PreRunE</span><br><span class="line">Error: PreRunE err</span><br><span class="line">Usage:</span><br><span class="line">  hugo [flags]</span><br><span class="line">  hugo [<span class="built_in">command</span>]</span><br><span class="line"></span><br><span class="line">Available Commands:</span><br><span class="line">  completion  Generate the autocompletion script <span class="keyword">for</span> the specified shell</span><br><span class="line">  <span class="built_in">help</span>        Help about any <span class="built_in">command</span></span><br><span class="line">  <span class="built_in">print</span>       </span><br><span class="line">  version     Print the version number of Hugo</span><br><span class="line"></span><br><span class="line">Flags:</span><br><span class="line">      --author string   Author name <span class="keyword">for</span> copyright attribution (default <span class="string">"YOUR NAME"</span>)</span><br><span class="line">  -c, --config string   config file</span><br><span class="line">  -h, --<span class="built_in">help</span>            <span class="built_in">help</span> <span class="keyword">for</span> hugo</span><br><span class="line">  -r, --region string   AWS region (required)</span><br><span class="line">  -s, --<span class="built_in">source</span> string   Source directory to <span class="built_in">read</span> from</span><br><span class="line">  -v, --verbose         verbose output</span><br><span class="line"></span><br><span class="line">Use <span class="string">"hugo [command] --help"</span> <span class="keyword">for</span> more information about a <span class="built_in">command</span>.</span><br><span class="line"></span><br><span class="line">PreRunE err</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，虽然同时定义了 <code>PersistentPreRun</code>、<code>PersistentPreRunE</code> 两个钩子函数，但只有 <code>PersistentPreRunE</code> 会被执行。</p>
+<p>在执行 <code>PreRunE</code> 时返回了一个错误 <code>PreRunE err</code>，程序会终止运行并打印错误信息。</p>
+<p>如果子命令定义了自己的 <code>Persistent*Run</code> 函数，则不会继承父命令的 <code>Persistent*Run</code> 函数。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> versionCmd = &amp;cobra.Command&#123;</span><br><span class="line">	Use:   <span class="string">"version"</span>,</span><br><span class="line">	PersistentPreRun: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"version PersistentPreRun"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">	PreRun: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"version PreRun"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">	Run: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"Hugo Static Site Generator v0.9 -- HEAD"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>重新编译并运行 <code>hugo</code> 命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 编译</span></span><br><span class="line">$ go build -o hugo</span><br><span class="line"><span class="comment"># 执行子命令</span></span><br><span class="line">$ ./hugo version  </span><br><span class="line">version PersistentPreRun</span><br><span class="line">version PreRun</span><br><span class="line">Hugo Static Site Generator v0.9 -- HEAD</span><br><span class="line">hugo PersistentPostRun</span><br></pre></td></tr></table></figure>
+
+<h3 id="定义自己的-Help-命令"><a href="#定义自己的-Help-命令" class="headerlink" title="定义自己的 Help 命令"></a>定义自己的 Help 命令</h3><p>如果你对 Cobra 自动生成的帮助命令不满意，我们可以自定义帮助命令或模板。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cmd.SetHelpCommand(cmd *Command)</span><br><span class="line">cmd.SetHelpFunc(f <span class="function"><span class="keyword">func</span><span class="params">(*Command, []<span class="keyword">string</span>)</span>)</span></span><br><span class="line">cmd.SetHelpTemplate(s <span class="keyword">string</span>)</span><br></pre></td></tr></table></figure>
+
+<p>Cobra 提供了三个方法来实现自定义帮助命令，后两者也适用于任何子命令。</p>
+<p>默认情况下，我们可以使用 <code>hugo help command</code> 语法查看子命令的帮助信息，也可以使用 <code>hugo command -h/--help</code> 查看。</p>
+<p>使用 <code>help</code> 命令查看帮助信息：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ ./hugo <span class="built_in">help</span> version</span><br><span class="line">hugo PersistentPreRunE</span><br><span class="line">All software has versions. This is Hugo<span class="string">'s</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Usage:</span></span><br><span class="line"><span class="string">  hugo version [flags]</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Flags:</span></span><br><span class="line"><span class="string">  -h, --help   help for version</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Global Flags:</span></span><br><span class="line"><span class="string">      --author string   Author name for copyright attribution (default "YOUR NAME")</span></span><br><span class="line"><span class="string">  -v, --verbose         verbose output</span></span><br><span class="line"><span class="string">hugo PersistentPostRun</span></span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>-h/--help</code> 查看帮助信息：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ ./hugo version -h  </span><br><span class="line">All software has versions. This is Hugo<span class="string">'s</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Usage:</span></span><br><span class="line"><span class="string">  hugo version [flags]</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Flags:</span></span><br><span class="line"><span class="string">  -h, --help   help for version</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Global Flags:</span></span><br><span class="line"><span class="string">      --author string   Author name for copyright attribution (default "YOUR NAME")</span></span><br><span class="line"><span class="string">  -v, --verbose         verbose output</span></span><br></pre></td></tr></table></figure>
+
+<p>二者唯一的区别是，使用 <code>help</code> 命令查看帮助信息时会执行钩子函数。</p>
+<p>我们可以使用 <code>rootCmd.SetHelpCommand</code> 来控制 <code>help</code> 命令输出，使用 <code>rootCmd.SetHelpFunc</code> 来控制 <code>-h/--help</code> 输出。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">rootCmd.SetHelpCommand(&amp;cobra.Command&#123;</span><br><span class="line">	Use:    <span class="string">"help"</span>,</span><br><span class="line">	Short:  <span class="string">"Custom help command"</span>,</span><br><span class="line">	Hidden: <span class="literal">true</span>,</span><br><span class="line">	Run: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"Custom help command"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;)</span><br><span class="line">rootCmd.SetHelpFunc(<span class="function"><span class="keyword">func</span><span class="params">(command *cobra.Command, strings []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	fmt.Println(strings)</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>重新编译并运行 <code>hugo</code> 命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 编译</span></span><br><span class="line">$ go build -o hugo</span><br><span class="line"><span class="comment"># 使用 `help` 命令查看帮助信息</span></span><br><span class="line">$ ./hugo <span class="built_in">help</span> version</span><br><span class="line">hugo PersistentPreRunE</span><br><span class="line">Custom <span class="built_in">help</span> <span class="built_in">command</span></span><br><span class="line">hugo PersistentPostRun</span><br><span class="line"><span class="comment"># 使用 `-h` 查看根命令帮助信息</span></span><br><span class="line">$ ./hugo -h</span><br><span class="line">[-h]</span><br><span class="line"><span class="comment"># 使用 `-h` 查看 version 命令帮助信息</span></span><br><span class="line">$ ./hugo version -h  </span><br><span class="line">[version -h]</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，使用 <code>help</code> 命令查看帮助信息输出结果是 <code>rootCmd.SetHelpCommand</code> 中 <code>Run</code> 函数的执行输出。使用 <code>-h</code> 查看帮助信息输出结果是 <code>rootCmd.SetHelpFunc</code> 函数的执行输出，<code>strings</code> 代表的是命令行标志和参数列表。</p>
+<p>现在我们再来测试下 <code>rootCmd.SetHelpTemplate</code> 的作用，它用来设置帮助信息模板，支持标准的 Go Template 语法，自定义模板如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">rootCmd.SetHelpTemplate(<span class="string">`Custom Help Template:</span></span><br><span class="line"><span class="string">Usage:</span></span><br><span class="line"><span class="string">	&#123;&#123;.UseLine&#125;&#125;</span></span><br><span class="line"><span class="string">Description:</span></span><br><span class="line"><span class="string">	&#123;&#123;.Short&#125;&#125;</span></span><br><span class="line"><span class="string">Commands:</span></span><br><span class="line"><span class="string">&#123;&#123;- range .Commands&#125;&#125;</span></span><br><span class="line"><span class="string">	&#123;&#123;.Name&#125;&#125;: &#123;&#123;.Short&#125;&#125;</span></span><br><span class="line"><span class="string">&#123;&#123;- end&#125;&#125;</span></span><br><span class="line"><span class="string">`</span>)</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注意：为了单独测试 <code>cmd.SetHelpTemplate(s string)</code>，我已将上面 <code>rootCmd.SetHelpCommand</code> 和 <code>rootCmd.SetHelpFunc</code> 部分代码注释掉了。</p>
+</blockquote>
+<p>重新编译并运行 <code>hugo</code> 命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 编译</span></span><br><span class="line">$ go build -o hugo</span><br><span class="line"><span class="comment"># 查看帮助</span></span><br><span class="line">$ ./hugo -h            </span><br><span class="line">Custom Help Template:</span><br><span class="line">Usage:</span><br><span class="line">        hugo [flags]</span><br><span class="line">Description:</span><br><span class="line">        Hugo is a very fast static site generator</span><br><span class="line">Commands:</span><br><span class="line">        completion: Generate the autocompletion script <span class="keyword">for</span> the specified shell</span><br><span class="line">        <span class="built_in">help</span>: Help about any <span class="built_in">command</span></span><br><span class="line">        <span class="built_in">print</span>: </span><br><span class="line">        version: Print the version number of Hugo</span><br><span class="line"><span class="comment"># 查看子命令帮助</span></span><br><span class="line">$ ./hugo <span class="built_in">help</span> version</span><br><span class="line">hugo PersistentPreRunE</span><br><span class="line">Custom Help Template:</span><br><span class="line">Usage:</span><br><span class="line">        hugo version [flags]</span><br><span class="line">Description:</span><br><span class="line">        Print the version number of Hugo</span><br><span class="line">Commands:</span><br><span class="line">hugo PersistentPostRun</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，无论使用 <code>help</code> 命令查看帮助信息，还是使用 <code>-h</code> 查看帮助信息，其输出内容都遵循我们自定义的模版格式。</p>
+<h3 id="定义自己的-Usage-Message"><a href="#定义自己的-Usage-Message" class="headerlink" title="定义自己的 Usage Message"></a>定义自己的 Usage Message</h3><p>当用户提供无效标志或无效命令时，Cobra 通过向用户显示 <code>Usage</code> 来提示用户如何正确的使用命令。</p>
+<p>例如，当用户输入无效的标志 <code>--demo</code> 时，将得到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">$ ./hugo --demo</span><br><span class="line">Error: unknown flag: --demo</span><br><span class="line">Usage:</span><br><span class="line">  hugo [flags]</span><br><span class="line">  hugo [<span class="built_in">command</span>]</span><br><span class="line"></span><br><span class="line">Available Commands:</span><br><span class="line">  completion  Generate the autocompletion script <span class="keyword">for</span> the specified shell</span><br><span class="line">  <span class="built_in">help</span>        Help about any <span class="built_in">command</span></span><br><span class="line">  <span class="built_in">print</span>       </span><br><span class="line">  version     Print the version number of Hugo</span><br><span class="line"></span><br><span class="line">Flags:</span><br><span class="line">      --author string   Author name <span class="keyword">for</span> copyright attribution (default <span class="string">"YOUR NAME"</span>)</span><br><span class="line">  -c, --config string   config file</span><br><span class="line">  -h, --<span class="built_in">help</span>            <span class="built_in">help</span> <span class="keyword">for</span> hugo</span><br><span class="line">  -s, --<span class="built_in">source</span> string   Source directory to <span class="built_in">read</span> from</span><br><span class="line">  -v, --verbose         verbose output</span><br><span class="line"></span><br><span class="line">Use <span class="string">"hugo [command] --help"</span> <span class="keyword">for</span> more information about a <span class="built_in">command</span>.</span><br><span class="line"></span><br><span class="line">unknown flag: --demo</span><br></pre></td></tr></table></figure>
+
+<p>首先程序会报错 <code>Error: unknown flag: --demo</code>，报错后会显示 <code>Usage</code> 信息。</p>
+<p>这个输出格式默认与 <code>help</code> 信息一样，我们也可以进行自定义。Cobra 提供了如下两个方法，来控制输出，具体效果我就不演示了，留给读者自行探索。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cmd.SetUsageFunc(f <span class="function"><span class="keyword">func</span><span class="params">(*Command)</span> <span class="title">error</span>)</span></span><br><span class="line">cmd.SetUsageTemplate(s <span class="keyword">string</span>)</span><br></pre></td></tr></table></figure>
+
+<h3 id="未知命令建议"><a href="#未知命令建议" class="headerlink" title="未知命令建议"></a>未知命令建议</h3><p>在我们使用 <code>git</code> 命令时，有一个非常好用的功能，能够对用户输错的未知命令智能提示。</p>
+<p>示例如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ git statu</span><br><span class="line">git: <span class="string">'statu'</span> is not a git <span class="built_in">command</span>. See <span class="string">'git --help'</span>.</span><br><span class="line"></span><br><span class="line">The most similar commands are</span><br><span class="line">	status</span><br><span class="line">	stage</span><br><span class="line">	stash</span><br></pre></td></tr></table></figure>
+
+<p>当我们输入一个不存在的命令 <code>statu</code> 时，<code>git</code> 会提示命令不存在，并且给出几个最相似命令的建议。</p>
+<p>这个功能非常实用，幸运的是，Cobra 自带了此功能。</p>
+<p>如下，当我们输入一个不存在的命令 <code>vers</code> 时，<code>hugo</code> 会自动给出建议命令 <code>version</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ ./hugo vers      </span><br><span class="line">Error: unknown <span class="built_in">command</span> <span class="string">"vers"</span> <span class="keyword">for</span> <span class="string">"hugo"</span></span><br><span class="line"></span><br><span class="line">Did you mean this?</span><br><span class="line">        version</span><br><span class="line"></span><br><span class="line">Run <span class="string">'hugo --help'</span> <span class="keyword">for</span> usage.</span><br><span class="line">unknown <span class="built_in">command</span> <span class="string">"vers"</span> <span class="keyword">for</span> <span class="string">"hugo"</span></span><br><span class="line"></span><br><span class="line">Did you mean this?</span><br><span class="line">        version</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注意⚠️：根据我的实测，要想让此功能生效，<code>Command.TraverseChildren</code> 属性要置为 <code>false</code>。</p>
+</blockquote>
+<p>如果你想彻底关闭此功能，可以使用如下设置：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">command.DisableSuggestions = <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>或者使用如下设置调整字符串匹配的最小距离：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">command.SuggestionsMinimumDistance = <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<p><code>SuggestionsMinimumDistance</code> 是一个正整数，表示输错的命令与正确的命令最多有几个不匹配的字符（最小距离），才会给出建议。如当值为 <code>1</code> 时，用户输入 <code>hugo versiox</code> 会给出建议，而如果用户输入 <code>hugo versixx</code> 时，则不会给出建议，因为已经有两个字母不匹配 <code>version</code> 了。</p>
+<h3 id="Shell-补全"><a href="#Shell-补全" class="headerlink" title="Shell 补全"></a>Shell 补全</h3><p>前文在讲<a href="#添加子命令">添加子命令</a>小节时，我们见到过 <code>completion</code> 子命令，可以为指定的 Shell 生成自动补全脚本，现在我们就来讲解它的用法。</p>
+<p>直接执行 <code>hugo completion</code> 命令，我们可以查看它支持的几种 Shell 类型 <code>bash</code>、<code>fish</code>、<code>powershell</code>、<code>zsh</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">$ ./hugo completion  </span><br><span class="line">Generate the autocompletion script <span class="keyword">for</span> hugo <span class="keyword">for</span> the specified shell.</span><br><span class="line">See each sub-command<span class="string">'s help for details on how to use the generated script.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Usage:</span></span><br><span class="line"><span class="string">  hugo completion [command]</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Available Commands:</span></span><br><span class="line"><span class="string">  bash        Generate the autocompletion script for bash</span></span><br><span class="line"><span class="string">  fish        Generate the autocompletion script for fish</span></span><br><span class="line"><span class="string">  powershell  Generate the autocompletion script for powershell</span></span><br><span class="line"><span class="string">  zsh         Generate the autocompletion script for zsh</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Flags:</span></span><br><span class="line"><span class="string">  -h, --help   help for completion</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Global Flags:</span></span><br><span class="line"><span class="string">      --author string   Author name for copyright attribution (default "YOUR NAME")</span></span><br><span class="line"><span class="string">  -v, --verbose         verbose output</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Use "hugo completion [command] --help" for more information about a command.</span></span><br></pre></td></tr></table></figure>
+
+<p>要想知道自己正在使用的 Shell 类型，可以使用如下命令：</p>
+<figure class="highlight zsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">echo</span> <span class="variable">$0</span>   </span><br><span class="line">/bin/zsh</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，我使用的是 <code>zsh</code>，所以我就以 <code>zsh</code> 为例，来演示下 <code>completion</code> 命令补全用法。</p>
+<p>使用 <code>-h/--help</code> 我们可以查看使用说明：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">$ ./hugo completion zsh -h</span><br><span class="line">Generate the autocompletion script <span class="keyword">for</span> the zsh shell.</span><br><span class="line"></span><br><span class="line">If shell completion is not already enabled <span class="keyword">in</span> your environment you will need</span><br><span class="line">to <span class="built_in">enable</span> it.  You can execute the following once:</span><br><span class="line"></span><br><span class="line">        <span class="built_in">echo</span> <span class="string">"autoload -U compinit; compinit"</span> &gt;&gt; ~/.zshrc</span><br><span class="line"></span><br><span class="line">To load completions <span class="keyword">in</span> your current shell session:</span><br><span class="line"></span><br><span class="line">        <span class="built_in">source</span> &lt;(hugo completion zsh)</span><br><span class="line"></span><br><span class="line">To load completions <span class="keyword">for</span> every new session, execute once:</span><br><span class="line"></span><br><span class="line"><span class="comment">#### Linux:</span></span><br><span class="line"></span><br><span class="line">        hugo completion zsh &gt; <span class="string">"<span class="variable">$&#123;fpath[1]&#125;</span>/_hugo"</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#### macOS:</span></span><br><span class="line"></span><br><span class="line">        hugo completion zsh &gt; $(brew --prefix)/share/zsh/site-functions/_hugo</span><br><span class="line"></span><br><span class="line">You will need to start a new shell <span class="keyword">for</span> this setup to take effect.</span><br><span class="line"></span><br><span class="line">Usage:</span><br><span class="line">  hugo completion zsh [flags]</span><br><span class="line"></span><br><span class="line">Flags:</span><br><span class="line">  -h, --<span class="built_in">help</span>              <span class="built_in">help</span> <span class="keyword">for</span> zsh</span><br><span class="line">      --no-descriptions   <span class="built_in">disable</span> completion descriptions</span><br><span class="line"></span><br><span class="line">Global Flags:</span><br><span class="line">      --author string   Author name <span class="keyword">for</span> copyright attribution (default <span class="string">"YOUR NAME"</span>)</span><br><span class="line">  -v, --verbose         verbose output</span><br></pre></td></tr></table></figure>
+
+<p>根据帮助信息，如果为当前会话提供命令行补全功能，可以使用 <code>source &lt;(hugo completion zsh)</code> 命令来实现。</p>
+<p>如果要让命令行补全功能永久生效，Cobra 则非常贴心的为 Linux 和 macOS 提供了不同命令。</p>
+<p>你可以根据提示选择自己喜欢的方式来实现命令行补全功能。</p>
+<p>我这里只实现为当前会话提供命令行补全功能为例进行演示：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 首先在项目根目录下，安装 hugo 命令行程序，安装后软件存放在 $GOPATH/bin 目录下</span></span><br><span class="line">$ go install .</span><br><span class="line"><span class="comment"># 添加命令行补全功能</span></span><br><span class="line">$ <span class="built_in">source</span> &lt;(hugo completion zsh)</span><br><span class="line"><span class="comment"># 现在命令行补全已经生效，只需要输入一个 `v`，然后按下键盘上的 `Tab` 键，命令将自动补全为 `version`</span></span><br><span class="line">$ hugo v</span><br><span class="line"><span class="comment"># 命令已被自动补全</span></span><br><span class="line">$ hugo version </span><br><span class="line">version PersistentPreRun</span><br><span class="line">version PreRun</span><br><span class="line">Hugo Static Site Generator v0.9 -- HEAD</span><br></pre></td></tr></table></figure>
+
+<p>其实将命令 <code>source &lt;(hugo completion zsh)</code> 添加到 <code>~/.zshrc</code> 文件中，也能实现每次进入 <code>zsh</code> 后自动加载 <code>hugo</code> 的命令行补全功能。</p>
+<blockquote>
+<p>注意：在执行 <code>source &lt;(hugo completion zsh)</code> 前需要将 <code>rootCmd</code> 中的钩子函数内部的 <code>fmt.Println</code> 代码全部注释掉，不然打印内容会被当作命令来执行，将会得到 <code>Error: unknown command &quot;PersistentPreRunE&quot; for &quot;hugo&quot;</code> 类似报错信息，虽然命令行补全功能依然能够生效，但「没有消息才是最好的消息」。</p>
+</blockquote>
+<h3 id="生成文档"><a href="#生成文档" class="headerlink" title="生成文档"></a>生成文档</h3><p>Cobra 支持生成 <code>Markdown</code>、<code>ReStructured Text</code>、<code>Man Page</code> 三种格式文档。</p>
+<p>这里以生成 <code>Markdown</code> 格式文档为例，来演示下 Cobra 这一强大功能。</p>
+<p>我们可以定义一个标志 <code>md-docs</code> 来决定是否生成文档：</p>
+<blockquote>
+<p><code>hugo/cmd/root.go</code></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> MarkdownDocs <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	rootCmd.Flags().BoolVarP(&amp;MarkdownDocs, <span class="string">"md-docs"</span>, <span class="string">"m"</span>, <span class="literal">false</span>, <span class="string">"gen Markdown docs"</span>)</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GenDocs</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> MarkdownDocs &#123;</span><br><span class="line">		<span class="keyword">if</span> err := doc.GenMarkdownTree(rootCmd, <span class="string">"./docs/md"</span>); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(err)</span><br><span class="line">			os.Exit(<span class="number">1</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>main.go</code> 中调用 <code>GenDocs()</code> 函数。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	cmd.Execute()</span><br><span class="line">	cmd.GenDocs()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在，重新编译并运行 <code>hugo</code> 即可生成文档：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 编译</span></span><br><span class="line">$ go build -o hugo</span><br><span class="line"><span class="comment"># 生成文档</span></span><br><span class="line">$ ./hugo --md-docs</span><br><span class="line"><span class="comment"># 查看生成的文档</span></span><br><span class="line">$ tree docs/md       </span><br><span class="line">docs/md</span><br><span class="line">├── hugo.md</span><br><span class="line">├── hugo_completion.md</span><br><span class="line">├── hugo_completion_bash.md</span><br><span class="line">├── hugo_completion_fish.md</span><br><span class="line">├── hugo_completion_powershell.md</span><br><span class="line">├── hugo_completion_zsh.md</span><br><span class="line">├── hugo_print.md</span><br><span class="line">└── hugo_version.md</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，Cobra 不仅为 <code>hugo</code> 命令生成了文档，并且还生成了子命令的文档以及命令行补全的文档。</p>
+<h3 id="使用-Cobra-命令创建项目"><a href="#使用-Cobra-命令创建项目" class="headerlink" title="使用 Cobra 命令创建项目"></a>使用 Cobra 命令创建项目</h3><p>文章读到这里，我们可以发现，其实 Cobra 项目是遵循一定套路的，目录结构、文件、模板代码都比较固定。</p>
+<p>此时，脚手架工具就派上用场了。Cobra 提供了 <code>cobra-cli</code> 命令行工具，可以通过命令的方式快速创建一个命令行项目。</p>
+<p>安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go install github.com/spf13/cobra-cli@latest</span><br></pre></td></tr></table></figure>
+
+<p>查看使用帮助：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">$ cobra-cli -h       </span><br><span class="line">Cobra is a CLI library <span class="keyword">for</span> Go that empowers applications.</span><br><span class="line">This application is a tool to generate the needed files</span><br><span class="line">to quickly create a Cobra application.</span><br><span class="line"></span><br><span class="line">Usage:</span><br><span class="line">  cobra-cli [<span class="built_in">command</span>]</span><br><span class="line"></span><br><span class="line">Available Commands:</span><br><span class="line">  add         Add a <span class="built_in">command</span> to a Cobra Application</span><br><span class="line">  completion  Generate the autocompletion script <span class="keyword">for</span> the specified shell</span><br><span class="line">  <span class="built_in">help</span>        Help about any <span class="built_in">command</span></span><br><span class="line">  init        Initialize a Cobra Application</span><br><span class="line"></span><br><span class="line">Flags:</span><br><span class="line">  -a, --author string    author name <span class="keyword">for</span> copyright attribution (default <span class="string">"YOUR NAME"</span>)</span><br><span class="line">      --config string    config file (default is <span class="variable">$HOME</span>/.cobra.yaml)</span><br><span class="line">  -h, --<span class="built_in">help</span>             <span class="built_in">help</span> <span class="keyword">for</span> cobra-cli</span><br><span class="line">  -l, --license string   name of license <span class="keyword">for</span> the project</span><br><span class="line">      --viper            use Viper <span class="keyword">for</span> configuration</span><br><span class="line"></span><br><span class="line">Use <span class="string">"cobra-cli [command] --help"</span> <span class="keyword">for</span> more information about a <span class="built_in">command</span>.</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>cobra-cli</code> 脚手架工具仅提供了少量命令和标志，所以上手难度不大。</p>
+<h4 id="初始化模块"><a href="#初始化模块" class="headerlink" title="初始化模块"></a>初始化模块</h4><p>要使用 <code>cobra-cli</code> 生成一个项目，首先要手动创建项目根目录并使用 <code>go mod</code> 命令进行初始化。</p>
+<p>假设我们要编写的命令行程序叫作 <code>cog</code>，模块初始化过程如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建项目目录</span></span><br><span class="line">$ mkdir cog</span><br><span class="line"><span class="comment"># 进入项目目录</span></span><br><span class="line">$ <span class="built_in">cd</span> cog</span><br><span class="line"><span class="comment"># 初始化模块</span></span><br><span class="line">$ go mod init github.com/jianghushinian/blog-go-example/cobra/getting-started/cog</span><br></pre></td></tr></table></figure>
+
+<h4 id="初始化命令行程序"><a href="#初始化命令行程序" class="headerlink" title="初始化命令行程序"></a>初始化命令行程序</h4><p>有了初始化好的 Go 项目，我们就可以初始化命令行程序了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 初始化程序</span></span><br><span class="line">$ cobra-cli init</span><br><span class="line">Your Cobra application is ready at</span><br><span class="line"><span class="comment"># 查看生成的项目目录结构</span></span><br><span class="line">$ tree .</span><br><span class="line">.</span><br><span class="line">├── LICENSE</span><br><span class="line">├── cmd</span><br><span class="line">│   └── root.go</span><br><span class="line">├── go.mod</span><br><span class="line">├── go.sum</span><br><span class="line">└── main.go</span><br><span class="line"></span><br><span class="line">2 directories, 5 files</span><br><span class="line"><span class="comment"># 执行命令行程序</span></span><br><span class="line">$ go run main.go                                                                 </span><br><span class="line">A longer description that spans multiple lines and likely contains</span><br><span class="line">examples and usage of using your application. For example:</span><br><span class="line"></span><br><span class="line">Cobra is a CLI library <span class="keyword">for</span> Go that empowers applications.</span><br><span class="line">This application is a tool to generate the needed files</span><br><span class="line">to quickly create a Cobra application.</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>cobra-cli</code> 初始化程序非常方便，只需要一个简单的 <code>init</code> 命令即可完成。</p>
+<p>目录结构跟我们手动编写的程序相同，只不过多了一个 <code>LICENSE</code> 文件，用来存放项目的开源许可证。</p>
+<p>通过 <code>go run main.go</code> 执行这个命令行程序，即可打印 <code>rootCmd.Run</code> 的输出结果。</p>
+<p>使用脚手架自动生成的 <code>cog/main.go</code> 文件内容如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">Copyright © 2023 NAME HERE &lt;EMAIL ADDRESS&gt;</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"github.com/jianghushinian/blog-go-example/cobra/getting-started/cog/cmd"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	cmd.Execute()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>自动生成的 <code>cog/cmd/root.go</code> 文件内容如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">Copyright © 2023 NAME HERE &lt;EMAIL ADDRESS&gt;</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="keyword">package</span> cmd</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/spf13/cobra"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// rootCmd represents the base command when called without any subcommands</span></span><br><span class="line"><span class="keyword">var</span> rootCmd = &amp;cobra.Command&#123;</span><br><span class="line">	Use:   <span class="string">"cog"</span>,</span><br><span class="line">	Short: <span class="string">"A brief description of your application"</span>,</span><br><span class="line">	Long: <span class="string">`A longer description that spans multiple lines and likely contains</span></span><br><span class="line"><span class="string">examples and usage of using your application. For example:</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Cobra is a CLI library for Go that empowers applications.</span></span><br><span class="line"><span class="string">This application is a tool to generate the needed files</span></span><br><span class="line"><span class="string">to quickly create a Cobra application.`</span>,</span><br><span class="line">	<span class="comment">// Uncomment the following line if your bare application</span></span><br><span class="line">	<span class="comment">// has an action associated with it:</span></span><br><span class="line">	<span class="comment">// Run: func(cmd *cobra.Command, args []string) &#123; &#125;,</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Execute adds all child commands to the root command and sets flags appropriately.</span></span><br><span class="line"><span class="comment">// This is called by main.main(). It only needs to happen once to the rootCmd.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Execute</span><span class="params">()</span></span> &#123;</span><br><span class="line">	err := rootCmd.Execute()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		os.Exit(<span class="number">1</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// Here you will define your flags and configuration settings.</span></span><br><span class="line">	<span class="comment">// Cobra supports persistent flags, which, if defined here,</span></span><br><span class="line">	<span class="comment">// will be global for your application.</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// rootCmd.PersistentFlags().StringVar(&amp;cfgFile, "config", "", "config file (default is $HOME/.cog.yaml)")</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Cobra also supports local flags, which will only run</span></span><br><span class="line">	<span class="comment">// when this action is called directly.</span></span><br><span class="line">	rootCmd.Flags().BoolP(<span class="string">"toggle"</span>, <span class="string">"t"</span>, <span class="literal">false</span>, <span class="string">"Help message for toggle"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上两个文件跟我们手动编写的代码没什么两样，套路完全相同，唯一不同的是每个文件头部都会多出来一个 <code>Copyright</code> 头信息，用来标记代码的 <code>LICENSE</code>。</p>
+<h4 id="可选标志"><a href="#可选标志" class="headerlink" title="可选标志"></a>可选标志</h4><p><code>cobra-cli</code> 提供了如下三个标志分别用来设置项目的作者、许可证类型、是否使用 Viper 管理配置。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cobra-cli init --author <span class="string">"jianghushinian"</span> --license mit --viper</span><br><span class="line">Your Cobra application is ready at</span><br></pre></td></tr></table></figure>
+
+<p>以上命令我们指定可选标志后对项目进行了重新初始化。</p>
+<p>现在 <code>LICENSE</code> 文件内容不再为空，而是 <code>MIT</code> 协议。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">The MIT License (MIT)</span><br><span class="line"></span><br><span class="line">Copyright © 2023 jianghushinian</span><br><span class="line"></span><br><span class="line">Permission is hereby granted...</span><br></pre></td></tr></table></figure>
+
+<p>并且 Go 文件 <code>Copyright</code> 头信息中作者信息也会被补全。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">Copyright © 2023 jianghushinian</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">...</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>笔记：<code>cobra-cli</code> 命令内置开源许可证支持 <code>GPLv2</code>、<code>GPLv3</code>、<code>LGPL</code>、<code>AGPL</code>、<code>MIT</code>、<code>2-Clause BSD</code> 或 <code>3-Clause BSD</code>。也可以参考<a href="https://github.com/spf13/cobra-cli/blob/main/README.md#configuring-the-cobra-generator" target="_blank" rel="noopener">官方文档</a>来指定自定义许可证。</p>
+</blockquote>
+<blockquote>
+<p>提示：如果你对开源许可证不熟悉，可以参考我的另一篇文章<a href="https://jianghushinian.cn/2023/01/15/open-source-license-introduction/" target="_blank" rel="noopener">《开源协议简介》</a>。</p>
+</blockquote>
+<h4 id="添加命令"><a href="#添加命令" class="headerlink" title="添加命令"></a>添加命令</h4><p>我们可以使用 <code>add</code> 命令为程序添加新的命令，并且 <code>add</code> 命令同样支持可选标志。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ cobra-cli add serve</span><br><span class="line">$ cobra-cli add config</span><br><span class="line">$ cobra-cli add create -p <span class="string">'configCmd'</span> --author <span class="string">"jianghushinian"</span> --license mit --viper</span><br></pre></td></tr></table></figure>
+
+<p>这里分别添加了三个命令 <code>serve</code>、<code>config</code>、<code>create</code>，前两者都是 <code>rootCmd</code> 的子命令，<code>create</code> 命令则通过 <code>-p &#39;configCmd&#39;</code> 参数指定为 <code>config</code> 的子命令。</p>
+<blockquote>
+<p>注意⚠️：使用 <code>-p &#39;configCmd&#39;</code> 标志指定当前命令的父命令时，<code>configCmd</code> 必须是小驼峰命名法，因为 <code>cobra-cli</code> 为 <code>config</code> 生成的命令代码自动命名为 <code>configCmd</code>，而不是 <code>config_cmd</code> 或其他形式，这符合 Go 语言变量命名规范。</p>
+</blockquote>
+<p>现在命令行程序目录结构如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ tree .</span><br><span class="line">.</span><br><span class="line">├── LICENSE</span><br><span class="line">├── cmd</span><br><span class="line">│   ├── config.go</span><br><span class="line">│   ├── create.go</span><br><span class="line">│   ├── root.go</span><br><span class="line">│   └── serve.go</span><br><span class="line">├── go.mod</span><br><span class="line">├── go.sum</span><br><span class="line">└── main.go</span><br><span class="line"></span><br><span class="line">2 directories, 8 files</span><br></pre></td></tr></table></figure>
+
+<p>可以使用如下命令执行子命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go config create</span><br><span class="line">create called</span><br></pre></td></tr></table></figure>
+
+<p>其他新添加的命令同理。</p>
+<h4 id="使用配置取代标志"><a href="#使用配置取代标志" class="headerlink" title="使用配置取代标志"></a>使用配置取代标志</h4><p>如果你不想每次生成或添加命令时都指定选项参数，则可以定义 <code>~/.cobra.yaml</code> 文件来保存配置信息：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">author:</span> <span class="string">jianghushinian</span> <span class="string">&lt;jianghushinian007@outlook.com&gt;</span></span><br><span class="line"><span class="attr">year:</span> <span class="number">2023</span></span><br><span class="line"><span class="attr">license:</span> <span class="string">MIT</span></span><br><span class="line"><span class="attr">useViper:</span> <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>再次使用 <code>init</code> 命令初始化程序：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cobra-cli init                                                                      </span><br><span class="line">Using config file: /Users/jianghushinian/.cobra.yaml</span><br></pre></td></tr></table></figure>
+
+<p>会提示使用了 <code>~/.cobra.yaml</code> 配置文件。</p>
+<p>现在 <code>LICENSE</code> 文件内容格式如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">The MIT License (MIT)</span><br><span class="line"></span><br><span class="line">Copyright © 2023 jianghushinian &lt;jianghushinian007@outlook.com&gt;</span><br><span class="line"></span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>Go 文件 <code>Copyright</code> 头信息也会包含日期、用户名、用户邮箱。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">Copyright © 2023 jianghushinian &lt;jianghushinian007@outlook.com&gt;</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">...</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure>
+
+<p>如果你不想把配置保存在 <code>~/.cobra.yaml</code> 中，<code>cobra-cli</code> 还提供了 <code>--config</code> 标志来指定任意目录下的配置文件。</p>
+<p>至此，<code>cobra-cli</code> 的功能我们就都讲解完成了，还是非常方便实用的。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>在我们日常开发中，编写命令行程序是必不可少，很多开源软件都具备强大的命令行工具，如 K8s、Docker、Git 等。</p>
+<p>一款复杂的命令行程序通常有上百种使用组合，所以如何组织和编写出好用的命令行程序是很考验开发者功底的，而 Cobra 则为我们开发命令行程序提供了足够的便利。这也是为什么我将其称为命令行框架，而不仅仅是一个 Go 第三方库。</p>
+<p>Cobra 功能非常强大，要使用它来编写命令行程序首先要明白三个概念：命令、参数和标志。</p>
+<p>Cobra 不仅支持子命令，还能够完美兼容 pflag 和 Viper 包，因为这三个包都是同一个作者开发的。关于标志，Cobra 支持持久标志、本地标志以及将标志标记为必选。Cobra 可以将标志绑定到 Viper，方便使用 <code>viper.Get()</code> 来获取标志的值。对于命令行参数，Cobra 提供了不少验证函数，我们也可以自定义验证函数。</p>
+<p>Cobra 还提供了几个 Hooks 函数 <code>PersistentPreRun</code>、<code>PreRun</code>、<code>PostRun</code>、<code>PersistentPostRun</code>，可以分别在执行 <code>Run</code> 前后来处理一段逻辑。</p>
+<p>如果觉得 Cobra 提供的默认帮助信息不能满足需求，我们还可以定义自己的 Help 命令和 Usage Message，非常灵活。</p>
+<p>Cobra 还支持未知命令的智能提示功能以及 Shell 自动补全功能，此外，它还支持自动生成 <code>Markdown</code>、<code>ReStructured Text</code>、<code>Man Page</code> 三种格式的文档。这对命令行工具的使用者来说非常友好，还能极大减少开发者的工作量。</p>
+<p>最后，Cobra 的命令行工具 <code>cobra-cli</code> 进一步提高了编写命令行程序的效率，非常推荐使用。</p>
+<p>本文完整代码示例我放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/cobra/getting-started" target="_blank" rel="noopener">GitHub</a> 上，欢迎点击查看。</p>
+<p>希望此文能对你有所帮助。</p>
+<p><strong>联系我</strong></p>
+<ul>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客地址：<a href="https://jianghushinian.cn/" target="_blank" rel="noopener">https://jianghushinian.cn/</a></li>
+</ul>
+<p><strong>参考</strong></p>
+<ul>
+<li>Cobra 官网：<a href="https://cobra.dev/" target="_blank" rel="noopener">https://cobra.dev/</a></li>
+<li>Cobra 源码：<a href="https://github.com/spf13/cobra" target="_blank" rel="noopener">https://github.com/spf13/cobra</a></li>
+<li>Cobra 文档：<a href="https://pkg.go.dev/github.com/spf13/cobra" target="_blank" rel="noopener">https://pkg.go.dev/github.com/spf13/cobra</a></li>
+<li>Cobra-CLI 文档：<a href="https://github.com/spf13/cobra-cli/blob/main/README.md" target="_blank" rel="noopener">https://github.com/spf13/cobra-cli/blob/main/README.md</a></li>
+<li>本文示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/cobra/getting-started" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/cobra/getting-started</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.983Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2023/05/08/go-modern-command-line-framework-cobra-details/" target="_blank" rel="external">http://www.jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%91%BD%E4%BB%A4%E8%A1%8C/" rel="tag">命令行</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details/&title=《Go 语言现代命令行框架 Cobra 详解》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details/&title=《Go 语言现代命令行框架 Cobra 详解》 — 江湖十年&source=Cobra 是一个 Go 语言开发的命令行（CLI）框架，它提供了简洁、灵活且强大的方式来创建命令行程序。它包含一个用于创建命令行程序的库（Cobra 库..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 语言现代命令行框架 Cobra 详解》 — 江湖十年&url=http://www.jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2023/05/14/how-to-use-concurrency-models-in-python/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">在 Python 中如何使用并发模型编程</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2023/04/25/how-to-use-viper-for-configuration-management-in-go/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">在 Go 中如何使用 Viper 来管理配置</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details/&title=《Go 语言现代命令行框架 Cobra 详解》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details/&title=《Go 语言现代命令行框架 Cobra 详解》 — 江湖十年&source=Cobra 是一个 Go 语言开发的命令行（CLI）框架，它提供了简洁、灵活且强大的方式来创建命令行程序。它包含一个用于创建命令行程序的库（Cobra 库..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 语言现代命令行框架 Cobra 详解》 — 江湖十年&url=http://www.jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2023/05/08/go-modern-command-line-framework-cobra-details/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

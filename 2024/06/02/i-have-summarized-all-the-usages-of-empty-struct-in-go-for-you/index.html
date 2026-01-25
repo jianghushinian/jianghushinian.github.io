@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 中空结构体惯用法，我帮你总结全了！ | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="在 Go 语言中，空结构体 struct{} 是一个非常特殊的类型，它不包含任何字段并且不占用任何内存空间。虽然听起来似乎没什么用，但空结构体在 Go 编程中实际上有着广泛的应用。本文将详细探讨空结构体的几种典型用法，并解释为何它们在特定场景下非常有用。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 中空结构体惯用法，我帮你总结全了！">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在 Go 语言中，空结构体 struct{} 是一个非常特殊的类型，它不包含任何字段并且不占用任何内存空间。虽然听起来似乎没什么用，但空结构体在 Go 编程中实际上有着广泛的应用。本文将详细探讨空结构体的几种典型用法，并解释为何它们在特定场景下非常有用。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-06-02T01:11:14.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:13.057Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 中空结构体惯用法，我帮你总结全了！</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 中空结构体惯用法，我帮你总结全了！</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-06-02T01:11:14.000Z" itemprop="datePublished" class="page-time">
+  2024-06-02
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#空结构体不占用内存空间"><span class="post-toc-number">1.</span> <span class="post-toc-text">空结构体不占用内存空间</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#空结构体影响内存对齐"><span class="post-toc-number">2.</span> <span class="post-toc-text">空结构体影响内存对齐</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#空结构体用法"><span class="post-toc-number">3.</span> <span class="post-toc-text">空结构体用法</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#实现-Set"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">实现 Set</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#申请超大容量-Array"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">申请超大容量 Array</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#申请超大容量-Slice"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">申请超大容量 Slice</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#信号通知"><span class="post-toc-number">3.4.</span> <span class="post-toc-text">信号通知</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#无操作的方法接收器"><span class="post-toc-number">3.5.</span> <span class="post-toc-text">无操作的方法接收器</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#作为接口实现"><span class="post-toc-number">3.6.</span> <span class="post-toc-text">作为接口实现</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#标识符"><span class="post-toc-number">3.7.</span> <span class="post-toc-text">标识符</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 中空结构体惯用法，我帮你总结全了！</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-06-02 09:11:14" datetime="2024-06-02T01:11:14.000Z"  itemprop="datePublished">2024-06-02</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在 Go 语言中，空结构体 <code>struct{}</code> 是一个非常特殊的类型，它<strong>不包含任何字段</strong>并且<strong>不占用任何内存空间</strong>。虽然听起来似乎没什么用，但空结构体在 Go 编程中实际上有着广泛的应用。本文将详细探讨空结构体的几种典型用法，并解释为何它们在特定场景下非常有用。</p>
+<a id="more"></a>
+
+<h3 id="空结构体不占用内存空间"><a href="#空结构体不占用内存空间" class="headerlink" title="空结构体不占用内存空间"></a>空结构体不占用内存空间</h3><p>首先我们来验证下空结构体是否占用内存空间：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Empty <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> s1 <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">s2 := Empty&#123;&#125;</span><br><span class="line">s3 := <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line"></span><br><span class="line">fmt.Printf(<span class="string">"s1 addr: %p, size: %d\n"</span>, &amp;s1, unsafe.Sizeof(s1))</span><br><span class="line">fmt.Printf(<span class="string">"s2 addr: %p, size: %d\n"</span>, &amp;s2, unsafe.Sizeof(s2))</span><br><span class="line">fmt.Printf(<span class="string">"s3 addr: %p, size: %d\n"</span>, &amp;s3, unsafe.Sizeof(s3))</span><br><span class="line">fmt.Printf(<span class="string">"s1 == s2 == s3: %t\n"</span>, s1 == s2 &amp;&amp; s2 == s3)</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>NOTE: 为了保持代码逻辑清晰，这里只展示了代码主逻辑。后文中所有示例代码都会如此，完整代码可以在文末给出的示例代码 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/struct/empty" target="_blank" rel="noopener">GitHub 链接</a>中获取。</p>
+</blockquote>
+<p>在 Go 语言中，我们可以使用 <code>unsafe.Sizeof</code> 计算一个对象占用的字节数。</p>
+<p>执行以上示例代码，输出结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">s1 addr: 0x1044ef4a0, size: 0</span><br><span class="line">s2 addr: 0x1044ef4a0, size: 0</span><br><span class="line">s3 addr: 0x1044ef4a0, size: 0</span><br><span class="line">s1 == s2 == s3: <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>根据输出结果可知：</p>
+<ol>
+<li>多个空结构体内存地址相同。</li>
+<li>空结构体占用字节数为 0，即不占用内存空间。</li>
+<li>多个空结构体值相等。</li>
+</ol>
+<p>后面两个结论很好理解，第一个结论有点反常识。为什么不同变量实例化的空结构体内存地址会相同？</p>
+<p>真的是这样吗？我们可以看下另一个示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	a <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	b <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	c <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	d <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="built_in">println</span>(<span class="string">"&amp;a:"</span>, &amp;a)</span><br><span class="line"><span class="built_in">println</span>(<span class="string">"&amp;b:"</span>, &amp;b)</span><br><span class="line"><span class="built_in">println</span>(<span class="string">"&amp;c:"</span>, &amp;c)</span><br><span class="line"><span class="built_in">println</span>(<span class="string">"&amp;d:"</span>, &amp;d)</span><br><span class="line"></span><br><span class="line"><span class="built_in">println</span>(<span class="string">"&amp;a == &amp;b:"</span>, &amp;a == &amp;b)</span><br><span class="line">x := &amp;a</span><br><span class="line">y := &amp;b</span><br><span class="line"><span class="built_in">println</span>(<span class="string">"x == y:"</span>, x == y)</span><br><span class="line"></span><br><span class="line">fmt.Printf(<span class="string">"&amp;c(%p) == &amp;d(%p): %t\n"</span>, &amp;c, &amp;d, &amp;c == &amp;d)</span><br></pre></td></tr></table></figure>
+
+<p>这段代码中定义了 4 个空结构体，依次打印它们的内存地址，然后又分别对比了 <code>a</code> 与 <code>b</code> 的内存地址和 <code>c</code> 与 <code>d</code> 的内存地址两两是否相等。</p>
+<p>执行示例代码，输出结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ go run -gcflags=<span class="string">'-m -N -l'</span> main.go</span><br><span class="line"><span class="comment"># command-line-arguments</span></span><br><span class="line">./main.go:11:3: moved to heap: c</span><br><span class="line">./main.go:12:3: moved to heap: d</span><br><span class="line">./main.go:23:12: ... argument does not escape</span><br><span class="line">./main.go:23:50: &amp;c == &amp;d escapes to heap</span><br><span class="line">&amp;a: 0x1400010ae84</span><br><span class="line">&amp;b: 0x1400010ae84</span><br><span class="line">&amp;c: 0x104ec74a0</span><br><span class="line">&amp;d: 0x104ec74a0</span><br><span class="line">&amp;a == &amp;b: <span class="literal">false</span></span><br><span class="line">x == y: <span class="literal">true</span></span><br><span class="line">&amp;c(0x104ec74a0) == &amp;d(0x104ec74a0): <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>在 Go 语言中使用 <code>go run</code> 命令时，可以通过 <code>-gcflags</code> 选项向 Go 编译器传递多个标志，这些标志会影响编译器的行为。</p>
+<ul>
+<li><code>-m</code> 标志用于启动编译器的内存逃逸分析。</li>
+<li><code>-N</code> 标志用于禁用编译器优化。</li>
+<li><code>-l</code> 标志用于禁用函数内联。</li>
+</ul>
+<p>根据输出可以发现，变量 <code>c</code> 和 <code>d</code> 发生了内存逃逸，并且最终二者的内存地址相同，相等比较结果为 <code>true</code>。</p>
+<p>而 <code>a</code> 和 <code>b</code> 两个变量的输出结果就比较有意思了，两个变量没有发生内存逃逸，并且二者打印出来的内存地址相同，但内存地址相等比较结果却为 <code>false</code>。</p>
+<p>所以，我们可以推翻之前的结论，新结论为：「多个空结构体内存地址<strong>可能</strong>相同」。</p>
+<p>在 Go 官方的语言规范中 <a href="https://go.dev/ref/spec#Size_and_alignment_guarantees" target="_blank" rel="noopener">Size and alignment guarantees</a> 部分对关于空结构体内存地址进行了说明：</p>
+<blockquote>
+<p>A struct or array type has size zero if it contains no fields (or elements, respectively) that have a size greater than zero. Two distinct zero-size variables may have the same address in memory.</p>
+</blockquote>
+<p>大概意思是说：如果一个结构体或数组类型不包含任何占用内存大小大于零的字段（或元素），那么它的大小为零。<strong>两个不同的零大小变量可能在内存中具有相同的地址</strong>。</p>
+<p>注意⚠️，这里说的是<strong>可能</strong>：<code>may have the same</code>。所以前文所述「多个空结构体内存地址相同」的结论并不准确。</p>
+<blockquote>
+<p>NOTE: 本文示例执行结果基于 <code>Go 1.22.0</code> 版本，对于多个空结构体内存地址打印结果既存在相同情况，也存在不同情况，这跟 Go 编译器实现有关，后续实现可能会有变化。</p>
+</blockquote>
+<p>另外，对于嵌套的空结构体，其表现结果与普通空结构体相同：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Empty <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> MultiEmpty <span class="keyword">struct</span> &#123;</span><br><span class="line">	A Empty</span><br><span class="line">	B <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">s1 := Empty&#123;&#125;</span><br><span class="line">s2 := MultiEmpty&#123;&#125;</span><br><span class="line">fmt.Printf(<span class="string">"s1 addr: %p, size: %d\n"</span>, &amp;s1, unsafe.Sizeof(s1))</span><br><span class="line">fmt.Printf(<span class="string">"s2 addr: %p, size: %d\n"</span>, &amp;s2, unsafe.Sizeof(s2))</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，输出结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">s1 addr: 0x1044ef4a0, size: 0</span><br><span class="line">s2 addr: 0x1044ef4a0, size: 0</span><br></pre></td></tr></table></figure>
+
+<h3 id="空结构体影响内存对齐"><a href="#空结构体影响内存对齐" class="headerlink" title="空结构体影响内存对齐"></a>空结构体影响内存对齐</h3><p>空结构体也并不是什么时候都不会占用内存空间，比如空结构体作为另一个结构体字段时，根据位置不同，可能因内存对齐原因，导致外层结构体大小不一样：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> A <span class="keyword">struct</span> &#123;</span><br><span class="line">	x <span class="keyword">int</span></span><br><span class="line">	y <span class="keyword">string</span></span><br><span class="line">	z <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> B <span class="keyword">struct</span> &#123;</span><br><span class="line">	x <span class="keyword">int</span></span><br><span class="line">	z <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	y <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> C <span class="keyword">struct</span> &#123;</span><br><span class="line">	z <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	x <span class="keyword">int</span></span><br><span class="line">	y <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">a := A&#123;&#125;</span><br><span class="line">b := B&#123;&#125;</span><br><span class="line">c := C&#123;&#125;</span><br><span class="line">fmt.Printf(<span class="string">"struct a size: %d\n"</span>, unsafe.Sizeof(a))</span><br><span class="line">fmt.Printf(<span class="string">"struct b size: %d\n"</span>, unsafe.Sizeof(b))</span><br><span class="line">fmt.Printf(<span class="string">"struct c size: %d\n"</span>, unsafe.Sizeof(c))</span><br></pre></td></tr></table></figure>
+
+<p>以上示例中，定义了三个结构体 <code>A</code>、<code>B</code>、<code>C</code>，并且都定义了三个字段，类型分别是 <code>int</code>、<code>string</code>、<code>struct{}</code>，空结构体字段分别放在最后、中间、最前面不同的位置。</p>
+<p>执行示例代码，输出结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">struct a size: 32</span><br><span class="line">struct b size: 24</span><br><span class="line">struct c size: 24</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，当空结构体放在另一个结构体最后一个字段时，会触发内存对齐。</p>
+<p>此时外层结构体会占用更多的内存空间，所以如果你的程序对内存要求比较严格，则在使用空结构体作为字段时需要考虑这一点。</p>
+<blockquote>
+<p>NOTE: 这里先挖个坑，我会再写一篇 Go 中结构体内存对齐的文章，分析下为什么 <code>struct{}</code> 放在结构体字段最后会出现内存对齐现象，敬请期待。防止迷路，可以关注下我的公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a>。</p>
+</blockquote>
+<h3 id="空结构体用法"><a href="#空结构体用法" class="headerlink" title="空结构体用法"></a>空结构体用法</h3><p>根据前文的讲解，我们对 Go 中空结构体的特性和一些使用时注意事项已经有所了解，是时候探索空结构体的用处了。</p>
+<h4 id="实现-Set"><a href="#实现-Set" class="headerlink" title="实现 Set"></a>实现 Set</h4><p>首先，空结构体最常用的地方，就是用来实现 <code>set(集合)</code> 类型了。</p>
+<p>我们知道 Go 语言在语法层面没有提供 <code>set</code> 类型。不过我们可以很方便的使用 <code>map</code> + <code>struct{}</code> 来实现 <code>set</code> 类型，代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Set 基于空结构体实现 set</span></span><br><span class="line"><span class="keyword">type</span> Set <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Add 添加元素到 set</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s Set)</span> <span class="title">Add</span><span class="params">(element <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	s[element] = <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Remove 从 set 中移除元素</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s Set)</span> <span class="title">Remove</span><span class="params">(element <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	<span class="built_in">delete</span>(s, element)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Contains 检查 set 中是否包含指定元素</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s Set)</span> <span class="title">Contains</span><span class="params">(element <span class="keyword">string</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	_, exists := s[element]</span><br><span class="line">	<span class="keyword">return</span> exists</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Size 返回 set 大小</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s Set)</span> <span class="title">Size</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="built_in">len</span>(s)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// String implements fmt.Stringer</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s Set)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	format := <span class="string">"("</span></span><br><span class="line">	<span class="keyword">for</span> element := <span class="keyword">range</span> s &#123;</span><br><span class="line">		format += element + <span class="string">" "</span></span><br><span class="line">	&#125;</span><br><span class="line">	format = strings.TrimRight(format, <span class="string">" "</span>) + <span class="string">")"</span></span><br><span class="line">	<span class="keyword">return</span> format</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">s := <span class="built_in">make</span>(Set)</span><br><span class="line"></span><br><span class="line">s.Add(<span class="string">"one"</span>)</span><br><span class="line">s.Add(<span class="string">"two"</span>)</span><br><span class="line">s.Add(<span class="string">"three"</span>)</span><br><span class="line"></span><br><span class="line">fmt.Printf(<span class="string">"set: %s\n"</span>, s)</span><br><span class="line">fmt.Printf(<span class="string">"set size: %d\n"</span>, s.Size())</span><br><span class="line">fmt.Printf(<span class="string">"set contains 'one': %t\n"</span>, s.Contains(<span class="string">"one"</span>))</span><br><span class="line">fmt.Printf(<span class="string">"set contains 'onex': %t\n"</span>, s.Contains(<span class="string">"onex"</span>))</span><br><span class="line"></span><br><span class="line">s.Remove(<span class="string">"one"</span>)</span><br><span class="line"></span><br><span class="line">fmt.Printf(<span class="string">"set: %s\n"</span>, s)</span><br><span class="line">fmt.Printf(<span class="string">"set size: %d\n"</span>, s.Size())</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，输出结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line"><span class="built_in">set</span>: (one two three)</span><br><span class="line"><span class="built_in">set</span> size: 3</span><br><span class="line"><span class="built_in">set</span> contains <span class="string">'one'</span>: <span class="literal">true</span></span><br><span class="line"><span class="built_in">set</span> contains <span class="string">'onex'</span>: <span class="literal">false</span></span><br><span class="line"><span class="built_in">set</span>: (three two)</span><br><span class="line"><span class="built_in">set</span> size: 2</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>map</code> 和空结构体非常容易实现 <code>set</code> 类型。<code>map</code> 的 <code>key</code> 实际上与 <code>set</code> 不重复的特性刚好一致，一个不需要关心 <code>value</code> 的 <code>map</code> 即为 <code>set</code>。</p>
+<p>也正因为如此，空结构体类型最适合作为这个不需要关心的 <code>value</code> 的 <code>map</code> 了，因为它<strong>不占空间，没有语义</strong>。</p>
+<p>也许有人会认为使用 <code>any</code> 作为 <code>map</code> 的 <code>value</code> 也可以实现 <code>set</code>。但其实 <code>any</code> 是会占用空间的。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">s := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]any)</span><br><span class="line">s[<span class="string">"t1"</span>] = <span class="literal">nil</span></span><br><span class="line">s[<span class="string">"t2"</span>] = <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">fmt.Printf(<span class="string">"set t1 value: %v, size: %d\n"</span>, s[<span class="string">"t1"</span>], unsafe.Sizeof(s[<span class="string">"t1"</span>]))</span><br><span class="line">fmt.Printf(<span class="string">"set t2 value: %v, size: %d\n"</span>, s[<span class="string">"t2"</span>], unsafe.Sizeof(s[<span class="string">"t2"</span>]))</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，输出结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line"><span class="built_in">set</span> t1 value: &lt;nil&gt;, size: 16</span><br><span class="line"><span class="built_in">set</span> t2 value: &#123;&#125;, size: 16</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>any</code> 类型的 <code>value</code> 是有大小的，所以并不合适。</p>
+<p>日常开发中，我们还会用到一种 <code>set</code> 的惯用法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">s := <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">struct</span>&#123;&#125;&#123;</span><br><span class="line">	<span class="string">"one"</span>:   &#123;&#125;,</span><br><span class="line">	<span class="string">"two"</span>:   &#123;&#125;,</span><br><span class="line">	<span class="string">"three"</span>: &#123;&#125;,</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">for</span> element := <span class="keyword">range</span> s &#123;</span><br><span class="line">	fmt.Println(element)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种用法也比较常见，无需声明一个 <code>set</code> 类型，直接通过字面量定义一个 <code>value</code> 为空结构体的 <code>map</code>，非常方便。</p>
+<h4 id="申请超大容量-Array"><a href="#申请超大容量-Array" class="headerlink" title="申请超大容量 Array"></a>申请超大容量 Array</h4><p>基于空结构体不占内存空间的特性，我们可以考虑创建一个容量为 <code>100</code> 万的 <code>array</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> a [<span class="number">1000000</span>]<span class="keyword">string</span></span><br><span class="line"><span class="keyword">var</span> b [<span class="number">1000000</span>]<span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">fmt.Printf(<span class="string">"array a size: %d\n"</span>, unsafe.Sizeof(a))</span><br><span class="line">fmt.Printf(<span class="string">"array b size: %d\n"</span>, unsafe.Sizeof(b))</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，输出结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">array a size: 16000000</span><br><span class="line">array b size: 0</span><br></pre></td></tr></table></figure>
+
+<p>使用空结构体创建的 <code>array</code> 其大小依然为 <code>0</code>。</p>
+<h4 id="申请超大容量-Slice"><a href="#申请超大容量-Slice" class="headerlink" title="申请超大容量 Slice"></a>申请超大容量 Slice</h4><p>我们还以考虑创建一个容量为 <code>100</code> 万的 <code>slice</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> a = <span class="built_in">make</span>([]<span class="keyword">string</span>, <span class="number">1000000</span>)</span><br><span class="line"><span class="keyword">var</span> b = <span class="built_in">make</span>([]<span class="keyword">struct</span>&#123;&#125;, <span class="number">1000000</span>)</span><br><span class="line">fmt.Printf(<span class="string">"slice a size: %d\n"</span>, unsafe.Sizeof(a))</span><br><span class="line">fmt.Printf(<span class="string">"slice b size: %d\n"</span>, unsafe.Sizeof(b))</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，输出结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">slice a size: 24</span><br><span class="line">slice b size: 24</span><br></pre></td></tr></table></figure>
+
+<p>当然，可以发现，其实不管是否使用空结构体，<code>slice</code> 只占用 <code>header</code> 的空间。</p>
+<h4 id="信号通知"><a href="#信号通知" class="headerlink" title="信号通知"></a>信号通知</h4><p>空结构体另一个我经常使用的方法是与 <code>channel</code> 结合当作信号来使用，示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">done := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line"></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    time.Sleep(<span class="number">1</span> * time.Second) <span class="comment">// 执行一些操作...</span></span><br><span class="line">    fmt.Printf(<span class="string">"goroutine done\n"</span>)</span><br><span class="line">    done &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125; <span class="comment">// 发送完成信号</span></span><br><span class="line">&#125;()</span><br><span class="line"></span><br><span class="line">fmt.Printf(<span class="string">"waiting...\n"</span>)</span><br><span class="line">&lt;-done <span class="comment">// 等待完成</span></span><br><span class="line">fmt.Printf(<span class="string">"main exit\n"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>这段代码中声明了一个长度为 <code>0</code> 的 <code>channel</code>，其类型为 <code>chan struct{}</code>。</p>
+<p>然后启动一个 <code>goroutine</code> 执行业务逻辑，主协程等待信号退出，二者使用 <code>channel</code> 进行通信。</p>
+<p>执行示例代码，输出结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">waiting...</span><br><span class="line">goroutine <span class="keyword">done</span></span><br><span class="line">main <span class="built_in">exit</span></span><br></pre></td></tr></table></figure>
+
+<p>主协程先输出 <code>waiting...</code>，然后等待 1s，<code>goroutine</code> 输出 <code>goroutine done</code>，接着主协程收到退出信号，输出 <code>main exit</code> 程序执行完成。</p>
+<p>由于 <code>struct{}</code> 并不占用内存，所以实际上 <code>channel</code> 内部只需要将计数器加一即可，不涉及数据传输，故没有额外内存开销。</p>
+<p>这段代码还有另一种实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">done := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line"></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">	time.Sleep(<span class="number">1</span> * time.Second) <span class="comment">// 执行一些操作...</span></span><br><span class="line">	fmt.Printf(<span class="string">"goroutine done\n"</span>)</span><br><span class="line">	<span class="built_in">close</span>(done) <span class="comment">// 不需要发送 struct&#123;&#125;&#123;&#125;，直接 close，发送完成信号</span></span><br><span class="line">&#125;()</span><br><span class="line"></span><br><span class="line">fmt.Printf(<span class="string">"waiting...\n"</span>)</span><br><span class="line">&lt;-done <span class="comment">// 等待完成</span></span><br><span class="line">fmt.Printf(<span class="string">"main exit\n"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>这里 <code>goroutine</code> 中都不需要发送空结构体，直接对 <code>channel</code> 进行 <code>close</code> 就行了，<code>struct{}</code> 在这里起到的作用更像是一个「占位符」的作用。</p>
+<p>在 Go 语言 <code>context</code> 源码中也使用了 <code>struct{}</code> 作为完成信号：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Context <span class="keyword">interface</span> &#123;</span><br><span class="line">	Deadline() (deadline time.Time, ok <span class="keyword">bool</span>)</span><br><span class="line">	<span class="comment">// See https://blog.golang.org/pipelines for more examples of how to use</span></span><br><span class="line">	<span class="comment">// a Done channel for cancellation.</span></span><br><span class="line">	Done() &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	Err() error</span><br><span class="line">	Value(key any) any</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>context.Context</code> 的 <code>Done</code> 方法返回值即为 <code>chan struct{}</code>。</p>
+<h4 id="无操作的方法接收器"><a href="#无操作的方法接收器" class="headerlink" title="无操作的方法接收器"></a>无操作的方法接收器</h4><p>有时候，我们需要“组合”一些方法，并且这些方法内部并不会用到方法<code>接收器</code>，这时就可以使用 <code>struct{}</code> 作为方法接收器。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> NoOp <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(n NoOp)</span> <span class="title">Perform</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"Performing no operation."</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>方法中代码并没有引用 <code>n</code>，如果换成其他类型则会占用内存空间。</p>
+<p>在实际开发过程中，有时候代码写到一半，为了编译通过，我们也会写出这种代码，先写出代码整体框架，再实现内部细节。</p>
+<h4 id="作为接口实现"><a href="#作为接口实现" class="headerlink" title="作为接口实现"></a>作为接口实现</h4><p>用 <code>struct{}</code> 作为方法接收器，还有另一个用途，就是作为接口的实现。常用于忽略不需要的输出，和单元测试。啥意思呢？往下看。</p>
+<p>我们知道 Go 中有个 <code>io.Writer</code> 接口：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Writer <span class="keyword">interface</span> &#123;</span><br><span class="line">	Write(p []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们还知道，Go 的 <code>io</code> 包中有个 <code>io.Discard</code> 变量，它的主要作用是提供一个“黑洞”设备，任何写入到 <code>io.Discard</code> 的数据都会被消耗掉而不会有任何效果（这类似于 Unix 中的 <code>/dev/null</code> 设备）。</p>
+<p><code>io.Discard</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Discard is a [Writer] on which all Write calls succeed</span></span><br><span class="line"><span class="comment">// without doing anything.</span></span><br><span class="line"><span class="keyword">var</span> Discard Writer = discard&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> discard <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(discard)</span> <span class="title">Write</span><span class="params">(p []<span class="keyword">byte</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="built_in">len</span>(p), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>io.Discard</code> 代码定义极其简单，它实现了 <code>io.Writer</code> 接口，并且这个 <code>Writer</code> 方法的实现也极其简单，什么都没做直接返回。</p>
+<p>根据注释也能发现，<code>Writer</code> 方法的目的就是啥都不做，所有调用都会成功，所以可以类比为 Unix 系统中的 <code>/dev/null</code>。</p>
+<p><code>io.Discard</code> 可以用于忽略日志：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 设置日志输出为 `io.Discard`，忽略所有日志</span></span><br><span class="line">log.SetOutput(io.Discard)</span><br><span class="line"><span class="comment">// 这条日志不会在任何地方显示</span></span><br><span class="line">log.Println(<span class="string">"This log will not be shown anywhere"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>此外，我曾写过一篇文章<a href="https://jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/#Fake-%E6%B5%8B%E8%AF%95" target="_blank" rel="noopener">《在 Go 语言单元测试中如何解决 MySQL 存储依赖问题》</a>。里面有这样一段示例代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> UserStore <span class="keyword">interface</span> &#123;</span><br><span class="line">	Create(user *User) error</span><br><span class="line">	Get(id <span class="keyword">int</span>) (*User, error)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> fakeUserStore <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *fakeUserStore)</span> <span class="title">Create</span><span class="params">(user *store.User)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *fakeUserStore)</span> <span class="title">Get</span><span class="params">(id <span class="keyword">int</span>)</span> <span class="params">(*store.User, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;store.User&#123;ID: id, Name: <span class="string">"test"</span>&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这就是空结构体作为接口实现的另一种用途，编写测试用 <code>fake object</code> 时非常有用。</p>
+<p>即我们定义一个 <code>struct{}</code> 类型 <code>fakeUserStore</code>，然后实现 <code>UserStore</code> 接口，这样在单元测试代码中，就可以用 <code>fakeUserStore</code> 来替换真实的 <code>UserStore</code> 实例对象，以此来解决对象间的依赖问题。</p>
+<h4 id="标识符"><a href="#标识符" class="headerlink" title="标识符"></a>标识符</h4><p>最后，我们再来介绍一种空结构体比较好玩的用法。</p>
+<p>相信很多同学都直接或间接的使用过 Go 中的 <code>sync.Pool</code>，其定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Pool <span class="keyword">struct</span> &#123;</span><br><span class="line">	noCopy noCopy</span><br><span class="line"></span><br><span class="line">	local     unsafe.Pointer</span><br><span class="line">	localSize <span class="keyword">uintptr</span></span><br><span class="line"></span><br><span class="line">	victim     unsafe.Pointer</span><br><span class="line">	victimSize <span class="keyword">uintptr</span></span><br><span class="line"></span><br><span class="line">	New <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">any</span></span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中有一个 <code>noCopy</code> 属性，其定义如下： </p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> noCopy <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*noCopy)</span> <span class="title">Lock</span><span class="params">()</span></span>   &#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*noCopy)</span> <span class="title">Unlock</span><span class="params">()</span></span> &#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>noCopy</code> 即为一个空结构体，其实现也非常简单，仅定义了两个空方法。</p>
+<p>而这个 <code>noCopy</code> 属性看似没什么用，实际上却有着大作用。这个字段的主要作用是阻止 <code>sync.Pool</code> 被意外复制。它是一种通过编译器静态分析来防止结构体被不当复制的技巧，以确保正确的使用和内存安全性。</p>
+<p>可以通过 <code>go vet</code> 命令检测出 <code>sync.Pool</code> 是否被意外复制。 </p>
+<p>在这里，<code>noCopy</code> 属性对当前结构体本身没有作用，但可以将其作为一个是否允许复制的标识符，有了这个标记，就代表结构体不能被复制，<code>go vet</code> 命令就可以检查出来。</p>
+<p>我们自定义的 <code>struct</code> 也可以通过嵌入 <code>noCopy</code> 属性来实现禁止复制：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> noCopy <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*noCopy)</span> <span class="title">Lock</span><span class="params">()</span></span>   &#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*noCopy)</span> <span class="title">Unlock</span><span class="params">()</span></span> &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">type</span> A <span class="keyword">struct</span> &#123;</span><br><span class="line">		noCopy noCopy</span><br><span class="line">		a      <span class="keyword">string</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">type</span> B <span class="keyword">struct</span> &#123;</span><br><span class="line">		b <span class="keyword">string</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	a := A&#123;a: <span class="string">"a"</span>&#125;</span><br><span class="line">	b := B&#123;b: <span class="string">"b"</span>&#125;</span><br><span class="line"></span><br><span class="line">	_ = a</span><br><span class="line">	_ = b</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>go vet</code> 命令检查是否存在意外的结构体复制：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ go vet main.go</span><br><span class="line"></span><br><span class="line"><span class="comment"># command-line-arguments</span></span><br><span class="line"><span class="comment"># [command-line-arguments]</span></span><br><span class="line">./main.go:21:6: assignment copies lock value to _: <span class="built_in">command</span>-line-arguments.A contains <span class="built_in">command</span>-line-arguments.noCopy</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>go vet</code> 已经检测出我们通过 <code>_ = a</code> 复制了 <code>noCopy</code> 结构体 <code>A</code>。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>空结构体 <code>struct{}</code> 在 Go 中虽小却有着巧妙的用途。</p>
+<p>从节省内存的角度看，它是表示空概念的理想选择。从语义上考虑，使用 <code>struct{}</code> 语义更明确，就是不关注值。</p>
+<p>由于内存对齐的影响，空结构体字段顺序可能影响外层结构体的大小，建议将空结构体放在外层结构体的第一个字段。</p>
+<p>无论是使用空结构体实现集合、信号通知、方法载体还是占位符等，<code>struct{}</code> 都显示了其独特的价值。</p>
+<p>你还知道空结构体还有哪些用途，可以分享出来大家一起交流学习。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/struct/empty" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>The empty struct: <a href="https://dave.cheney.net/2014/03/25/the-empty-struct" target="_blank" rel="noopener">https://dave.cheney.net/2014/03/25/the-empty-struct</a></li>
+<li>The Ingenious World of Empty Structs in Go: Zeroing in on Zero Memory: <a href="https://medium.com/@cosmicray001/the-ingenious-world-of-empty-structs-in-go-zeroing-in-on-zero-memory-a7050279fe18" target="_blank" rel="noopener">https://medium.com/@cosmicray001/the-ingenious-world-of-empty-structs-in-go-zeroing-in-on-zero-memory-a7050279fe18</a></li>
+<li>What is the use of empty struct in GoLang: <a href="https://www.pixelstech.net/article/1677371161-What-is-the-use-of-empty-struct-in-GoLang" target="_blank" rel="noopener">https://www.pixelstech.net/article/1677371161-What-is-the-use-of-empty-struct-in-GoLang</a></li>
+<li>Using empty structs as context keys: <a href="https://gist.github.com/SammyOina/6eb54babd618ab6a850e8f1af4f4ac7d" target="_blank" rel="noopener">https://gist.github.com/SammyOina/6eb54babd618ab6a850e8f1af4f4ac7d</a></li>
+<li>Size and alignment guarantees: <a href="https://go.dev/ref/spec#Size_and_alignment_guarantees" target="_blank" rel="noopener">https://go.dev/ref/spec#Size_and_alignment_guarantees</a></li>
+<li>What uses a type with empty struct has in Go?: <a href="https://stackoverflow.com/questions/47544156/what-uses-a-type-with-empty-struct-has-in-go" target="_blank" rel="noopener">https://stackoverflow.com/questions/47544156/what-uses-a-type-with-empty-struct-has-in-go</a></li>
+<li>runtime/malloc.go: <a href="https://github.com/golang/go/blob/master/src/runtime/malloc.go#L904" target="_blank" rel="noopener">https://github.com/golang/go/blob/master/src/runtime/malloc.go#L904</a></li>
+<li>在 Go 语言单元测试中如何解决 MySQL 存储依赖问题: <a href="https://jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/#Fake-%E6%B5%8B%E8%AF%95" target="_blank" rel="noopener">https://jianghushinian.cn/2023/07/16/how-to-resolve-mysql-dependencies-in-go-testing/#Fake-%E6%B5%8B%E8%AF%95</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/struct/empty" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/struct/empty</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:13.057Z" itemprop="dateUpdated">2025-02-15 09:45:13</time>
+</span><br>
+
+
+        
+        <a href="/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/&title=《Go 中空结构体惯用法，我帮你总结全了！》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/&title=《Go 中空结构体惯用法，我帮你总结全了！》 — 江湖十年&source=在 Go 语言中，空结构体 struct{} 是一个非常特殊的类型，它不包含任何字段并且不占用任何内存空间。虽然听起来似乎没什么用，但空结构体在 Go 编..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 中空结构体惯用法，我帮你总结全了！》 — 江湖十年&url=http://www.jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2024/06/09/how-can-you-elegantly-use-dependency-injection-in-go-to-improve-development-efficiency/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">在 Go 中如何优雅的使用 wire 依赖注入工具提高开发效率？</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/05/30/grequests-http-for-humans/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">GRequests: 让 HTTP 服务人类</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/&title=《Go 中空结构体惯用法，我帮你总结全了！》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/&title=《Go 中空结构体惯用法，我帮你总结全了！》 — 江湖十年&source=在 Go 语言中，空结构体 struct{} 是一个非常特殊的类型，它不包含任何字段并且不占用任何内存空间。虽然听起来似乎没什么用，但空结构体在 Go 编..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 中空结构体惯用法，我帮你总结全了！》 — 江湖十年&url=http://www.jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/06/02/i-have-summarized-all-the-usages-of-empty-struct-in-go-for-you/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

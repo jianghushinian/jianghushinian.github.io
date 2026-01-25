@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>AIO Sandbox：一个为智能体而生的全能沙盒 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Agent,Docker">
+    <meta name="description" content="在开发 AI Agent 时你有没有思考过——如果能在一个容器里同时打开浏览器、终端、VSCode、Jupyter，并能让智能体直接调用这些能力，那该有多方便？效率定能翻倍！ 没错，AIO Sandbox 项目就是干这件事情的，项目官网在这里 👉 https:&#x2F;&#x2F;sandbox.agent-infra.com。这是一款 All-in-One 超级容器，它把开发者常用的所有工具，打包成一个可编程的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AIO Sandbox：一个为智能体而生的全能沙盒">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/11/09/aio-sandbox/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在开发 AI Agent 时你有没有思考过——如果能在一个容器里同时打开浏览器、终端、VSCode、Jupyter，并能让智能体直接调用这些能力，那该有多方便？效率定能翻倍！ 没错，AIO Sandbox 项目就是干这件事情的，项目官网在这里 👉 https:&#x2F;&#x2F;sandbox.agent-infra.com。这是一款 All-in-One 超级容器，它把开发者常用的所有工具，打包成一个可编程的">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/11/09/aio-sandbox/agents.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/11/09/aio-sandbox/access-points.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/11/09/aio-sandbox/dashboard.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/11/09/aio-sandbox/output.png">
+<meta property="article:published_time" content="2025-11-09T15:08:04.000Z">
+<meta property="article:modified_time" content="2026-01-25T04:52:53.954Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Agent">
+<meta property="article:tag" content="Docker">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2025/11/09/aio-sandbox/agents.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">AIO Sandbox：一个为智能体而生的全能沙盒</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">AIO Sandbox：一个为智能体而生的全能沙盒</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-11-09T15:08:04.000Z" itemprop="datePublished" class="page-time">
+  2025-11-09
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Agent/">Agent</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#背景：为什么会诞生这个项目？"><span class="post-toc-number">1.</span> <span class="post-toc-text">背景：为什么会诞生这个项目？</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#能力与特点：这不是一款普通的容器"><span class="post-toc-number">2.</span> <span class="post-toc-text">能力与特点：这不是一款普通的容器</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#快速开始：一条命令跑起来"><span class="post-toc-number">3.</span> <span class="post-toc-text">快速开始：一条命令跑起来</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#实战：用-AIO-Sandbox-把网页变成-Markdown"><span class="post-toc-number">4.</span> <span class="post-toc-text">实战：用 AIO Sandbox 把网页变成 Markdown</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">5.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-aio-sandbox"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">AIO Sandbox：一个为智能体而生的全能沙盒</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-11-09 23:08:04" datetime="2025-11-09T15:08:04.000Z"  itemprop="datePublished">2025-11-09</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Agent/">Agent</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在开发 AI Agent 时你有没有思考过——如果能在一个容器里同时打开浏览器、终端、VSCode、Jupyter，并能让智能体直接调用这些能力，那该有多方便？效率定能翻倍！</p>
+<p>没错，AIO Sandbox 项目就是干这件事情的，项目官网在这里 👉 <a href="https://sandbox.agent-infra.com" target="_blank" rel="noopener">https://sandbox.agent-infra.com</a>。这是一款 All-in-One 超级容器，它把开发者常用的所有工具，打包成一个可编程的统一沙盒环境，并通过 API 或 SDK 暴露给智能体使用。</p>
+<a id="more"></a>
+
+<h3 id="背景：为什么会诞生这个项目？"><a href="#背景：为什么会诞生这个项目？" class="headerlink" title="背景：为什么会诞生这个项目？"></a>背景：为什么会诞生这个项目？</h3><p>做智能体（Agent）开发时，我们经常需要以下几件事：</p>
+<ul>
+<li>打开浏览器去爬网页或截图；</li>
+<li>运行脚本、执行 shell 命令；</li>
+<li>读写文件；</li>
+<li>在 VSCode 或 Jupyter Notebook 里调试结果。</li>
+</ul>
+<p>这些工具分散在不同的地方，环境切来切去，不仅麻烦，还很难让智能体“无缝协作”这些能力。很明显 AIO Sandbox（All-In-One Sandbox） 就是为了解决此问题而诞生的：</p>
+<p>AIO Sandbox 是一个一体化的 Agent 沙盒环境，在单个 Docker 容器中结合了浏览器、Shell、文件、MCP 操作和 VSCode Server。基于云原生轻量级沙盒技术构建，它为 AI Agent 和开发者提供了统一的沙盒环境。</p>
+<h3 id="能力与特点：这不是一款普通的容器"><a href="#能力与特点：这不是一款普通的容器" class="headerlink" title="能力与特点：这不是一款普通的容器"></a>能力与特点：这不是一款普通的容器</h3><p>AIO Sandbox 的核心特性有几个关键词：</p>
+<p>🗂 统一文件系统</p>
+<p>浏览器下载、终端输出、VSCode 编辑的文件都在同一个共享目录下，彻底告别跨进程文件搬运的痛点。</p>
+<p>🖥 多界面融合</p>
+<p>容器中自带了浏览器（VNC 可视化）、VSCode（code-server）、终端（Shell）、Jupyter、文件管理器、MCP 操作。你可以直接在浏览器界面完成所有交互，体验就像远程桌面。</p>
+<p>🤖 面向 Agent 的 API</p>
+<p>它不仅能手动操作，更重要的是——所有能力都能通过 API 或 SDK 调用。这意味着你的智能体可以直接控制浏览器、执行 shell、操作文件、甚至运行 Jupyter 代码。</p>
+<p>🧩 多语言 SDK 支持</p>
+<p>官方支持 Python、TypeScript/JavaScript、Go 三种语言。这些 SDK 让你能把沙盒作为智能体的“后端执行环境”接入你的系统。</p>
+<p>根据以上特点，可以总结 AIO Sandbox 非常适合构建需要以下功能的 AI Agent：</p>
+<ul>
+<li>浏览网站并与 Web 应用程序交互</li>
+<li>在安全沙盒中执行代码</li>
+<li>操作文件并运行 Shell 命令</li>
+<li>无缝访问多个开发工具</li>
+</ul>
+<p>比如下图中的 Agent 需要执行下载 paper 并生成 PPT 的任务，那么仅需要一个 AIO Sandbox 容器即可支撑全部需求。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="agents.png" alt="Agents" title="">
+                </div>
+                <div class="image-caption">Agents</div>
+            </figure>
+
+<h3 id="快速开始：一条命令跑起来"><a href="#快速开始：一条命令跑起来" class="headerlink" title="快速开始：一条命令跑起来"></a>快速开始：一条命令跑起来</h3><p>使用 Docker 运行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 拉取并运行最新版本</span></span><br><span class="line">$ docker run --security-opt seccomp=unconfined --rm -it -p 8080:8080 ghcr.io/agent-infra/sandbox:latest</span><br></pre></td></tr></table></figure>
+
+<p>运行 Docker 命令后，我们将看到 AIO Sandbox ASCII 标志</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ docker run --security-opt seccomp=unconfined --rm -it -p 8080:8080 ghcr.io/agent-infra/sandbox:1.0.0.125</span><br><span class="line"> █████╗ ██╗ ██████╗     ███████╗ █████╗ ███╗   ██╗██████╗ ██████╗  ██████╗ ██╗  ██╗</span><br><span class="line">██╔══██╗██║██╔═══██╗    ██╔════╝██╔══██╗████╗  ██║██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝</span><br><span class="line">███████║██║██║   ██║    ███████╗███████║██╔██╗ ██║██║  ██║██████╔╝██║   ██║ ╚███╔╝</span><br><span class="line">██╔══██║██║██║   ██║    ╚════██║██╔══██║██║╚██╗██║██║  ██║██╔══██╗██║   ██║ ██╔██╗</span><br><span class="line">██║  ██║██║╚██████╔╝    ███████║██║  ██║██║ ╚████║██████╔╝██████╔╝╚██████╔╝██╔╝ ██╗</span><br><span class="line">╚═╝  ╚═╝╚═╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝</span><br><span class="line"></span><br><span class="line">🚀 AIO(All-in-One) Agent Sandbox Environment</span><br><span class="line">📦 Image Version: 1.0.0.125</span><br><span class="line">🌈 Dashboard: http://localhost:8080</span><br><span class="line">📚 Documentation: http://localhost:8080/v1/docs</span><br><span class="line"></span><br><span class="line">================================================================</span><br></pre></td></tr></table></figure>
+
+<p><strong>注意：</strong>这里我指定运行的容器 tag 为 <code>1.0.0.125</code>，而非官方文档中默认的 <code>latest</code>。这是因为我尝试了多次最新镜像，一直都报错，可能当时的镜像存在 Bug，再尝试多个版本后发现 <code>1.0.0.125</code> 版本是可用的。</p>
+<p>当然既然是 All-In-One 容器，那么镜像一定不会小，agent-infra/sandbox 镜像在我的电脑中显示 5.61GB。</p>
+<p>运行后，你可在浏览器中以访问不同的界面分别查看效果：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="access-points.png" alt="Access Points" title="">
+                </div>
+                <div class="image-caption">Access Points</div>
+            </figure>
+
+<p>比如仪表板 <a href="http://localhost:8080/index.html" target="_blank" rel="noopener">http://localhost:8080/index.html</a>：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="dashboard.png" alt="Dashboard" title="">
+                </div>
+                <div class="image-caption">Dashboard</div>
+            </figure>
+
+<h3 id="实战：用-AIO-Sandbox-把网页变成-Markdown"><a href="#实战：用-AIO-Sandbox-把网页变成-Markdown" class="headerlink" title="实战：用 AIO Sandbox 把网页变成 Markdown"></a>实战：用 AIO Sandbox 把网页变成 Markdown</h3><p>AIO Sandbox 官网提供了一个很有意思的示例，展示了如何用浏览器抓取页面，然后在沙盒里通过 Jupyter 把 HTML 转换成 Markdown。</p>
+<p>以 Python 代码为例，示例如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> asyncio</span><br><span class="line"><span class="keyword">import</span> base64</span><br><span class="line"><span class="keyword">from</span> playwright.async_api <span class="keyword">import</span> async_playwright</span><br><span class="line"><span class="keyword">from</span> agent_sandbox <span class="keyword">import</span> Sandbox</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">def</span> <span class="title">site_to_markdown</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="comment"># 初始化沙盒客户端</span></span><br><span class="line">    c = Sandbox(base_url=<span class="string">"http://127.0.0.1:8080"</span>)</span><br><span class="line">    home_dir = c.sandbox.get_context().home_dir</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 浏览器：自动化下载 html</span></span><br><span class="line">    <span class="keyword">async</span> <span class="keyword">with</span> async_playwright() <span class="keyword">as</span> p:</span><br><span class="line">        browser_info = c.browser.get_info().data</span><br><span class="line">        page = <span class="keyword">await</span> (<span class="keyword">await</span> p.chromium.connect_over_cdp(browser_info.cdp_url)).new_page(</span><br><span class="line">            viewport=&#123;</span><br><span class="line">                <span class="string">"width"</span>: browser_info.viewport.width,</span><br><span class="line">                <span class="string">"height"</span>: browser_info.viewport.height,</span><br><span class="line">            &#125;</span><br><span class="line">        )</span><br><span class="line">        <span class="keyword">await</span> page.goto(<span class="string">"https://sandbox.agent-infra.com/"</span>, wait_until=<span class="string">"networkidle"</span>)</span><br><span class="line">        html = <span class="keyword">await</span> page.content()</span><br><span class="line">        screenshot_b64 = base64.b64encode(</span><br><span class="line">            <span class="keyword">await</span> page.screenshot(full_page=<span class="literal">False</span>, type=<span class="string">'png'</span>)</span><br><span class="line">        ).decode(<span class="string">'utf-8'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># Jupyter：在沙盒中运行代码将 html 转换为 markdown</span></span><br><span class="line">    c.jupyter.execute_code(</span><br><span class="line">        code=<span class="string">f"""</span></span><br><span class="line"><span class="string">from markdownify import markdownify</span></span><br><span class="line"><span class="string">html = '''<span class="subst">&#123;html&#125;</span>'''</span></span><br><span class="line"><span class="string">screenshot_b64 = "<span class="subst">&#123;screenshot_b64&#125;</span>"</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">md = f"&#123;&#123;markdownify(html)&#125;&#125;\\n\\n![Screenshot](data:image/png;base64,&#123;&#123;screenshot_b64&#125;&#125;)"</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">with open('<span class="subst">&#123;home_dir&#125;</span>/site.md', 'w') as f:</span></span><br><span class="line"><span class="string">    f.write(md)</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">print("完成！")</span></span><br><span class="line"><span class="string">"""</span></span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    <span class="comment"># Bash：执行命令列出沙盒中的文件</span></span><br><span class="line">    list_result = c.shell.exec_command(command=<span class="string">f"ls -lh <span class="subst">&#123;home_dir&#125;</span>"</span>)</span><br><span class="line">    print(<span class="string">f"\n沙盒主目录中的文件：\n<span class="subst">&#123;list_result.data.output&#125;</span>"</span>)</span><br><span class="line"></span><br><span class="line">    open(<span class="string">"./output.md"</span>, <span class="string">"w"</span>).write(</span><br><span class="line">        c.file.read_file(file=<span class="string">f"<span class="subst">&#123;home_dir&#125;</span>/site.md"</span>).data.content</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="string">"./output.md"</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:</span><br><span class="line">    <span class="comment"># 运行异步函数</span></span><br><span class="line">    result = asyncio.run(site_to_markdown())</span><br><span class="line">    print(<span class="string">f"\nMarkdown 文件保存在：<span class="subst">&#123;result&#125;</span>"</span>)</span><br></pre></td></tr></table></figure>
+
+<p><strong>注意：</strong>在我实测的过程中，发现官方 Python SDK 最新版本也存在 Bug，执行示例代码后报错，错误与 pydantic 版本有关（这个库也是个大坑）。我尝试了好几个版本，最终选用 <code>agent-sandbox==0.0.14</code> 版本跑通代码。</p>
+<p>踩坑期间我发现不同版本 SDK API 略有变化，无奈，这也是 Python 项目的坑，很多作者小版本变更就会更改不兼容的 API。这事在 Go 中会好很多，不太容易出现。</p>
+<p>成果展示：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="output.png" alt="output.md" title="">
+                </div>
+                <div class="image-caption">output.md</div>
+            </figure>
+
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>从工具到平台的可能性，AIO Sandbox 给人的感觉很像一块“智能体的实验田”——它既是一个干净的运行时，也是一个极佳的研发 playground。你可以用它快速验证你的智能体想法，而无需关心是否会破坏系统环境。</p>
+<p>AIO Sandbox 不是一个人人都要用的工具，但如果你在研究多能力智能体，或者希望快速验证某个系统的执行闭环，它绝对值得你试一试。</p>
+<p>最后，工具是自由的延伸，它让我们能更快地实验想法，也能更好地理解智能体的边界。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/ai-examples/tree/main/agent/sandbox" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>AIO Sandbox 官网：<a href="https://sandbox.agent-infra.com/" target="_blank" rel="noopener">https://sandbox.agent-infra.com/</a></li>
+<li>AIO Sandbox GitHub 源码：<a href="https://github.com/agent-infra/sandbox" target="_blank" rel="noopener">https://github.com/agent-infra/sandbox</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/ai-examples/tree/main/agent/sandbox" target="_blank" rel="noopener">https://github.com/jianghushinian/ai-examples/tree/main/agent/sandbox</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2025/11/09/aio-sandbox/" target="_blank" rel="noopener">https://jianghushinian.cn/2025/11/09/aio-sandbox/</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-01-25T04:52:53.954Z" itemprop="dateUpdated">2026-01-25 12:52:53</time>
+</span><br>
+
+
+        
+        <a href="/2025/11/09/aio-sandbox/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/11/09/aio-sandbox/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Agent/" rel="tag">Agent</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Docker/" rel="tag">Docker</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/11/09/aio-sandbox/&title=《AIO Sandbox：一个为智能体而生的全能沙盒》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/11/09/aio-sandbox/&title=《AIO Sandbox：一个为智能体而生的全能沙盒》 — 江湖十年&source=在开发 AI Agent 时你有没有思考过——如果能在一个容器里同时打开浏览器、终端、VSCode、Jupyter，并能让智能体直接调用这些能力，那该有多..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/11/09/aio-sandbox/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《AIO Sandbox：一个为智能体而生的全能沙盒》 — 江湖十年&url=http://www.jianghushinian.cn/2025/11/09/aio-sandbox/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/11/09/aio-sandbox/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2026/01/25/docker-images-migration/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">如何在两个镜像仓库之间迁移 Docker 跨平台镜像</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/10/08/mcp-go-sdk/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">MCP 官方 Go SDK v1.0.0 正式发布：Go 生态的模型上下文协议步入稳定时代</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/11/09/aio-sandbox/&title=《AIO Sandbox：一个为智能体而生的全能沙盒》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/11/09/aio-sandbox/&title=《AIO Sandbox：一个为智能体而生的全能沙盒》 — 江湖十年&source=在开发 AI Agent 时你有没有思考过——如果能在一个容器里同时打开浏览器、终端、VSCode、Jupyter，并能让智能体直接调用这些能力，那该有多..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/11/09/aio-sandbox/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《AIO Sandbox：一个为智能体而生的全能沙盒》 — 江湖十年&url=http://www.jianghushinian.cn/2025/11/09/aio-sandbox/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/11/09/aio-sandbox/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/11/09/aio-sandbox/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Web 安全之 SQL 注入攻击 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Web,安全">
+    <meta name="description" content="SQL 注入攻击是一种非常普遍的攻击方式，也是最危险的 Web 程序安全风险之一。所以学习并防范 SQL 注入攻击是非常必要的。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Web 安全之 SQL 注入攻击">
+<meta property="og:url" content="http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="SQL 注入攻击是一种非常普遍的攻击方式，也是最危险的 Web 程序安全风险之一。所以学习并防范 SQL 注入攻击是非常必要的。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/login.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/input_right_info.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/login_success.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/input_error_info.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/login_fail.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/input_sql_inject_script_info.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/login_success1.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/input_sql_inject_script_info1.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/login_fail1.png">
+<meta property="article:published_time" content="2020-01-29T01:25:19.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.788Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Web">
+<meta property="article:tag" content="安全">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/login.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Web 安全之 SQL 注入攻击</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Web 安全之 SQL 注入攻击</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2020-01-29T01:25:19.000Z" itemprop="datePublished" class="page-time">
+  2020-01-29
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#攻击原理"><span class="post-toc-number">1.</span> <span class="post-toc-text">攻击原理</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#攻击示例"><span class="post-toc-number">2.</span> <span class="post-toc-text">攻击示例</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#防范方法"><span class="post-toc-number">3.</span> <span class="post-toc-text">防范方法</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-Web-安全之-SQL-注入攻击"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Web 安全之 SQL 注入攻击</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2020-01-29 09:25:19" datetime="2020-01-29T01:25:19.000Z"  itemprop="datePublished">2020-01-29</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Web/">Web</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>SQL 注入攻击是一种非常普遍的攻击方式，也是最危险的 Web 程序安全风险之一。所以学习并防范 SQL 注入攻击是非常必要的。</p>
+<a id="more"></a>
+
+<h3 id="攻击原理"><a href="#攻击原理" class="headerlink" title="攻击原理"></a>攻击原理</h3><p>在编写 Web 程序时，如果后端代码不对前端用户输入数据做安全性检查，直接将数据当作参数拼接到  SQL 语句中，然后执行 SQL 语句，恶意用户就可以通过传入包含 SQL 关键字的参数来做一些相当危险的操作，如获取敏感数据、删除数据等，以此来达到攻击目的。</p>
+<h3 id="攻击示例"><a href="#攻击示例" class="headerlink" title="攻击示例"></a>攻击示例</h3><p>这里我用一个验证用户登录的例子来作为 SQL 注入攻击的示例。</p>
+<p>首先执行如下 Python 代码来生成演示数据。为简单起见，程序中使用 <code>SQLite</code> 数据库来进行演示，以下代码创建了一张 <code>user</code> 表，包含三个字段分别为 <code>id</code>、<code>username</code>、<code>password</code>，并插入了一条数据，用户名密码都为 <code>test</code>。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># demo_db.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> sqlite3</span><br><span class="line"></span><br><span class="line">conn = sqlite3.connect(<span class="string">'test.db'</span>)</span><br><span class="line">cursor = conn.cursor()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 创建 user 表并插入数据</span></span><br><span class="line">cursor.execute(<span class="string">'create table user (id int(11) primary key, username varchar(20), password varchar(20))'</span>)</span><br><span class="line">cursor.execute(<span class="string">'insert into user(id, username, password) values (1, "test", "test")'</span>)</span><br><span class="line"></span><br><span class="line">cursor.close()</span><br><span class="line">conn.commit()</span><br><span class="line">conn.close()</span><br></pre></td></tr></table></figure>
+
+<p>接下来使用 <code>Flask</code> 编写一个简单的 Web 应用。执行以下代码之前你需要使用 <code>pip install flask</code> 的方式安装 <code>Flask</code>。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># demo_sql_inject.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> sqlite3</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask, request</span><br><span class="line"></span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/login', methods=['GET', 'POST'])</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">login</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="comment"># 如果为 POST 请求，则处理登录逻辑</span></span><br><span class="line">    <span class="keyword">if</span> request.method == <span class="string">'POST'</span>:</span><br><span class="line">        <span class="comment"># 解析前端页面通过 form 表单传递过来的用户名、密码</span></span><br><span class="line">        form = request.form</span><br><span class="line">        username = form.get(<span class="string">'username'</span>)</span><br><span class="line">        password = form.get(<span class="string">'password'</span>)</span><br><span class="line">        print(<span class="string">f'username: <span class="subst">&#123;username&#125;</span>, password: <span class="subst">&#123;password&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 连接数据库</span></span><br><span class="line">        conn = sqlite3.connect(<span class="string">'test.db'</span>)</span><br><span class="line">        cursor = conn.cursor()</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 根据用户名、密码拼接 SQL 语句</span></span><br><span class="line">        sql = <span class="string">f"select * from user where username='<span class="subst">&#123;username&#125;</span>' and password='<span class="subst">&#123;password&#125;</span>'"</span></span><br><span class="line">        print(<span class="string">f'sql: <span class="subst">&#123;sql&#125;</span>'</span>)</span><br><span class="line">        <span class="comment"># 执行 SQL 语句</span></span><br><span class="line">        cursor.execute(sql)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 如果根据用户输入的用户名、密码能够查询出数据，则登录成功，否则登录失败</span></span><br><span class="line">        result = cursor.fetchall()</span><br><span class="line">        print(<span class="string">f'result: <span class="subst">&#123;result&#125;</span>'</span>)</span><br><span class="line">        <span class="keyword">if</span> result:</span><br><span class="line">            <span class="keyword">return</span> <span class="string">'登录成功'</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="string">'登录失败'</span></span><br><span class="line">    <span class="comment"># GET 请求，则返回登录表单</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"""</span></span><br><span class="line"><span class="string">        &lt;form method="post"&gt;</span></span><br><span class="line"><span class="string">            &lt;input name="username" placeholder="username"&gt;</span></span><br><span class="line"><span class="string">            &lt;input name="password" placeholder="password"&gt;</span></span><br><span class="line"><span class="string">            &lt;button&gt;登录&lt;/button&gt;</span></span><br><span class="line"><span class="string">        &lt;/form&gt;</span></span><br><span class="line"><span class="string">        """</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    app.run()</span><br></pre></td></tr></table></figure>
+
+<p>这个 Web 应用中只包含一个 <code>login</code> 视图函数，它分别接收两个请求方法 <code>GET</code>、<code>POST</code>。如果为 <code>GET</code> 请求，返回登录页面，如果为 <code>POST</code> 请求，解析前端页面通过 <code>form</code> 表单传递过来的用户名、密码，然后根据用户名、密码拼接 SQL 语句，接下来执行这条 SQL 语句来查询 <code>user</code> 表中的数据，能够查询出数据，则代表用户输入的用户名和密码正确，登录成功，否则登录失败。</p>
+<p>启动 <code>Flask</code> 应用，浏览器访问登录页面 <code>http://127.0.0.1:5000/login</code>。</p>
+<img src="login.png" width="100%" style="max-width: 500px">
+
+<p>首先输入正确的用户名 <code>test</code> 和密码 <code>test</code>，点击登录按钮，将得到 <code>登录成功</code> 响应。</p>
+<img src="input_right_info.png" width="100%" style="max-width: 500px">
+
+<img src="login_success.png" width="100%" style="max-width: 500px">
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># 控制台打印信息</span><br><span class="line">username: test, password: test</span><br><span class="line">sql: select * from user where username&#x3D;&#39;test&#39; and password&#x3D;&#39;test&#39;</span><br><span class="line">result: [(1, &#39;test&#39;, &#39;test&#39;)]</span><br></pre></td></tr></table></figure>
+
+<p>然后测试输入错误的用户名或密码，如输入 <code>123</code> 作为密码，点击登录按钮，将得到 <code>登录失败</code> 响应。</p>
+<img src="input_error_info.png" width="100%" style="max-width: 500px">
+
+<img src="login_fail.png" width="100%" style="max-width: 500px">
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># 控制台打印信息</span><br><span class="line">username: test, password: 123</span><br><span class="line">sql: select * from user where username&#x3D;&#39;test&#39; and password&#x3D;&#39;123&#39;</span><br><span class="line">result: []</span><br></pre></td></tr></table></figure>
+
+<p>目前来看，我们的 Web 程序似乎能够正常工作，接下来我将演示如何通过传入 SQL 关键字来实现注入攻击。</p>
+<p>这次在用户名的输入框输入 <code>demo&#39; or 1=1; --</code>，密码输入框输入 <code>123</code>，点击登录按钮，你会惊奇的发现我们使用错误的用户名和密码竟然得到了 <code>登录成功</code> 响应。</p>
+<img src="input_sql_inject_script_info.png" width="100%" style="max-width: 500px">
+
+<img src="login_success1.png" width="100%" style="max-width: 500px">
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># 控制台打印信息</span><br><span class="line">username: demo&#39; or 1&#x3D;1; --, password: 123</span><br><span class="line">sql: select * from user where username&#x3D;&#39;demo&#39; or 1&#x3D;1; --&#39; and password&#x3D;&#39;123&#39;</span><br><span class="line">result: [(1, &#39;test&#39;, &#39;test&#39;)]</span><br></pre></td></tr></table></figure>
+
+<p>此时我们已经通过 SQL 注入攻击的方式绕过了后台系统的验证，前端用户在不知道用户名和密码的情况下实现了登录。</p>
+<p>由控制台打印信息可以看到，实际上我们最终拼装的 SQL 语句为 <code>select * from user where username=&#39;demo&#39; or 1=1; --&#39; and password=&#39;123&#39;</code>，在 SQL 中 <code>;</code> 用来结束一条语句，<code>--</code> 用来注释后面的语句，所以这条 SQL 语句真正被执行的有效部分为 <code>select * from user where username=&#39;demo&#39; or 1=1;</code>，而这条语句的条件 <code>or 1=1</code> 永远成立，所以只要 <code>user</code> 表中有数据，总会查出结果，也就能够返回 <code>登录成功</code> 响应。</p>
+<p>这仅是在不知道用户名密码的情况下实现了登录，实际上还可能出现更糟糕的情况，如果代码中执行 SQL 语句不使用 <code>cursor.execute(sql)</code> 方法（<code>execute</code> 方法只支持执行单条 SQL 语句），而是使用 <code>cursor.executescript(sql)</code> 方法（<code>executescript</code> 方法支持执行一段 SQL 语句），并且用户猜到我们的用户表名为 <code>user</code>，那么用户将可以在登录页面的 <code>username</code> 输入框输入 <code>demo&#39; or 1=1; drop table user; --</code> 来删除整张 <code>user</code> 表。</p>
+<p>由此可见，SQL 注入是一个相当危险的 Web 安全漏洞攻击。</p>
+<h3 id="防范方法"><a href="#防范方法" class="headerlink" title="防范方法"></a>防范方法</h3><p>通过演示示例我们可以发现，SQL 注入攻击方式主要是通过用户输入 SQL 关键字来实现，并且如果用户想删除表数据则需要知道表名，所以防范 SQL 注入主要通过定义复杂表名和对用户输入的 SQL 关键字进行转义。</p>
+<p>防范 SQL 注入攻击方法有很多，我这里主要介绍两种比较常见并且开发成本相对较低的解决方案：</p>
+<ol>
+<li>可以使用参数化查询的方式执行 SQL 语句，从而避免手动拼接有安全风险的 SQL 语句。我们可以将上面演示的 Web 程序中拼接 SQL 语句的部分代码改为使用参数查询。</li>
+</ol>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># demo_sql_inject.py</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> sqlite3</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask, request</span><br><span class="line"></span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route('/login', methods=['GET', 'POST'])</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">login</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="comment"># 如果为 POST 请求，则处理登录逻辑</span></span><br><span class="line">    <span class="keyword">if</span> request.method == <span class="string">'POST'</span>:</span><br><span class="line">        <span class="comment"># 解析前端页面通过 form 表单传递过来的用户名、密码</span></span><br><span class="line">        form = request.form</span><br><span class="line">        username = form.get(<span class="string">'username'</span>)</span><br><span class="line">        password = form.get(<span class="string">'password'</span>)</span><br><span class="line">        print(<span class="string">f'username: <span class="subst">&#123;username&#125;</span>, password: <span class="subst">&#123;password&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 连接数据库</span></span><br><span class="line">        conn = sqlite3.connect(<span class="string">'test.db'</span>)</span><br><span class="line">        cursor = conn.cursor()</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 构建参数化查询语句</span></span><br><span class="line">        sql = <span class="string">"select * from user where username=? and password=?"</span></span><br><span class="line">        print(<span class="string">f'sql: <span class="subst">&#123;sql&#125;</span>'</span>)</span><br><span class="line">        <span class="comment"># 执行 SQL 语句，将用户名、密码组成元组传入 execute 方法的第二个参数</span></span><br><span class="line">        cursor.execute(sql, (username, password))</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 如果根据用户输入的用户名、密码能够查询出数据，则登录成功，否则登录失败</span></span><br><span class="line">        result = cursor.fetchall()</span><br><span class="line">        print(<span class="string">f'result: <span class="subst">&#123;result&#125;</span>'</span>)</span><br><span class="line">        <span class="keyword">if</span> result:</span><br><span class="line">            <span class="keyword">return</span> <span class="string">'登录成功'</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="string">'登录失败'</span></span><br><span class="line">    <span class="comment"># GET 请求，则返回登录表单</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"""</span></span><br><span class="line"><span class="string">        &lt;form method="post"&gt;</span></span><br><span class="line"><span class="string">            &lt;input name="username" placeholder="username"&gt;</span></span><br><span class="line"><span class="string">            &lt;input name="password" placeholder="password"&gt;</span></span><br><span class="line"><span class="string">            &lt;button&gt;登录&lt;/button&gt;</span></span><br><span class="line"><span class="string">        &lt;/form&gt;</span></span><br><span class="line"><span class="string">        """</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    app.run()</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，程序其实只修改了两行代码，修改后的程序不再通过字符串的方式拼接 SQL，而是首先构建参数化查询语句 <code>select * from user where username=? and password=?</code>，使用 <code>?</code> 对参数进行占位，然后在执行 SQL 时 <code>cursor.execute(sql, (username, password))</code> 将用户名和密码组装成元组传入。</p>
+<p>再次测试在用户名的输入框输入 <code>demo&#39; or 1=1; --</code>，密码输入框输入 <code>123</code>，点击登录按钮，将会得到 <code>登录失败</code> 响应。</p>
+<img src="input_sql_inject_script_info1.png" width="100%" style="max-width: 500px">
+
+<img src="login_fail1.png" width="100%" style="max-width: 500px">
+
+<p>使用 <code>sqlite3</code> 驱动自带的参数化查询方式能够有效的避免 SQL 注入攻击，其原理就是在执行 <code>cursor.execute(sql, (username, password))</code> 时，<code>sqlite3</code> 内部会自动对 SQL 关键字进行转义。</p>
+<ol start="2">
+<li>可以使用如 <code>SQLAlchemy</code> 等 ORM 来解决 SQL 注入的问题，主流 ORM 框架都是经过市场检验的，对常见的 SQL 注入攻击都有比较有效的解决方案。</li>
+</ol>
+<p>当然，所谓安全都是相对的，并没有绝对的安全，对敏感数据加密，做好数据库备份都是非常必要的工作。</p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.788Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/" target="_blank" rel="external">http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%AE%89%E5%85%A8/" rel="tag">安全</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/&title=《Web 安全之 SQL 注入攻击》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/&title=《Web 安全之 SQL 注入攻击》 — 江湖十年&source=SQL 注入攻击是一种非常普遍的攻击方式，也是最危险的 Web 程序安全风险之一。所以学习并防范 SQL 注入攻击是非常必要的。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Web 安全之 SQL 注入攻击》 — 江湖十年&url=http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2020/05/16/Python-%E4%B8%AD%E7%9A%84%E7%8C%B4%E5%AD%90%E8%A1%A5%E4%B8%81/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Python 中的猴子补丁</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2020/01/27/%E4%BD%BF%E7%94%A8-Faker-%E5%BA%93%E7%94%9F%E6%88%90%E5%81%87%E6%95%B0%E6%8D%AE/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">使用 Faker 库生成假数据</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/&title=《Web 安全之 SQL 注入攻击》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/&title=《Web 安全之 SQL 注入攻击》 — 江湖十年&source=SQL 注入攻击是一种非常普遍的攻击方式，也是最危险的 Web 程序安全风险之一。所以学习并防范 SQL 注入攻击是非常必要的。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Web 安全之 SQL 注入攻击》 — 江湖十年&url=http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2020/01/29/Web-%E5%AE%89%E5%85%A8%E4%B9%8B-SQL-%E6%B3%A8%E5%85%A5%E6%94%BB%E5%87%BB/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>使用 K8s Aggregate 聚合你的错误列表 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,Error">
+    <meta name="description" content="我在「go-multierror: 更方便的处理你的错误列表」一文中讲解了在 Go 中如何使用 go-multierror 包聚合错误列表，本文将介绍另一种方案，来看看 Kubernetes 是如何聚合错误列表的。 Kubernetes 在 apimachinery 项目中专门提供了 Aggregate 类型来处理聚合错误，我们一起来看下它的使用方法和实现原理。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用 K8s Aggregate 聚合你的错误列表">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="我在「go-multierror: 更方便的处理你的错误列表」一文中讲解了在 Go 中如何使用 go-multierror 包聚合错误列表，本文将介绍另一种方案，来看看 Kubernetes 是如何聚合错误列表的。 Kubernetes 在 apimachinery 项目中专门提供了 Aggregate 类型来处理聚合错误，我们一起来看下它的使用方法和实现原理。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/onex-aggregate-error.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/onex-zsxq.png">
+<meta property="article:published_time" content="2025-03-29T08:52:51.000Z">
+<meta property="article:modified_time" content="2026-01-25T04:52:54.076Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="Error">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/onex-aggregate-error.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">使用 K8s Aggregate 聚合你的错误列表</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">使用 K8s Aggregate 聚合你的错误列表</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-03-29T08:52:51.000Z" itemprop="datePublished" class="page-time">
+  2025-03-29
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#使用示例"><span class="post-toc-number">1.</span> <span class="post-toc-text">使用示例</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#源码解读"><span class="post-toc-number">2.</span> <span class="post-toc-text">源码解读</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Aggregate-接口"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">Aggregate 接口</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#aggregate-实现"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">aggregate 实现</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#FilterOut-过滤输出"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">FilterOut 过滤输出</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Flatten-展平错误"><span class="post-toc-number">2.4.</span> <span class="post-toc-text">Flatten 展平错误</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Reduce-简化聚合错误"><span class="post-toc-number">2.5.</span> <span class="post-toc-text">Reduce 简化聚合错误</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#AggregateGoroutines-并行收集错误"><span class="post-toc-number">2.6.</span> <span class="post-toc-text">AggregateGoroutines 并行收集错误</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#CreateAggregateFromMessageCountMap-统计错误频率"><span class="post-toc-number">2.7.</span> <span class="post-toc-text">CreateAggregateFromMessageCountMap 统计错误频率</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">3.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-k8s-aggregate-error"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">使用 K8s Aggregate 聚合你的错误列表</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-03-29 16:52:51" datetime="2025-03-29T08:52:51.000Z"  itemprop="datePublished">2025-03-29</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>我在「<a href="https://mp.weixin.qq.com/s/8EVPiNbynuxWRc8GlmpXxw" target="_blank" rel="noopener">go-multierror: 更方便的处理你的错误列表</a>」一文中讲解了在 Go 中如何使用 <code>go-multierror</code> 包聚合错误列表，本文将介绍另一种方案，来看看 Kubernetes 是如何聚合错误列表的。</p>
+<p>Kubernetes 在 <code>apimachinery</code> 项目中专门提供了 <code>Aggregate</code> 类型来处理聚合错误，我们一起来看下它的使用方法和实现原理。</p>
+<a id="more"></a>
+
+<h3 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h3><p>Kubernetes <code>Aggregate</code> 使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"errors"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">	utilerrors <span class="string">"k8s.io/apimachinery/pkg/util/errors"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> errs []error</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 模拟多个操作可能失败</span></span><br><span class="line">	err1 := step1()</span><br><span class="line">	<span class="keyword">if</span> err1 != <span class="literal">nil</span> &#123;</span><br><span class="line">		errs = <span class="built_in">append</span>(errs, err1)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err2 := step2()</span><br><span class="line">	<span class="keyword">if</span> err2 != <span class="literal">nil</span> &#123;</span><br><span class="line">		errs = <span class="built_in">append</span>(errs, err2)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	agg := utilerrors.NewAggregate(errs)</span><br><span class="line"></span><br><span class="line">	fmt.Printf(<span class="string">"errs: %s\n"</span>, errs)</span><br><span class="line">	fmt.Printf(<span class="string">"aggregate: %s\n"</span>, agg)</span><br><span class="line">    fmt.Printf(<span class="string">"errs len: %d, aggregate len: %d\n"</span>, <span class="built_in">len</span>(errs), <span class="built_in">len</span>(agg.Errors()))</span><br><span class="line">	fmt.Printf(<span class="string">"errors: %s\n"</span>, agg.Errors())</span><br><span class="line">	fmt.Printf(<span class="string">"err1: %s, err2: %s\n"</span>, agg.Errors()[<span class="number">0</span>], agg.Errors()[<span class="number">1</span>])</span><br><span class="line"></span><br><span class="line">	fmt.Println(</span><br><span class="line">		errors.Is(agg, err1),</span><br><span class="line">		errors.Is(agg, err2),</span><br><span class="line">		errors.Is(agg, errors.New(<span class="string">"err3"</span>)),</span><br><span class="line">	)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">step1</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> errors.New(<span class="string">"step1 failed"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">step2</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> errors.New(<span class="string">"step2 failed"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里我们写一段测试程序，模拟出现多个错误的情况，使用 <code>errs</code> 记录错误列表。然后用 <code>utilerrors.NewAggregate(errs)</code> 将错误列表转换成 <code>Aggregate</code> 类型。最后拿到 <code>agg</code> 后做了一系列打印测试。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go                          </span><br><span class="line">errs: [step1 failed step2 failed]</span><br><span class="line">aggregate: [step1 failed, step2 failed]</span><br><span class="line">errs len: 2, aggregate len: 2</span><br><span class="line">errors: [step1 failed step2 failed]</span><br><span class="line">err1: step1 failed, err2: step2 failed</span><br><span class="line"><span class="literal">true</span> <span class="literal">true</span> <span class="literal">false</span></span><br></pre></td></tr></table></figure>
+
+<p>想必无需我多言，根据输出结果，我们能直观的观察到 <code>Aggregate</code> 的效果。</p>
+<h3 id="源码解读"><a href="#源码解读" class="headerlink" title="源码解读"></a>源码解读</h3><p>接下来，我们将从源码入手，详细解读下 <code>Aggregate</code> 的实现原理。</p>
+<h4 id="Aggregate-接口"><a href="#Aggregate-接口" class="headerlink" title="Aggregate 接口"></a>Aggregate 接口</h4><p>首先，<code>Aggregate</code> 其实是一个接口，其定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Aggregate <span class="keyword">interface</span> &#123;</span><br><span class="line">	error</span><br><span class="line">	Errors() []error <span class="comment">// 暴露内部错误列表</span></span><br><span class="line">	Is(error) <span class="keyword">bool</span>   <span class="comment">// 兼容 Go 1.13+ 错误链判断</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个接口非常简单，嵌入了 <code>error</code>，并扩展了两个方法 <code>Errors</code> 和 <code>Is</code>。</p>
+<p>Kubernetes 为 <code>Aggregate</code> 接口提供了如下构造函数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewAggregate</span><span class="params">(errlist []error)</span> <span class="title">Aggregate</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(errlist) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 过滤 nil 错误（防止空指针）</span></span><br><span class="line">	<span class="keyword">var</span> errs []error</span><br><span class="line">	<span class="keyword">for</span> _, e := <span class="keyword">range</span> errlist &#123;</span><br><span class="line">		<span class="keyword">if</span> e != <span class="literal">nil</span> &#123;</span><br><span class="line">			errs = <span class="built_in">append</span>(errs, e)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(errs) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> aggregate(errs) <span class="comment">// 返回 Aggregate 接口的实现 aggregate 对象</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>NewAggregate</code> 函数可以将一个错误列表（注意，我这里说的“列表”就是 Go 中的 <code>slice</code>，表示一组错误，本文中还会多次使用这种说法）转换成 <code>Aggregate</code> 类型。并且其内部会过滤掉值为 <code>nil</code> 的错误。最终返回 <code>Aggregate</code> 接口的实现 <code>aggregate</code> 对象。</p>
+<h4 id="aggregate-实现"><a href="#aggregate-实现" class="headerlink" title="aggregate 实现"></a>aggregate 实现</h4><p><code>aggregate</code> 类型是 <code>Aggregate</code> 接口的具体实现，其定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> aggregate []error</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，<code>aggregate</code> 实际上的底层类型就是错误列表 <code>[]error</code>。所以 <code>aggregate(errs)</code> 啥都没做，就仅仅转换了一下类型。接下来我们依次看下 <code>aggregate</code> 实现的方法。</p>
+<p>首先要看的当然是 <code>error</code> 必备方法 <code>Error</code> 的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(agg aggregate)</span> <span class="title">Error</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="comment">// 错误为空直接返回 ""</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(agg) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// This should never happen, really.</span></span><br><span class="line">		<span class="keyword">return</span> <span class="string">""</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 单错误直接返回</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(agg) == <span class="number">1</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> agg[<span class="number">0</span>].Error()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 使用集合去重</span></span><br><span class="line">	seenerrs := sets.NewString() <span class="comment">// 使用 map 实现 set：map[string]struct&#123;&#125;</span></span><br><span class="line">	result := <span class="string">""</span></span><br><span class="line">	agg.visit(<span class="function"><span class="keyword">func</span><span class="params">(err error)</span> <span class="title">bool</span></span> &#123; <span class="comment">// 这里使用 visit 递归判断 agg 中每一个错误对象</span></span><br><span class="line">		msg := err.Error()</span><br><span class="line">		<span class="keyword">if</span> seenerrs.Has(msg) &#123; <span class="comment">// 在闭包函数中实现去重</span></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">		&#125;</span><br><span class="line">		seenerrs.Insert(msg)</span><br><span class="line">		<span class="keyword">if</span> <span class="built_in">len</span>(seenerrs) &gt; <span class="number">1</span> &#123;</span><br><span class="line">			result += <span class="string">", "</span> <span class="comment">// 多错误时中间使用逗号分割</span></span><br><span class="line">		&#125;</span><br><span class="line">		result += msg <span class="comment">// 拼接去重后的错误信息</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 单错误直接返回</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(seenerrs) == <span class="number">1</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> result</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="string">"["</span> + result + <span class="string">"]"</span> <span class="comment">// 多错误用方括号包裹</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果 <code>aggregate</code> 列表中的错误为空直接返回空字符串 <code>&quot;&quot;</code>；如果只有一个错误，则返回这个唯一错误值的 <code>Error()</code> 结果；否则，说明存在多个错误，此时会结合 <code>set</code> 和 <code>visit</code> 方法对错误列表进行去重操作，最终返回 <code>[err1, err2, ..., errn]</code> 格式的错误信息。</p>
+<p><code>visit</code> 方法实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(agg aggregate)</span> <span class="title">visit</span><span class="params">(f <span class="keyword">func</span>(err error)</span> <span class="title">bool</span>) <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="comment">// 遍历错误列表</span></span><br><span class="line">	<span class="keyword">for</span> _, err := <span class="keyword">range</span> agg &#123;</span><br><span class="line">		<span class="keyword">switch</span> err := err.(<span class="keyword">type</span>) &#123;</span><br><span class="line">		<span class="keyword">case</span> aggregate: <span class="comment">// 嵌套的私有聚合类型</span></span><br><span class="line">			<span class="comment">// 递归遍历子聚合错误</span></span><br><span class="line">			<span class="keyword">if</span> match := err.visit(f); match &#123;</span><br><span class="line">				<span class="keyword">return</span> match</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">case</span> Aggregate: <span class="comment">// 实现了 Aggregate 接口的其他类型</span></span><br><span class="line">			<span class="comment">// 遍历接口公开的错误列表</span></span><br><span class="line">			<span class="keyword">for</span> _, nestedErr := <span class="keyword">range</span> err.Errors() &#123;</span><br><span class="line">				<span class="keyword">if</span> match := f(nestedErr); match &#123; <span class="comment">// 将嵌套的错误传给 f 函数进行检查</span></span><br><span class="line">					<span class="keyword">return</span> match <span class="comment">// 嵌套的错误匹配则终止</span></span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">default</span>: <span class="comment">// 其他错误类型</span></span><br><span class="line">			<span class="keyword">if</span> match := f(err); match &#123; <span class="comment">// 直接应用判断函数</span></span><br><span class="line">				<span class="keyword">return</span> match</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>visit</code> 方法会接收一个函数 <code>f</code>，它会递归遍历聚合错误树 <code>aggregate</code>，并对每个错误执行判断函数 <code>f</code>，如果返回值为 <code>true</code> 表示存在满足条件的错误，<code>false</code> 则表示未找到。</p>
+<p>从这里也能看出，<code>aggregate</code> 是可能出现嵌套情况的，嵌套深了，就会组成一个错误树结构。</p>
+<p><code>aggregate</code> 剩余的两个方法 <code>Errors</code> 和 <code>Is</code> 则实现非常简单，代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(agg aggregate)</span> <span class="title">Errors</span><span class="params">()</span> []<span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> []error(agg)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(agg aggregate)</span> <span class="title">Is</span><span class="params">(target error)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> agg.visit(<span class="function"><span class="keyword">func</span><span class="params">(err error)</span> <span class="title">bool</span></span> &#123; <span class="comment">// 递归判断每一个错误对象，是否等于 target</span></span><br><span class="line">		<span class="keyword">return</span> errors.Is(err, target)</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Errors</code> 方法没什么好说的，就是类型转换，而 <code>Is</code> 方法也同样调用了 <code>visit</code> 方法递归判断每一个错误对象，是否等于 <code>target</code>。</p>
+<p>至此，<code>aggregate</code> 的所有方法就都讲解完成了。</p>
+<p>而 <code>k8s.io/apimachinery/pkg/util/errors</code> 包其实还提供了其他功能供我们使用，它们分别是 <code>FilterOut</code>、<code>Flatten</code>、<code>Reduce</code>、<code>AggregateGoroutines</code> 以及 <code>CreateAggregateFromMessageCountMap</code>，接下来我们分别看一下它们各自的功能和实现。 </p>
+<h4 id="FilterOut-过滤输出"><a href="#FilterOut-过滤输出" class="headerlink" title="FilterOut 过滤输出"></a>FilterOut 过滤输出</h4><p><code>FilterOut</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Matcher <span class="function"><span class="keyword">func</span><span class="params">(error)</span> <span class="title">bool</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">FilterOut</span><span class="params">(err error, fns ...Matcher)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> &#123; <span class="comment">// err 为 nil 直接返回</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> agg, ok := err.(Aggregate); ok &#123; <span class="comment">// 如果是 Aggregate 类型</span></span><br><span class="line">		<span class="keyword">return</span> NewAggregate(filterErrors(agg.Errors(), fns...)) <span class="comment">// 递归处理错误列表</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> !matchesError(err, fns...) &#123; <span class="comment">// 如果全部不匹配，返回原 err</span></span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>FilterOut</code> 从输入错误中移除所有匹配任意 <code>Matcher</code> 的错误。如果 <code>err</code> 为 <code>nil</code> 则直接返回；如果 <code>err</code> 实现了 <code>Aggregate</code> 接口，则递归处理错误列表。</p>
+<p>这里调用的 <code>filterErrors</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">filterErrors</span><span class="params">(list []error, fns ...Matcher)</span> []<span class="title">error</span></span> &#123;</span><br><span class="line">	result := []error&#123;&#125;</span><br><span class="line">	<span class="keyword">for</span> _, err := <span class="keyword">range</span> list &#123;</span><br><span class="line">		r := FilterOut(err, fns...)</span><br><span class="line">		<span class="keyword">if</span> r != <span class="literal">nil</span> &#123;</span><br><span class="line">			result = <span class="built_in">append</span>(result, r)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> result</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>filterErrors</code> 函数内部遍历错误列表 <code>list</code> 并依次调用 <code>FilterOut</code> 函数，所以这是一个递归操作。</p>
+<p><code>FilterOut</code> 函数还调用了 <code>matchesError</code> 来执行匹配判断，其实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">matchesError</span><span class="params">(err error, fns ...Matcher)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> _, fn := <span class="keyword">range</span> fns &#123;</span><br><span class="line">		<span class="keyword">if</span> fn(err) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里就是为 <code>err</code> 应用一遍所有的 <code>Matcher</code> 函数。</p>
+<p>我们可以用 <code>FilterOut</code> 从错误列表中移除已知无害的错误（如 <code>io.EOF</code>），你也可以在 <a href="https://github.com/kubernetes/kubernetes/blob/v1.32.0/staging/src/k8s.io/component-helpers/auth/rbac/reconciliation/namespace.go#L37" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.32.0/staging/src/k8s.io/component-helpers/auth/rbac/reconciliation/namespace.go#L37</a> 看到 Kubernetes 对 <code>FilterOut</code> 的应用。</p>
+<h4 id="Flatten-展平错误"><a href="#Flatten-展平错误" class="headerlink" title="Flatten 展平错误"></a>Flatten 展平错误</h4><p><code>Flatten</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Flatten</span><span class="params">(agg Aggregate)</span> <span class="title">Aggregate</span></span> &#123;</span><br><span class="line">	result := []error&#123;&#125; <span class="comment">// 保存扁平化的单层错误列表</span></span><br><span class="line">	<span class="keyword">if</span> agg == <span class="literal">nil</span> &#123;     <span class="comment">// 如果为 nil 直接返回</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 遍历当前层错误列表</span></span><br><span class="line">	<span class="keyword">for</span> _, err := <span class="keyword">range</span> agg.Errors() &#123;</span><br><span class="line">		<span class="keyword">if</span> a, ok := err.(Aggregate); ok &#123; <span class="comment">// 如果嵌套了 Aggregate 类型</span></span><br><span class="line">			r := Flatten(a) <span class="comment">// 递归展开嵌套结构</span></span><br><span class="line">			<span class="keyword">if</span> r != <span class="literal">nil</span> &#123;</span><br><span class="line">				result = <span class="built_in">append</span>(result, r.Errors()...)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				result = <span class="built_in">append</span>(result, err)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> NewAggregate(result)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Flatten</code> 接收一个嵌套任意层的 <code>Aggregate</code>，并递归的将其展平。</p>
+<p>你也可以在 <a href="https://github.com/kubernetes/kubernetes/blob/v1.32.0/pkg/scheduler/apis/config/validation/validation.go#L81" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.32.0/pkg/scheduler/apis/config/validation/validation.go#L81</a> 看到 Kubernetes 对 <code>Flatten</code> 的应用。</p>
+<h4 id="Reduce-简化聚合错误"><a href="#Reduce-简化聚合错误" class="headerlink" title="Reduce 简化聚合错误"></a>Reduce 简化聚合错误</h4><p><code>Reduce</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Reduce</span><span class="params">(err error)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> agg, ok := err.(Aggregate); ok &amp;&amp; err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">switch</span> <span class="built_in">len</span>(agg.Errors()) &#123;</span><br><span class="line">		<span class="keyword">case</span> <span class="number">1</span>: <span class="comment">// 单错误提取</span></span><br><span class="line">			<span class="keyword">return</span> agg.Errors()[<span class="number">0</span>]</span><br><span class="line">		<span class="keyword">case</span> <span class="number">0</span>: <span class="comment">// Aggregate 为空</span></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> err <span class="comment">// 非 Aggregate 类型直接返回</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果给定错误 <code>err</code> 是一个 <code>Aggregate</code> 类型且只有一项，<code>Reduce</code> 将会返回错误或 <code>nil</code>，即返回 <code>aggregate</code> 中的第一项；如果 <code>err</code> 是 <code>Aggregate</code> 类型但是包含多项，则原样返回；非 <code>Aggregate</code> 类型错误直接返回。</p>
+<p>你也可以在 <a href="https://github.com/kubernetes/kubernetes/blob/v1.32.0/staging/src/k8s.io/kubectl/pkg/cmd/get/get.go#L729" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.32.0/staging/src/k8s.io/kubectl/pkg/cmd/get/get.go#L729</a> 看到 Kubernetes 对 <code>Reduce</code> 的应用。</p>
+<h4 id="AggregateGoroutines-并行收集错误"><a href="#AggregateGoroutines-并行收集错误" class="headerlink" title="AggregateGoroutines 并行收集错误"></a>AggregateGoroutines 并行收集错误</h4><p><code>AggregateGoroutines</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AggregateGoroutines</span><span class="params">(funcs ...<span class="keyword">func</span>()</span> <span class="title">error</span>) <span class="title">Aggregate</span></span> &#123;</span><br><span class="line">	errChan := <span class="built_in">make</span>(<span class="keyword">chan</span> error, <span class="built_in">len</span>(funcs)) <span class="comment">// 创建容量等于函数数量的缓冲 channel</span></span><br><span class="line">	<span class="keyword">for</span> _, f := <span class="keyword">range</span> funcs &#123;</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(f <span class="keyword">func</span>()</span> <span class="title">error</span>)</span> &#123; errChan &lt;- f() &#125;(f) <span class="comment">// 并行执行</span></span><br><span class="line">	&#125;</span><br><span class="line">	errs := <span class="built_in">make</span>([]error, <span class="number">0</span>)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="built_in">cap</span>(errChan); i++ &#123; <span class="comment">// 按容量遍历，确保处理所有已启动的任务</span></span><br><span class="line">		<span class="keyword">if</span> err := &lt;-errChan; err != <span class="literal">nil</span> &#123; <span class="comment">// 同步等待每个任务完成</span></span><br><span class="line">			errs = <span class="built_in">append</span>(errs, err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> NewAggregate(errs) <span class="comment">// 将错误列表封装为 Aggregate 接口</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>AggregateGoroutines</code> 并行运行提供的函数 <code>funcs</code>，并将所有非 <code>nil</code> 错误收集到返回的 <code>Aggregate</code> 中，如果所有函数都成功完成，则返回 <code>nil</code>。</p>
+<p>你也可以在 <a href="https://github.com/kubernetes/kubernetes/blob/v1.32.0/staging/src/k8s.io/apiserver/pkg/audit/union.go#L56" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.32.0/staging/src/k8s.io/apiserver/pkg/audit/union.go#L56</a> 看到 Kubernetes 对 <code>AggregateGoroutines</code> 的应用。</p>
+<h4 id="CreateAggregateFromMessageCountMap-统计错误频率"><a href="#CreateAggregateFromMessageCountMap-统计错误频率" class="headerlink" title="CreateAggregateFromMessageCountMap 统计错误频率"></a>CreateAggregateFromMessageCountMap 统计错误频率</h4><p><code>CreateAggregateFromMessageCountMap</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> MessageCountMap <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateAggregateFromMessageCountMap</span><span class="params">(m MessageCountMap)</span> <span class="title">Aggregate</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> m == <span class="literal">nil</span> &#123; <span class="comment">// 如果 map 为 nil 直接返回</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	result := <span class="built_in">make</span>([]error, <span class="number">0</span>, <span class="built_in">len</span>(m))</span><br><span class="line">	<span class="keyword">for</span> errStr, count := <span class="keyword">range</span> m &#123;</span><br><span class="line">		<span class="keyword">var</span> countStr <span class="keyword">string</span></span><br><span class="line">		<span class="keyword">if</span> count &gt; <span class="number">1</span> &#123;</span><br><span class="line">			countStr = fmt.Sprintf(<span class="string">" (repeated %v times)"</span>, count)</span><br><span class="line">		&#125;</span><br><span class="line">		result = <span class="built_in">append</span>(result, fmt.Errorf(<span class="string">"%v%v"</span>, errStr, countStr))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> NewAggregate(result)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>CreateAggregateFromMessageCountMap</code> 将给定的 <code>MessageCountMap</code> 转换为 <code>Aggregate</code>。其中 <code>MessageCountMap</code> 可以统计错误频率，<code>key</code> 是错误信息，<code>value</code> 就是错误出现的次数。</p>
+<p>这个函数用处不多，我在 Kubernetes 项目 1.32.0 分支中并没有搜到对 <code>CreateAggregateFromMessageCountMap</code> 函数的使用，可以参考其测试代码查看效果。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文对 Kubernetes <code>k8s.io/apimachinery/pkg/util/errors</code> 包提供的错误处理功能进行了全面细致的讲解，不仅介绍了如何使用 <code>Aggregate</code> 聚合代码，还详细解读了其源码实现。我在文中贴出了几处 Kubernetes 源码中对文中介绍的函数的使用，你可以点击跳转过去查看。</p>
+<p>Kubernetes 提供的 <code>Aggregate</code> 是比 HashiCorp 提供的 <code>go-multierror</code> 功能更强大的工具，并且开源协议也是更友好的 Apache 2.0 协议，推荐使用。</p>
+<p>此外，开源项目 <a href="https://github.com/onexstack/onex" target="_blank" rel="noopener">OneX</a> 中就大量使用了 <code>Aggregate</code> 来聚合错误，这是一个非常优秀的开源项目，里面有大量基于 K8s 源码的实现，感兴趣的读者可以学习参考。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="onex-aggregate-error.png" alt="onex-aggregate-error" title="">
+                </div>
+                <div class="image-caption">onex-aggregate-error</div>
+            </figure>
+
+<p>并且 <a href="https://github.com/onexstack/onex" target="_blank" rel="noopener">OneX</a> 作者还开通了知识星球专门讲解这个项目，欢迎你的加入，扫码直达星球。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="onex-zsxq.png" alt="onex-zsxq" title="">
+                </div>
+                <div class="image-caption">onex-zsxq</div>
+            </figure>
+
+<p>你也可以加我微信了解详情。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/error/k8s-apimachinery-util-errors" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>OneX 项目 GitHub 源码：<a href="https://github.com/onexstack/onex" target="_blank" rel="noopener">https://github.com/onexstack/onex</a></li>
+<li>k8s.io/apimachinery/pkg/util/errors GitHub 源码：<a href="https://github.com/kubernetes/apimachinery/tree/v0.32.0/pkg/util/errors" target="_blank" rel="noopener">https://github.com/kubernetes/apimachinery/tree/v0.32.0/pkg/util/errors</a></li>
+<li>go-multierror Documentation：<a href="https://pkg.go.dev/github.com/hashicorp/go-multierror@v1.1.1" target="_blank" rel="noopener">https://pkg.go.dev/github.com/hashicorp/go-multierror@v1.1.1</a></li>
+<li>Go 错误处理指北：如何优雅的处理错误？：<a href="https://jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/</a></li>
+<li>Go 并发控制：errgroup 详解：<a href="https://jianghushinian.cn/2024/11/04/x-sync-errgroup/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/11/04/x-sync-errgroup/</a></li>
+<li>开源协议简介：<a href="https://jianghushinian.cn/2023/01/15/open-source-license-introduction/" target="_blank" rel="noopener">https://jianghushinian.cn/2023/01/15/open-source-license-introduction/</a></li>
+<li>go-multierror: 更方便的处理你的错误列表：<a href="https://mp.weixin.qq.com/s/8EVPiNbynuxWRc8GlmpXxw" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/8EVPiNbynuxWRc8GlmpXxw</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/error/k8s-apimachinery-util-errors" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/error/k8s-apimachinery-util-errors</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2025/03/29/k8s-aggregate-error/" target="_blank" rel="noopener">https://jianghushinian.cn/2025/03/29/k8s-aggregate-error/</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-01-25T04:52:54.076Z" itemprop="dateUpdated">2026-01-25 12:52:54</time>
+</span><br>
+
+
+        
+        <a href="/2025/03/29/k8s-aggregate-error/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Error/" rel="tag">Error</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/&title=《使用 K8s Aggregate 聚合你的错误列表》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/&title=《使用 K8s Aggregate 聚合你的错误列表》 — 江湖十年&source=我在「go-multierror: 更方便的处理你的错误列表」一文中讲解了在 Go 中如何使用 go-multierror 包聚合错误列表，本文将介绍另一..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用 K8s Aggregate 聚合你的错误列表》 — 江湖十年&url=http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2025/04/03/air/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">效率工具：使用 air 热重载 Go 应用程序</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/03/23/go-multierror/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">go-multierror: 更方便的处理你的错误列表</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/&title=《使用 K8s Aggregate 聚合你的错误列表》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/&title=《使用 K8s Aggregate 聚合你的错误列表》 — 江湖十年&source=我在「go-multierror: 更方便的处理你的错误列表」一文中讲解了在 Go 中如何使用 go-multierror 包聚合错误列表，本文将介绍另一..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用 K8s Aggregate 聚合你的错误列表》 — 江湖十年&url=http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/03/29/k8s-aggregate-error/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

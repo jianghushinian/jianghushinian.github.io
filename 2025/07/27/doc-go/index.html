@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 项目中的 doc.go 文件是干嘛的？ | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="作为广大 Gopher 中的一员，你一定在 Go 项目中写过或者见过一个叫 doc.go 的文件，不知道你是否好奇这个文件到底是干嘛的，它有哪些作用？本文就来介绍一下 doc.go 这个文件。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 项目中的 doc.go 文件是干嘛的？">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/07/27/doc-go/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="作为广大 Gopher 中的一员，你一定在 Go 项目中写过或者见过一个叫 doc.go 的文件，不知道你是否好奇这个文件到底是干嘛的，它有哪些作用？本文就来介绍一下 doc.go 这个文件。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/07/27/doc-go/go-dev-fmt.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/07/27/doc-go/golang-google-fmt.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/07/27/doc-go/calculator.png">
+<meta property="article:published_time" content="2025-07-27T01:41:41.000Z">
+<meta property="article:modified_time" content="2026-01-25T04:52:54.003Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2025/07/27/doc-go/go-dev-fmt.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 项目中的 doc.go 文件是干嘛的？</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 项目中的 doc.go 文件是干嘛的？</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-07-27T01:41:41.000Z" itemprop="datePublished" class="page-time">
+  2025-07-27
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#doc-go-文件作用"><span class="post-toc-number">1.</span> <span class="post-toc-text">doc.go 文件作用</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#doc-go-实践"><span class="post-toc-number">2.</span> <span class="post-toc-text">doc.go 实践</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#社区实践"><span class="post-toc-number">3.</span> <span class="post-toc-text">社区实践</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-doc-go"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 项目中的 doc.go 文件是干嘛的？</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-07-27 09:41:41" datetime="2025-07-27T01:41:41.000Z"  itemprop="datePublished">2025-07-27</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>作为广大 Gopher 中的一员，你一定在 Go 项目中写过或者见过一个叫 <code>doc.go</code> 的文件，不知道你是否好奇这个文件到底是干嘛的，它有哪些作用？本文就来介绍一下 <code>doc.go</code> 这个文件。</p>
+<a id="more"></a>
+
+<h3 id="doc-go-文件作用"><a href="#doc-go-文件作用" class="headerlink" title="doc.go 文件作用"></a>doc.go 文件作用</h3><p>简单来讲，<code>doc.go</code> 文件在 Go 语言项目中主要用于<strong>集中管理包的文档</strong>，是提升代码可读性和自动化生成文档的关键工具，其设计逻辑与 Go 的文档工具链（如 <code>godoc</code>/<code>godoc</code>）深度契合。</p>
+<p>Go 在源码中就大量应用了 <code>doc.go</code> 文件，比如 Go <code>fmt</code> 源码中就有一个 <code>doc.go</code> 文件：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/master/src/fmt/doc.go" target="_blank" rel="noopener">https://github.com/golang/go/blob/master/src/fmt/doc.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Copyright 2009 The Go Authors. All rights reserved.</span></span><br><span class="line"><span class="comment">// Use of this source code is governed by a BSD-style</span></span><br><span class="line"><span class="comment">// license that can be found in the LICENSE file.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">Package fmt implements formatted I/O with functions analogous</span></span><br><span class="line"><span class="comment">to C's printf and scanf.  The format 'verbs' are derived from C's but</span></span><br><span class="line"><span class="comment">are simpler.</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment"># Printing</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">The verbs:</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">General:</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">	%v	the value in a default format</span></span><br><span class="line"><span class="comment">		when printing structs, the plus flag (%+v) adds field names</span></span><br><span class="line"><span class="comment">	%#v	a Go-syntax representation of the value</span></span><br><span class="line"><span class="comment">		(floating-point infinities and NaNs print as ±Inf and NaN)</span></span><br><span class="line"><span class="comment">	%T	a Go-syntax representation of the type of the value</span></span><br><span class="line"><span class="comment">	%%	a literal percent sign; consumes no value</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">...</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="keyword">package</span> fmt</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，这个文件内容主要包含三个部分：</p>
+<ul>
+<li>首先是在 <code>//</code> 注释中声明了版权信息（Copyright）。</li>
+<li>接着在 <code>/**/</code> 注释中写明了 <code>fmt</code> 包的使用文档，由于内容过多，这里进行了省略。</li>
+<li>最后是 <code>fmt</code> 包的声明。</li>
+</ul>
+<p>其他再无内容。</p>
+<p>所以根据文件内容，也印证了 <code>doc.go</code> 文件的作用就是用来编写包文档的。</p>
+<p>不过，<code>doc.go</code> 文件的作用不止如此。</p>
+<p>现在，我们可以打开 <code>fmt</code> 包的官方文档网址 <a href="https://pkg.go.dev/fmt" target="_blank" rel="noopener">https://pkg.go.dev/fmt</a> 来看一下。</p>
+<p>截图如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="go-dev-fmt.png" alt="fmt" title="">
+                </div>
+                <div class="image-caption">fmt</div>
+            </figure>
+
+<p>也可以打开镜像站网址 <a href="https://golang.google.cn/pkg/fmt/" target="_blank" rel="noopener">https://golang.google.cn/pkg/fmt/</a> 。</p>
+<p>文档截图如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="golang-google-fmt.png" alt="fmt" title="">
+                </div>
+                <div class="image-caption">fmt</div>
+            </figure>
+
+<blockquote>
+<p>NOTE:</p>
+<p> <a href="https://golang.google.cn" target="_blank" rel="noopener">https://golang.google.cn</a> 是 Go 在 2018 年专门为中国大陆提供访问的 Go 官方文档网站，你可以在官方博客「<a href="https://go.dev/blog/hello-china" target="_blank" rel="noopener">Hello, 中国!</a>」中看到说明。</p>
+</blockquote>
+<p>可以发现，无论是 <a href="https://go.dev/" target="_blank" rel="noopener">https://go.dev/</a> ，还是 <a href="https://golang.google.cn" target="_blank" rel="noopener">https://golang.google.cn</a> 网站，<code>doc.go</code> 文件注释内容都会完整的展示在这里。即我们在 <code>doc.go</code> 文件中编写的文档内容，在使用 Go 工具链生成网页版文档时，就会展示在网页中。</p>
+<h3 id="doc-go-实践"><a href="#doc-go-实践" class="headerlink" title="doc.go 实践"></a>doc.go 实践</h3><p>我们可以编写一个小的 demo 实例程序，来演示一下 <code>doc.go</code> 文件如何使用。</p>
+<p>首先，因为 <code>doc.go</code> 用于统一生成包级文档，所以通常会被放置于包根目录下，其包声明前的注释会被 <code>godoc</code> 或 <code>go doc</code> 提取为包的概要说明。</p>
+<blockquote>
+<p>NOTE:</p>
+<p><code>godoc</code> 和 <code>go doc</code> 都是用来查看 Go 项目文档的，我之后会专门写一篇文章进行讲解。</p>
+</blockquote>
+<p>例如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Package calculator provides math operations for financial calculations.</span></span><br><span class="line"><span class="keyword">package</span> calculator</span><br></pre></td></tr></table></figure>
+
+<p>我们要编写的 demo 程序是一个能够实现四则运算的包，项目目录结构如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ tree calculator                           </span><br><span class="line">calculator</span><br><span class="line">├── calculator.go</span><br><span class="line">└── doc.go</span><br><span class="line"></span><br><span class="line">1 directory, 2 files</span><br></pre></td></tr></table></figure>
+
+<p><code>calculator/doc.go</code> 文件完整内容如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Package calculator provides math operations for financial calculations.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// 本包实现安全的四则运算，包含加减乘除功能。</span></span><br><span class="line"><span class="comment">// 所有函数均针对整型设计，适用于基础计算场景。</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// 使用示例：</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//	sum := calculator.Add(5, 3)          // 8</span></span><br><span class="line"><span class="comment">//	diff := calculator.Subtract(5, 3)    // 2</span></span><br><span class="line"><span class="comment">//	product := calculator.Multiply(5, 3) // 15</span></span><br><span class="line"><span class="comment">//	quotient := calculator.Divide(6, 3)  // 2</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// 注意事项：</span></span><br><span class="line"><span class="comment">//  1. 除法函数 Divide() 在除数为 0 时返回 0</span></span><br><span class="line"><span class="comment">//  2. 整数除法会截断小数部分（如 5/2=2）</span></span><br><span class="line"><span class="keyword">package</span> calculator <span class="comment">// import "govanityurls.jianghushinian.cn/blog-go-example/doc/docgo/calculator"</span></span><br></pre></td></tr></table></figure>
+
+<p><code>calculator/calculator.go</code> 用于实现包的具体代码逻辑，文件内容如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> calculator</span><br><span class="line"></span><br><span class="line"><span class="comment">// Add 返回两个整数的和</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Add</span><span class="params">(a, b <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> a + b</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Subtract 返回两个整数的差（a - b）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Subtract</span><span class="params">(a, b <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> a - b</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Multiply 返回两个整数的乘积</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Multiply</span><span class="params">(a, b <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> a * b</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Divide 返回两个整数的商（a / b）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Divide</span><span class="params">(a, b <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> b == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span> <span class="comment">// 简单处理除零错误</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> a / b</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在，我们在终端中通过 <code>go doc</code> 命令可以直接查看此包的文档：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">$  go doc calculator</span><br><span class="line">package calculator // import <span class="string">"govanityurls.jianghushinian.cn/blog-go-example/doc/docgo/calculator"</span></span><br><span class="line"></span><br><span class="line">Package calculator provides math operations <span class="keyword">for</span> financial calculations.</span><br><span class="line"></span><br><span class="line">本包实现安全的四则运算，包含加减乘除功能。 所有函数均针对整型设计，适用于基础计算场景。</span><br><span class="line"></span><br><span class="line">使用示例：</span><br><span class="line"></span><br><span class="line">    sum := calculator.Add(5, 3)          // 8</span><br><span class="line">    diff := calculator.Subtract(5, 3)    // 2</span><br><span class="line">    product := calculator.Multiply(5, 3) // 15</span><br><span class="line">    quotient := calculator.Divide(6, 3)  // 2</span><br><span class="line"></span><br><span class="line">注意事项：</span><br><span class="line"> 1. 除法函数 Divide() 在除数为 0 时返回 0</span><br><span class="line"> 2. 整数除法会截断小数部分（如 5/2=2）</span><br><span class="line"></span><br><span class="line">func Add(a, b int) int</span><br><span class="line">func Divide(a, b int) int</span><br><span class="line">func Multiply(a, b int) int</span><br><span class="line">func Subtract(a, b int) int</span><br></pre></td></tr></table></figure>
+
+<p>输出的文档正是我们在 <code>calculator/doc.go</code> 文件中编写的内容。</p>
+<p>你还可以通过如下方式查看某个具体函数的文档：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ go doc calculator.Add</span><br><span class="line">package calculator // import <span class="string">"govanityurls.jianghushinian.cn/blog-go-example/doc/docgo/calculator"</span></span><br><span class="line"></span><br><span class="line">func Add(a, b int) int</span><br><span class="line">    Add 返回两个整数的和（a + b）</span><br></pre></td></tr></table></figure>
+
+<p>此外，我们可以通过 <code>godoc</code> 命令启动一个本地 Web 服务，用来在网页中查看 <code>calculator</code> 包文档。<br>示例如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ godoc -http=:8080</span><br><span class="line">using module mode; GOMOD=/Users/jianghushinian/go/blog-go-example/doc/docgo/go.mod</span><br></pre></td></tr></table></figure>
+
+<p>执行 <code>godoc</code> 命令后，程序会阻塞在这里。浏览器打开 <a href="http://localhost:8080/pkg/govanityurls.jianghushinian.cn/blog-go-example/doc/docgo/calculator/" target="_blank" rel="noopener">http://localhost:8080/pkg/govanityurls.jianghushinian.cn/blog-go-example/doc/docgo/calculator/</a> 即可查看文档：</p>
+<blockquote>
+<p>NOTE:</p>
+<p>可以使用 <code>go install golang.org/x/tools/cmd/godoc@latest</code> 命令安装 <code>godoc</code>。</p>
+</blockquote>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="calculator.png" alt="calculator" title="">
+                </div>
+                <div class="image-caption">calculator</div>
+            </figure>
+
+<h3 id="社区实践"><a href="#社区实践" class="headerlink" title="社区实践"></a>社区实践</h3><p>如果你比较细心，应该已经发现了我在示例程序的 <code>doc.go</code> 文件中 <code>calculator</code> 包声明后面加了如下注释：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> calculator <span class="comment">// import "govanityurls.jianghushinian.cn/blog-go-example/doc/docgo/calculator"</span></span><br></pre></td></tr></table></figure>
+
+<p>这个注释并不是随便加的，这其实是一种被叫做 Canonical import paths（权威导入路径）的技术，来实现定制包的导入路径，你可以在这 <a href="https://go.dev/doc/go1.4#canonicalimports" target="_blank" rel="noopener">https://go.dev/doc/go1.4#canonicalimports</a> 查看其详细说明。</p>
+<p>这个特性在 Go 1.4 版本被加入，简单来解释，Go 包的导入路径通常是其在代码托管平台上的完整路径，比如我将 <code>calculator</code> 包托管在 GitHub 中（<a href="https://github.com/jianghushinian/blog-go-example/tree/main/doc/docgo/calculator" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/doc/docgo/calculator</a>），那么它的导入路径就是 <code>github.com/jianghushinian/blog-go-example/doc/docgo/calculator</code>。但你应该也见过很多特例，比如 <a href="https://github.com/go-gorm/gorm" target="_blank" rel="noopener">GORM</a> 托管在 GitHub 中，但其导入路径是 <code>gorm.io/gorm</code>；Uber 的 <a href="https://github.com/uber-go/zap" target="_blank" rel="noopener">zap</a> 也托管在 GitHub 中，但其导入路径是 <code>go.uber.org/zap</code>。当你要实现这种功能时，就可以使用权威导入路径注释了。</p>
+<p>所以，你能在 Kubernetes 项目中也能看到类似的实践：</p>
+<blockquote>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/v1.32.0/staging/src/k8s.io/api/apps/v1/doc.go" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.32.0/staging/src/k8s.io/api/apps/v1/doc.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">Copyright 2017 The Kubernetes Authors.</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">Licensed under the Apache License, Version 2.0 (the "License");</span></span><br><span class="line"><span class="comment">you may not use this file except in compliance with the License.</span></span><br><span class="line"><span class="comment">You may obtain a copy of the License at</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">    http://www.apache.org/licenses/LICENSE-2.0</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">Unless required by applicable law or agreed to in writing, software</span></span><br><span class="line"><span class="comment">distributed under the License is distributed on an "AS IS" BASIS,</span></span><br><span class="line"><span class="comment">WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span></span><br><span class="line"><span class="comment">See the License for the specific language governing permissions and</span></span><br><span class="line"><span class="comment">limitations under the License.</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// +k8s:deepcopy-gen=package</span></span><br><span class="line"><span class="comment">// +k8s:protobuf-gen=package</span></span><br><span class="line"><span class="comment">// +k8s:openapi-gen=true</span></span><br><span class="line"><span class="comment">// +k8s:prerelease-lifecycle-gen=true</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> v1 <span class="comment">// import "k8s.io/api/apps/v1"</span></span><br></pre></td></tr></table></figure>
+
+<p>这是一个非常具有代表性的 <code>doc.go</code> 文件。</p>
+<p>首先依然是版权声明 (Copyright)，接着是一段代码生成指令（<code>// +k8s:</code> 注释），最后在 <code>package v1</code> 后面还有一个权威导入路径注释 <code>import &quot;k8s.io/api/apps/v1&quot;</code>。</p>
+<p>这里，我们又学习到一种 <code>doc.go</code> 的使用场景，就是可以在这个文件中编写一些代码生成指令，用于控制整个包的代码生成。</p>
+<p><code>// +k8s:</code> 是 Kubernetes 进行代码生成的 Annotation 风格注释，通过此类注释，Kubernetes 工具可以直接生成对应代码，并且，将其写在 <code>doc.go</code> 文件中，则表示生成的是这个包全局的代码。如果想要控制更细粒度的代码生成，则可以写在包具体的文件中，比如我们的 <code>calculator.go</code> 中。</p>
+<p>不过，实际上在 Kubernetes 1.33 版本代码中，<code>doc.go</code> 文件已经移除了权威导入路径这个注释。</p>
+<p>如下：</p>
+<blockquote>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/v1.33.0/staging/src/k8s.io/api/apps/v1/doc.go" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.33.0/staging/src/k8s.io/api/apps/v1/doc.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">Copyright 2017 The Kubernetes Authors.</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">Licensed under the Apache License, Version 2.0 (the "License");</span></span><br><span class="line"><span class="comment">you may not use this file except in compliance with the License.</span></span><br><span class="line"><span class="comment">You may obtain a copy of the License at</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">    http://www.apache.org/licenses/LICENSE-2.0</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">Unless required by applicable law or agreed to in writing, software</span></span><br><span class="line"><span class="comment">distributed under the License is distributed on an "AS IS" BASIS,</span></span><br><span class="line"><span class="comment">WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span></span><br><span class="line"><span class="comment">See the License for the specific language governing permissions and</span></span><br><span class="line"><span class="comment">limitations under the License.</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// +k8s:deepcopy-gen=package</span></span><br><span class="line"><span class="comment">// +k8s:protobuf-gen=package</span></span><br><span class="line"><span class="comment">// +k8s:openapi-gen=true</span></span><br><span class="line"><span class="comment">// +k8s:prerelease-lifecycle-gen=true</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> v1</span><br></pre></td></tr></table></figure>
+
+<p>其实，自从 Go 在 1.11 版本开始支持了 Go Modules，实际上权威导入路径这个特性已经没什么用了，我们可以直接在 <code>go.mod</code> 文件中定义包名称，而无需考虑其代码托管平台，例如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">module govanityurls.jianghushinian.cn/blog-<span class="keyword">go</span>-example/doc/docgo</span><br><span class="line"></span><br><span class="line"><span class="keyword">go</span> <span class="number">1.24</span><span class="number">.1</span></span><br></pre></td></tr></table></figure>
+
+<p>这样，你就直接可以通过将其作为包的导入路径了。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>当然，你可能需要为这个包的域名（govanityurls.jianghushinian.cn）搭建一个 Go 包的导航服务器，可以参考 Go Vanity URLs 项目：<a href="https://github.com/GoogleCloudPlatform/govanityurls" target="_blank" rel="noopener">https://github.com/GoogleCloudPlatform/govanityurls</a> 。</p>
+</blockquote>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文对 <code>doc.go</code> 这个广大 Gopher 习以为常的文件作用进行了讲解说明，并演示了它是如何使用的，希望能解决一部分人的好奇或者困惑。</p>
+<p>你还知道 <code>doc.go</code> 有哪些用途，欢迎留言区讨论交流。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/doc/docgo" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>Go fmt doc.go：<a href="https://github.com/golang/go/blob/master/src/fmt/doc.go" target="_blank" rel="noopener">https://github.com/golang/go/blob/master/src/fmt/doc.go</a></li>
+<li>Kubernetes 1.32.0 doc.go：<a href="https://github.com/kubernetes/kubernetes/blob/v1.32.0/staging/src/k8s.io/api/apps/v1/doc.go" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.32.0/staging/src/k8s.io/api/apps/v1/doc.go</a></li>
+<li>Kubernetes 1.33.0 doc.go：<a href="https://github.com/kubernetes/kubernetes/blob/v1.33.0/staging/src/k8s.io/api/apps/v1/doc.go" target="_blank" rel="noopener">https://github.com/kubernetes/kubernetes/blob/v1.33.0/staging/src/k8s.io/api/apps/v1/doc.go</a></li>
+<li>Go 1.4 Canonical import paths：<a href="https://go.dev/doc/go1.4#canonicalimports" target="_blank" rel="noopener">https://go.dev/doc/go1.4#canonicalimports</a></li>
+<li>Go Vanity URLs：<a href="https://github.com/GoogleCloudPlatform/govanityurls" target="_blank" rel="noopener">https://github.com/GoogleCloudPlatform/govanityurls</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/doc/docgo" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/doc/docgo</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2025/07/27/doc-go/" target="_blank" rel="noopener">https://jianghushinian.cn/2025/07/27/doc-go/</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-01-25T04:52:54.003Z" itemprop="dateUpdated">2026-01-25 12:52:54</time>
+</span><br>
+
+
+        
+        <a href="/2025/07/27/doc-go/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/07/27/doc-go/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/07/27/doc-go/&title=《Go 项目中的 doc.go 文件是干嘛的？》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/07/27/doc-go/&title=《Go 项目中的 doc.go 文件是干嘛的？》 — 江湖十年&source=作为广大 Gopher 中的一员，你一定在 Go 项目中写过或者见过一个叫 doc.go 的文件，不知道你是否好奇这个文件到底是干嘛的，它有哪些作用？本文..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/07/27/doc-go/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 项目中的 doc.go 文件是干嘛的？》 — 江湖十年&url=http://www.jianghushinian.cn/2025/07/27/doc-go/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/07/27/doc-go/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2025/08/03/go-yaml-to-json/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Go 语言中 YAML to JSON 踩坑笔记</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/07/17/go-iterator/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">万字长文：彻底掌握 Go 1.23 中的迭代器</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/07/27/doc-go/&title=《Go 项目中的 doc.go 文件是干嘛的？》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/07/27/doc-go/&title=《Go 项目中的 doc.go 文件是干嘛的？》 — 江湖十年&source=作为广大 Gopher 中的一员，你一定在 Go 项目中写过或者见过一个叫 doc.go 的文件，不知道你是否好奇这个文件到底是干嘛的，它有哪些作用？本文..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/07/27/doc-go/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 项目中的 doc.go 文件是干嘛的？》 — 江湖十年&url=http://www.jianghushinian.cn/2025/07/27/doc-go/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/07/27/doc-go/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/07/27/doc-go/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

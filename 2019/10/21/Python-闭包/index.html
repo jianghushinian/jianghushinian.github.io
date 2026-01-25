@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Python 闭包 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Python">
+    <meta name="description" content="闭包（closure）作为一个不太容易理解的概念出现在很多主流编程语言中，Python 中很多高级实现都离不开 闭包，装饰器 就是使用 闭包 的典型例子。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python 闭包">
+<meta property="og:url" content="http://www.jianghushinian.cn/2019/10/21/Python-%E9%97%AD%E5%8C%85/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="闭包（closure）作为一个不太容易理解的概念出现在很多主流编程语言中，Python 中很多高级实现都离不开 闭包，装饰器 就是使用 闭包 的典型例子。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-10-21T12:32:23.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.777Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Python">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Python 闭包</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Python 闭包</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2019-10-21T12:32:23.000Z" itemprop="datePublished" class="page-time">
+  2019-10-21
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#作用域"><span class="post-toc-number">1.</span> <span class="post-toc-text">作用域</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#闭包"><span class="post-toc-number">2.</span> <span class="post-toc-text">闭包</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#闭包的应用"><span class="post-toc-number">3.</span> <span class="post-toc-text">闭包的应用</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#闭包的陷阱"><span class="post-toc-number">4.</span> <span class="post-toc-text">闭包的陷阱</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-Python-闭包"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Python 闭包</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2019-10-21 20:32:23" datetime="2019-10-21T12:32:23.000Z"  itemprop="datePublished">2019-10-21</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p><code>闭包</code>（closure）作为一个不太容易理解的概念出现在很多主流编程语言中，Python 中很多高级实现都离不开 <code>闭包</code>，<code>装饰器</code> 就是使用 <code>闭包</code> 的典型例子。</p>
+<a id="more"></a>
+
+<h3 id="作用域"><a href="#作用域" class="headerlink" title="作用域"></a>作用域</h3><p>要学习 <code>闭包</code>，先了解 <code>作用域</code> 的概念。</p>
+<p><code>作用域</code> 是程序运行时变量的存在范围。常见 <code>作用域</code> 有 <code>全局作用域</code> 和 <code>局部作用域</code>，定义在<code>全局作用域</code>中的变量，在程序运行过程中的任何地方都可以访问到；而定义在函数内部的变量只有在函数内部才能够访问，函数内部的作用域就是<code>局部作用域</code>，为了便于理解，我这里称它为<code>函数作用域</code>。</p>
+<p><code>全局作用域</code>不可以读取 <code>函数作用域</code> 中的局部变量：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span><span class="params">()</span>:</span></span><br><span class="line">    num = <span class="number">100</span></span><br><span class="line"></span><br><span class="line">print(num)  <span class="comment"># NameError: name 'num' is not defined</span></span><br></pre></td></tr></table></figure>
+
+<p><code>函数作用域</code> 可以向上读取 <code>全局作用域</code> 中的全局变量：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">num = <span class="number">100</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span><span class="params">()</span>:</span></span><br><span class="line">    print(num)  <span class="comment"># 100</span></span><br><span class="line"></span><br><span class="line">foo()</span><br></pre></td></tr></table></figure>
+
+<h3 id="闭包"><a href="#闭包" class="headerlink" title="闭包"></a>闭包</h3><p>在 Python 中，函数是 <code>一等公民</code>，意思是说你可以像看待 <code>int</code>、<code>dict</code> 等常见的数据类型一样去看待它。其实函数不仅仅可以定义在 <code>全局作用域</code> 中，函数也可以定义在另一个 <code>函数作用域</code> 中。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span><span class="params">()</span>:</span></span><br><span class="line">    num = <span class="number">100</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">bar</span><span class="params">()</span>:</span></span><br><span class="line">        print(num)  <span class="comment"># 100</span></span><br><span class="line"></span><br><span class="line">    bar()</span><br><span class="line"></span><br><span class="line">foo()</span><br></pre></td></tr></table></figure>
+
+<p>以上代码中，在 <code>foo</code> 函数内部又定义了一个 <code>bar</code> 函数。<code>bar</code> 函数可以向上读取 <code>foo</code> 函数内定义的任何变量。<code>bar</code> 函数读取变量 <code>num</code> 的顺序是：先在 <code>bar</code> 函数自己的 <code>函数作用域</code> 内查找，如果找不到就向上查找 <code>foo</code> 函数的 <code>作用域</code>，如果还是找不到，最后再向上查找 <code>全局作用域</code>。</p>
+<p>以上代码稍作修改，就能成为一个 <code>闭包</code> 函数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span><span class="params">()</span>:</span></span><br><span class="line">    num = <span class="number">100</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">bar</span><span class="params">()</span>:</span></span><br><span class="line">        print(num)  <span class="comment"># 100</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> bar</span><br><span class="line"></span><br><span class="line">result = foo()</span><br><span class="line">result()</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，只需要将之前的示例代码中 <code>bar()</code> 这句函数调用，改为 <code>return bar</code>，然后在调用 <code>foo</code> 函数时用一个变量 <code>result</code> 接收 <code>foo</code> 函数的返回值，最后再调用 <code>result</code> 这个变量，就能得到同样的结果。这样其实间接的的实现了在 <code>全局作用域</code> 中 <code>读取函数作用域</code> 中的变量。这就是 <code>闭包</code> 的威力。</p>
+<p>像这样，函数嵌套函数，内部函数引用外部函数 <code>作用域</code> 中的局部变量，外部函数将内部函数的引用当作返回值返回，此时，我们就可以将内部函数和它引用的外部函数 <code>作用域</code> 中的局部变量统称为 <code>闭包</code>。</p>
+<h3 id="闭包的应用"><a href="#闭包的应用" class="headerlink" title="闭包的应用"></a>闭包的应用</h3><p>假如需要实现一个计数器，我们很容易想到使用 <code>类</code> 来实现：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Counter</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self)</span>:</span></span><br><span class="line">        self.num = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span><span class="params">(self)</span>:</span></span><br><span class="line">        self.num += <span class="number">1</span></span><br><span class="line">        <span class="keyword">return</span> self.num</span><br><span class="line"></span><br><span class="line">counter = Counter()</span><br><span class="line">print(counter())  <span class="comment"># 1</span></span><br><span class="line">print(counter())  <span class="comment"># 2</span></span><br><span class="line">print(counter())  <span class="comment"># 3</span></span><br></pre></td></tr></table></figure>
+
+<p>由于 <code>类</code> 可以保存数据并且操作数据，所以很轻松就能够使用 <code>类</code> 来实现计数器。</p>
+<p>而函数本身没法在每次调用时保存数据，所以无法实现一个计数器的功能。但当我们有了 <code>闭包</code> 函数，就能够用 <code>函数</code> 的形式来实现计数器了。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">make_counter</span><span class="params">()</span>:</span></span><br><span class="line">    num = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">counter</span><span class="params">()</span>:</span></span><br><span class="line">        <span class="keyword">nonlocal</span> num</span><br><span class="line">        num += <span class="number">1</span></span><br><span class="line">        <span class="keyword">return</span> num</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> counter</span><br><span class="line"></span><br><span class="line">counter = make_counter()</span><br><span class="line">print(counter())  <span class="comment"># 1</span></span><br><span class="line">print(counter())  <span class="comment"># 2</span></span><br><span class="line">print(counter())  <span class="comment"># 3</span></span><br></pre></td></tr></table></figure>
+
+<p>以上，我们就用 <code>闭包函数</code> 实现了一个计数器。</p>
+<p>可以看到内部 <code>counter</code> 函数有一条语句 <code>nonlocal num</code>，关键字 <code>nonlocal</code> 的作用可以对应 <code>global</code> 关键字来理解。当我们在 <code>函数作用域</code> 内部修改 <code>全局作用域</code> 中的 <code>不可变类型</code> 变量时，我们会使用 <code>global</code> 关键字来标明一个变量是全局变量，同样的 <code>nonlocal</code> 关键字的作用是标明 <code>num</code> 是一个 <code>闭包</code> 中的变量，它有一个专业的术语叫做 <code>自由变量</code>。通常来说，一个函数执行完成以后，其内部的变量会随之被销毁，而 <code>自由变量</code> <code>num</code> 并不会被立即销毁，它随同 <code>counter</code> 函数一起组成了 <code>闭包</code>。</p>
+<h3 id="闭包的陷阱"><a href="#闭包的陷阱" class="headerlink" title="闭包的陷阱"></a>闭包的陷阱</h3><p>下面是一个使用 <code>闭包</code> 时常见的误区：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">func</span><span class="params">()</span>:</span></span><br><span class="line">    li = []</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">3</span>):</span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">f</span><span class="params">()</span>:</span></span><br><span class="line">            <span class="keyword">return</span> i</span><br><span class="line"></span><br><span class="line">        li.append(f)</span><br><span class="line">    <span class="keyword">return</span> li</span><br><span class="line"></span><br><span class="line">li = func()</span><br><span class="line"><span class="keyword">for</span> f <span class="keyword">in</span> li:</span><br><span class="line">    print(f())</span><br><span class="line">   </span><br><span class="line"><span class="comment"># 运行结果</span></span><br><span class="line"><span class="comment"># 2</span></span><br><span class="line"><span class="comment"># 2</span></span><br><span class="line"><span class="comment"># 2</span></span><br></pre></td></tr></table></figure>
+
+<p>我们期待的打印结果依次为 <code>0</code>、<code>1</code>、<code>2</code>，但实际上运行以上代码，得到的结果确是 <code>2</code>、<code>2</code>、<code>2</code>。</p>
+<p>这是因为，内部函数 <code>f</code> 和循环变量 <code>i</code> 形成了 <code>闭包</code>。<code>func</code> 函数内部共产生了 3 个 <code>f</code> 函数，它们依次被追加到 <code>li</code> 列表中，但是并没有立即被执行，而其内部引用了 <code>自由变量</code> <code>i</code>，在 3 次 <code>for</code> 循环执行完成后，<code>i</code> 的值已经变成了 <code>2</code>，等到在函数外部接收到 <code>li</code> 再一次循环执行每个 <code>f</code> 函数时，所打印的 <code>i</code> 的值自然就都为 <code>2</code> 了。</p>
+<p>要解决这个问题，需要想办法在每次循环时，让内部的 <code>闭包</code> 函数 <code>f</code> 绑定住当前的循环变量，而不使其跟随 <code>i</code> 的变动而改变：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">func</span><span class="params">()</span>:</span></span><br><span class="line">    li = []</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">3</span>):</span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrap</span><span class="params">(j)</span>:</span></span><br><span class="line">            <span class="function"><span class="keyword">def</span> <span class="title">f</span><span class="params">()</span>:</span></span><br><span class="line">                <span class="keyword">return</span> j</span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> f</span><br><span class="line"></span><br><span class="line">        li.append(wrap(i))</span><br><span class="line">    <span class="keyword">return</span> li</span><br><span class="line"></span><br><span class="line">li = func()</span><br><span class="line"><span class="keyword">for</span> f <span class="keyword">in</span> li:</span><br><span class="line">    print(f())</span><br><span class="line"></span><br><span class="line"><span class="comment"># 运行结果</span></span><br><span class="line"><span class="comment"># 0</span></span><br><span class="line"><span class="comment"># 1</span></span><br><span class="line"><span class="comment"># 2</span></span><br></pre></td></tr></table></figure>
+
+<p>在这里，我在内部函数 <code>f</code> 的外部又嵌套了一层函数 <code>wrap</code>，在执行 <code>li.append(wrap(i))</code> 语句时，将循环变量 <code>i</code> 的值传递给 <code>wrap</code> 函数，这样 <code>wrap</code> 函数执行完成后，函数 <code>f</code> 和变量 <code>j</code> 就组成了 <code>闭包</code>。每次 <code>for</code> 循环时，都将循环变量 <code>i</code> 当作参数传递给 <code>wrap</code> 函数，由于每产生的 <code>wrap</code> 函数相互独立并且绑定到函数参数上的变量值不会改变，这样就能保证每次循环过程中在 <code>wrap</code> 函数内部保存的变量 <code>j</code> 互相独立，所以最终能够得到预期的结果。</p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.777Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2019/10/21/Python-%E9%97%AD%E5%8C%85/" target="_blank" rel="external">http://www.jianghushinian.cn/2019/10/21/Python-%E9%97%AD%E5%8C%85/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2019/10/21/Python-%E9%97%AD%E5%8C%85/&title=《Python 闭包》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2019/10/21/Python-%E9%97%AD%E5%8C%85/&title=《Python 闭包》 — 江湖十年&source=闭包（closure）作为一个不太容易理解的概念出现在很多主流编程语言中，Python 中很多高级实现都离不开 闭包，装饰器 就是使用 闭包 的典型例子。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2019/10/21/Python-%E9%97%AD%E5%8C%85/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Python 闭包》 — 江湖十年&url=http://www.jianghushinian.cn/2019/10/21/Python-%E9%97%AD%E5%8C%85/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2019/10/21/Python-%E9%97%AD%E5%8C%85/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2019/10/27/Python-lambda-%E8%A1%A8%E8%BE%BE%E5%BC%8F/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Python lambda 表达式</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2019/10/13/Python-%E8%BF%90%E7%AE%97%E7%AC%A6-%E4%B8%8E/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Python 运算符 + 与 +=</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2019/10/21/Python-%E9%97%AD%E5%8C%85/&title=《Python 闭包》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2019/10/21/Python-%E9%97%AD%E5%8C%85/&title=《Python 闭包》 — 江湖十年&source=闭包（closure）作为一个不太容易理解的概念出现在很多主流编程语言中，Python 中很多高级实现都离不开 闭包，装饰器 就是使用 闭包 的典型例子。" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2019/10/21/Python-%E9%97%AD%E5%8C%85/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Python 闭包》 — 江湖十年&url=http://www.jianghushinian.cn/2019/10/21/Python-%E9%97%AD%E5%8C%85/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2019/10/21/Python-%E9%97%AD%E5%8C%85/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2019/10/21/Python-%E9%97%AD%E5%8C%85/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

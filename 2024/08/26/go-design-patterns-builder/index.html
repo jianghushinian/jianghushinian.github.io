@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Builder 模式在 Go 语言中的应用 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,设计模式">
+    <meta name="description" content="Builder 模式是一种创建型模式，即用来创建对象。 Builder 模式，中文翻译不太统一，有时候被翻译为建造者模式或构建者模式，有时候也被翻译为生成器模式。为了不给读者造成困扰，我还是直接叫它 Builder 模式好了。 《设计模式：可复用面向对象软件的基础》 一书中对 Builder 模式的意图阐明如下：  将一个复杂对象的构建与它的表示分离，使得同样的构建过程可以创建不同的表示。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Builder 模式在 Go 语言中的应用">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/08/26/go-design-patterns-builder/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="Builder 模式是一种创建型模式，即用来创建对象。 Builder 模式，中文翻译不太统一，有时候被翻译为建造者模式或构建者模式，有时候也被翻译为生成器模式。为了不给读者造成困扰，我还是直接叫它 Builder 模式好了。 《设计模式：可复用面向对象软件的基础》 一书中对 Builder 模式的意图阐明如下：  将一个复杂对象的构建与它的表示分离，使得同样的构建过程可以创建不同的表示。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-08-26T11:56:20.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.971Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="设计模式">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Builder 模式在 Go 语言中的应用</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Builder 模式在 Go 语言中的应用</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-08-26T11:56:20.000Z" itemprop="datePublished" class="page-time">
+  2024-08-26
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#经典-Builder-模式"><span class="post-toc-number">1.</span> <span class="post-toc-text">经典 Builder 模式</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#简化版-Builder-模式"><span class="post-toc-number">2.</span> <span class="post-toc-text">简化版 Builder 模式</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#实用场景"><span class="post-toc-number">3.</span> <span class="post-toc-text">实用场景</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go-design-patterns-builder"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Builder 模式在 Go 语言中的应用</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-08-26 19:56:20" datetime="2024-08-26T11:56:20.000Z"  itemprop="datePublished">2024-08-26</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>Builder 模式是一种创建型模式，即用来创建对象。</p>
+<p>Builder 模式，中文翻译不太统一，有时候被翻译为建造者模式或构建者模式，有时候也被翻译为生成器模式。为了不给读者造成困扰，我还是直接叫它 Builder 模式好了。</p>
+<p><a href="https://book.douban.com/subject/34262305/" target="_blank" rel="noopener">《设计模式：可复用面向对象软件的基础》</a> 一书中对 Builder 模式的意图阐明如下：</p>
+<blockquote>
+<p>将一个复杂对象的构建与它的表示分离，使得同样的构建过程可以创建不同的表示。</p>
+</blockquote>
+<a id="more"></a>
+
+<h3 id="经典-Builder-模式"><a href="#经典-Builder-模式" class="headerlink" title="经典 Builder 模式"></a>经典 Builder 模式</h3><p>假设我们要建造一个大 <code>House</code>，其结构体定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// House 代表一个由多个部分构建的复杂对象</span></span><br><span class="line"><span class="keyword">type</span> House <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// 地基</span></span><br><span class="line">	Foundation <span class="keyword">string</span></span><br><span class="line">	<span class="comment">// 墙壁</span></span><br><span class="line">	Walls <span class="keyword">string</span></span><br><span class="line">	<span class="comment">// 屋顶</span></span><br><span class="line">	Roof <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通常我们会定义如下构造函数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewHouse 一个普通的 House 构造函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewHouse</span><span class="params">(foundation, walls, roof <span class="keyword">string</span>)</span> *<span class="title">House</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;House&#123;</span><br><span class="line">		Foundation: foundation,</span><br><span class="line">		Walls:      walls,</span><br><span class="line">		Roof:       roof,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以使用构造函数来创建 <code>House</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">house := NewHouse(<span class="string">"Concrete Foundation"</span>, <span class="string">"Wooden Walls"</span>, <span class="string">"Shingle Roof"</span>)</span><br><span class="line">fmt.Printf(<span class="string">"%+v\n"</span>, house)</span><br></pre></td></tr></table></figure>
+
+<p>现在，如果我们再为这个 <code>House</code> 增加一些属性的话，<code>NewHouse</code> 的参数列表就会变得很长。并且，如果有些参数是带有默认值的，有些参数是必传的，<code>NewHouse</code> 用起来就会比较别扭。</p>
+<p>此时，有经验的读者应该会想到使用 Options 模式。没错，这是一个在 Go 语言中非常流行的设计模式，能够很好的解决可选参数问题。</p>
+<blockquote>
+<p>NOTE:<br>如果你对 Go 的 Options（选项）模式不太熟悉，可以参考我的另一篇文章 <a href="https://jianghushinian.cn/2021/12/12/Golang-常见设计模式之选项模式/" target="_blank" rel="noopener">《Go 常见设计模式之选项模式》</a>。</p>
+</blockquote>
+<p>不过，咱们今天不讲如何使用 Options 模式来解决此类问题，今天来看看如何使用 Builder 模式来解决这个问题。</p>
+<p>要使用 Builder 模式，首先我们就要定义一个 <code>Builder</code> 接口：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Builder 用于构建 House 对象的接口</span></span><br><span class="line"><span class="keyword">type</span> Builder <span class="keyword">interface</span> &#123;</span><br><span class="line">	BuildFoundation()</span><br><span class="line">	BuildWalls()</span><br><span class="line">	BuildRoof()</span><br><span class="line">	GetResult() *House</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Builder</code> 接口声明了构建 <code>House</code> 对象都有哪些行为。</p>
+<p>其包含 4 个方法，<code>BuildFoundation</code> 用来构建地基，<code>BuildWalls</code> 用来构建墙壁，<code>BuildRoof</code> 用来构建屋顶，最后还有一个 <code>GetResult</code> 方法用来获取构建完成的 <code>House</code> 对象。</p>
+<p>这是 Builder 模式的惯用法，定义若干个 <code>BuildXxx</code> 方法用来构建对象的属性，最后再定义一个 <code>GetXxx</code> 方法用来获取被构建的对象。</p>
+<p>我们再定义一个 <code>ConcreteBuilder</code> 结构体，用来实现 <code>Builder</code> 接口：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ConcreteBuilder Builder 接口的具体实现，用于构建具体的 House</span></span><br><span class="line"><span class="keyword">type</span> ConcreteBuilder <span class="keyword">struct</span> &#123;</span><br><span class="line">	house *House</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewConcreteBuilder 创建一个新的 ConcreteBuilder 实例</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewConcreteBuilder</span><span class="params">()</span> *<span class="title">ConcreteBuilder</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;ConcreteBuilder&#123;house: &amp;House&#123;&#125;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// BuildFoundation 构建地基</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *ConcreteBuilder)</span> <span class="title">BuildFoundation</span><span class="params">()</span></span> &#123;</span><br><span class="line">	b.house.Foundation = <span class="string">"Concrete Foundation"</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// BuildWalls 构建墙壁</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *ConcreteBuilder)</span> <span class="title">BuildWalls</span><span class="params">()</span></span> &#123;</span><br><span class="line">	b.house.Walls = <span class="string">"Wooden Walls"</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// BuildRoof 构建屋顶</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *ConcreteBuilder)</span> <span class="title">BuildRoof</span><span class="params">()</span></span> &#123;</span><br><span class="line">	b.house.Roof = <span class="string">"Shingle Roof"</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// GetResult 返回构建完成的 House 对象</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *ConcreteBuilder)</span> <span class="title">GetResult</span><span class="params">()</span> *<span class="title">House</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> b.house</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在典型的 Builder 设计模式中，我们还差一个 <code>Director</code> 对象，定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Director 用于控制构建过程的指挥者</span></span><br><span class="line"><span class="keyword">type</span> Director <span class="keyword">struct</span> &#123;</span><br><span class="line">	builder Builder</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewDirector 创建一个新的 Director 实例</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewDirector</span><span class="params">(builder Builder)</span> *<span class="title">Director</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Director&#123;builder: builder&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Construct 构建 House 的方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *Director)</span> <span class="title">Construct</span><span class="params">()</span></span> &#123;</span><br><span class="line">	d.builder.BuildFoundation()</span><br><span class="line">	d.builder.BuildWalls()</span><br><span class="line">	d.builder.BuildRoof()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Director</code> 是一个用于控制构建过程的「指挥者」，它依赖一个 <code>Builder</code> 接口类型的对象，传入不同的 <code>Builder</code>，可以实现不同的行为，这也是依赖注入的思想。</p>
+<p>通过 <code>Director</code> 对象，我们可以控制构建 <code>House</code> 的整个过程，<code>Construct</code> 方法就是用来干这个的。</p>
+<p>使用 Builder 模式创建一个大 <code>House</code> 流程如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建具体的 Builder</span></span><br><span class="line">builder := NewConcreteBuilder()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建 Director 并传入具体的 Builder</span></span><br><span class="line">director := NewDirector(builder)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 通过 Director 控制构建过程</span></span><br><span class="line">director.Construct()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取构建的最终产品</span></span><br><span class="line">house := builder.GetResult()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 输出构建好的 House</span></span><br><span class="line">fmt.Printf(<span class="string">"%+v\n"</span>, house)</span><br></pre></td></tr></table></figure>
+
+<p>这就是 Builder 模式的经典写法。</p>
+<p><strong>这里涉及几个主要角色：</strong></p>
+<ul>
+<li><p><code>Builder</code> 接口是一个用于构建 <code>House</code> 对象的接口，它抽象了构建 <code>House</code> 各个属性的方法，以及一个获取构建完成的 <code>House</code> 对象的方法。</p>
+</li>
+<li><p><code>ConcreteBuilder</code> 结构体是 <code>Builder</code> 接口的具体实现，其内部保存了 <code>House</code> 结构体。</p>
+</li>
+</ul>
+<p>如果你不嫌麻烦，有人也会这么定义它：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> ConcreteBuilder <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// 地基</span></span><br><span class="line">	Foundation <span class="keyword">string</span></span><br><span class="line">	<span class="comment">// 墙壁</span></span><br><span class="line">	Walls <span class="keyword">string</span></span><br><span class="line">	<span class="comment">// 屋顶</span></span><br><span class="line">	Roof <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此时 <code>GetResult</code> 方法应该怎么写就留给你去思考了。</p>
+<ul>
+<li><code>Director</code> 结构体是一个指挥者，主要功能就是负责执行生成步骤，即它的核心功能在于 <code>Construct</code> 方法的定义。我们可以根据需要来决定传入不同的 <code>Builder</code> 对象。</li>
+</ul>
+<p>可以发现，在标准的 Builder 设计模式中，<code>Builder</code> 的方法通常是没有参数的，每个方法负责一步固定的构建过程。这种设计的好处是过程非常清晰，步骤明确，但它的灵活性较低。</p>
+<p>我称这种写法为经典的 Builder 设计模式。</p>
+<p>在这种情况下，每个步骤的实现通常是固定的，比如所有使用 <code>ConcreteBuilder</code> 构造的的 <code>House</code> 都使用同样的地基、墙壁和屋顶材料。</p>
+<p>要想创建一个具有不同属性的 <code>House</code>，我们就需要实现另外一个新的 <code>ConcreteBuilder1</code>。</p>
+<p>为了增加灵活性，可以在 <code>Builder</code> 的方法中添加参数，以允许在构建过程中设置不同的属性值。</p>
+<p>具体如何实现你可以先思考下，我们在接下来的示例中会进行讲解。</p>
+<h3 id="简化版-Builder-模式"><a href="#简化版-Builder-模式" class="headerlink" title="简化版 Builder 模式"></a>简化版 Builder 模式</h3><p>经典版本的 Builder 模式代码看起来有点“死板”，因为这是我模仿 Java 版本“抄”过来的。</p>
+<p>我们接下来介绍下 Go 语言特色版本 Builder 模式该如何编写。</p>
+<p>这次我们以构造一个 <code>Car</code> 为例，定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Car 代表一个汽车对象</span></span><br><span class="line"><span class="keyword">type</span> Car <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// 品牌</span></span><br><span class="line">	Brand <span class="keyword">string</span></span><br><span class="line">	<span class="comment">// 型号</span></span><br><span class="line">	Model <span class="keyword">string</span></span><br><span class="line">	<span class="comment">// 颜色</span></span><br><span class="line">	Color <span class="keyword">string</span></span><br><span class="line">	<span class="comment">// 发动机类型</span></span><br><span class="line">	Engine <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>定义 <code>CarBuilder</code> 结构体作为用来构建 <code>Car</code> 的 <code>Builder</code> 对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// CarBuilder 用于构建 Car 对象的构建器</span></span><br><span class="line"><span class="keyword">type</span> CarBuilder <span class="keyword">struct</span> &#123;</span><br><span class="line">	car Car</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewCarBuilder 创建一个新的 CarBuilder 实例</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewCarBuilder</span><span class="params">()</span> *<span class="title">CarBuilder</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;CarBuilder&#123;car: Car&#123;&#125;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接下来我们就可以为其定义构建方法了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// SetBrand 设置汽车的品牌</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *CarBuilder)</span> <span class="title">SetBrand</span><span class="params">(brand <span class="keyword">string</span>)</span> *<span class="title">CarBuilder</span></span> &#123;</span><br><span class="line">	b.car.Brand = brand</span><br><span class="line">	<span class="keyword">return</span> b</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// SetModel 设置汽车的型号</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *CarBuilder)</span> <span class="title">SetModel</span><span class="params">(model <span class="keyword">string</span>)</span> *<span class="title">CarBuilder</span></span> &#123;</span><br><span class="line">	b.car.Model = model</span><br><span class="line">	<span class="keyword">return</span> b</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// SetColor 设置汽车的颜色</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *CarBuilder)</span> <span class="title">SetColor</span><span class="params">(color <span class="keyword">string</span>)</span> *<span class="title">CarBuilder</span></span> &#123;</span><br><span class="line">	b.car.Color = color</span><br><span class="line">	<span class="keyword">return</span> b</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// SetEngine 设置汽车的发动机类型</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *CarBuilder)</span> <span class="title">SetEngine</span><span class="params">(engine <span class="keyword">string</span>)</span> *<span class="title">CarBuilder</span></span> &#123;</span><br><span class="line">	b.car.Engine = engine</span><br><span class="line">	<span class="keyword">return</span> b</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Build 构建并返回最终的 Car 对象</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *CarBuilder)</span> <span class="title">Build</span><span class="params">()</span> <span class="title">Car</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> b.car</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里的 <code>SetXxx</code> 方法用于设置属性，对标的是前文构建 <code>House</code> 示例中的 <code>BuildXxx</code> 方法。并且 <code>SetXxx</code> 系列方法都支持传入参数，在构建过程中可以更加灵活的设置不同的属性值。这样仅需要定义一个 <code>CarBuilder</code> 对象，不必再定义 <code>CarBuilder2</code>、<code>CarBuilder3</code> … 了。</p>
+<blockquote>
+<p>NOTE:<br>这里之所以换了一种命名方式，采用 <code>SetXxx</code>，是为了给你演示两种不同的命名风格，这两种写法都比较常见，看到其他人写的代码时你不要疑惑。</p>
+</blockquote>
+<p><code>Build</code> 方法则对标前文示例中的 <code>GetResult</code> 方法，作用相同。</p>
+<p>并且，这个版本的 Builder 模式省略了 <code>Builder</code> 接口的定义。</p>
+<blockquote>
+<p>NOTE:<br>当然有时候为了方便编写测试代码，我们还是需要定义接口的。这里只是演示 Builder 模式在 Go 语言中的最小化实现。</p>
+</blockquote>
+<p>最后，我们还去掉了 <code>Director</code> 这个角色。这可以让代码更加简洁，使用起来也更加灵活。</p>
+<p>至此，Go 语言简化版的 Builder 模式就定义完成了。</p>
+<p>用法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 使用 CarBuilder 构建一个 Car 对象</span></span><br><span class="line">car := NewCarBuilder().</span><br><span class="line">	SetBrand(<span class="string">"Tesla"</span>).</span><br><span class="line">	SetModel(<span class="string">"Model S"</span>).</span><br><span class="line">	SetColor(<span class="string">"Red"</span>).</span><br><span class="line">	SetEngine(<span class="string">"Electric"</span>).</span><br><span class="line">	Build()</span><br><span class="line"></span><br><span class="line">fmt.Printf(<span class="string">"Car: %+v\n"</span>, car)</span><br></pre></td></tr></table></figure>
+
+<p>需要提醒的是，<strong>我们不应该对构建方法 <code>SetXxx</code> 的调用顺序做任何假设</strong>，所以这样使用也是可以的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">car := NewCarBuilder().</span><br><span class="line">	SetEngine(<span class="string">"Electric"</span>).</span><br><span class="line">	SetModel(<span class="string">"Model S"</span>).</span><br><span class="line">	SetBrand(<span class="string">"Tesla"</span>).</span><br><span class="line">	SetColor(<span class="string">"Red"</span>).</span><br><span class="line">	Build()</span><br><span class="line"></span><br><span class="line">fmt.Printf(<span class="string">"Car: %+v\n"</span>, car)</span><br></pre></td></tr></table></figure>
+
+<p>我们只需要保证 <code>Build</code> 方法在最后调用即可。</p>
+<p>我们还可以在 <code>Build</code> 方法内部做统一的属性值校验。所有通过 <code>SetXxx</code> 设置的属性，都可以在 <code>Build</code> 方法中进行校验。</p>
+<p>因为我们对用户调用了几个 <code>SetXxx</code> 方法是无法预知的，所以也就不建议在 <code>SetXxx</code> 方法中参数校验。假如用户少调用了一个方法，那么定义在 <code>SetXxx</code> 方法中的校验就不会生效。所以我们应该在 <code>Build</code> 方法内部做统一的属性值校验。</p>
+<p>其实这也能暴露 Builder 模式的一个问题，就是将构建过程（属性赋值操作）分为多个步骤以后，我们构建的对象可能不完整（用户可能少调用了哪个 <code>SetXxx</code>），所以一定要定义一个 <code>Build</code> 方法来获取最终的构建产物（可以校验属性值），这个方法是不可省略的。</p>
+<p>讲解完了 Go 语言中我们如何定义和使用 Builder 模式，接下来我再介绍一个实用场景，来加深你对 Builder 模式的理解。</p>
+<h3 id="实用场景"><a href="#实用场景" class="headerlink" title="实用场景"></a>实用场景</h3><p>我们就以一个 Web Server 为例，演示下在中间件场景中如何使用 Builder 模式。</p>
+<p>假设我们有这样一个使用 Gin 框架编写的 HTTP Server 程序：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"net/http"</span></span><br><span class="line"></span><br><span class="line">	<span class="string">"github.com/gin-gonic/gin"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	r := gin.Default()</span><br><span class="line"></span><br><span class="line">	r.GET(<span class="string">"/admin"</span>, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">		c.JSON(http.StatusOK, gin.H&#123;</span><br><span class="line">			<span class="string">"message"</span>: <span class="string">"Welcome Admin!"</span>,</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	r.GET(<span class="string">"/user"</span>, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">		c.JSON(http.StatusOK, gin.H&#123;</span><br><span class="line">			<span class="string">"message"</span>: <span class="string">"Welcome User!"</span>,</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	r.Run(<span class="string">":8000"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>示例程序有两个接口，分别是 <code>/admin</code> 和 <code>/user</code>，它们都接收 GET 请求并返回一段字符串内容。</p>
+<p>现在我们想为这两个接口增加 RBAC 权限控制，<code>/admin</code> 接口只有角色为 <code>admin</code> 的用户才可以访问，<code>/user</code> 接口则角色为 <code>admin</code> 和 <code>user</code> 的用户都可以访问。</p>
+<p>这个需求显然可以使用 Gin 的中间件来实现。</p>
+<p>我们最容易想到的方式，就是定义一个用于控制 RBAC 权限的中间件函数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">RBACMiddleware</span><span class="params">(allowedRoles []<span class="keyword">string</span>)</span> <span class="title">gin</span>.<span class="title">HandlerFunc</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">		userRole := c.GetHeader(<span class="string">"Role"</span>) <span class="comment">// 从请求头中获取用户角色</span></span><br><span class="line">		<span class="keyword">for</span> _, role := <span class="keyword">range</span> allowedRoles &#123;</span><br><span class="line">			<span class="keyword">if</span> role == userRole &#123;</span><br><span class="line">				c.Next()</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		c.AbortWithStatus(http.StatusForbidden)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码非常简单，我就不过多解释了，<code>RBACMiddleware</code> 中间件可以这样使用：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 为 /admin 路由设置只有管理员角色才能访问</span></span><br><span class="line">adminMiddleware := RBACMiddleware([]<span class="keyword">string</span>&#123;<span class="string">"admin"</span>&#125;)</span><br><span class="line"></span><br><span class="line">r.GET(<span class="string">"/admin"</span>, adminMiddleware, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">	c.JSON(http.StatusOK, gin.H&#123;</span><br><span class="line">		<span class="string">"message"</span>: <span class="string">"Welcome Admin!"</span>,</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 为 /user 路由设置普通用户和管理员角色都能访问</span></span><br><span class="line">userMiddleware := RBACMiddleware([]<span class="keyword">string</span>&#123;<span class="string">"admin"</span>, <span class="string">"user"</span>&#125;)</span><br><span class="line"></span><br><span class="line">r.GET(<span class="string">"/user"</span>, userMiddleware, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">	c.JSON(http.StatusOK, gin.H&#123;</span><br><span class="line">		<span class="string">"message"</span>: <span class="string">"Welcome User!"</span>,</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>现在启动这个 HTTP Server，来测试一下我们的中间件效果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 使用 admin 角色访问 /admin 接口</span></span><br><span class="line">$ curl -i -H <span class="string">"Role: admin"</span> <span class="string">"http://localhost:8000/admin"</span></span><br><span class="line">HTTP/1.1 200 OK</span><br><span class="line">Content-Type: application/json; charset=utf-8</span><br><span class="line">Date: Mon, 26 Aug 2024 06:33:07 GMT</span><br><span class="line">Content-Length: 28</span><br><span class="line"></span><br><span class="line">&#123;<span class="string">"message"</span>:<span class="string">"Welcome Admin!"</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用 user 角色访问 /admin 接口</span></span><br><span class="line">$ curl -i -H <span class="string">"Role: user"</span> <span class="string">"http://localhost:8000/admin"</span></span><br><span class="line">HTTP/1.1 403 Forbidden</span><br><span class="line">Date: Mon, 26 Aug 2024 06:33:03 GMT</span><br><span class="line">Content-Length: 0</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用 admin 角色访问 /user 接口</span></span><br><span class="line">$ curl -i -H <span class="string">"Role: admin"</span> <span class="string">"http://localhost:8000/user"</span></span><br><span class="line">HTTP/1.1 200 OK</span><br><span class="line">Content-Type: application/json; charset=utf-8</span><br><span class="line">Date: Mon, 26 Aug 2024 06:32:53 GMT</span><br><span class="line">Content-Length: 27</span><br><span class="line"></span><br><span class="line">&#123;<span class="string">"message"</span>:<span class="string">"Welcome User!"</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用 user 角色访问 /user 接口</span></span><br><span class="line">$ curl -i -H <span class="string">"Role: user"</span> <span class="string">"http://localhost:8000/user"</span></span><br><span class="line">HTTP/1.1 200 OK</span><br><span class="line">Content-Type: application/json; charset=utf-8</span><br><span class="line">Date: Mon, 26 Aug 2024 06:32:59 GMT</span><br><span class="line">Content-Length: 27</span><br><span class="line"></span><br><span class="line">&#123;<span class="string">"message"</span>:<span class="string">"Welcome User!"</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>根据客户端的请求日志来看，我们的目的实现了。除了使用 <code>user</code> 角色访问 <code>/admin</code> 接口时，接口返回 <code>403</code> 状态码，没有返回响应体，其他请求都能得到正常响应。</p>
+<p>我们再来看下如何使用 Builder 模式来实现 <code>RBACMiddleware</code> 中间件：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// RBACMiddleware RBAC 中间件结构体</span></span><br><span class="line"><span class="keyword">type</span> RBACMiddleware <span class="keyword">struct</span> &#123;</span><br><span class="line">	allowedRoles []<span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Middleware 返回一个 Gin 中间件函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *RBACMiddleware)</span> <span class="title">Middleware</span><span class="params">()</span> <span class="title">gin</span>.<span class="title">HandlerFunc</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">		userRole := c.GetHeader(<span class="string">"Role"</span>) <span class="comment">// 从请求头中获取用户角色</span></span><br><span class="line">		<span class="keyword">for</span> _, role := <span class="keyword">range</span> r.allowedRoles &#123;</span><br><span class="line">			<span class="keyword">if</span> role == userRole &#123;</span><br><span class="line">				c.Next()</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		c.AbortWithStatus(http.StatusForbidden)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// RBACMiddlewareBuilder 用于构建 RBACMiddleware 的构建器</span></span><br><span class="line"><span class="keyword">type</span> RBACMiddlewareBuilder <span class="keyword">struct</span> &#123;</span><br><span class="line">	rbacMiddleware *RBACMiddleware</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewRBACMiddlewareBuilder 创建一个新的 RBACMiddlewareBuilder 实例</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewRBACMiddlewareBuilder</span><span class="params">()</span> *<span class="title">RBACMiddlewareBuilder</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;RBACMiddlewareBuilder&#123;</span><br><span class="line">		rbacMiddleware: &amp;RBACMiddleware&#123;&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// AllowRole 添加允许访问的角色</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *RBACMiddlewareBuilder)</span> <span class="title">AllowRole</span><span class="params">(role <span class="keyword">string</span>)</span> *<span class="title">RBACMiddlewareBuilder</span></span> &#123;</span><br><span class="line">	b.rbacMiddleware.allowedRoles = <span class="built_in">append</span>(b.rbacMiddleware.allowedRoles, role)</span><br><span class="line">	<span class="keyword">return</span> b</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Build 返回构建完成的 RBACMiddleware</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *RBACMiddlewareBuilder)</span> <span class="title">Build</span><span class="params">()</span> *<span class="title">RBACMiddleware</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> b.rbacMiddleware</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>有了前文对 Builder 模式的讲解，这段代码就很好理解了。</p>
+<blockquote>
+<p>NOTE:<br>为了增强代码的语义，这里的 <code>AllowRole</code> 方法命名并没有定义为 <code>SetXxx</code> 或 <code>BuildXxx</code>，但作用相同。</p>
+</blockquote>
+<p>使用 Builder 模式实现的 RBAC 中间件用法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 为 /admin 路由设置只有管理员角色才能访问</span></span><br><span class="line">adminMiddleware := NewRBACMiddlewareBuilder().</span><br><span class="line">	AllowRole(<span class="string">"admin"</span>).</span><br><span class="line">	Build().</span><br><span class="line">	Middleware()</span><br><span class="line"></span><br><span class="line">r.GET(<span class="string">"/admin"</span>, adminMiddleware, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">	c.JSON(http.StatusOK, gin.H&#123;</span><br><span class="line">		<span class="string">"message"</span>: <span class="string">"Welcome Admin!"</span>,</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 为 /user 路由设置普通用户和管理员角色都能访问</span></span><br><span class="line">userMiddleware := NewRBACMiddlewareBuilder().</span><br><span class="line">	AllowRole(<span class="string">"admin"</span>).</span><br><span class="line">	AllowRole(<span class="string">"user"</span>).</span><br><span class="line">	Build().</span><br><span class="line">	Middleware()</span><br><span class="line"></span><br><span class="line">r.GET(<span class="string">"/user"</span>, userMiddleware, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">	c.JSON(http.StatusOK, gin.H&#123;</span><br><span class="line">		<span class="string">"message"</span>: <span class="string">"Welcome User!"</span>,</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>你可以再次尝试使用 <code>curl</code> 命令来测试我们的中间件效果，我就不再进行演示了。</p>
+<p>这就是一个典型的 Builder 模式在 Go 语言中的使用场景。</p>
+<p>也许你会觉得这个示例程序中第一种中间件实现 <code>func RBACMiddleware(allowedRoles []string) gin.HandlerFunc</code> 更加简单易用。</p>
+<p>没错，这不是错觉。但是，我想要说的是，如果在版本迭代的过程中，<code>RBACMiddleware</code> 函数需要增加参数。那么 <code>RBACMiddleware</code> 的所有调用方，就都需要修改。因为函数签名改变了，即使新增的参数可能并不是一个必须参数。</p>
+<p>这就增加了代码的维护成本。解决方案就是 Builder 模式。</p>
+<p>使用 Builder 模式来实现中间件，如果需要新增参数，我们只需要为 <code>RBACMiddlewareBuilder</code> 增加一个 <code>SetXxx</code> 方法即可。调用方可以根据需要决定是否调用 <code>SetXxx</code> 方法，完全不影响现有调用方的代码。</p>
+<p>所以，其实这个场景下 Builder 模式并不是一种不得不用的方式，而是一种可以更为优雅的解决未来需求变更的方式。这就为我们留足了“后门”，即使刚开始代码设计的不够合理，未来我们也可以使用对现有调用方无感知的方式更新我们的代码。</p>
+<p>这其实也可以作为套路代码，以后 Gin 框架的中间件代码都可以参考这样设计。</p>
+<p>不过，且慢！其实我平常还会使用一种比这个更加“简陋”的写法来实现中间件：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// RBACMiddlewareBuilder RBAC 中间件结构体</span></span><br><span class="line"><span class="keyword">type</span> RBACMiddlewareBuilder <span class="keyword">struct</span> &#123;</span><br><span class="line">	allowedRoles []<span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewRBACMiddlewareBuilder 创建一个新的 RBACMiddlewareBuilder 实例</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewRBACMiddlewareBuilder</span><span class="params">()</span> *<span class="title">RBACMiddlewareBuilder</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;RBACMiddlewareBuilder&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Build 返回一个 Gin 中间件函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *RBACMiddlewareBuilder)</span> <span class="title">Build</span><span class="params">()</span> <span class="title">gin</span>.<span class="title">HandlerFunc</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">		userRole := c.GetHeader(<span class="string">"Role"</span>) <span class="comment">// 从请求头中获取用户角色</span></span><br><span class="line">		<span class="keyword">for</span> _, role := <span class="keyword">range</span> b.allowedRoles &#123;</span><br><span class="line">			<span class="keyword">if</span> role == userRole &#123;</span><br><span class="line">				c.Next()</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		c.AbortWithStatus(http.StatusForbidden)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// AllowRole 添加允许访问的角色</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *RBACMiddlewareBuilder)</span> <span class="title">AllowRole</span><span class="params">(role <span class="keyword">string</span>)</span> *<span class="title">RBACMiddlewareBuilder</span></span> &#123;</span><br><span class="line">	b.allowedRoles = <span class="built_in">append</span>(b.allowedRoles, role)</span><br><span class="line">	<span class="keyword">return</span> b</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>用法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">adminMiddleware := NewRBACMiddlewareBuilder().</span><br><span class="line">	AllowRole(<span class="string">"admin"</span>).</span><br><span class="line">	Build()</span><br></pre></td></tr></table></figure>
+
+<p>所以，其实我们不必纠结于设计模式的具体定义。对于 Builder 模式，在 Go 语言的实践中，我们完全可以视情况而定舍弃如 <code>Builder</code> 接口、<code>Director</code> 指挥者这样的角色，以最小化的代码，来实现 Builder 模式。</p>
+<p>此外，其实使用 Options 模式也可以实现这个 <code>RBACMiddleware</code>。Builder 模式与 Options 模式最大的区别就是 Options 模式不能链式调用，不过却可以支持任意数量的参数。你可以自行尝试实现一下，对比下与 Builder 模式的区别。不过，如果你懒得实现，也可以参考 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/design-patterns/builder/middleware/middleware/options" target="_blank" rel="noopener">我实现的版本</a>。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>Builder 模式是一种创建型模式，可以用来创建对象。</p>
+<p>Builder 模式中有几个角色，分别是 <code>Builder</code> 接口，<code>ConcreteBuilder</code> 具体实现，以及 <code>Director</code> 指挥者。对这几个角色了解清楚，你就能理解什么是 Builder 模式。</p>
+<p>不过，在生产实践中，我们也不要过于“学院派”，可以按照自己的理解来实现 Builder 模式。毕竟设计模式是拿来用的，而不是让我们死记硬背应付考试的。</p>
+<p>在实用场景介绍中，我讲解了如何使用 Builder 模式来实现一个 RBAC 权限控制中间件。</p>
+<p>实现 Builder 模式时，需要注意的一点是，不能假设用户对 <code>SetXxx</code> 方法的调用顺序，所以代码实现上，一定不能依赖这些 <code>SetXxx</code> 方法的调用顺序。</p>
+<p>你认为适配器模式还有哪些应用场景，可以一起交流学习。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/design-patterns/builder" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>《设计模式：可复用面向对象软件的基础》：<a href="https://book.douban.com/subject/34262305/" target="_blank" rel="noopener">https://book.douban.com/subject/34262305/</a></li>
+<li>Go 常见设计模式之选项模式：<a href="https://jianghushinian.cn/2021/12/12/Golang-常见设计模式之选项模式/" target="_blank" rel="noopener">https://jianghushinian.cn/2021/12/12/Golang-常见设计模式之选项模式/</a></li>
+<li>Go 常见设计模式之装饰模式：<a href="https://jianghushinian.cn/2022/02/28/Golang-常见设计模式之装饰模式/" target="_blank" rel="noopener">https://jianghushinian.cn/2022/02/28/Golang-常见设计模式之装饰模式/</a></li>
+<li>Go 常见设计模式之单例模式：<a href="https://jianghushinian.cn/2022/03/04/Golang-常见设计模式之单例模式/" target="_blank" rel="noopener">https://jianghushinian.cn/2022/03/04/Golang-常见设计模式之单例模式/</a></li>
+<li>适配器模式在 Go 语言中的应用：<a href="https://jianghushinian.cn/2024/08/04/go-design-patterns-adapter/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/08/04/go-design-patterns-adapter/</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/design-patterns/builder" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/design-patterns/builder</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.971Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2024/08/26/go-design-patterns-builder/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/08/26/go-design-patterns-builder/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" rel="tag">设计模式</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/08/26/go-design-patterns-builder/&title=《Builder 模式在 Go 语言中的应用》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/08/26/go-design-patterns-builder/&title=《Builder 模式在 Go 语言中的应用》 — 江湖十年&source=Builder 模式是一种创建型模式，即用来创建对象。
+Builder 模式，中文翻译不太统一，有时候被翻译为建造者模式或构建者模式，有时候也被翻译为生成..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/08/26/go-design-patterns-builder/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Builder 模式在 Go 语言中的应用》 — 江湖十年&url=http://www.jianghushinian.cn/2024/08/26/go-design-patterns-builder/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/08/26/go-design-patterns-builder/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2024/09/06/go-error-guidelines-error-exception-errno/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Go 错误处理指北：Error vs Exception vs ErrNo</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/08/22/go-gracefulstop/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 程序如何实现优雅退出？来看看 K8s 是怎么做的</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/08/26/go-design-patterns-builder/&title=《Builder 模式在 Go 语言中的应用》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/08/26/go-design-patterns-builder/&title=《Builder 模式在 Go 语言中的应用》 — 江湖十年&source=Builder 模式是一种创建型模式，即用来创建对象。
+Builder 模式，中文翻译不太统一，有时候被翻译为建造者模式或构建者模式，有时候也被翻译为生成..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/08/26/go-design-patterns-builder/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Builder 模式在 Go 语言中的应用》 — 江湖十年&url=http://www.jianghushinian.cn/2024/08/26/go-design-patterns-builder/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/08/26/go-design-patterns-builder/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/08/26/go-design-patterns-builder/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 并发控制：context 源码解读 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,并发编程">
+    <meta name="description" content="context 是 Go 语言的特色设计之一，主要作用有两个：控制链路和安全传值，并且 context 是并发安全的。context 在 Go 1.17 版本被引入，经过数年的迭代，在设计和用法上已经趋于稳定，本文以最新的 Go 1.23.0 版本源码为基础，带你深入理解 context 的设计和实现。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 并发控制：context 源码解读">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/12/09/context/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="context 是 Go 语言的特色设计之一，主要作用有两个：控制链路和安全传值，并且 context 是并发安全的。context 在 Go 1.17 版本被引入，经过数年的迭代，在设计和用法上已经趋于稳定，本文以最新的 Go 1.23.0 版本源码为基础，带你深入理解 context 的设计和实现。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/12/09/context/context.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2024/12/09/context/context-tree.png">
+<meta property="article:published_time" content="2024-12-09T14:19:20.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.913Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="并发编程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2024/12/09/context/context.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 并发控制：context 源码解读</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 并发控制：context 源码解读</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-12-09T14:19:20.000Z" itemprop="datePublished" class="page-time">
+  2024-12-09
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#context-设计"><span class="post-toc-number">1.</span> <span class="post-toc-text">context 设计</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#context-接口"><span class="post-toc-number">2.</span> <span class="post-toc-text">context 接口</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#context-实现"><span class="post-toc-number">3.</span> <span class="post-toc-text">context 实现</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#emptyCtx"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">emptyCtx</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#backgroundCtx-和-todoCtx"><span class="post-toc-number">3.1.1.</span> <span class="post-toc-text">backgroundCtx 和 todoCtx</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#Background-和-TODO"><span class="post-toc-number">3.1.2.</span> <span class="post-toc-text">Background() 和 TODO()</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#cancelCtx"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">cancelCtx</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#WithCancel-和-WithCancelCause"><span class="post-toc-number">3.2.1.</span> <span class="post-toc-text">WithCancel() 和 WithCancelCause()</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#timerCtx"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">timerCtx</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#WithDeadline-和-WithTimeoutCause"><span class="post-toc-number">3.3.1.</span> <span class="post-toc-text">WithDeadline() 和 WithTimeoutCause()</span></a></li><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#WithTimeout-和-WithTimeoutCause"><span class="post-toc-number">3.3.2.</span> <span class="post-toc-text">WithTimeout() 和 WithTimeoutCause()</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#withoutCancelCtx"><span class="post-toc-number">3.4.</span> <span class="post-toc-text">withoutCancelCtx</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#WithoutCancel"><span class="post-toc-number">3.4.1.</span> <span class="post-toc-text">WithoutCancel()</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#valueCtx"><span class="post-toc-number">3.5.</span> <span class="post-toc-text">valueCtx</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#WithValue"><span class="post-toc-number">3.5.1.</span> <span class="post-toc-text">WithValue()</span></a></li></ol></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#afterFuncCtx"><span class="post-toc-number">3.6.</span> <span class="post-toc-text">afterFuncCtx</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-5"><a class="post-toc-link" href="#AfterFunc"><span class="post-toc-number">3.6.1.</span> <span class="post-toc-text">AfterFunc()</span></a></li></ol></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-context"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 并发控制：context 源码解读</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-12-09 22:19:20" datetime="2024-12-09T14:19:20.000Z"  itemprop="datePublished">2024-12-09</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>context 是 Go 语言的特色设计之一，主要作用有两个：<strong>控制链路</strong>和<strong>安全传值</strong>，并且 context 是<strong>并发安全</strong>的。<font style="color:rgb(32, 34, 36);">context 在 Go 1.17 版本被引入，经过数年的迭代，在设计和用法上已经趋于稳定，本文以最新的 Go 1.23.0 版本源码为基础，带你深入理解 context 的设计和实现。</font></p>
+<a id="more"></a>
+
+<h3 id="context-设计"><a href="#context-设计" class="headerlink" title="context 设计"></a>context 设计</h3><p>context 被设计为一个接口，名为 <code>Context</code>。为了支持不同特性，这个接口有多种结构体实现。而每个结构体又提供了一个或多个 exported 函数（大写字母开头的公开函数）作为构造函数来实例化 context 对象。</p>
+<p>我画了一张 context 的设计架构图如下：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="context.png" alt="context 设计架构" title="">
+                </div>
+                <div class="image-caption">context 设计架构</div>
+            </figure>
+
+<p>这张图包含了 context 中最核心的对象和它们之间的关系，我们来简单梳理下这张图，为稍后的源码阅读打下基础。</p>
+<ul>
+<li><strong><code>Context</code> 接口</strong>：这是 context 最基本的抽象，定义了一个 context 对象应该支持哪些行为。它被设计为 exported，所以我们也可以实现自定义的 context 对象。</li>
+<li><strong>实现 <code>Context</code> 接口的结构体</strong>：为了实现 context 的控制链路和安全传值两大特性，context 包提供了多种 <code>Context</code> 接口的实现。<ul>
+<li><code>emptyCtx</code> 表示一个空的 context 实现，没有控制链路的能力，也没有安全传值的功能。不过它作为最基础的 context 实现，可以算是其他 context 实现的“基类”了。<code>backgroundCtx</code> 和 <code>todoCtx</code> 包装了 <code>emptyCtx</code>，不过二者并没有扩展什么功能，只是表明了<strong>语义</strong>，它们通常作为整个 context 链路的起点。</li>
+<li><code>cancelCtx</code> 是一个带有取消功能的 context 实现，所以它拥有控制链路的能力。<code>timerCtx</code> 和 <code>afterFuncCtx</code> 都是在 <code>cancelCtx</code> 的基础上来实现的。</li>
+<li><code>withoutCancelCtx</code> 从命名上也能看出，它和 <code>cancelCtx</code> 正相反，没有取消功能，在实现上与 <code>emptyCtx</code> 差不多。</li>
+<li><code>valueCtx</code> 见名之意，是用来进行安全传值的。</li>
+<li>最后还有一个 <code>stopCtx</code> 实现，它比较特殊，没有提供构造函数，目前来看并不是 context 的核心对象。</li>
+</ul>
+</li>
+<li><strong>exported 函数</strong>：因为所有的 context 实现都是 <code>unexported</code> 类型，所以就需要 <code>exported</code> 类型的函数来创建 context 对象供我们使用。<ul>
+<li><code>Background()</code> 是使用的最多的函数了，它构造一个 <code>backgroundCtx</code> 对象并返回，通常作为 context 树的根节点。</li>
+<li><code>TODO()</code> 函数当然就是用来构造 <code>todoCtx</code> 对象的构造函数了，同样会作为 context 树的根节点。当我们不知道该用哪个 context 对象时，就用它。</li>
+<li><code>WithCancel()</code> 和 <code>WithCancelCause()</code> 都用来构造并返回 <code>cancelCtx</code> 对象，二者唯一的区别就是构造对象时是否传入<strong>根因</strong>。</li>
+<li><code>WithDeadline()</code> 和 <code>WithDeadlineCause()</code> 用于构造一个 <code>cancelCtx</code> 或 <code>timerCtx</code> 对象。它们可以接收一个 <code>time.Time</code> 用来指定 context 对象被取消的时间，到期时会被<strong>自动取消</strong>。</li>
+<li><code>WithTimeout()</code> 和 <code>WithTimeoutCause()</code> 都接收一个 <code>time.Duration</code> 来指定多长时间之后 context 对象被取消。<code>WithTimeout()</code> 内部调用了 <code>WithDeadline()</code>，而 <code>WithTimeoutCause()</code> 内部则调用了 <code>WithDeadlineCause()</code>。</li>
+<li><code>WithoutCancel()</code> 用于构造并返回 <code>withoutCancelCtx</code> 对象。</li>
+<li><code>WithValue()</code> 用于构造并返回 <code>valueCtx</code> 对象。</li>
+<li><code>AfterFunc()</code> 用于在 context 过期时异步的执行一个任务，它会构造一个 <code>afterFuncCtx</code> 对象，但不返回它，而是返回一个停止函数，可以阻止异步任务执行。</li>
+</ul>
+</li>
+</ul>
+<p>以上，就简单梳理了 context 包最核心的设计框架。如果你不够熟悉 context，切记不要死记硬背，只需要多使用它就好了。你可以先收藏此文，用过 context 一段时间，再回来看本文的源码解析。</p>
+<h3 id="context-接口"><a href="#context-接口" class="headerlink" title="context 接口"></a>context 接口</h3><p><code>Context</code> 作为 context 包最核心的接口，其定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Context <span class="keyword">interface</span> &#123;</span><br><span class="line">	Deadline() (deadline time.Time, ok <span class="keyword">bool</span>)</span><br><span class="line">	Done() &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	Err() error</span><br><span class="line">	Value(key any) any</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到 <code>Context</code> 只有 4 个方法，可谓大道至简。</p>
+<ul>
+<li><code>Deadline()</code> 方法返回该 context 应该被取消的<strong>截止时间</strong>，如果此 context 没有设置截止时间，则返回的 <code>ok</code> 值为 <code>false</code>。</li>
+<li><code>Done()</code> 返回一个只读的 channel 作为<strong>取消信号</strong>，当 context 被取消时，此 channel 会被 close 掉。</li>
+<li><code>Err()</code> 方法返回 context <strong>被取消的原因</strong>，如果 context 还未取消，返回 <code>nil</code>；如果调用 <code>cancel()</code> 主动取消了 context，返回 <code>Canceled</code> 错误；如果是截止时间到了自动取消了 context，返回 <code>DeadlineExceeded</code> 错误。</li>
+<li><code>Value()</code> 方法返回与给定键（<code>key</code>）<strong>关联的值</strong>（<code>value</code>），如果没有与该 <code>key</code> 关联的 <code>value</code>，则返回 <code>nil</code>。</li>
+</ul>
+<p>其中 <code>Canceled</code> 和 <code>DeadlineExceeded</code> 两个错误定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> Canceled = errors.New(<span class="string">"context canceled"</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> DeadlineExceeded error = deadlineExceededError&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> deadlineExceededError <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(deadlineExceededError)</span> <span class="title">Error</span><span class="params">()</span> <span class="title">string</span></span>   &#123; <span class="keyword">return</span> <span class="string">"context deadline exceeded"</span> &#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(deadlineExceededError)</span> <span class="title">Timeout</span><span class="params">()</span> <span class="title">bool</span></span>   &#123; <span class="keyword">return</span> <span class="literal">true</span> &#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(deadlineExceededError)</span> <span class="title">Temporary</span><span class="params">()</span> <span class="title">bool</span></span> &#123; <span class="keyword">return</span> <span class="literal">true</span> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里采用了典型的 Sentinel error 用法。并且从 <code>deadlineExceededError</code> 实现的方法来看，其鼓励<strong>行为断言</strong>而非<strong>类型断言</strong>。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>如果你对 Go 错误设计和处理不够熟悉，可以查看我的另一篇文章《<a href="https://jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/" target="_blank" rel="noopener">Go 错误处理指北：如何优雅的处理错误？》</a>。</p>
+</blockquote>
+<h3 id="context-实现"><a href="#context-实现" class="headerlink" title="context 实现"></a>context 实现</h3><p>接下来我们对 <code>Context</code> 接口的具体实现进行逐一讲解。</p>
+<h4 id="emptyCtx"><a href="#emptyCtx" class="headerlink" title="emptyCtx"></a>emptyCtx</h4><p><code>emptyCtx</code> 是最基础的 context 实现，定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> emptyCtx <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(emptyCtx)</span> <span class="title">Deadline</span><span class="params">()</span> <span class="params">(deadline time.Time, ok <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(emptyCtx)</span> <span class="title">Done</span><span class="params">()</span> &lt;-<span class="title">chan</span> <span class="title">struct</span></span>&#123;&#125; &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(emptyCtx)</span> <span class="title">Err</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(emptyCtx)</span> <span class="title">Value</span><span class="params">(key any)</span> <span class="title">any</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>它确实“基础”，也确实 “empty”，所有实现都为空，没有代码逻辑，仅是一个 context 架子。</p>
+<h5 id="backgroundCtx-和-todoCtx"><a href="#backgroundCtx-和-todoCtx" class="headerlink" title="backgroundCtx 和 todoCtx"></a>backgroundCtx 和 todoCtx</h5><p><code>backgroundCtx</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> backgroundCtx <span class="keyword">struct</span>&#123; emptyCtx &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(backgroundCtx)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="string">"context.Background"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>它内嵌了 <code>emptyCtx</code>，也仅比 <code>emptyCtx</code> 多实现了一个 <code>String()</code> 方法。</p>
+<p><code>todoCtx</code> 实现同理：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> todoCtx <span class="keyword">struct</span>&#123; emptyCtx &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(todoCtx)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="string">"context.TODO"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="Background-和-TODO"><a href="#Background-和-TODO" class="headerlink" title="Background() 和 TODO()"></a>Background() 和 TODO()</h5><p>我们在使用 context 时，往往会用 <code>context.Background()</code> 或 <code>context.TODO()</code> 来定义了最顶层 context，这两个方法实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Background</span><span class="params">()</span> <span class="title">Context</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> backgroundCtx&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TODO</span><span class="params">()</span> <span class="title">Context</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> todoCtx&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>没错，最常用的 context 代码实现就是这么简单，它们是整个 context 链路的基础。</p>
+<h4 id="cancelCtx"><a href="#cancelCtx" class="headerlink" title="cancelCtx"></a>cancelCtx</h4><p><code>cancelCtx</code> 结构体定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> cancelCtx <span class="keyword">struct</span> &#123;</span><br><span class="line">	Context <span class="comment">// “继承”的父 Context</span></span><br><span class="line"></span><br><span class="line">	mu       sync.Mutex            <span class="comment">// 持有锁保护下面这些字段</span></span><br><span class="line">	done     atomic.Value          <span class="comment">// 值为 chan struct&#123;&#125; 类型，会被懒惰创建，在第一次调用取消函数 cancel() 时被关闭，表示 Context 已被取消</span></span><br><span class="line">	children <span class="keyword">map</span>[canceler]<span class="keyword">struct</span>&#123;&#125; <span class="comment">// 所有可以被取消的子 Context 集合，它们在第一次调用取消函数 cancel() 时被级联取消，然后置为 nil</span></span><br><span class="line">	err      error                 <span class="comment">// 取消原因，在第一次调用取消函数 cancel() 时被设置值</span></span><br><span class="line">	cause    error                 <span class="comment">// 取消根因，在第一次调用取消函数 cancel() 时被设置值</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>cancelCtx</code> 直接内嵌了 <code>Context</code> 接口，也就是说，它支持任意其他类型的 context 实现作为父上下文（<code>parent context</code>）。</p>
+<p>前文说过，context 是并发安全的，所以 <code>cancelCtx</code> 内部持有一把互斥锁，保证安全的操作结构体属性。</p>
+<p><code>done</code> 属性为 <code>atomic.Value</code> 类型，是为了支持原子操作，使用它可以减少互斥锁的使用频率，稍后你将在 <code>Done()</code> 方法中看到。它的值是 <code>chan struct{}</code> 类型。</p>
+<p><code>children</code> 属性是一个集合，记录了当前 context 的所有子上下文（<code>child context</code>）。这样，父子 context 就产生了链路关系，以此为基础实现父 context 取消时，级联的取消所有子 context。</p>
+<p><code>err</code> 和 <code>cause</code> 分别记录了 context 被取消的<strong>原因</strong>和<strong>根因</strong>，<code>err</code> 是 context 包内部产生的，<code>cause</code> 则是我们在使用 <code>WithXxxCause()</code> 方法构造 context 对象时传入的。</p>
+<p>这里涉及的 <code>canceler</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> canceler <span class="keyword">interface</span> &#123;</span><br><span class="line">	cancel(removeFromParent <span class="keyword">bool</span>, err, cause error) <span class="comment">// 取消函数</span></span><br><span class="line">	Done() &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;                          <span class="comment">// 通过返回的 channel 能够知道是否被取消</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>它是一个接口，表示一个可以被<strong>取消</strong>的对象。也就是说，在 context 包中设计的支持取消的 context 类型都需要提供这两个方法。父 context 取消时会调用子 context 的 <code>cancel()</code> 方法进行级联取消；并且有取消功能的 context 必须要实现 <code>Done()</code> 方法，这样使用者才能通过监听 done channel 知道这个 context 是否被取消。</p>
+<p><code>cancelCtx</code> 的 <code>Done()</code> 方法实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *cancelCtx)</span> <span class="title">Done</span><span class="params">()</span> &lt;-<span class="title">chan</span> <span class="title">struct</span></span>&#123;&#125; &#123;</span><br><span class="line">	<span class="comment">// 使用 double-check 来提升性能</span></span><br><span class="line">	d := c.done.Load() <span class="comment">// 原子操作，比互斥锁更加轻量</span></span><br><span class="line">	<span class="keyword">if</span> d != <span class="literal">nil</span> &#123;      <span class="comment">// 如果存在 channel 直接返回</span></span><br><span class="line">		<span class="keyword">return</span> d.(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">	c.mu.Lock() <span class="comment">// 如果不存在 channel，则要先加锁，然后创建 channel 并返回</span></span><br><span class="line">	<span class="keyword">defer</span> c.mu.Unlock()</span><br><span class="line">	d = c.done.Load()</span><br><span class="line">	<span class="keyword">if</span> d == <span class="literal">nil</span> &#123; <span class="comment">// 为保证并发安全，再做一次检查</span></span><br><span class="line">		d = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">		c.done.Store(d)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> d.(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里使用了 <code>double-check</code> 来提升程序的性能，这也是 <code>done</code> 属性为什么被设计成 <code>atomic.Value</code> 类型的原因。首先使用 <code>c.done.Load()</code> 来判断标识 context 是否取消的 <code>chan struct{}</code> 是否存在，存在则直接返回，不存在才会加锁创建。</p>
+<p><code>cancelCtx</code> 的 <code>cancel()</code> 方法实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *cancelCtx)</span> <span class="title">cancel</span><span class="params">(removeFromParent <span class="keyword">bool</span>, err, cause error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"context: internal error: missing cancel error"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> cause == <span class="literal">nil</span> &#123; <span class="comment">// 如果没有设置根因，取 err</span></span><br><span class="line">		cause = err</span><br><span class="line">	&#125;</span><br><span class="line">	c.mu.Lock()</span><br><span class="line">	<span class="keyword">if</span> c.err != <span class="literal">nil</span> &#123; <span class="comment">// 如果 err 不为空，说明已经被取消，直接返回</span></span><br><span class="line">		c.mu.Unlock()</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// <span class="doctag">NOTE:</span> 只有第一次调用 cancel 才会执行之后的代码</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 记录错误和根因</span></span><br><span class="line">	c.err = err</span><br><span class="line">	c.cause = cause</span><br><span class="line">	d, _ := c.done.Load().(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	<span class="keyword">if</span> d == <span class="literal">nil</span> &#123; <span class="comment">// 如果 done 为空，直接设置一个已关闭的 channel</span></span><br><span class="line">		c.done.Store(closedchan)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123; <span class="comment">// 如果 done 有值，将其关闭</span></span><br><span class="line">		<span class="built_in">close</span>(d)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 级联取消所有子 Context</span></span><br><span class="line">	<span class="keyword">for</span> child := <span class="keyword">range</span> c.children &#123;</span><br><span class="line">		<span class="comment">// <span class="doctag">NOTE:</span> 获取子 Context 的锁，同时持有父 Context 的锁</span></span><br><span class="line">		child.cancel(<span class="literal">false</span>, err, cause)</span><br><span class="line">	&#125;</span><br><span class="line">	c.children = <span class="literal">nil</span> <span class="comment">// 清空子 Context 集合，因为已经完成了 Context 树整个链路的取消操作</span></span><br><span class="line">	c.mu.Unlock()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> removeFromParent &#123; <span class="comment">// 从父 Context 的 children 集合中移除当前 Context</span></span><br><span class="line">		removeChild(c.Context, c)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个方法用来取消 <code>cancelCtx</code>，它接收 3 个参数，<code>removeFromParent</code> 表示是否要从父 context 的 <code>children</code> 属性集合中移除当前的 <code>cancelCtx</code>；<code>err</code> 和 <code>cause</code> 则分别表示取消的错误原因和根因。</p>
+<p>在第 9 行，因为使用了 <code>c.err != nil</code> 来判断 <code>err</code> 是否为空，如果不为空，说明 context 已经被取消，直接返回。所以，多次调用 <code>cancel()</code> 方法效果相同。</p>
+<p>当第一次调用 <code>cancel()</code> 方法时会记录 <code>err</code> 和 <code>cause</code>。接着判断 done channel 是否存在，不存在就直接设置为一个已经关闭的 channel 对象 <code>closedchan</code>；如果存在则调用 <code>close(d)</code> 将其关闭。</p>
+<p>接着，会遍历 <code>c.children</code> 属性对当前 <code>cancelCtx</code> 的所有子 context 进行级联取消，即依次调用它们的 <code>cancel()</code> 方法。然后清空 <code>children</code> 集合。</p>
+<p>最终根据参数 <code>removeFromParent</code> 的值决定是否要从父 context 的 <code>children</code> 属性集合中移除 <code>cancelCtx</code>。</p>
+<p>这里涉及的 <code>closedchan</code> 定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// closedchan 表示一个已关闭的 channel</span></span><br><span class="line"><span class="keyword">var</span> closedchan = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 导入 context 包时直接关闭 closedchan</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="built_in">close</span>(closedchan)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在 context 包被导入时就直接关闭了。</p>
+<p><code>removeChild()</code> 函数的具体实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">removeChild</span><span class="params">(parent Context, child canceler)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> s, ok := parent.(stopCtx); ok &#123;</span><br><span class="line">		s.stop()</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	p, ok := parentCancelCtx(parent)</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	p.mu.Lock()</span><br><span class="line">	<span class="keyword">if</span> p.children != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">delete</span>(p.children, child)</span><br><span class="line">	&#125;</span><br><span class="line">	p.mu.Unlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先判断父 context 是否为 <code>stopCtx</code> 类型，如果是，则调用其 <code>s.stop()</code> 方法。关于 <code>stopCtx</code> 类型暂时不必深究，后文中讲解 <code>*cancelCtx.propagateCancel()</code> 方法时我会更详细的解释。</p>
+<p>接着调用 <code>parentCancelCtx()</code> 函数向上查找父 context 或其链路中是否存在 <code>*cancelCtx</code> 对象，如果不存在，直接返回；如果存在，从其 <code>children</code> 属性集合中移除当前 context。</p>
+<p><code>parentCancelCtx()</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">parentCancelCtx</span><span class="params">(parent Context)</span> <span class="params">(*cancelCtx, <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	done := parent.Done()</span><br><span class="line">	<span class="keyword">if</span> done == closedchan || done == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line">	p, ok := parent.Value(&amp;cancelCtxKey).(*cancelCtx)</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line">	pdone, _ := p.done.Load().(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	<span class="keyword">if</span> pdone != done &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> p, <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果父 context 的 <code>Done()</code> 方法返回 <code>closedchan</code>，说明已经被取消了；如果返回 <code>nil</code>，则说明父 context 永远不会被取消。这两种情况，都不必继续向上查找 <code>*cancelCtx</code> 对象了，直接返回 <code>false</code> 表示未找到。</p>
+<p>接下来使用 <code>&amp;cancelCtxKey</code> 作为 <code>key</code> 从父 context 中查找 <code>value</code>，并且断言查找到的对象是否为 <code>*cancelCtx</code> 类型，如果 <code>!ok</code> 说明未找到，返回 <code>false</code>；否则，说明找到的 <code>*cancelCtx</code>。</p>
+<p>然后对 <code>*cancelCtx</code> 进行进一步的检查，确保返回的 <code>*cancelCtx</code> 的 done channel 与父 context 的 done channel 是匹配的，如果不匹配，说明 <code>*cancelCtx</code> 已经被包装在一个自定义实现中，为了避免影响自定义 context 实现，这种情况下返回 <code>false</code> 表示未找到；如果匹配，才返回 <code>*cancelCtx</code> 对象和 <code>true</code> 表示找到了。</p>
+<p><code>cancelCtx</code> 还实现了 <code>Context</code> 接口的 <code>Value()</code> 和 <code>Err()</code> 方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *cancelCtx)</span> <span class="title">Value</span><span class="params">(key any)</span> <span class="title">any</span></span> &#123;</span><br><span class="line">	<span class="comment">// 使用 &amp;cancelCtxKey 标记需要返回自身</span></span><br><span class="line">	<span class="comment">// 这是一个未导出的（unexported）类型，所以仅作为 context 包内部实现的一个“协议”，对用户不可见</span></span><br><span class="line">	<span class="keyword">if</span> key == &amp;cancelCtxKey &#123;</span><br><span class="line">		<span class="keyword">return</span> c</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 接着向上遍历父 Context 链路，查询 key</span></span><br><span class="line">	<span class="keyword">return</span> value(c.Context, key)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *cancelCtx)</span> <span class="title">Err</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	c.mu.Lock()</span><br><span class="line">	err := c.err</span><br><span class="line">	c.mu.Unlock()</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Err()</code> 方法的实现非常简单，没什么好说的。</p>
+<p><code>cancelCtx</code> 实现了 <code>Value()</code> 方法，这是为了实现一个特殊的“内部协议”。这个方法里有一个特殊的判断 <code>if key == &amp;cancelCtxKey</code>，如果成立，则不去查找给定 <code>key</code> 所对应的 <code>value</code>；如果不成立才调用 <code>value()</code> 函数继续进行查找。</p>
+<p><code>cancelCtxKey</code> 就是一个普通的变量：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> cancelCtxKey <span class="keyword">int</span></span><br></pre></td></tr></table></figure>
+
+<p>上面介绍的 <code>parentCancelCtx()</code> 函数中，之所以能够使用 <code>parent.Value(&amp;cancelCtxKey).(*cancelCtx)</code> 获取到 <code>*cancelCtx</code> 对象，就是通过在 <code>Value()</code> 方法中这个特殊的“协议”来实现的。</p>
+<p>从 <code>Value()</code> 方法的实现来看，只要调用 <code>*cancelCtx.Value()</code> 方法时传入 <code>&amp;cancelCtxKey</code> 作为查找的 <code>key</code>，就返回 <code>*cancelCtx</code> 对象本身。</p>
+<p>注意：<code>&amp;cancelCtxKey</code> 是一个 <code>unexported</code>类型的指针变量，所以外部无法使用，只作为“内部协议”。</p>
+<p>这个设计有点奇技淫巧的意思，不过却很有用。</p>
+<p>这里涉及的 <code>value()</code> 函数我们暂且不继续深究，后文再来讲解。</p>
+<p>此外，<code>cancelCtx</code> 也实现了自己的 <code>String()</code> 方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> stringer <span class="keyword">interface</span> &#123;</span><br><span class="line">	String() <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">contextName</span><span class="params">(c Context)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> s, ok := c.(stringer); ok &#123;</span><br><span class="line">		<span class="keyword">return</span> s.String()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> reflectlite.TypeOf(c).String()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *cancelCtx)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> contextName(c.Context) + <span class="string">".WithCancel"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="WithCancel-和-WithCancelCause"><a href="#WithCancel-和-WithCancelCause" class="headerlink" title="WithCancel() 和 WithCancelCause()"></a>WithCancel() 和 WithCancelCause()</h5><p>看完了 <code>cancelCtx</code> 的实现，接下来看下我们如何构造一个 <code>cancelCtx</code>。</p>
+<p>context 包提供了两种构造 <code>cancelCtx</code> 的方法，分别是 <code>WithCancel()</code> 和 <code>WithCancelCause()</code>。</p>
+<p><code>WithCancel()</code> 实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> CancelFunc <span class="function"><span class="keyword">func</span><span class="params">()</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithCancel</span><span class="params">(parent Context)</span> <span class="params">(ctx Context, cancel CancelFunc)</span></span> &#123;</span><br><span class="line">	c := withCancel(parent)</span><br><span class="line">	<span class="keyword">return</span> c, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c.cancel(<span class="literal">true</span>, Canceled, <span class="literal">nil</span>) &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>WithCancel()</code> 根据给定的父 context 构造一个新的具有取消功能的 <code>cancelCtx</code> 并返回，其核心逻辑是代理给 <code>withCancel()</code> 函数去实现的。</p>
+<p><code>WithCancelCause()</code> 实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> CancelCauseFunc <span class="function"><span class="keyword">func</span><span class="params">(cause error)</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithCancelCause</span><span class="params">(parent Context)</span> <span class="params">(ctx Context, cancel CancelCauseFunc)</span></span> &#123;</span><br><span class="line">	c := withCancel(parent)</span><br><span class="line">	<span class="keyword">return</span> c, <span class="function"><span class="keyword">func</span><span class="params">(cause error)</span></span> &#123; c.cancel(<span class="literal">true</span>, Canceled, cause) &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>WithCancelCause()</code> 与 <code>WithCancel()</code> 类似，但返回 <code>CancelCauseFunc</code> 而不是 <code>CancelFunc</code>。可以发现二者的唯一区别就是返回的函数是否支持设置 context 被取消的根因 <code>cause</code>。</p>
+<p>那么接下来就看看 <code>withCancel()</code> 函数是如何实现的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">withCancel</span><span class="params">(parent Context)</span> *<span class="title">cancelCtx</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> parent == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"cannot create context from nil parent"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	c := &amp;cancelCtx&#123;&#125;            <span class="comment">// 带取消功能的 Context</span></span><br><span class="line">	c.propagateCancel(parent, c) <span class="comment">// 将新构造的 Context 向上传播挂载到父 Context 的 children 属性中，这样当父 Context 取消时子 Context 对象 c 也会级联取消</span></span><br><span class="line">	<span class="keyword">return</span> c</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个函数逻辑并不多，这里构造了一个 <code>cancelCtx</code> 并返回，核心逻辑都交给了 <code>propagateCancel()</code> 方法。</p>
+<p><code>propagateCancel()</code> 方法实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *cancelCtx)</span> <span class="title">propagateCancel</span><span class="params">(parent Context, child canceler)</span></span> &#123;</span><br><span class="line">	c.Context = parent <span class="comment">// “继承”父 Context，这里可以是任何实现了 Context 接口的类型</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// <span class="doctag">NOTE:</span> 父 Context 没有实现取消功能</span></span><br><span class="line">	done := parent.Done()</span><br><span class="line">	<span class="keyword">if</span> done == <span class="literal">nil</span> &#123; <span class="comment">// 如果父 Context 的 Done() 方法返回 nil，说明父 Context 没有取消的功能，那么无需传播子 Context 的 cancel 功能到父 Context</span></span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// <span class="doctag">NOTE:</span> 父 Context 已经被取消</span></span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> &lt;-done: <span class="comment">// 直接取消子 Context，且取消原因设置为父 Context 的取消原因</span></span><br><span class="line">		child.cancel(<span class="literal">false</span>, parent.Err(), Cause(parent))</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// <span class="doctag">NOTE:</span> 父 Context 还未取消</span></span><br><span class="line">	<span class="keyword">if</span> p, ok := parentCancelCtx(parent); ok &#123; <span class="comment">// 如果父 Context 是 *cancelCtx 或者从 *cancelCtx 派生而来</span></span><br><span class="line">		p.mu.Lock()</span><br><span class="line">		<span class="keyword">if</span> p.err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="comment">// 如果父 Context 的 err 属性有值，说明已经被取消，直接取消子 Context</span></span><br><span class="line">			child.cancel(<span class="literal">false</span>, p.err, p.cause)</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> p.children == <span class="literal">nil</span> &#123; <span class="comment">// 延迟创建父 Context 的 children 属性</span></span><br><span class="line">				p.children = <span class="built_in">make</span>(<span class="keyword">map</span>[canceler]<span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">			&#125;</span><br><span class="line">			p.children[child] = <span class="keyword">struct</span>&#123;&#125;&#123;&#125; <span class="comment">// 将 child 加入到这个 *cancelCtx 的 children 集合中</span></span><br><span class="line">		&#125;</span><br><span class="line">		p.mu.Unlock()</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// <span class="doctag">NOTE:</span> 父 Context 实现了 afterFuncer 接口</span></span><br><span class="line">	<span class="keyword">if</span> a, ok := parent.(afterFuncer); ok &#123; <span class="comment">// 测试文件 afterfunc_test.go 中 *afterFuncCtx 实现了 afterFuncer 接口</span></span><br><span class="line">		c.mu.Lock()</span><br><span class="line">		stop := a.AfterFunc(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; <span class="comment">// 注册子 Context 取消功能到父 Context，当父 Context 取消时，能级联取消子 Context</span></span><br><span class="line">			child.cancel(<span class="literal">false</span>, parent.Err(), Cause(parent))</span><br><span class="line">		&#125;)</span><br><span class="line">		c.Context = stopCtx&#123; <span class="comment">// 将当前 *cancelCtx 的直接父 Context 设置为 stopCtx</span></span><br><span class="line">			Context: parent, <span class="comment">// stopCtx 的父 Context 设置为 parent</span></span><br><span class="line">			stop:    stop,</span><br><span class="line">		&#125;</span><br><span class="line">		c.mu.Unlock()</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// <span class="doctag">NOTE:</span> 父 Context 不是已知类型，但实现了取消功能</span></span><br><span class="line">	goroutines.Add(<span class="number">1</span>) <span class="comment">// 记录下开启了几个 goroutine，用于测试代码</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;       <span class="comment">// 开起一个 goroutine，监听父 Context 是否被取消，如果取消则级联取消子 Context</span></span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> &lt;-parent.Done(): <span class="comment">// 父 Context 被取消</span></span><br><span class="line">			child.cancel(<span class="literal">false</span>, parent.Err(), Cause(parent))</span><br><span class="line">		<span class="keyword">case</span> &lt;-child.Done(): <span class="comment">// 自己被取消</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>propagateCancel()</code> 方法将 <code>cancelCtx</code> 对象向上传播挂载到父 context 的 <code>children</code> 属性集合中，这样当父 context 被取消时，子 context 也会被级联取消。这个方法逻辑稍微有点多，也是 context 包中最复杂的方法了，拿下它，后面的代码就都很简单了。</p>
+<p>首先将 <code>parent</code> 参数记录到 <code>cancelCtx.Context</code> 属性中，作为父 context。接下来会对父 context 做各种判断，以此来决定如何处理子 context。</p>
+<p>第 5 行通过 <code>parent.Done()</code> 拿到父 context 的 done channel，如果值为 <code>nil</code>，则说明父 context 没有取消功能，所以不必传播子 context 的取消功能到父 context。</p>
+<p>第 11 行使用 <code>select...case...</code> 来监听 <code>&lt;-done</code> 是否被关闭，如果已关闭，则说明父 context 已经被取消，那么直接调用 <code>child.cancel()</code> 取消子 context。因为 context 的取消功能是从上到下级联取消，所以父 context 被取消，那么子 context 也一定要取消。</p>
+<p>如果父 context 尚未取消，则在第 19 行判断父 context 是否为 <code>*cancelCtx</code> 或者从 <code>*cancelCtx</code> 派生而来。如果是，则判断父 context 的 <code>err</code> 属性是否有值，有值则说明父 context 已经被取消，那么直接取消子 context；否则将子 context 加入到这个 <code>*cancelCtx</code> 类型的父 context 的 <code>children</code> 属性集合中。</p>
+<p>如果父 context 不是 <code>*cancelCtx</code> 类型，在第 35 行判断父 context 是否实现了 <code>afterFuncer</code> 接口。如果实现了，则新建一个 <code>stopCtx</code> 作为当前 <code>*cancelCtx</code> 的父 context。</p>
+<p>最终，如果之前对父 context 的判断都不成立，则开启一个新的 goroutine 来监听父 context 和子 context 的取消信号。如果父 context 被取消，则级联取消子 context；如果子 context 被取消，则直接退出 goroutine。</p>
+<p>至此 <code>propagateCancel()</code> 方法的主要逻辑就梳理完了。</p>
+<p>不过，在当前的 context 包实现中，其实在第 35 行判断父 context 是否实现了 <code>afterFuncer</code> 接口的 case 永远不会发生。<code>afterFuncer</code> 接口定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> afterFuncer <span class="keyword">interface</span> &#123;</span><br><span class="line">	AfterFunc(<span class="function"><span class="keyword">func</span><span class="params">()</span>) <span class="title">func</span><span class="params">()</span> <span class="title">bool</span></span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在 Go 1.23.0 版本 context 包的<a href="https://github.com/golang/go/blob/go1.23.0/src/context/context.go" target="_blank" rel="noopener">源码</a>中，并没有一个 context 实现了 <code>afterFuncer</code> 接口。所以 <code>stopCtx</code> 也并没有被真正使用。所以我才在前文讲解 <code>removeChild()</code> 函数时说 <code>stopCtx</code> 类型不必深究。</p>
+<p>不过我们还是简单看一下 <code>stopCtx</code> 的定义：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> stopCtx <span class="keyword">struct</span> &#123;</span><br><span class="line">	Context</span><br><span class="line">	stop <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">bool</span></span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>它同样嵌入了 <code>Context</code> 接口，<code>stop</code> 方法用于注销 <code>AfterFunc</code>。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>其实 <code>afterFuncer</code> 接口在 <a href="https://github.com/golang/go/blob/go1.23.0/src/context/afterfunc_test.go" target="_blank" rel="noopener">context/afterfunc_test.go</a> 文件中有一个 <code>afterFuncContext</code> 类型是实现了的，只不过是测试代码，所以我们还是无法使用。</p>
+<p>我在 <a href="https://github.com/golang/go/issues/61672" target="_blank" rel="noopener">issues/61672</a> 中找到了一些关于 <code>afterFuncer</code> 的讨论，在我看来这是一个为了填早期设计的坑而定义的，如果能重来，大概率 <code>Context</code> 不会被设计成接口，而是结构体。</p>
+</blockquote>
+<p>此外，这里还用到了 <code>Cause()</code> 函数从 <code>parent</code> 中提取根因，<code>Cause()</code> 函数实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Cause</span><span class="params">(c Context)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> cc, ok := c.Value(&amp;cancelCtxKey).(*cancelCtx); ok &#123;</span><br><span class="line">		cc.mu.Lock()</span><br><span class="line">		<span class="keyword">defer</span> cc.mu.Unlock()</span><br><span class="line">		<span class="keyword">return</span> cc.cause</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> c.Err()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里同样使用特殊的 <code>key</code> <code>&amp;cancelCtxKey</code> 来查找 context 链路中的 <code>*cancelCtx</code>，如果找到，则返回 <code>*cancelCtx.cause</code>，否则将 context 的错误原因作为根因。</p>
+<p>针对 <code>cancelCtx</code> 类型的源码讲解就到这里，可以说 <code>cancelCtx</code> 是最复杂的 context 实现了，后文中要讲解的 <code>timerCtx</code> 和 <code>afterFuncCtx</code> 都是基于它实现的。</p>
+<h4 id="timerCtx"><a href="#timerCtx" class="headerlink" title="timerCtx"></a>timerCtx</h4><p><code>timerCtx</code> 结构体定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> timerCtx <span class="keyword">struct</span> &#123;</span><br><span class="line">	cancelCtx             <span class="comment">// “继承”了 cancelCtx</span></span><br><span class="line">	timer     *time.Timer <span class="comment">// Under cancelCtx.mu.</span></span><br><span class="line"></span><br><span class="line">	deadline time.Time</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>timerCtx</code> 内部嵌入了 <code>cancelCtx</code> 以“继承” <code>Done()</code> 和 <code>Err()</code> 方法。并且它还关联了一个定时器 <code>timer</code> 和截止时间 <code>deadline</code>，以此来实现在截止时间到期时，自动取消 context。</p>
+<p><code>timerCtx</code> 实现的方法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *timerCtx)</span> <span class="title">Deadline</span><span class="params">()</span> <span class="params">(deadline time.Time, ok <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> c.deadline, <span class="literal">true</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *timerCtx)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> contextName(c.cancelCtx.Context) + <span class="string">".WithDeadline("</span> +</span><br><span class="line">		c.deadline.String() + <span class="string">" ["</span> +</span><br><span class="line">		time.Until(c.deadline).String() + <span class="string">"])"</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *timerCtx)</span> <span class="title">cancel</span><span class="params">(removeFromParent <span class="keyword">bool</span>, err, cause error)</span></span> &#123;</span><br><span class="line">	c.cancelCtx.cancel(<span class="literal">false</span>, err, cause)</span><br><span class="line">	<span class="keyword">if</span> removeFromParent &#123;</span><br><span class="line">		<span class="comment">// 将此 *timerCtx 从其父 *cancelCtx 的 children 集合中删除</span></span><br><span class="line">		removeChild(c.cancelCtx.Context, c)</span><br><span class="line">	&#125;</span><br><span class="line">	c.mu.Lock()</span><br><span class="line">	<span class="keyword">if</span> c.timer != <span class="literal">nil</span> &#123;</span><br><span class="line">		c.timer.Stop()</span><br><span class="line">		c.timer = <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	c.mu.Unlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>你是否还记得我们在讲解 <code>Context</code> 接口时提到，<code>Deadline()</code> 方法返回的 <code>ok</code> 值为 <code>false</code> 时说明 context 没有设置截止时间。这里返回 <code>true</code> 则说明 <code>timerCtx</code> 支持设置截止时间。</p>
+<p><code>timerCtx</code> 也实现了自己的 <code>String()</code> 方法。其实所有 context 实现都有自己的 <code>String()</code> 方法。</p>
+<p><code>timerCtx</code> 的并没有直接使用 <code>cancelCtx</code> 的取消方法，而是自己也实现了 <code>cancel()</code> 方法。内部调用的 <code>removeChild()</code> 函数我们在前文讲解 <code>cancelCtx</code> 时已经见过了。这里唯一需要注意的一点是，如果 <code>timer</code> 属性不为 <code>nil</code> 则调用 <code>timer.Stop()</code> 将其停止，并将属性值置为 <code>nil</code>，以此让 <code>timer</code> 对象尽早被 GC 回收。</p>
+<h5 id="WithDeadline-和-WithTimeoutCause"><a href="#WithDeadline-和-WithTimeoutCause" class="headerlink" title="WithDeadline() 和 WithTimeoutCause()"></a>WithDeadline() 和 WithTimeoutCause()</h5><p>我们先来看 <code>timerCtx</code> 的第一个构造函数 <code>WithDeadline()</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithDeadline</span><span class="params">(parent Context, d time.Time)</span> <span class="params">(Context, CancelFunc)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> WithDeadlineCause(parent, d, <span class="literal">nil</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>WithDeadline()</code> 直接将逻辑代理给了 <code>WithDeadlineCause()</code> 来处理，<code>WithDeadlineCause()</code> 实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithDeadlineCause</span><span class="params">(parent Context, d time.Time, cause error)</span> <span class="params">(Context, CancelFunc)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> parent == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"cannot create context from nil parent"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 如果父 Context 的截止时间已经比传入的 d 更早，直接返回一个 *cancelCtx（无需构造 *timerCtx 等待定时器判断截止时间到了才取消 Context）</span></span><br><span class="line">	<span class="keyword">if</span> cur, ok := parent.Deadline(); ok &amp;&amp; cur.Before(d) &#123;</span><br><span class="line">		<span class="keyword">return</span> WithCancel(parent)</span><br><span class="line">	&#125;</span><br><span class="line">	c := &amp;timerCtx&#123; <span class="comment">// 构造一个带有定时器和截止时间功能的 Context</span></span><br><span class="line">		deadline: d,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 这里使用 cancelCtx 结构体默认值，初始化 timerCtx 时没有显式初始化 cancelCtx 字段</span></span><br><span class="line">	c.cancelCtx.propagateCancel(parent, c) <span class="comment">// 向父 Context 传播 cancel 功能，这样当父 Context 取消时当前 Context 也会被级联取消</span></span><br><span class="line">	dur := time.Until(d)</span><br><span class="line">	<span class="keyword">if</span> dur &lt;= <span class="number">0</span> &#123; <span class="comment">// 截止日期已过，直接取消</span></span><br><span class="line">		c.cancel(<span class="literal">true</span>, DeadlineExceeded, cause)</span><br><span class="line">		<span class="keyword">return</span> c, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c.cancel(<span class="literal">false</span>, Canceled, <span class="literal">nil</span>) &#125;</span><br><span class="line">	&#125;</span><br><span class="line">	c.mu.Lock()</span><br><span class="line">	<span class="keyword">defer</span> c.mu.Unlock()</span><br><span class="line">	<span class="keyword">if</span> c.err == <span class="literal">nil</span> &#123;</span><br><span class="line">		c.timer = time.AfterFunc(dur, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; <span class="comment">// 等待截止时间到期，自动调用 cancel 取消 Context</span></span><br><span class="line">			c.cancel(<span class="literal">true</span>, DeadlineExceeded, cause)</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> c, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c.cancel(<span class="literal">true</span>, Canceled, <span class="literal">nil</span>) &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现 <code>WithDeadline(parent, d)</code> 等价于 <code>WithDeadlineCause(parent, d, nil)</code>。</p>
+<p><code>WithDeadlineCause()</code> 实现代码不多，首先对 <code>parent</code> 是否为 <code>nil</code> 做了检查。接着检查父 context 的截止时间是否比传入的 <code>d</code> 更早，如果是，则直接创建一个 <code>*cancelCtx</code> 并返回，无需创建 <code>*timerCtx</code>。这是因为 context 具有级联取消的能力，既然父 context 的截止时间更早，则父 context 一定先于子 context 取消，所以子 context 会被级联取消，这就没必要再大费周章的构造 <code>*timerCtx</code> 来定时取消子 context 了。</p>
+<p>如果上述条件不成立，则构造一个带有定时器和截止时间功能的 <code>*timerCtx</code>。并且，同样需要调用 <code>cancelCtx.propagateCancel()</code> 向上传播取消功能。</p>
+<p>接着判断是否已到截止时间，如果到了，则直接取消 context。否则使用 <code>time.AfterFunc()</code> 来实现延迟取消 context。</p>
+<h5 id="WithTimeout-和-WithTimeoutCause"><a href="#WithTimeout-和-WithTimeoutCause" class="headerlink" title="WithTimeout() 和 WithTimeoutCause()"></a>WithTimeout() 和 WithTimeoutCause()</h5><p><code>WithTimeout()</code> 和 <code>WithTimeoutCause()</code> 两个方法同样用于构造 <code>timerCtx</code>，其实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithTimeout</span><span class="params">(parent Context, timeout time.Duration)</span> <span class="params">(Context, CancelFunc)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> WithDeadline(parent, time.Now().Add(timeout))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithTimeoutCause</span><span class="params">(parent Context, timeout time.Duration, cause error)</span> <span class="params">(Context, CancelFunc)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> WithDeadlineCause(parent, time.Now().Add(timeout), cause)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>WithTimeout()</code> 内部调用了 <code>WithDeadline()</code>，而 <code>WithTimeoutCause()</code> 内部则调用了 <code>WithDeadlineCause()</code>。</p>
+<p><code>WithDeadline()</code> 和 <code>WithDeadlineCause()</code> 接收一个绝对时间 <code>d time.Time</code>。</p>
+<p><code>WithTimeout()</code> 和 <code>WithTimeoutCause()</code> 接收一个相对时间 <code>timeout time.Duration</code>，并在内部将其转换为绝对时间。</p>
+<p>所以 <code>timerCtx</code> 类型的构造函数有 4 个。</p>
+<h4 id="withoutCancelCtx"><a href="#withoutCancelCtx" class="headerlink" title="withoutCancelCtx"></a>withoutCancelCtx</h4><p><code>withoutCancelCtx</code> 故名思义，是没有取消功能的 context，它可以打断 context 控制链路中级联取消的能力。</p>
+<p><code>withoutCancelCtx</code> 结构体定义非常简单，只有一个属性 <code>c</code> 用来保存父 context：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> withoutCancelCtx <span class="keyword">struct</span> &#123;</span><br><span class="line">	c Context</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>withoutCancelCtx</code> 实现方法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(withoutCancelCtx)</span> <span class="title">Deadline</span><span class="params">()</span> <span class="params">(deadline time.Time, ok <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(withoutCancelCtx)</span> <span class="title">Done</span><span class="params">()</span> &lt;-<span class="title">chan</span> <span class="title">struct</span></span>&#123;&#125; &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(withoutCancelCtx)</span> <span class="title">Err</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c withoutCancelCtx)</span> <span class="title">Value</span><span class="params">(key any)</span> <span class="title">any</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> value(c, key)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c withoutCancelCtx)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> contextName(c.c) + <span class="string">".WithoutCancel"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>withoutCancelCtx</code> 虽然没有取消功能，但实现了 <code>Value</code> 方法，可以根据 <code>key</code> 查询 <code>value</code>。这样才能保证整个 context 链路中传值的能力不被中断。</p>
+<h5 id="WithoutCancel"><a href="#WithoutCancel" class="headerlink" title="WithoutCancel()"></a>WithoutCancel()</h5><p>不仅 <code>withoutCancelCtx</code> 结构体设计简单，它的构造函数 <code>WithoutCancel()</code> 同样非常简单：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithoutCancel</span><span class="params">(parent Context)</span> <span class="title">Context</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> parent == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"cannot create context from nil parent"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> withoutCancelCtx&#123;parent&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里只对父 context 是否为 <code>nil</code> 做了检查，然后就直接返回实例化的 <code>withoutCancelCtx</code> 对象了。</p>
+<h4 id="valueCtx"><a href="#valueCtx" class="headerlink" title="valueCtx"></a>valueCtx</h4><p>我们前面介绍的 context 从设计上来说都是为了实现控制链路的，与其他 context 不同，<code>valueCtx</code> 用于实现在 context 链路中进行安全传值。</p>
+<p><code>valueCtx</code> 实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> valueCtx <span class="keyword">struct</span> &#123;</span><br><span class="line">	Context</span><br><span class="line">	key, val any <span class="comment">// 存储的键值对，注意一个 Context 仅能保存一对 key/value，这样就能实现并发读的安全，copy-on-write</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *valueCtx)</span> <span class="title">Value</span><span class="params">(key any)</span> <span class="title">any</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> c.key == key &#123; <span class="comment">// 在自己的键值对中查找</span></span><br><span class="line">		<span class="keyword">return</span> c.val</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> value(c.Context, key) <span class="comment">// 沿着父 Context 向上查找</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>valueCtx</code> 结构体内部嵌入了 <code>Context</code> 接口，这样可以直接复用父 context 实现的方法。<code>key</code> 和 <code>value</code> 字段则用于存储键值对。可以发现，一个 <code>valueCtx</code> 对象只能存储一对 <code>key/value</code>。</p>
+<p>在用户调用 <code>Value()</code> 方法查找给定 <code>key</code> 关联的 <code>value</code> 时，首先判断是否在当前 context 中，如果不在，则交给 <code>value()</code> 函数来处理。</p>
+<p>在介绍 <code>*cancelCtx.Value()</code> 方法时，我们并没有深入讲解 <code>value()</code> 函数，那么现在是时候看下 <code>value()</code> 函数是如何实现的了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">value</span><span class="params">(c Context, key any)</span> <span class="title">any</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">switch</span> ctx := c.(<span class="keyword">type</span>) &#123; <span class="comment">// 断言 Context 类型</span></span><br><span class="line">		<span class="keyword">case</span> *valueCtx: <span class="comment">// 表示一个用于安全传递数据的 Context</span></span><br><span class="line">			<span class="keyword">if</span> key == ctx.key &#123; <span class="comment">// 与当前 Context 的 key 匹配，直接返回对应的值 val</span></span><br><span class="line">				<span class="keyword">return</span> ctx.val</span><br><span class="line">			&#125;</span><br><span class="line">			c = ctx.Context <span class="comment">// key 不匹配，继续向上遍历父 Context</span></span><br><span class="line">		<span class="keyword">case</span> *cancelCtx: <span class="comment">// 表示一个带有取消功能的 Context</span></span><br><span class="line">			<span class="keyword">if</span> key == &amp;cancelCtxKey &#123; <span class="comment">// 检查 key 是否等于 &amp;cancelCtxKey（这是一个指向 *cancelCtx 的特殊键），如果匹配，就返回自身（即 c 对象）</span></span><br><span class="line">				<span class="keyword">return</span> c</span><br><span class="line">			&#125;</span><br><span class="line">			c = ctx.Context <span class="comment">// key 不匹配，继续向上遍历父 Context</span></span><br><span class="line">		<span class="keyword">case</span> withoutCancelCtx: <span class="comment">// 表示一个不带取消功能的 Context（使用 WithoutCancel() 创建出来的 Context 类型）</span></span><br><span class="line">			<span class="keyword">if</span> key == &amp;cancelCtxKey &#123; <span class="comment">// 检查 key 是否等于 &amp;cancelCtxKey，如果匹配，说明要查找的是取消信号的特殊键，就返回 nil，因为这种 Context 没有取消信号</span></span><br><span class="line">				<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">			&#125;</span><br><span class="line">			c = ctx.c <span class="comment">// 如果 key 不匹配，则继续向上遍历父 Context</span></span><br><span class="line">		<span class="keyword">case</span> *timerCtx: <span class="comment">// 表示一个带有定时器的 Context</span></span><br><span class="line">			<span class="keyword">if</span> key == &amp;cancelCtxKey &#123; <span class="comment">// 检查 key 是否等于 &amp;cancelCtxKey，如果匹配，返回其包装的 *cancelCtx</span></span><br><span class="line">				<span class="keyword">return</span> &amp;ctx.cancelCtx</span><br><span class="line">			&#125;</span><br><span class="line">			c = ctx.Context <span class="comment">// key 不匹配，继续向上遍历父 Context</span></span><br><span class="line">		<span class="keyword">case</span> backgroundCtx, todoCtx: <span class="comment">// 这两个类型是无值的 Context（通常这是 Context 树的根），所以直接返回 nil</span></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		<span class="keyword">default</span>: <span class="comment">// 如果没有匹配任何已知的 Context 类型，则调用 Context 的 Value 方法去查找 key 对应的值</span></span><br><span class="line">			<span class="keyword">return</span> c.Value(key)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里代码看似复杂，实际上逻辑非常简单。启用一个 <code>for</code> 无限循环，沿着传进来的 context 对象 <code>c</code> 的父路径，循环查找匹配的 <code>key</code>，直到找到目标 <code>value</code> 或走到链路根节点返回 <code>nil</code>。</p>
+<p><code>for</code> 循环中，首先会断言当前 context 对象 <code>c</code> 的类型，如果是 <code>*valueCtx</code>，判断 <code>key</code> 是否匹配，匹配则直接返回 <code>ctx.val</code>，不匹配则将父 context 取出赋值给 <code>c</code>，进行下一轮循环；如果是 <code>*cancelCtx</code> 或 <code>*timerCtx</code>，判断 <code>key</code> 是否匹配 <code>&amp;cancelCtxKey</code> 这个特殊值，匹配则根据我们前文讲过的“内部协议”返回当前 <code>*cancelCtx</code>，否则将父 context 取出赋值给 <code>c</code>，进行下一轮循环；如果是 <code>withoutCancelCtx</code>，当 <code>key</code> 匹配 <code>&amp;cancelCtxKey</code> 时返回 <code>nil</code>，因为这个 context 的实现不支持取消功能，<code>key</code> 不匹配同样将父 context 取出赋值给 <code>c</code>，进行下一轮循环；如果是 <code>backgroundCtx</code> 或 <code>todoCtx</code>，则说明已经遍历到 context 链路的顶点，所以直接返回 <code>nil</code>，表示未查找到；如果所有已知类型都没匹配，则调用其 <code>Value()</code> 方法继续查找。</p>
+<p>所以，从源码中我们能够看出，context 根据给定的 <code>key</code> 查找 <code>value</code> 时，是自下而上查找的。</p>
+<p>此外，<code>valueCtx</code> 同样实现了自己的 <code>String()</code> 方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">stringify</span><span class="params">(v any)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> s := v.(<span class="keyword">type</span>) &#123;</span><br><span class="line">	<span class="keyword">case</span> stringer: <span class="comment">// 实现了 String() 方法，就返回 String() 内容</span></span><br><span class="line">		<span class="keyword">return</span> s.String()</span><br><span class="line">	<span class="keyword">case</span> <span class="keyword">string</span>: <span class="comment">// 字符串类型就返回字符串内容</span></span><br><span class="line">		<span class="keyword">return</span> s</span><br><span class="line">	<span class="keyword">case</span> <span class="literal">nil</span>: <span class="comment">// nil 返回字符串格式</span></span><br><span class="line">		<span class="keyword">return</span> <span class="string">"&lt;nil&gt;"</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 其他类型会返回对象类型名的字符串格式，而不是对象值的字符串形式</span></span><br><span class="line">	<span class="keyword">return</span> reflectlite.TypeOf(v).String()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 代码示例：context.WithValue(context.Background(), "a", 1)</span></span><br><span class="line"><span class="comment">// 输出示例：context.Background.WithValue(a, int)</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *valueCtx)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="comment">// 取父 Context 的 string 形式 + .WithValue(k, v)</span></span><br><span class="line">	<span class="keyword">return</span> contextName(c.Context) + <span class="string">".WithValue("</span> +</span><br><span class="line">		stringify(c.key) + <span class="string">", "</span> +</span><br><span class="line">		stringify(c.val) + <span class="string">")"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="WithValue"><a href="#WithValue" class="headerlink" title="WithValue()"></a>WithValue()</h5><p><code>valueCtx</code> 构造函数 <code>WithValue()</code> 实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithValue</span><span class="params">(parent Context, key, val any)</span> <span class="title">Context</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> parent == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"cannot create context from nil parent"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> key == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"nil key"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> !reflectlite.TypeOf(key).Comparable() &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"key is not comparable"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;valueCtx&#123;parent, key, val&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里对 <code>parent</code> 和 <code>key</code> 都做了检查，注意 <code>key</code> 一定是可比较类型。</p>
+<p>可以发现，<code>valueCtx</code> 并没有使用互斥锁，这是因为每次新增 <code>key/value</code> 时，都会新建一个新的 <code>valueCtx</code>，并将 <code>parent</code> 赋值给 <code>valueCtx</code>。这种 copy-on-write 的思想，保证绝不修改现有的 context 对象，那么程序中并发读取值时就不会产生 data race，同时也能保证并发安全。</p>
+<h4 id="afterFuncCtx"><a href="#afterFuncCtx" class="headerlink" title="afterFuncCtx"></a>afterFuncCtx</h4><p>我们最后还未介绍的 context 就仅剩一个 <code>afterFuncCtx</code> 类型了，其实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> afterFuncCtx <span class="keyword">struct</span> &#123;</span><br><span class="line">	cancelCtx           <span class="comment">// “继承”了 cancelCtx</span></span><br><span class="line">	once      sync.Once <span class="comment">// 要么用来开始执行 f，要么用来阻止 f 被执行</span></span><br><span class="line">	f         <span class="function"><span class="keyword">func</span><span class="params">()</span></span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>与 <code>timerCtx</code> 一样，<code>afterFuncCtx</code> 内部也嵌入了 <code>cancelCtx</code>。此外它还有两个属性 <code>once</code> 和 <code>f</code>，<code>once</code> 保证一个操作仅执行一次，要么用来开始执行 <code>f</code>，要么用来阻止 <code>f</code> 被执行，<code>f</code> 是一个延迟函数，在构造函数 <code>AfterFunc()</code> 中被传入赋值。</p>
+<p><code>afterFuncCtx</code> 实现了自己的 <code>cancel()</code> 方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *afterFuncCtx)</span> <span class="title">cancel</span><span class="params">(removeFromParent <span class="keyword">bool</span>, err, cause error)</span></span> &#123;</span><br><span class="line">	a.cancelCtx.cancel(<span class="literal">false</span>, err, cause) <span class="comment">// 取消 cancelCtx</span></span><br><span class="line">	<span class="keyword">if</span> removeFromParent &#123;</span><br><span class="line">		removeChild(a.Context, a) <span class="comment">// 将当前 *afterFuncCtx 从 cancelCtx 的父 Context 的 children 属性中移除</span></span><br><span class="line">	&#125;</span><br><span class="line">	a.once.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; <span class="comment">// 确保仅执行一次</span></span><br><span class="line">		<span class="keyword">go</span> a.f() <span class="comment">// 开启新的 goroutine 执行 f，如果在调用 a.cancel() 之前 stop 函数被调用，stop 函数中的 a.once.Do 优先被执行，则此处就不会执行</span></span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>afterFuncCtx</code> 在取消时，首先会取消父 <code>cancelCtx</code>。然后根据参数 <code>removeFromParent</code> 决定是否从父 context 的 <code>children</code> 属性中移除。最后使用 <code>once.Do()</code> 确保 <code>f</code> 函数仅执行一次。</p>
+<h5 id="AfterFunc"><a href="#AfterFunc" class="headerlink" title="AfterFunc()"></a>AfterFunc()</h5><p><code>afterFuncCtx</code> 构造函数 <code>AfterFunc()</code> 实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AfterFunc</span><span class="params">(ctx Context, f <span class="keyword">func</span>()</span>) <span class="params">(stop <span class="keyword">func</span>()</span> <span class="title">bool</span>)</span> &#123;</span><br><span class="line">	a := &amp;afterFuncCtx&#123;</span><br><span class="line">		f: f,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 调用 cancelCtx 的向上传播方法，将 a 的取消功能挂载到父 ctx 的 children 属性中，实现级联取消</span></span><br><span class="line">	a.cancelCtx.propagateCancel(ctx, a)</span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">bool</span></span> &#123; <span class="comment">// 返回一个停止函数，用于阻止 f 被执行</span></span><br><span class="line">		stopped := <span class="literal">false</span></span><br><span class="line">		a.once.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; <span class="comment">// 确保仅执行一次</span></span><br><span class="line">			stopped = <span class="literal">true</span> <span class="comment">// 如果此处被执行，则 a.cancel 方法内部的 a.once.Do 就不会重复执行，即阻止 f 被执行</span></span><br><span class="line">		&#125;)</span><br><span class="line">		<span class="keyword">if</span> stopped &#123; <span class="comment">// 第一次调用，取消 Context</span></span><br><span class="line">			a.cancel(<span class="literal">true</span>, Canceled, <span class="literal">nil</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> stopped</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>与其他 context 构造函数不同，<code>AfterFunc()</code> 并不会返回构造的 <code>afterFuncCtx</code> 对象，而是返回一个 <code>stop()</code> 函数。其实 <code>AfterFunc()</code> 的功能是为 context 注册一个延迟函数，当 context 被取消时，开启新的 goroutine 异步执行 <code>f()</code>。而 <code>stop()</code> 函数的作用则是用来阻止 <code>f()</code> 被执行。</p>
+<p>因为 <code>stop()</code> 函数和 <code>cancel()</code> 方法内部使用的 <code>a.once.Do()</code> 是同一个，所以二者只能有一个会被执行。可以总结 <code>stop()</code> 函数和 <code>cancel()</code> 方法执行逻辑如下：</p>
+<ul>
+<li>如果先执行 <code>cancel()</code>，则 <code>f()</code> 必然执行。无论之后是否调用了 <code>stop()</code>。</li>
+<li>如果先执行 <code>stop()</code>，则 <code>f()</code> 必然不会被执行。无论之后是否调用了 <code>cancel()</code>。</li>
+</ul>
+<p>至此，context 包的源码就全部解读完成了。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>context 包在 Go 1.7 版本被引入，核心功能是<strong>控制链路</strong>和<strong>安全传值</strong>，且并发安全。</p>
+<p>context 被设计为一个 <code>Context</code> 接口和多个实现了此接口的结构体。一切 context 链路都会从一个空的 <code>emptyCtx</code> 开始，由 <code>context.Background()</code> 或 <code>context.TODO()</code> 来定义了最顶层 context，接着使用 <code>WithXxx()</code> 方法在原有的 context 基础上附加新的功能，形成 context 链路。</p>
+<p>context 链路最终可能发展成一个树形结构，不过你要清楚，控制链路是从上到下的，父 context 取消，则会及联的取消所有带有取消功能的子孙 context；但通过给定 <code>key</code> 查找 <code>value</code> 则是自下而上的，而这就会导致从不同的起点出发，查找 context 中相同<code>key</code> 对应的 <code>value</code> 可能不同。</p>
+<p>我画了一张 context 树形结构图：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="context-tree.png" alt="context 树" title="">
+                </div>
+                <div class="image-caption">context 树</div>
+            </figure>
+
+<p>在这幅图中，从控制链路的角度出发，如果我们取消 context 3️⃣，则 context 7️⃣ 会被级联取消，因为 6️⃣ 不支持取消，控制链路会被打断，所以 9️⃣ 不会被取消；如果取消 context 7️⃣，则 context 3️⃣ 不会被取消，因为控制链路是从上到下的。</p>
+<p>从安全传值的角度出发，根据给定 <code>key</code> 查找 <code>value</code>，假如 context 2️⃣ 中存储的是 <code>key: value2</code>，context 8️⃣ 中存储的是 <code>key: value8</code>，那么从 context 2️⃣ 4️⃣ 5️⃣ 中看到的就是 <code>key: value2</code>；从 context 8️⃣ 🔟 中看到的则是 <code>key: value8</code>。</p>
+<p>我用代码构造了这幅图中的 context 树，放在了<a href="https://github.com/jianghushinian/blog-go-example/tree/main/context/main.go" target="_blank" rel="noopener">这里</a>，你可以点击进去跟着代码来实验一下。也可以将代码 clone 到本地，进行修改，尝试执行和分析结果，以此来加深你对 context 的理解。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/context" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>Go 1.7 Release Notes：<a href="https://go.dev/doc/go1.7" target="_blank" rel="noopener">https://go.dev/doc/go1.7</a></li>
+<li>Go 1.21 Release Notes：<a href="https://go.dev/doc/go1.21#contextpkgcontext" target="_blank" rel="noopener">https://go.dev/doc/go1.21#contextpkgcontext</a></li>
+<li>context Documentation：<a href="https://pkg.go.dev/context@go1.23.0" target="_blank" rel="noopener">https://pkg.go.dev/context@go1.23.0</a></li>
+<li>go1.7/src/context：<a href="https://github.com/golang/go/tree/go1.7/src/context" target="_blank" rel="noopener">https://github.com/golang/go/tree/go1.7/src/context</a></li>
+<li>go1.23.0/src/context： <a href="https://github.com/golang/go/tree/go1.23.0/src/context" target="_blank" rel="noopener">https://github.com/golang/go/tree/go1.23.0/src/context</a></li>
+<li>context: AfterFunc spawns a goroutine #61672：<a href="https://github.com/golang/go/issues/61672" target="_blank" rel="noopener">https://github.com/golang/go/issues/61672</a></li>
+<li>Go 错误处理指北：如何优雅的处理错误？：<a href="https://jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/" target="_blank" rel="noopener">https://jianghushinian.cn/2024/10/01/go-error-guidelines-error-handling/</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/context" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/context</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.913Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2024/12/09/context/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/12/09/context/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/" rel="tag">并发编程</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/12/09/context/&title=《Go 并发控制：context 源码解读》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/12/09/context/&title=《Go 并发控制：context 源码解读》 — 江湖十年&source=context 是 Go 语言的特色设计之一，主要作用有两个：控制链路和安全传值，并且 context 是并发安全的。context 在 Go 1.17 ..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/12/09/context/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 并发控制：context 源码解读》 — 江湖十年&url=http://www.jianghushinian.cn/2024/12/09/context/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/12/09/context/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2024/12/16/context-x-test/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Go 源码是如何解决测试代码循环依赖问题的？</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/12/04/goroutine-id/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">在 Go 中如何获取 goroutine 的 id？</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/12/09/context/&title=《Go 并发控制：context 源码解读》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/12/09/context/&title=《Go 并发控制：context 源码解读》 — 江湖十年&source=context 是 Go 语言的特色设计之一，主要作用有两个：控制链路和安全传值，并且 context 是并发安全的。context 在 Go 1.17 ..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/12/09/context/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 并发控制：context 源码解读》 — 江湖十年&url=http://www.jianghushinian.cn/2024/12/09/context/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/12/09/context/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/12/09/context/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

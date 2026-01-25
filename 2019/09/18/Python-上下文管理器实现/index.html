@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Python 上下文管理器实现 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Python,Pythonic">
+    <meta name="description" content="在 Web 开发中，我们经常需要对资源进行操作，如从数据库中读取数据、日志文件的写入等。这些都是常见的资源操作，而资源是有限的，所以当我们对资源操作完成以后就需要对其进行释放。如果资源没有得到释放，当资源占用数达到了操作系统的限定数，就会导致程序崩溃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python 上下文管理器实现">
+<meta property="og:url" content="http://www.jianghushinian.cn/2019/09/18/Python-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E5%AE%9E%E7%8E%B0/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="在 Web 开发中，我们经常需要对资源进行操作，如从数据库中读取数据、日志文件的写入等。这些都是常见的资源操作，而资源是有限的，所以当我们对资源操作完成以后就需要对其进行释放。如果资源没有得到释放，当资源占用数达到了操作系统的限定数，就会导致程序崩溃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-09-18T14:33:35.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.768Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="Pythonic">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Python 上下文管理器实现</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Python 上下文管理器实现</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2019-09-18T14:33:35.000Z" itemprop="datePublished" class="page-time">
+  2019-09-18
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#基于类实现上下文管理器"><span class="post-toc-number">1.</span> <span class="post-toc-text">基于类实现上下文管理器</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#基于生成器实现上下文管理器"><span class="post-toc-number">2.</span> <span class="post-toc-text">基于生成器实现上下文管理器</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-Python-上下文管理器实现"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Python 上下文管理器实现</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2019-09-18 22:33:35" datetime="2019-09-18T14:33:35.000Z"  itemprop="datePublished">2019-09-18</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Python/">Python</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>在 Web 开发中，我们经常需要对资源进行操作，如从数据库中读取数据、日志文件的写入等。这些都是常见的资源操作，而资源是有限的，所以当我们对资源操作完成以后就需要对其进行释放。如果资源没有得到释放，当资源占用数达到了操作系统的限定数，就会导致程序崩溃。</p>
+<a id="more"></a>
+
+<p>在文件操作过程中，为了保证文件操作完成后关闭文件资源，我们可能会写出这样的代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    f = open(<span class="string">'demo.txt'</span>, <span class="string">'w'</span>)</span><br><span class="line">    f.write(<span class="string">'hello'</span>)</span><br><span class="line"><span class="keyword">finally</span>:</span><br><span class="line">    f.close()</span><br></pre></td></tr></table></figure>
+
+<p>这是一个典型的资源操作的例子，不过 Python 提供了 <code>with</code> 语句可以对以上代码进行简化：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">with</span> open(<span class="string">'demo.txt'</span>, <span class="string">'w'</span>) <span class="keyword">as</span> f:</span><br><span class="line">    f.write(<span class="string">'hello'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，用 <code>with</code> 重写过的代码中并没有显式的调用 <code>f.close()</code> 方法来关闭文件，但当 <code>with</code> 代码块执行完以后，文件还是会被正常关闭的。即使在调用 <code>f.write()</code> 时产生异常，文件同样会被关闭。</p>
+<p>这就是 <code>with</code> 语句的强大之处，它不仅可以简化我们的代码，并且能够自动释放资源。其实这就是所谓的 <code>上下文管理器</code>。能够自动分配和释放资源正是上下文管理器最强大的地方。</p>
+<p><code>open</code> 函数能够通过 <code>with</code> 语句完成自动化的上下文管理，实际上，我们同样可以实现自定义的 <code>上下文管理器</code>。Python 为我们实现自定义 <code>上下文管理器</code> 提供了一个统一的接口——<code>上下文管理协议</code>。只要我们按照 Python 的规定实现了 <code>上下文管理协议</code>，就能够实现自定义的 <code>上下文管理器</code>。</p>
+<h3 id="基于类实现上下文管理器"><a href="#基于类实现上下文管理器" class="headerlink" title="基于类实现上下文管理器"></a>基于类实现上下文管理器</h3><p>我们知道，在 Python 中有很多双下划线开头、双下划线结尾的方法，我们通常称作 <code>魔法方法</code>。基于类的上下文管理器就是通过 <code>__enter__</code>、<code>__exit__</code> 两个 <code>魔法方法</code> 来实现的。</p>
+<p>下面通过一个自定义的文件上下文管理器类来介绍上下文管理器的实现：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyFileManager</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, filename, mode)</span>:</span></span><br><span class="line">        print(<span class="string">'call __init__'</span>)</span><br><span class="line">        self.filename = filename</span><br><span class="line">        self.mode = mode</span><br><span class="line">        self.file = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__enter__</span><span class="params">(self)</span>:</span></span><br><span class="line">        print(<span class="string">'call __enter__'</span>)</span><br><span class="line">        self.file = open(self.filename, self.mode)</span><br><span class="line">        <span class="keyword">return</span> self.file</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__exit__</span><span class="params">(self, exc_type, exc_val, exc_tb)</span>:</span></span><br><span class="line">        print(<span class="string">'call __exit__'</span>)</span><br><span class="line">        <span class="keyword">if</span> self.file:</span><br><span class="line">            self.file.close()</span><br><span class="line"></span><br><span class="line"><span class="keyword">with</span> MyFileManager(<span class="string">'demo.txt'</span>, <span class="string">'w'</span>) <span class="keyword">as</span> f:</span><br><span class="line">    print(<span class="string">'write file'</span>)</span><br><span class="line">    f.write(<span class="string">'test'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>代码执行结果如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">call __init__</span><br><span class="line">call __enter__</span><br><span class="line">write file</span><br><span class="line">call __exit__</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，只需要十几行的代码，我们就实现了一个上下文管理器。而它的效果和 <code>with open</code> 并无两样。由代码执行结果我们可以分析出代码的执行顺序。首先在 <code>with</code> 语句后面实例化 <code>MyFileManager</code> 类，实例化过程中会调用类的 <code>__init__</code> 方法，接着自动调用了 <code>__enter__</code> 方法并拿到返回值，即文件对象，<code>as f</code> 就是将 <code>__enter__</code> 方法返回的文件对象赋值给 <code>f</code> 变量，然后执行 <code>with</code> 代码块中的代码对文件进行写入，当程序将要退出 <code>with</code> 代码块时，就会自动调用 <code>MyFileManager</code>  类的 <code>__exit__</code> 方法。</p>
+<p>以上就是自定义 <code>上下文管理器</code> 的执行逻辑。要实现 <code>上下文管理器</code>，<code>__enter__</code>、<code>__exit__</code> 两个方法是必须实现的。其中 <code>__enter__</code> 方法用来获取资源，所以它将在 <code>with</code> 语句代码块开始执行之前被调用，<code>__exit__</code> 方法用来释放资源，它将在 <code>with</code> 语句代码块执行结束将要退出时被调用。</p>
+<p>需要额外注意的是 <code>__exit__</code> 方法的参数，相比 <code>__enter__</code> 方法它多了三个参数，这三个参数的作用分别是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">exc_type: 异常类型</span><br><span class="line">exc_val: 异常的值</span><br><span class="line">exc_tb:异常栈</span><br></pre></td></tr></table></figure>
+
+<p>当执行 <code>with</code> 语句块中的代码，程序有可能会抛出异常，而 <code>__exit__</code> 方法的这三个参数，就会包含 <code>with</code> 语句块中产生的异常信息。所以 <code>__exit__</code> 方法还为我们提供了另外一个功能，即可以在此方法内部对异常进行处理，由开发者来决定异常的处理方式。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyFileManager</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, filename, mode)</span>:</span></span><br><span class="line">        print(<span class="string">'call __init__'</span>)</span><br><span class="line">        self.filename = filename</span><br><span class="line">        self.mode = mode</span><br><span class="line">        self.file = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__enter__</span><span class="params">(self)</span>:</span></span><br><span class="line">        print(<span class="string">'call __enter__'</span>)</span><br><span class="line">        self.file = open(self.filename, self.mode)</span><br><span class="line">        <span class="keyword">return</span> self.file</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__exit__</span><span class="params">(self, exc_type, exc_val, exc_tb)</span>:</span></span><br><span class="line">        print(<span class="string">'call __exit__'</span>)</span><br><span class="line">        <span class="keyword">if</span> self.file:</span><br><span class="line">            self.file.close()</span><br><span class="line">        <span class="keyword">if</span> exc_type:</span><br><span class="line">            print(<span class="string">f'exc_type: <span class="subst">&#123;exc_type&#125;</span>'</span>)</span><br><span class="line">            print(<span class="string">f'exc_val: <span class="subst">&#123;exc_val&#125;</span>'</span>)</span><br><span class="line">            print(<span class="string">f'exc_tb: <span class="subst">&#123;exc_tb&#125;</span>'</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">with</span> MyFileManager(<span class="string">'demo.txt'</span>, <span class="string">'w'</span>) <span class="keyword">as</span> f:</span><br><span class="line">    <span class="keyword">raise</span> Exception(<span class="string">'write error'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>代码执行结果如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">call __init__</span><br><span class="line">call __enter__</span><br><span class="line">call __exit__</span><br><span class="line">exc_type: &lt;class &#39;Exception&#39;&gt;</span><br><span class="line">exc_val: write error</span><br><span class="line">exc_tb: &lt;traceback object at 0x036D08A0&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，在 <code>with</code> 代码块中抛出的异常已经被 <code>__exit__</code> 方法捕获了。需要注意的是，在 <code>__exit__</code> 方法内部的最后还返回了 <code>True</code>，这代表异常已经处理，而不需要继续向上抛出，如果没有返回 <code>True</code>，那么异常将继续向上抛出，最终被 Python 解释器捕获到，继而终止程序。</p>
+<h3 id="基于生成器实现上下文管理器"><a href="#基于生成器实现上下文管理器" class="headerlink" title="基于生成器实现上下文管理器"></a>基于生成器实现上下文管理器</h3><p>Python 还提供了另一种基于生成器来实现 <code>上下文管理器</code> 的方法。示例代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> contextlib <span class="keyword">import</span> contextmanager</span><br><span class="line"></span><br><span class="line"><span class="meta">@contextmanager</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">my_file_manager</span><span class="params">(filename, mode)</span>:</span></span><br><span class="line">    print(<span class="string">'open file'</span>)</span><br><span class="line">    f = open(filename, mode)</span><br><span class="line">    <span class="keyword">yield</span> f</span><br><span class="line">    print(<span class="string">'close file'</span>)</span><br><span class="line">    f.close()</span><br><span class="line"></span><br><span class="line"><span class="keyword">with</span> my_file_manager(<span class="string">'demo.txt'</span>, <span class="string">'w'</span>) <span class="keyword">as</span> f:</span><br><span class="line">    print(<span class="string">'write file'</span>)</span><br><span class="line">    f.write(<span class="string">'demo'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>代码执行结果如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">open file</span><br><span class="line">write file</span><br><span class="line">close file</span><br></pre></td></tr></table></figure>
+
+<p>基于生成器的 <code>上下文管理器</code> 可以让我们不必通过类来实现，只需要一个打上 <code>@contextmanager</code> 装饰器的生成器函数即可。相比类实现的方式代码更加简洁，不过理解上来说没有类实现的方式来的清晰。但这种风格写起来更加 <code>Pythonic</code>。</p>
+<p>其实 <code>上下文管理器</code> 的本质是能够在我们需要执行的一段代码之前和之后分别执行一段逻辑。这刚好能够利用生成器函数的特性，在 <code>yield</code> 关键字之前执行预处理工作，然后代码执行到 <code>yield</code> 处时让出函数的控制权，这时候再执行我们需要执行的一段代码逻辑，最后 <code>with</code> 语句帮我们把执行控制权交回到生成器函数内部，执行一些清理工作。</p>
+<p>最后，一个小知识点，一个 <code>with</code> 语句实际上可以同时处理多个上下文管理器。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">with</span> open(<span class="string">'a.txt'</span>, <span class="string">'w'</span>) <span class="keyword">as</span> a, open(<span class="string">'b.txt'</span>, <span class="string">'w'</span>) <span class="keyword">as</span> b:</span><br><span class="line">    a.write(<span class="string">'hello'</span>)</span><br><span class="line">    b.write(<span class="string">'world'</span>)</span><br></pre></td></tr></table></figure>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.768Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2019/09/18/Python-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E5%AE%9E%E7%8E%B0/" target="_blank" rel="external">http://www.jianghushinian.cn/2019/09/18/Python-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E5%AE%9E%E7%8E%B0/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Python/" rel="tag">Python</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Pythonic/" rel="tag">Pythonic</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2019/09/18/Python-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E5%AE%9E%E7%8E%B0/&title=《Python 上下文管理器实现》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2019/09/18/Python-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E5%AE%9E%E7%8E%B0/&title=《Python 上下文管理器实现》 — 江湖十年&source=在 Web 开发中，我们经常需要对资源进行操作，如从数据库中读取数据、日志文件的写入等。这些都是常见的资源操作，而资源是有限的，所以当我们对资源操作完成以..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2019/09/18/Python-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E5%AE%9E%E7%8E%B0/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Python 上下文管理器实现》 — 江湖十年&url=http://www.jianghushinian.cn/2019/09/18/Python-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E5%AE%9E%E7%8E%B0/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2019/09/18/Python-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E5%AE%9E%E7%8E%B0/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2019/09/22/%E5%96%84%E7%94%A8-setdefault-%E5%92%8C-defaultdict-%E5%A4%84%E7%90%86-Python-%E5%AD%97%E5%85%B8%E4%B8%AD%E6%89%BE%E4%B8%8D%E5%88%B0%E7%9A%84%E9%94%AE/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">善用 setdefault 和 defaultdict 处理 Python 字典中找不到的键</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2019/09/16/Python-%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%E6%9C%BA%E5%88%B6/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Python 异常处理机制</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2019/09/18/Python-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E5%AE%9E%E7%8E%B0/&title=《Python 上下文管理器实现》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2019/09/18/Python-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E5%AE%9E%E7%8E%B0/&title=《Python 上下文管理器实现》 — 江湖十年&source=在 Web 开发中，我们经常需要对资源进行操作，如从数据库中读取数据、日志文件的写入等。这些都是常见的资源操作，而资源是有限的，所以当我们对资源操作完成以..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2019/09/18/Python-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E5%AE%9E%E7%8E%B0/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Python 上下文管理器实现》 — 江湖十年&url=http://www.jianghushinian.cn/2019/09/18/Python-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E5%AE%9E%E7%8E%B0/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2019/09/18/Python-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E5%AE%9E%E7%8E%B0/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2019/09/18/Python-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E5%AE%9E%E7%8E%B0/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 错误处理指北：Defer、Panic、Recover 三剑客 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,Error">
+    <meta name="description" content="Go 语言中的错误处理不仅仅只有 if err !&#x3D; nil，defer、panic 和 recover 这三个相对来说不不如 if err !&#x3D; nil 有名气的控制流语句，也与错误处理息息相关。本文就来讲解下这三者在 Go 语言中的应用。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 错误处理指北：Defer、Panic、Recover 三剑客">
+<meta property="og:url" content="http://www.jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="Go 语言中的错误处理不仅仅只有 if err !&#x3D; nil，defer、panic 和 recover 这三个相对来说不不如 if err !&#x3D; nil 有名气的控制流语句，也与错误处理息息相关。本文就来讲解下这三者在 Go 语言中的应用。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-10-13T01:16:13.000Z">
+<meta property="article:modified_time" content="2025-02-15T01:45:12.976Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="Error">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 错误处理指北：Defer、Panic、Recover 三剑客</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 错误处理指北：Defer、Panic、Recover 三剑客</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2024-10-13T01:16:13.000Z" itemprop="datePublished" class="page-time">
+  2024-10-13
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Defer"><span class="post-toc-number">1.</span> <span class="post-toc-text">Defer</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#语法"><span class="post-toc-number">1.1.</span> <span class="post-toc-text">语法</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#执行顺序"><span class="post-toc-number">1.2.</span> <span class="post-toc-text">执行顺序</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#读写函数返回值"><span class="post-toc-number">1.3.</span> <span class="post-toc-text">读写函数返回值</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#释放资源"><span class="post-toc-number">1.4.</span> <span class="post-toc-text">释放资源</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#WithClose"><span class="post-toc-number">1.5.</span> <span class="post-toc-text">WithClose</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#结构体方法是否使用指针接收者"><span class="post-toc-number">1.6.</span> <span class="post-toc-text">结构体方法是否使用指针接收者</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#当-defer-遇到-os-Exit"><span class="post-toc-number">1.7.</span> <span class="post-toc-text">当 defer 遇到 os.Exit</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#一个过时的面试题"><span class="post-toc-number">1.8.</span> <span class="post-toc-text">一个过时的面试题</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#不要出现-defer-nil-的情况"><span class="post-toc-number">1.9.</span> <span class="post-toc-text">不要出现 defer nil 的情况</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Panic"><span class="post-toc-number">2.</span> <span class="post-toc-text">Panic</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">使用</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#子-Goroutine-中-panic"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">子 Goroutine 中 panic</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#panic-和-os-Exit"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">panic 和 os.Exit</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Recover"><span class="post-toc-number">3.</span> <span class="post-toc-text">Recover</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#使用-1"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">使用</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#不要在-defer-中出现-panic"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">不要在 defer 中出现 panic</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#recover-只能捕获当前-Goroutine-中的-panic"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">recover 只能捕获当前 Goroutine 中的 panic</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#将-panic-转换成-error-返回"><span class="post-toc-number">3.4.</span> <span class="post-toc-text">将 panic 转换成 error 返回</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#net-http-使用-recover-优雅处理-panic"><span class="post-toc-number">3.5.</span> <span class="post-toc-text">net&#x2F;http 使用 recover 优雅处理 panic</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#panic-nil"><span class="post-toc-number">3.6.</span> <span class="post-toc-text">panic(nil)</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#数据库事务"><span class="post-toc-number">3.7.</span> <span class="post-toc-text">数据库事务</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#panic-并不是都可以被-recover-捕获"><span class="post-toc-number">3.8.</span> <span class="post-toc-text">panic 并不是都可以被 recover 捕获</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">4.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go-error-guidelines-defer-panic-recover"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 错误处理指北：Defer、Panic、Recover 三剑客</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2024-10-13 09:16:13" datetime="2024-10-13T01:16:13.000Z"  itemprop="datePublished">2024-10-13</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>Go 语言中的错误处理不仅仅只有 <code>if err != nil</code>，<code>defer</code>、<code>panic</code> 和 <code>recover</code> 这三个相对来说不不如 <code>if err != nil</code> 有名气的控制流语句，也与错误处理息息相关。本文就来讲解下这三者在 Go 语言中的应用。</p>
+<a id="more"></a>
+
+<h3 id="Defer"><a href="#Defer" class="headerlink" title="Defer"></a>Defer</h3><p><code>defer</code> 是一个 Go 中的关键字，通常用于简化执行各种清理操作的函数。<code>defer</code> 后跟一个函数（或方法）调用，该函数（或方法）的执行会被推迟到外层函数返回的那一刻，即函数（或方法）要么遇到了 <code>return</code>，要么遇到了 <code>panic</code>。</p>
+<h4 id="语法"><a href="#语法" class="headerlink" title="语法"></a>语法</h4><p><code>defer</code> 功能使用语法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">defer</span> Expression</span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>Expression</code> 必须是函数或方法的调用。</p>
+<p><code>defer</code> 使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> fmt.Println(<span class="string">"deferred in f"</span>)</span><br><span class="line">	fmt.Println(<span class="string">"calling f"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	f()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go            </span><br><span class="line">calling f</span><br><span class="line">deferred <span class="keyword">in</span> f</span><br></pre></td></tr></table></figure>
+
+<p>根据输出可以发现，被 <code>defer</code> 修饰的 <code>fmt.Println(&quot;deferred in f&quot;)</code> 调用并没有立即执行，而是先执行了 <code>fmt.Println(&quot;calling f&quot;)</code>，然后才会执行 <code>defer</code> 修饰的函数调用语句。</p>
+<h4 id="执行顺序"><a href="#执行顺序" class="headerlink" title="执行顺序"></a>执行顺序</h4><p>一个函数中可以写多个 <code>defer</code> 语句：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> fmt.Println(<span class="string">"deferred in f 1"</span>)</span><br><span class="line">	<span class="keyword">defer</span> fmt.Println(<span class="string">"deferred in f 2"</span>)</span><br><span class="line">	<span class="keyword">defer</span> fmt.Println(<span class="string">"deferred in f 3"</span>)</span><br><span class="line">	fmt.Println(<span class="string">"calling f"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">calling f</span><br><span class="line">deferred <span class="keyword">in</span> f 3</span><br><span class="line">deferred <span class="keyword">in</span> f 2</span><br><span class="line">deferred <span class="keyword">in</span> f 1</span><br></pre></td></tr></table></figure>
+
+<p>被 <code>defer</code> 修饰的函数调用，在外层函数返回后按后进先出顺序执行，即 Last In First Out(<code>LIFO</code>)。</p>
+<p>不仅如此，<code>defer</code> 可以写在任意位置，并且还可以嵌套，即在被 <code>defer</code> 修饰的函数中再次使用 <code>defer</code>。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"1"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"2"</span>)</span><br><span class="line">		<span class="keyword">defer</span> fmt.Println(<span class="string">"3"</span>)</span><br><span class="line">		fmt.Println(<span class="string">"4"</span>)</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">"5"</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">defer</span> fmt.Println(<span class="string">"6"</span>)</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">"7"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">1</span><br><span class="line">5</span><br><span class="line">7</span><br><span class="line">6</span><br><span class="line">2</span><br><span class="line">4</span><br><span class="line">3</span><br></pre></td></tr></table></figure>
+
+<p>这个输出结果符合你的预期吗？</p>
+<p>先看外层函数 <code>f</code> 的代码逻辑，有两个 <code>defer</code> 语句，无论位置在哪，<code>defer</code> 都会使函数调用延迟执行，所以先输出了 <code>1</code>、<code>5</code>、<code>7</code>。</p>
+<p>然后根据 <code>LIFO</code> 原则，先执行第 2 个 <code>defer</code> 语句所修饰的函数调用，所以输出 <code>6</code>。</p>
+<p>接着执行第 1 个 <code>defer</code> 语句所修饰的函数调用，其内部同样会按顺序执行没有被 <code>defer</code> 语句修饰的代码，所以先输出 <code>2</code>、<code>4</code>，然后执行 <code>defer</code> 语句所修饰的函数调用，输出 <code>3</code>。</p>
+<h4 id="读写函数返回值"><a href="#读写函数返回值" class="headerlink" title="读写函数返回值"></a>读写函数返回值</h4><p>有时候，我们可以使用 <code>defer</code> 语句来读取或修改函数的返回值。</p>
+<p>有如下示例，试图在 <code>defer</code> 中修改函数的返回值：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	r := <span class="number">2</span></span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"r:"</span>, r)</span><br><span class="line">		r *= <span class="number">3</span></span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="keyword">return</span> r</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(f())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">r: 2</span><br><span class="line">2</span><br></pre></td></tr></table></figure>
+
+<p>看来没有成功。</p>
+<p>函数使用具名返回值再来看看：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span> <span class="params">(r <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	r = <span class="number">2</span></span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"r:"</span>, r)</span><br><span class="line">		r *= <span class="number">3</span></span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="keyword">return</span> r</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">r: 2</span><br><span class="line">6</span><br></pre></td></tr></table></figure>
+
+<p>这次成功了。</p>
+<p>如果改成这样呢：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span> <span class="params">(r <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"r:"</span>, r)</span><br><span class="line">		r *= <span class="number">3</span></span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="keyword">return</span> <span class="number">2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在，返回值直接写成了 <code>2</code>，而非变量 <code>r</code>。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">r: 2</span><br><span class="line">6</span><br></pre></td></tr></table></figure>
+
+<p>这次返回值依然修改成功了。</p>
+<p>前面几个示例，其实都算使用了闭包。因为被 <code>defer</code> 修饰的函数内部都引用了外部变量 <code>r</code>。</p>
+<p>我们再看一个不使用闭包的示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span> <span class="params">(r <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">(r <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"r:"</span>, r)</span><br><span class="line">		r *= <span class="number">3</span></span><br><span class="line">	&#125;(r)</span><br><span class="line">	<span class="keyword">return</span> <span class="number">2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">r: 0</span><br><span class="line">2</span><br></pre></td></tr></table></figure>
+
+<p>这次返回值没有修改成功，并且被 <code>defer</code> 修饰的函数内部读到的 <code>r</code> 值为 <code>0</code>，并不是前面示例中的 <code>2</code>。</p>
+<p>也就是说，实际上虽然被 <code>defer</code> 修饰的函数调用会延迟执行，但是我们<strong>传递给函数的参数，会被立即求值</strong>。</p>
+<p>我们接着看下面这个示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span> <span class="params">(r <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	x := <span class="number">2</span></span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"r:"</span>, r)</span><br><span class="line">		fmt.Println(<span class="string">"x:"</span>, x)</span><br><span class="line">		x *= <span class="number">3</span></span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="keyword">return</span> x</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">r: 2</span><br><span class="line">x: 2</span><br><span class="line">2</span><br></pre></td></tr></table></figure>
+
+<p>当代码执行到 <code>return x</code> 时，<code>r</code> 值也会被赋值为 <code>2</code>，这没什么好解释的。</p>
+<p>然后在 <code>defer</code> 所修饰的函数内部，我们只修改了 <code>x</code> 变量，这对返回结果 <code>r</code> 没有影响。</p>
+<p>把函数返回值类型改成指针试试呢：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span> <span class="params">(r *<span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	x := <span class="number">2</span></span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">"r:"</span>, *r)</span><br><span class="line">		fmt.Println(<span class="string">"x:"</span>, x)</span><br><span class="line">		x *= <span class="number">3</span></span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="keyword">return</span> &amp;x</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(*f())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">r: 2</span><br><span class="line">x: 2</span><br><span class="line">6</span><br></pre></td></tr></table></figure>
+
+<p>这次返回值又成功被修改了。</p>
+<p>看到这里，你是不是对 <code>defer</code> 语句的效果有点懵，没关系，我们再来梳理下 <code>defer</code> 执行时机。</p>
+<p><code>defer</code> 语句的行为其实是可预测的，我们可以<strong>记住这三条规则</strong>：</p>
+<ol>
+<li>在计算 <code>defer</code> 语句时，将立即计算被 <code>defer</code> 修饰的函数参数。</li>
+<li>被 <code>defer</code> 修饰的函数，在外层函数返回后按后进先出的顺序（<code>LIFO</code>）执行。</li>
+<li>延迟函数可以读取或赋值给外层函数的具名返回值。</li>
+</ol>
+<p>现在，你再翻回去重新看看上面的几个示例程序，是不是都能理解了呢？</p>
+<h4 id="释放资源"><a href="#释放资源" class="headerlink" title="释放资源"></a>释放资源</h4><p><code>defer</code> 还常被用来释放资源，比如关闭文件对象。</p>
+<p>这里有个示例程序，可以将一个文件内容复制到另外一个文件中：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CopyFile</span><span class="params">(dstName, srcName <span class="keyword">string</span>)</span> <span class="params">(written <span class="keyword">int64</span>, err error)</span></span> &#123;</span><br><span class="line">	src, err := os.Open(srcName)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	dst, err := os.Create(dstName)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	written, err = io.Copy(dst, src)</span><br><span class="line">	dst.Close()</span><br><span class="line">	src.Close()</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>不过这个程序存在 <code>bug</code>，如果 <code>os.Create</code> 执行失败，函数返回后 <code>src</code> 并没有被关闭。</p>
+<p>而这种场景刚好适用 <code>defer</code>，示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CopyFile</span><span class="params">(dstName, srcName <span class="keyword">string</span>)</span> <span class="params">(written <span class="keyword">int64</span>, err error)</span></span> &#123;</span><br><span class="line">	src, err := os.Open(srcName)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> src.Close()</span><br><span class="line"></span><br><span class="line">	dst, err := os.Create(dstName)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> dst.Close()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> io.Copy(dst, src)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此时如果 <code>os.Create</code> 执行失败，函数返回后 <code>defer src.Close()</code> 将会被执行，文件资源得以释放。</p>
+<p>切记，不要在 <code>if err != nil</code> 之前调用 <code>defer</code> 释放资源，这很可能会触发 <code>panic</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">src, err := os.Open(srcName)</span><br><span class="line"><span class="keyword">defer</span> src.Close()</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为，如果调用 <code>os.Open</code> 报错，<code>src</code> 值将为 <code>nil</code>，而 <code>nil.Close()</code> 会触发 <code>panic</code>，导致程序意外终止而退出。</p>
+<p>此外，在处理释放资源的情况，你可能写出如下代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> fakeFile <span class="keyword">struct</span> &#123;</span><br><span class="line">	name <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *fakeFile)</span> <span class="title">Close</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"close:"</span>, f)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 错误写法：f 变量的值最终是 f2，所以 f2 会被关闭两次，f1 没关闭</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">processFile</span><span class="params">()</span></span> &#123;</span><br><span class="line">	f := fakeFile&#123;name: <span class="string">"f1"</span>&#125;</span><br><span class="line">	<span class="keyword">defer</span> f.Close()</span><br><span class="line"></span><br><span class="line">	f = fakeFile&#123;name: <span class="string">"f2"</span>&#125;</span><br><span class="line">	<span class="keyword">defer</span> f.Close()</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">"calling processFile"</span>)</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	processFile()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">calling processFile</span><br><span class="line">close: &amp;&#123;f2&#125;</span><br><span class="line">close: &amp;&#123;f2&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，在函数 <code>processFile</code> 中，因为 <code>f</code> 被重复赋值，导致 <code>f</code> 变量的值最终是 <code>f2</code>，所以 <code>f2</code> 会被关闭两次，<code>f1</code> 并没有被关闭。</p>
+<p>还记得我们前面讲过的规则吗：<strong>在计算 <code>defer</code> 语句时，将立即计算被 <code>defer</code> 修饰的函数参数</strong>。</p>
+<p>所以，我们可以在 <code>defer</code> 处让变量 <code>f</code> 先被计算出来：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">processFile1</span><span class="params">()</span></span> &#123;</span><br><span class="line">	f := fakeFile&#123;name: <span class="string">"f1"</span>&#125;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">(f fakeFile)</span></span> &#123;</span><br><span class="line">		f.Close()</span><br><span class="line">	&#125;(f)</span><br><span class="line"></span><br><span class="line">	f = fakeFile&#123;name: <span class="string">"f2"</span>&#125;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">(f fakeFile)</span></span> &#123;</span><br><span class="line">		f.Close()</span><br><span class="line">	&#125;(f)</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">"calling processFile1"</span>)</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样就解决了问题。</p>
+<p>当然，更简单的方式是我们压根就不要使用同一个变量来表示不同的文件对象：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">processFile2</span><span class="params">()</span></span> &#123;</span><br><span class="line">	f1 := fakeFile&#123;name: <span class="string">"f1"</span>&#125;</span><br><span class="line">	<span class="keyword">defer</span> f1.Close()</span><br><span class="line"></span><br><span class="line">	f2 := fakeFile&#123;name: <span class="string">"f2"</span>&#125;</span><br><span class="line">	<span class="keyword">defer</span> f2.Close()</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">"calling processFile2"</span>)</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>不过，有时候在在 <code>for</code> 循环中，就是会出现 <code>f</code> 被重复赋值的情况，在 <code>for</code> 循环中使用 <code>defer</code> 语句，我们可能还会踩到类似的坑，所以你一定要小心。</p>
+<h4 id="WithClose"><a href="#WithClose" class="headerlink" title="WithClose"></a>WithClose</h4><p>文章读到这里，想必你也看出来了，<code>defer</code> 功能正是对标了 Python 中的 <code>try...finally</code> 或者 <code>with</code> 语句的效果。</p>
+<p>Python 的 <code>with</code> 语法非常优雅，如何使用 <code>defer</code> 实现近似效果呢？</p>
+<p>你可以在我的另一篇文章<a href="https://jianghushinian.cn/2023/06/23/how-to-implement-a-context-manager-similar-to-python-s-with-in-go/" target="_blank" rel="noopener">《在 Go 中如何实现类似 Python 中的 with 上下文管理器》</a>中找到答案。</p>
+<p>篇幅所限，我就不在这里再废话连篇的讲一遍了。</p>
+<p>如果你想用下面这种单独的代码块作用域来实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">// defer 函数一定是在函数退出时才会执行，而不是代码块退出时执行</span></span><br><span class="line">		<span class="keyword">defer</span> fmt.Println(<span class="string">"defer done"</span>)</span><br><span class="line">		fmt.Println(<span class="string">"code block"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Println(<span class="string">"calling f"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>很遗憾的告诉你，这并不能达到想要的效果，你可以思考后再点击我的另一篇文章来对比下你我二人的实现是否相同。</p>
+<h4 id="结构体方法是否使用指针接收者"><a href="#结构体方法是否使用指针接收者" class="headerlink" title="结构体方法是否使用指针接收者"></a>结构体方法是否使用指针接收者</h4><p>当结构体方法使用指针作为接收者时，也要小心。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	name <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u User)</span> <span class="title">Name</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"Name:"</span>, u.name)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *User)</span> <span class="title">PointName</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"PointName:"</span>, u.name)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">printUser</span><span class="params">()</span></span> &#123;</span><br><span class="line">	u := User&#123;name: <span class="string">"user1"</span>&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">defer</span> u.Name()</span><br><span class="line">	<span class="keyword">defer</span> u.PointName()</span><br><span class="line"></span><br><span class="line">	u.name = <span class="string">"user2"</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	printUser()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">PointName: user2</span><br><span class="line">Name: user1</span><br></pre></td></tr></table></figure>
+
+<p><code>User.Name</code> 方法接收者为结构体，在 <code>defer</code> 中被调用，最终输出结果为初始 <code>name</code> 值 <code>user1</code>。</p>
+<p><code>User.PointName</code> 方法接收者为指针，在 <code>defer</code> 中被调用，最终输出结果为修改后的 <code>name</code> 值 <code>user2</code>。</p>
+<p>可见，<code>defer</code> 处不仅会计算函数参数，其实它会对其后面的表达式求值，并计算出最终将要执行的函数或方法。</p>
+<p>也就是说，代码执行到 <code>defer u.Name()</code> 时，变量 <code>u</code> 的值就已经计算出来了，相当于“复制”了一个新的变量，后面再通过 <code>u.name = &quot;user2&quot;</code> 修改其属性，二者已经不是同一个变量了。</p>
+<p>而代码执行到 <code>defer u.PointName()</code> 时，其实这里的 <code>u</code> 是指针类型，即使“复制”了一个新的变量，其内部保存的指针依然相等，所以可以被修改。</p>
+<p>如果将代码修改成如下这样，执行结果又会怎样呢？</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">printUser</span><span class="params">()</span></span> &#123;</span><br><span class="line">	u := User&#123;name: <span class="string">"user1"</span>&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		u.Name()</span><br><span class="line">		u.PointName()</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	u.name = <span class="string">"user2"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个就交给你自己去实验了。</p>
+<h4 id="当-defer-遇到-os-Exit"><a href="#当-defer-遇到-os-Exit" class="headerlink" title="当 defer 遇到 os.Exit"></a>当 defer 遇到 os.Exit</h4><p>当 <code>defer</code> 遇到 <code>os.Exit</code> 时会怎样呢？</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> fmt.Println(<span class="string">"deferred in f"</span>)</span><br><span class="line">	fmt.Println(<span class="string">"calling f"</span>)</span><br><span class="line">	os.Exit(<span class="number">0</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	f()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">calling f</span><br></pre></td></tr></table></figure>
+
+<p>可见，当遇到 <code>os.Exit</code> 时，程序直接退出，<code>defer</code> 并不会被执行，这一点平时开发过程中要格外注意。</p>
+<h4 id="一个过时的面试题"><a href="#一个过时的面试题" class="headerlink" title="一个过时的面试题"></a>一个过时的面试题</h4><p>前几年，有一个考察 <code>defer</code> 的面试题经常在网上出现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">3</span>; i++ &#123;</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			fmt.Println(i)</span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>问执行 <code>f</code> 以后，输出什么？</p>
+<p>既然会成为面试题，执行结果就肯定有猫腻。</p>
+<p>如果你使用 Go 1.22 以前的版本执行示例代码，将得到如下结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">3</span><br><span class="line">3</span><br><span class="line">3</span><br></pre></td></tr></table></figure>
+
+<p>而如果你使用 Go 1.22 及以后的版本执行示例代码，将得到如下结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">2</span><br><span class="line">1</span><br><span class="line">0</span><br></pre></td></tr></table></figure>
+
+<p>这是由于，在 Go 1.22 以前，由 <code>for</code> 循环声明的变量只会被<strong>创建一次，并在每次迭代时更新</strong>。在 Go 1.22 中，循环的每次迭代都会<strong>创建新的变量，以避免意外的共享错误</strong>。</p>
+<p>这在 <a href="https://go.dev/doc/go1.22#language" target="_blank" rel="noopener">Go 1.22 Release Notes</a> 中有说明。</p>
+<p>在旧版本的 Go 中要修复这个问题，只需要这样写即可：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">3</span>; i++ &#123;</span><br><span class="line">		<span class="keyword">defer</span> fmt.Println(i)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>直接把 <code>defer</code> 放在外面，不要构成闭包。</p>
+<p>又或者为 <code>defer</code> 函数增加参数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">3</span>; i++ &#123;</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">(i <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">			fmt.Println(i)</span><br><span class="line">		&#125;(i)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>总之，解决方案就是不要出现闭包。</p>
+<h4 id="不要出现-defer-nil-的情况"><a href="#不要出现-defer-nil-的情况" class="headerlink" title="不要出现 defer nil 的情况"></a>不要出现 defer nil 的情况</h4><p>前文说过，<code>defer</code> 后面支持函数或方法的调用。</p>
+<p>但是，如果计算 <code>defer</code> 后的表达式出现 <code>nil</code> 的情况，则会触发 <code>panic</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">deferNil</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> f <span class="function"><span class="keyword">func</span><span class="params">()</span></span></span><br><span class="line">	<span class="keyword">defer</span> f()</span><br><span class="line">	fmt.Println(<span class="string">"calling deferNil"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	deferNil()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">calling deferNil</span><br><span class="line">panic: runtime error: invalid memory address or nil pointer dereference</span><br><span class="line">[signal SIGSEGV: segmentation violation code=0x2 addr=0x0 pc=0x10264f88c]</span><br><span class="line"></span><br><span class="line">goroutine 1 [running]:</span><br><span class="line">main.deferNil()</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/defer/main.go:363 +0x6c</span><br><span class="line">main.main()</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/defer/main.go:384 +0x1c</span><br><span class="line"><span class="built_in">exit</span> status 2</span><br></pre></td></tr></table></figure>
+
+<p>因为 <code>nil</code> 不可被调用。</p>
+<p>至于到底什么是 <code>panic</code>，咱们往下看。</p>
+<h3 id="Panic"><a href="#Panic" class="headerlink" title="Panic"></a>Panic</h3><p>在 Go 中，<code>error</code> 表示一个错误，错误通常会返给调用方，交由调用方来决定如何处理。而 <code>panic</code> 则表示一个无法挽回的异常，<code>panic</code> 会直接终止当前执行的控制流。</p>
+<p><code>panic</code> 是一个内置函数，它会停止程序的正常控制流并输出 <code>panic</code> 相关信息。</p>
+<p>有两种方式可以触发 <code>panic</code>，一种是非法操作导致运行时错误，比如访问数组索引越界，此时会触发运行时 <code>panic</code>。另一种是主动调用 <code>panic</code> 函数。</p>
+<p>当在函数 <code>F</code> 中调用了 <code>panic</code> 后，程序执行流程如下：</p>
+<p>函数 <code>F</code> 调用 <code>panic</code> 时，<code>F</code> 的执行会被停止，接下来会执行 <code>F</code> 中调用 <code>panic</code>  之前的所有 <code>defer</code> 函数，然后 <code>F</code> 返回给调用者。</p>
+<p>接着，对于 <code>F</code> 的调用方 <code>G</code> 的行为也类似于对 <code>panic</code> 的调用。</p>
+<p>该过程继续向上返回，直到当前 <code>goroutine</code> 中的所有函数都返回，此时程序崩溃。</p>
+<p>最后，你将在执行 Go 程序的控制台看到程序执行异常的堆栈信息。</p>
+<h4 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h4><p><code>panic</code> 使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> fmt.Println(<span class="string">"defer 1"</span>)</span><br><span class="line">	fmt.Println(<span class="number">1</span>)</span><br><span class="line">	<span class="built_in">panic</span>(<span class="string">"woah"</span>)</span><br><span class="line">	<span class="keyword">defer</span> fmt.Println(<span class="string">"defer 2"</span>)</span><br><span class="line">	fmt.Println(<span class="number">2</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	f()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">1</span><br><span class="line">defer 1</span><br><span class="line">panic: woah</span><br><span class="line"></span><br><span class="line">goroutine 1 [running]:</span><br><span class="line">main.f()</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/panic/main.go:10 +0xa0</span><br><span class="line">main.main()</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/panic/main.go:29 +0x1c</span><br><span class="line"><span class="built_in">exit</span> status 2</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>panic</code> 会输出异常堆栈信息。</p>
+<p>并且 <code>1</code> 和 <code>defer 1</code> 都被输出了，而 <code>2</code> 和 <code>defer 2</code> 没有输出，说明 <code>panic</code> 调用之后的代码不会执行，但它不影响 <code>panic</code> 之前 <code>defer</code> 函数的执行。</p>
+<p>此外，如果你足够细心，还可以发现 <code>panic</code> 后程序的退出码为 <code>2</code>。</p>
+<h4 id="子-Goroutine-中-panic"><a href="#子-Goroutine-中-panic" class="headerlink" title="子 Goroutine 中 panic"></a>子 Goroutine 中 panic</h4><p>如果在子 <code>goroutine</code> 中发生 <code>panic</code>，也会导致主 <code>goroutine</code> 立即退出：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">g</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"calling g"</span>)</span><br><span class="line">	<span class="comment">// 子 goroutine 中发生 panic，主 goroutine 也会退出</span></span><br><span class="line">	<span class="keyword">go</span> f(<span class="number">0</span>)</span><br><span class="line">	fmt.Println(<span class="string">"called g"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">(i <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"panicking!"</span>)</span><br><span class="line">	<span class="built_in">panic</span>(fmt.Sprintf(<span class="string">"i=%v"</span>, i))</span><br><span class="line">	fmt.Println(<span class="string">"printing in f"</span>, i) <span class="comment">// 不会被执行</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	g()</span><br><span class="line">	time.Sleep(<span class="number">10</span> * time.Second)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，程序并不会等待 10s 后才退出，而是立即 <code>panic</code> 并退出，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">calling g</span><br><span class="line">called g</span><br><span class="line">panicking!</span><br><span class="line">panic: i=0</span><br><span class="line"></span><br><span class="line">goroutine 3 [running]:</span><br><span class="line">main.f(0x0)</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/panic/main.go:25 +0xa0</span><br><span class="line">created by main.g <span class="keyword">in</span> goroutine 1</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/panic/main.go:19 +0x5c</span><br><span class="line"><span class="built_in">exit</span> status 2</span><br></pre></td></tr></table></figure>
+
+<h4 id="panic-和-os-Exit"><a href="#panic-和-os-Exit" class="headerlink" title="panic 和 os.Exit"></a>panic 和 os.Exit</h4><p>虽然 <code>panic</code> 和 <code>os.Exit</code> 都能使程序终止并退出，但它们有着显著的区别，尤其在触发时的行为和对程序流程的影响上。</p>
+<p><code>panic</code> 用于在程序中出现异常情况时引发一个运行时错误，通常会导致程序崩溃（除非被 <code>recover</code> 恢复）。当触发 <code>panic</code> 时，<code>defer</code> 语句仍然会执行。<code>panic</code> 还会打印详细的堆栈信息，显示引发错误的调用链。<code>panic</code> 退出状态码固定为 <code>2</code>。</p>
+<p><code>os.Exit</code> 会立即终止程序，并返回指定的状态码给操作系统。当执行 <code>os.Exit</code> 时，<code>defer</code> 语句不会执行。<code>os.Exit</code> 直接通知操作系统退出程序，它不会返回给调用者，也不会引发运行时堆栈追踪，所以也就不会打印堆栈信息。<code>os.Exit</code> 可以设置程序退出状态码。</p>
+<p>因为 <code>panic</code> 比较暴力，所以一般只建议在 <code>main</code> 函数中使用，比如应用的数据库初始化失败后直接 <code>panic</code>，因为程序无法连接数据库，程序继续执行意义不大。而普通函数中推荐尽量返回 <code>error</code> 而不是直接 <code>panic</code>。</p>
+<p>不过 <code>panic</code> 也不是没有挽救的余地，<code>recover</code> 就是来恢复 <code>panic</code> 的。</p>
+<h3 id="Recover"><a href="#Recover" class="headerlink" title="Recover"></a>Recover</h3><p><code>recover</code> 也是一个函数，用来从 <code>panic</code> 所导致的程序崩溃中恢复执行。</p>
+<h4 id="使用-1"><a href="#使用-1" class="headerlink" title="使用"></a>使用</h4><p><code>recover</code> 使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="built_in">recover</span>()</span><br><span class="line">	&#125;()</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">defer</span> fmt.Println(<span class="string">"defer 1"</span>)</span><br><span class="line">	fmt.Println(<span class="number">1</span>)</span><br><span class="line">	<span class="built_in">panic</span>(<span class="string">"woah"</span>)</span><br><span class="line">	<span class="keyword">defer</span> fmt.Println(<span class="string">"defer 2"</span>)</span><br><span class="line">	fmt.Println(<span class="number">2</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	f()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">1</span><br><span class="line">defer 1</span><br></pre></td></tr></table></figure>
+
+<p><code>recover()</code> 的调用捕获了 <code>panic</code> 触发的异常，并且程序正常退出。</p>
+<p><code>recover</code> 函数只在 <code>defer</code> 语句的上下文中才有效，直接调用的话，只会返回 <code>nil</code>。</p>
+<p>如下两种方式都是错误的用法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">recover</span>()</span><br><span class="line"><span class="keyword">defer</span> <span class="built_in">recover</span>()</span><br></pre></td></tr></table></figure>
+
+<p>可见，<code>recover</code> 必须与 <code>defer</code> 一同使用，来从 <code>panic</code> 中恢复程序。不过 <code>panic</code> 之后的代码依旧不会执行，<code>recover()</code> 调用后只会执行 <code>defer</code> 语句中的剩余代码。</p>
+<p>下面这个例子将会捕获到 <code>panic</code>，并且输出 <code>panic</code> 信息：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> r := <span class="built_in">recover</span>(); r != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(<span class="string">"recover:"</span>, r)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="built_in">panic</span>(<span class="string">"woah"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">recover: woah</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，<code>recover</code> 函数的返回值，正是 <code>panic</code> 函数的参数。</p>
+<h4 id="不要在-defer-中出现-panic"><a href="#不要在-defer-中出现-panic" class="headerlink" title="不要在 defer 中出现 panic"></a>不要在 defer 中出现 panic</h4><p>为了避免不必要的麻烦，<code>defer</code> 函数中最好不要有能够引起 <code>panic</code> 的代码。</p>
+<p>正常来说，<code>defer</code> 用来释放资源，不会出现大量代码。如果 <code>defer</code> 函数中逻辑过多，则需要斟酌下有没有更优解。</p>
+<p>如下示例将输出什么？</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> r := <span class="built_in">recover</span>(); r != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(<span class="string">"recover:"</span>, r)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"woah 1"</span>)</span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="built_in">panic</span>(<span class="string">"woah 2"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">recover: woah 1</span><br></pre></td></tr></table></figure>
+
+<p>看来，<code>defer</code> 中的 <code>panic(&quot;woah 1&quot;)</code> 覆盖了程序正常控制流中的 <code>panic(&quot;woah 2&quot;)</code>。</p>
+<p>如果我们将代码顺序稍作修改：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"woah 1"</span>)</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> r := <span class="built_in">recover</span>(); r != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(<span class="string">"recover:"</span>, r)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="built_in">panic</span>(<span class="string">"woah 2"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">recover: woah 2</span><br><span class="line">panic: woah 1</span><br><span class="line"></span><br><span class="line">goroutine 1 [running]:</span><br><span class="line">main.f.func1()</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/recover/main.go:68 +0x2c</span><br><span class="line">main.f()</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/recover/main.go:77 +0x68</span><br><span class="line">main.main()</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/recover/main.go:142 +0x1c</span><br><span class="line"><span class="built_in">exit</span> status 2</span><br></pre></td></tr></table></figure>
+
+<p>看来，调用 <code>recover</code> 的 <code>defer</code> 应该放在函数的入口处，成为第一个 <code>defer</code>。</p>
+<h4 id="recover-只能捕获当前-Goroutine-中的-panic"><a href="#recover-只能捕获当前-Goroutine-中的-panic" class="headerlink" title="recover 只能捕获当前 Goroutine 中的 panic"></a>recover 只能捕获当前 Goroutine 中的 panic</h4><p>需要额外注意的一点是，<code>recover</code> 只会捕获当前 <code>goroutine</code> 所触发的 <code>panic</code>。</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> r := <span class="built_in">recover</span>(); r != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(<span class="string">"recover:"</span>, r)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"woah"</span>)</span><br><span class="line">	&#125;()</span><br><span class="line">	time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">panic: woah</span><br><span class="line"></span><br><span class="line">goroutine 18 [running]:</span><br><span class="line">main.f.func2()</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/recover/main.go:91 +0x2c</span><br><span class="line">created by main.f <span class="keyword">in</span> goroutine 1</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/recover/main.go:90 +0x40</span><br><span class="line"><span class="built_in">exit</span> status 2</span><br></pre></td></tr></table></figure>
+
+<p>子 <code>goroutine</code> 中触发的 <code>panic</code> 并没有被 <code>recover</code> 捕获。</p>
+<p>所以，如果你认为代码中需要捕获 <code>panic</code> 时，就需要在每个 <code>goroutine</code> 中都执行 <code>recover</code>。</p>
+<h4 id="将-panic-转换成-error-返回"><a href="#将-panic-转换成-error-返回" class="headerlink" title="将 panic 转换成 error 返回"></a>将 panic 转换成 error 返回</h4><p>有时候，我们可能需要将 <code>panic</code> 转换成 <code>error</code> 并返回，防止当前函数调用他人提供的不可控代码时出现意外的 <code>panic</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">g</span><span class="params">(i <span class="keyword">int</span>)</span> <span class="params">(number <span class="keyword">int</span>, err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> r := <span class="built_in">recover</span>(); r != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">var</span> ok <span class="keyword">bool</span></span><br><span class="line">			err, ok = r.(error)</span><br><span class="line">			<span class="keyword">if</span> !ok &#123;</span><br><span class="line">				err = fmt.Errorf(<span class="string">"f returns err: %v"</span>, r)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	number, err = f(i)</span><br><span class="line">	<span class="keyword">return</span> number, err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">(i <span class="keyword">int</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> i == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"i=0"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> i * i, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(g(<span class="number">1</span>))</span><br><span class="line">	fmt.Println(g(<span class="number">0</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">1 &lt;nil&gt;</span><br><span class="line">0 f returns err: i=0</span><br></pre></td></tr></table></figure>
+
+<h4 id="net-http-使用-recover-优雅处理-panic"><a href="#net-http-使用-recover-优雅处理-panic" class="headerlink" title="net/http 使用 recover 优雅处理 panic"></a>net/http 使用 recover 优雅处理 panic</h4><p>我们在开发 HTTP Server 程序时，即使某个请求遇到了 <code>panic</code> 也不应该使整个程序退出。所以，就需要使用 <code>recover</code> 来处理 <code>panic</code>。</p>
+<p>来看一个使用 <code>net/http</code> 创建的 HTTP Server 程序示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"log"</span></span><br><span class="line">	<span class="string">"net/http"</span></span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">handler</span><span class="params">(w http.ResponseWriter, r *http.Request)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> r.URL.Path == <span class="string">"/panic"</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"url is error"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 打印请求的路径</span></span><br><span class="line">	fmt.Fprintf(w, <span class="string">"Hello, you've requested: %s\n"</span>, r.URL.Path)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 创建一个日志实例，写到标准输出</span></span><br><span class="line">	logger := log.New(os.Stdout, <span class="string">"http: "</span>, log.LstdFlags)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 自定义 HTTP Server</span></span><br><span class="line">	server := &amp;http.Server&#123;</span><br><span class="line">		Addr:     <span class="string">":8080"</span>,</span><br><span class="line">		ErrorLog: logger, <span class="comment">// 设置日志记录器</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 注册处理函数</span></span><br><span class="line">	http.HandleFunc(<span class="string">"/"</span>, handler)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 启动服务器</span></span><br><span class="line">	fmt.Println(<span class="string">"Starting server on :8080"</span>)</span><br><span class="line">	<span class="keyword">if</span> err := server.ListenAndServe(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		logger.Println(<span class="string">"Server failed to start:"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>启动示例，程序会阻塞在这里等待请求进来：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">Starting server on :8080</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>curl</code> 命令分别对 HTTP Server 发送三次请求：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ curl localhost:8080</span><br><span class="line">Hello, you<span class="string">'ve requested: /</span></span><br><span class="line"><span class="string">$ curl localhost:8080/panic</span></span><br><span class="line"><span class="string">curl: (52) Empty reply from server</span></span><br><span class="line"><span class="string">$ curl localhost:8080/hello</span></span><br><span class="line"><span class="string">Hello, you'</span>ve requested: /hello</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，在请求 <code>/panic</code> 路由时，HTTP Server 触发了 <code>panic</code> 并返回了空内容，然后第三个请求依然能够得到正确的响应。</p>
+<p>可见 HTTP Server 并没有退出。</p>
+<p>现在回去看一下执行 HTTP Server 的控制台日志：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">Starting server on :8080</span><br><span class="line">http: 2024/10/13 23:08:28 http: panic serving [::1]:50547: url is error</span><br><span class="line">goroutine 34 [running]:</span><br><span class="line">net/http.(*conn).serve.func1()</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/net/http/server.go:1947 +0xb0</span><br><span class="line">panic(&#123;0x10114c000?, 0x1011a4ba8?&#125;)</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/runtime/panic.go:785 +0x124</span><br><span class="line">main.handler(&#123;0x1011a8178?, 0x140001440e0?&#125;, 0x1400010bb28?)</span><br><span class="line">        /workspace/projects/go/blog-go-example/error/defer-panic-recover/recover/http/main.go:12 +0x130</span><br><span class="line">net/http.HandlerFunc.ServeHTTP(0x101348320?, &#123;0x1011a8178?, 0x140001440e0?&#125;, 0x1010999e4?)</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/net/http/server.go:2220 +0x38</span><br><span class="line">net/http.(*ServeMux).ServeHTTP(0x0?, &#123;0x1011a8178, 0x140001440e0&#125;, 0x14000154140)</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/net/http/server.go:2747 +0x1b4</span><br><span class="line">net/http.serverHandler.ServeHTTP(&#123;0x1400011ade0?&#125;, &#123;0x1011a8178?, 0x140001440e0?&#125;, 0x6?)</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/net/http/server.go:3210 +0xbc</span><br><span class="line">net/http.(*conn).serve(0x140000a4120, &#123;0x1011a8678, 0x1400011acf0&#125;)</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/net/http/server.go:2092 +0x4fc</span><br><span class="line">created by net/http.(*Server).Serve <span class="keyword">in</span> goroutine 1</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/net/http/server.go:3360 +0x3dc</span><br></pre></td></tr></table></figure>
+
+<p><code>panic</code> 信息 <code>url is error</code> 被输出了，并且打印了堆栈信息。</p>
+<p>不过这 HTTP Server 依然在运行，并能提供服务。</p>
+<p>这其实就是在 <code>net/http</code> 中使用了 <code>recover</code> 来处理 <code>panic</code>。</p>
+<p>我们可以看下 <code>http.Server.Serve</code> 的源码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(srv *Server)</span> <span class="title">Serve</span><span class="params">(l net.Listener)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	...</span><br><span class="line"></span><br><span class="line">	ctx := context.WithValue(baseCtx, ServerContextKey, srv)</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		rw, err := l.Accept()</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			...</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		connCtx := ctx</span><br><span class="line">		<span class="keyword">if</span> cc := srv.ConnContext; cc != <span class="literal">nil</span> &#123;</span><br><span class="line">			connCtx = cc(connCtx, rw)</span><br><span class="line">			<span class="keyword">if</span> connCtx == <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="built_in">panic</span>(<span class="string">"ConnContext returned nil"</span>)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		tempDelay = <span class="number">0</span></span><br><span class="line">		c := srv.newConn(rw)</span><br><span class="line">		c.setState(c.rwc, StateNew, runHooks) <span class="comment">// before Serve can return</span></span><br><span class="line">		<span class="keyword">go</span> c.serve(connCtx)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，在 <code>for</code> 循环中，每接收到一个请求都会交给 <code>go c.serve(connCtx)</code> 开启一个新的 <code>goroutine</code> 来处理。</p>
+<p>那么在 <code>serve</code> 方法中就一定会有 <code>recover</code> 语句：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Serve a new connection.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *conn)</span> <span class="title">serve</span><span class="params">(ctx context.Context)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> ra := c.rwc.RemoteAddr(); ra != <span class="literal">nil</span> &#123;</span><br><span class="line">		c.remoteAddr = ra.String()</span><br><span class="line">	&#125;</span><br><span class="line">	ctx = context.WithValue(ctx, LocalAddrContextKey, c.rwc.LocalAddr())</span><br><span class="line">	<span class="keyword">var</span> inFlightResponse *response</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &amp;&amp; err != ErrAbortHandler &#123;</span><br><span class="line">			<span class="keyword">const</span> size = <span class="number">64</span> &lt;&lt; <span class="number">10</span></span><br><span class="line">			buf := <span class="built_in">make</span>([]<span class="keyword">byte</span>, size)</span><br><span class="line">			buf = buf[:runtime.Stack(buf, <span class="literal">false</span>)]</span><br><span class="line">			c.server.logf(<span class="string">"http: panic serving %v: %v\n%s"</span>, c.remoteAddr, err, buf)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> inFlightResponse != <span class="literal">nil</span> &#123;</span><br><span class="line">			inFlightResponse.cancelCtx()</span><br><span class="line">			inFlightResponse.disableWriteContinue()</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> !c.hijacked() &#123;</span><br><span class="line">			<span class="keyword">if</span> inFlightResponse != <span class="literal">nil</span> &#123;</span><br><span class="line">				inFlightResponse.conn.r.abortPendingRead()</span><br><span class="line">				inFlightResponse.reqBody.Close()</span><br><span class="line">			&#125;</span><br><span class="line">			c.<span class="built_in">close</span>()</span><br><span class="line">			c.setState(c.rwc, StateClosed, runHooks)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>果然，在 <code>serve</code> 方法源码中发现了 <code>defer</code> + <code>recover</code> 的组合。</p>
+<p>并且这行代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">c.server.logf(<span class="string">"http: panic serving %v: %v\n%s"</span>, c.remoteAddr, err, buf)</span><br></pre></td></tr></table></figure>
+
+<p>可以在执行 HTTP Server 的控制台日志中得到印证：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http: 2024/10/13 23:08:28 http: panic serving [::1]:50547: url is error</span><br></pre></td></tr></table></figure>
+
+<h4 id="panic-nil"><a href="#panic-nil" class="headerlink" title="panic(nil)"></a>panic(nil)</h4><p><code>panic</code> 函数签名如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">panic</span><span class="params">(v any)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>既然 <code>panic</code> 参数是 <code>any</code> 类型，那么 <code>nil</code> 当然也可以作为参数。</p>
+<p>可以写出 <code>panic(nil)</code> 程序示例代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Println(err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="built_in">panic</span>(<span class="literal">nil</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">panic called with nil argument</span><br></pre></td></tr></table></figure>
+
+<p>这没什么问题。</p>
+<p>但是在 Go 1.21 版本以前，执行上述代码，将得到如下结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br></pre></td></tr></table></figure>
+
+<p>你没看错，我也没写错误，这里什么都没输出。</p>
+<p>在旧版本的 Go 中，<code>panic(nil)</code> 并不能被 <code>recover</code> 捕获，<code>recover()</code> 调用结果将返回 <code>nil</code>。</p>
+<p>你可以在 <a href="https://github.com/golang/go/issues/25448" target="_blank" rel="noopener">issues/25448</a> 中找到关于此问题的讨论。</p>
+<p>幸运的是，在 <a href="https://go.dev/doc/go1.21#language" target="_blank" rel="noopener">Go 1.21</a> 发布时，这个问题得以解决。</p>
+<p>不过，这就破坏了 Go 官方承诺的 Go1 兼容性保障。因此，Go 团队又提供了 <code>GODEBUG=panicnil=1</code> 标识来恢复旧版本中的 <code>panic</code> 行为。</p>
+<p>使用方式如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ GODEBUG=panicnil=1 go run main.go</span><br></pre></td></tr></table></figure>
+
+<p>其实，根据 <code>panic</code> 声明中的注释我们也能够观察到 Go 1.21 后 <code>panic(nil)</code> 行为有所改变：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Starting in Go 1.21, calling panic with a nil interface value or an</span></span><br><span class="line"><span class="comment">// untyped nil causes a run-time error (a different panic).</span></span><br><span class="line"><span class="comment">// The GODEBUG setting panicnil=1 disables the run-time error.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">panic</span><span class="params">(v any)</span></span></span><br></pre></td></tr></table></figure>
+
+<p><code>panic</code> 相关源码实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// The implementation of the predeclared function panic.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">gopanic</span><span class="params">(e any)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> e == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> debug.panicnil.Load() != <span class="number">1</span> &#123;</span><br><span class="line">			e = <span class="built_in">new</span>(PanicNilError)</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			panicnil.IncNonDefault()</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在没有指定 <code>GODEBUG=panicnil=1</code> 情况下，<code>panic(nil)</code> 调用等价于 <code>panic(new(runtime.PanicNilError))</code>。</p>
+<h4 id="数据库事务"><a href="#数据库事务" class="headerlink" title="数据库事务"></a>数据库事务</h4><p>使用 <code>defer</code> + <code>recover</code> 来处理数据库事务，也是比较常用的做法。</p>
+<p>这里有一个来自 <code>GORM</code> 官方文档中的 <a href="https://gorm.io/zh_CN/docs/transactions.html#手动事务" target="_blank" rel="noopener">示例程序</a>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Animal <span class="keyword">struct</span> &#123;</span><br><span class="line">	Name <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateAnimals</span><span class="params">(db *gorm.DB)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	tx := db.Begin()</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> r := <span class="built_in">recover</span>(); r != <span class="literal">nil</span> &#123;</span><br><span class="line">			tx.Rollback()</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := tx.Error; err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := tx.Create(&amp;Animal&#123;Name: <span class="string">"Giraffe"</span>&#125;).Error; err != <span class="literal">nil</span> &#123;</span><br><span class="line">		tx.Rollback()</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := tx.Create(&amp;Animal&#123;Name: <span class="string">"Lion"</span>&#125;).Error; err != <span class="literal">nil</span> &#123;</span><br><span class="line">		tx.Rollback()</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> tx.Commit().Error</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在函数最开始开启了一个事务，接着使用 <code>defer</code> + <code>recover</code> 来确保程序执行中间过程遇到 <code>panic</code> 时能够回滚事务。</p>
+<p>程序执行过程中使用 <code>tx.Create</code> 创建了两条 <code>Animal</code> 数据，并且如果输出，都将回滚事务。</p>
+<p>如果没有错误，最终调用 <code>tx.Commit()</code> 提交事务，并将其错误结果返回。</p>
+<p>这个函数实现逻辑非常严谨，没什么问题。</p>
+<p>但是这个示例代码写的过于啰嗦，还有优化的空间，可以写成这样：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateAnimals</span><span class="params">(db *gorm.DB)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	tx := db.Begin()</span><br><span class="line">	<span class="keyword">defer</span> tx.Rollback()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := tx.Error; err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := tx.Create(&amp;Animal&#123;Name: <span class="string">"Giraffe"</span>&#125;).Error; err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := tx.Create(&amp;Animal&#123;Name: <span class="string">"Lion"</span>&#125;).Error; err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> tx.Commit().Error</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里在 <code>defer</code> 中直接去掉了 <code>recover</code> 的判断，所以无论如何程序最终都会执行 <code>tx.Rollback()</code>。</p>
+<p>之所以可以这样写，是因为调用 <code>tx.Commit()</code> 时事务已经被提交成功，之后执行 <code>tx.Rollback()</code> 并不会影响已经提交事务。</p>
+<p>这段代码看上去要简洁不少，不必在每次出现 <code>error</code> 时都想着调用 <code>tx.Rollback()</code> 回滚事务。</p>
+<p>你可能认为这样写有损代码性能，但其实绝大多数场景下我们不需要担心。我更愿意用一点点可以忽略不计的性能损失，换来一段清晰的代码，毕竟可读性很重要。</p>
+<h4 id="panic-并不是都可以被-recover-捕获"><a href="#panic-并不是都可以被-recover-捕获" class="headerlink" title="panic 并不是都可以被 recover 捕获"></a>panic 并不是都可以被 recover 捕获</h4><p>最后，咱们再来看一个并发写 <code>map</code> 的场景，如果触发 <code>panic</code> 结果将会怎样？</p>
+<p>示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	m := <span class="keyword">map</span>[<span class="keyword">int</span>]<span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">				fmt.Println(<span class="string">"goroutine 1"</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;()</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			m[<span class="number">1</span>] = <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">				fmt.Println(<span class="string">"goroutine 2"</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;()</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			m[<span class="number">1</span>] = <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">select</span> &#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里启动两个 <code>goroutine</code> 来并发的对 <code>map</code> 进行写操作，并且每个 <code>goroutine</code> 中都使用 <code>defer</code> + <code>recover</code> 来保证能够正常处理 <code>panic</code> 发生。</p>
+<p>最后使用 <code>select {}</code> 阻塞主 <code>goroutine</code> 防止程序退出。</p>
+<p>执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">$ go run main.go</span><br><span class="line">fatal error: concurrent map writes</span><br><span class="line"></span><br><span class="line">goroutine 3 [running]:</span><br><span class="line">main.f.func1()</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/recover/main.go:156 +0x4c</span><br><span class="line">created by main.f <span class="keyword">in</span> goroutine 1</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/recover/main.go:149 +0x50</span><br><span class="line"></span><br><span class="line">goroutine 1 [select (no cases)]:</span><br><span class="line">main.f()</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/recover/main.go:171 +0x84</span><br><span class="line">main.main()</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/recover/main.go:204 +0x1c</span><br><span class="line"></span><br><span class="line">goroutine 4 [runnable]:</span><br><span class="line">main.f.func2()</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/recover/main.go:167 +0x4c</span><br><span class="line">created by main.f <span class="keyword">in</span> goroutine 1</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/recover/main.go:160 +0x80</span><br><span class="line"><span class="built_in">exit</span> status 2</span><br></pre></td></tr></table></figure>
+
+<p>然而程序还是输出 <code>panic</code> 信息 <code>fatal error: concurrent map writes</code> 并退出了。</p>
+<p>但是根据输出信息，我们无法知道具体原因。</p>
+<p>在 <a href="https://go.dev/doc/go1.19#runtime" target="_blank" rel="noopener">Go 1.19 Release Notes</a> 中有提到，从 Go 1.19 版本开始程序遇到不可恢复的致命错误（例如并发写入 <code>map</code>，或解锁未锁定的互斥锁）只会打印一个简化的堆栈信息，不包含运行时元数据。不过这可以通过将环境变量 <code>GOTRACEBACK</code> 被设置为 <code>system</code> 或 <code>crash</code> 来解决。</p>
+<p>所以我们可以使用如下两种方式来输出更详细的堆栈信息：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ GOTRACEBACK=system <span class="keyword">go</span> run main.<span class="keyword">go</span></span><br><span class="line">$ GOTRACEBACK=crash <span class="keyword">go</span> run main.<span class="keyword">go</span></span><br></pre></td></tr></table></figure>
+
+<p>再次执行示例代码，得到输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">$  GOTRACEBACK=system go run main.go</span><br><span class="line">fatal error: concurrent map writes</span><br><span class="line"></span><br><span class="line">goroutine 4 gp=0x14000003180 m=3 mp=0x14000057008 [running]:</span><br><span class="line">runtime.fatal(&#123;0x104904795?, 0x0?&#125;)</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/runtime/panic.go:1088 +0x38 fp=0x14000051750 sp=0x14000051720 pc=0x104898a28</span><br><span class="line">runtime.mapassign_fast64(0x104938ee0, 0x1400007a0c0, 0x1)</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/runtime/map_fast64.go:122 +0x40 fp=0x14000051790 sp=0x14000051750 pc=0x1048cb5d0</span><br><span class="line">main.f.func1()</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/recover/main.go:156 +0x4c fp=0x140000517d0 sp=0x14000051790 pc=0x1049017bc</span><br><span class="line">runtime.goexit(&#123;&#125;)</span><br><span class="line">        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.23.1.darwin-arm64/src/runtime/asm_arm64.s:1223 +0x4 fp=0x140000517d0 sp=0x140000517d0 pc=0x1048d4694</span><br><span class="line">created by main.f <span class="keyword">in</span> goroutine 1</span><br><span class="line">        /go/blog-go-example/error/defer-panic-recover/recover/main.go:149 +0x50</span><br><span class="line">...</span><br><span class="line"><span class="built_in">exit</span> status 2</span><br></pre></td></tr></table></figure>
+
+<p>这里省略了大部分堆栈输出，只保留了重要部分。根据堆栈信息可以发现在 <code>runtime/map_fast64.go:122</code> 处发生了 <code>panic</code>。</p>
+<p>相关源码内容如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">mapassign_fast64</span><span class="params">(t *maptype, h *hmap, key <span class="keyword">uint64</span>)</span> <span class="title">unsafe</span>.<span class="title">Pointer</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> h == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(plainError(<span class="string">"assignment to entry in nil map"</span>))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> raceenabled &#123;</span><br><span class="line">		callerpc := getcallerpc()</span><br><span class="line">		racewritepc(unsafe.Pointer(h), callerpc, abi.FuncPCABIInternal(mapassign_fast64))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> h.flags&amp;hashWriting != <span class="number">0</span> &#123;</span><br><span class="line">		fatal(<span class="string">"concurrent map writes"</span>) <span class="comment">// 第 122 行</span></span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">	<span class="keyword">return</span> elem</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>显然是第 122 行代码 <code>fatal(&quot;concurrent map writes&quot;)</code> 触发了 <code>panic</code>，并且其参数内容 <code>concurrent map writes</code> 也正是输出结果。</p>
+<p><code>fatal</code> 函数源码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// fatal triggers a fatal error that dumps a stack trace and exits.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// fatal is equivalent to throw, but is used when user code is expected to be</span></span><br><span class="line"><span class="comment">// at fault for the failure, such as racing map writes.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// fatal does not include runtime frames, system goroutines, or frame metadata</span></span><br><span class="line"><span class="comment">// (fp, sp, pc) in the stack trace unless GOTRACEBACK=system or higher.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//go:nosplit</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">fatal</span><span class="params">(s <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">	<span class="comment">// Everything fatal does should be recursively nosplit so it</span></span><br><span class="line">	<span class="comment">// can be called even when it's unsafe to grow the stack.</span></span><br><span class="line">	systemstack(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="built_in">print</span>(<span class="string">"fatal error: "</span>)</span><br><span class="line">		printindented(s) <span class="comment">// logically printpanicval(s), but avoids convTstring write barrier</span></span><br><span class="line">		<span class="built_in">print</span>(<span class="string">"\n"</span>)</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	fatalthrow(throwTypeUser)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>fatal</code> 内部调用了 <code>fatalthrow</code> 来触发 <code>panic</code>。看来由 <code>fatalthrow</code> 所触发的 <code>panic</code> 无法被 <code>recover</code> 捕获。</p>
+<p>我们开发时要切记：并发读写 <code>map</code> 触发 <code>panic</code>，无法被 <code>recover</code> 捕获。</p>
+<p>并发操作 <code>map</code> 一定要小心，这是一个比较危险的行为，在 Web 开发中，如果在某个接口 <code>handler</code> 方法中触发了 <code>panic</code>，整个 http Server 会直接挂掉。</p>
+<p>涉及并发操作 <code>map</code>，我们应该使用 <code>sync.Map</code> 来代替：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">()</span></span> &#123;</span><br><span class="line">	m := sync.Map&#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">				fmt.Println(<span class="string">"goroutine 1"</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;()</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			m.Store(<span class="number">1</span>, <span class="keyword">struct</span>&#123;&#125;&#123;&#125;)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">				fmt.Println(<span class="string">"goroutine 2"</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;()</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			m.Store(<span class="number">1</span>, <span class="keyword">struct</span>&#123;&#125;&#123;&#125;)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">select</span> &#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个示例就不会 <code>panic</code> 了。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文对错误处理三剑客 <code>defer</code>、<code>panic</code> 和 <code>recover</code> 进行了讲解梳理，虽然这三者并不是 <code>error</code>，但它们与错误处理息息相关。</p>
+<p><code>defer</code> 可以推迟一个函数或方法的调用，通常用于简化执行各种清理操作的函数。</p>
+<p><code>panic</code> 是一个内置函数，它会停止程序的正常控制流并输出 <code>panic</code> 相关信息。相比于 <code>error</code>，<code>panic</code> 更加暴力，谨慎使用。</p>
+<p><code>recover</code> 用来从 <code>panic</code> 所导致的程序崩溃中恢复执行，并且要与 <code>defer</code> 一起使用。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/error/defer-panic-recover" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>Go 1.19 Release Notes：<a href="https://go.dev/doc/go1.19#runtime" target="_blank" rel="noopener">https://go.dev/doc/go1.19#runtime</a></li>
+<li>Go 1.21 Release Notes：<a href="https://go.dev/doc/go1.21#language" target="_blank" rel="noopener">https://go.dev/doc/go1.21#language</a></li>
+<li>Go 1.22 Release Notes：<a href="https://go.dev/doc/go1.22#language" target="_blank" rel="noopener">https://go.dev/doc/go1.22#language</a></li>
+<li>Defer, Panic, and Recover：<a href="https://go.dev/blog/defer-panic-and-recover" target="_blank" rel="noopener">https://go.dev/blog/defer-panic-and-recover</a></li>
+<li>Defer statements：<a href="https://go.dev/ref/spec#Defer_statements" target="_blank" rel="noopener">https://go.dev/ref/spec#Defer_statements</a></li>
+<li>Handling panics：<a href="https://go.dev/ref/spec#Handling_panics" target="_blank" rel="noopener">https://go.dev/ref/spec#Handling_panics</a></li>
+<li>Understanding the Go “defer”：<a href="https://blog.devgenius.io/understanding-the-go-defer-3b6b66905e7e" target="_blank" rel="noopener">https://blog.devgenius.io/understanding-the-go-defer-3b6b66905e7e</a></li>
+<li>How to return a value in a Go function that panics?：<a href="https://stackoverflow.com/questions/33167282/how-to-return-a-value-in-a-go-function-that-panics" target="_blank" rel="noopener">https://stackoverflow.com/questions/33167282/how-to-return-a-value-in-a-go-function-that-panics</a></li>
+<li>issues/25448 spec: guarantee non-nil return value from recover：<a href="https://github.com/golang/go/issues/25448" target="_blank" rel="noopener">https://github.com/golang/go/issues/25448</a></li>
+<li>GORM 事务：<a href="https://gorm.io/zh_CN/docs/transactions.html" target="_blank" rel="noopener">https://gorm.io/zh_CN/docs/transactions.html</a></li>
+<li>在 Go 中如何实现类似 Python 中的 with 上下文管理器：<a href="https://jianghushinian.cn/2023/06/23/how-to-implement-a-context-manager-similar-to-python-s-with-in-go/" target="_blank" rel="noopener">https://jianghushinian.cn/2023/06/23/how-to-implement-a-context-manager-similar-to-python-s-with-in-go/</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/error/defer-panic-recover" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/error/defer-panic-recover</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2025-02-15T01:45:12.976Z" itemprop="dateUpdated">2025-02-15 09:45:12</time>
+</span><br>
+
+
+        
+        <a href="/2024/10/13/go-error-guidelines-defer-panic-recover/" target="_blank" rel="external">http://www.jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Error/" rel="tag">Error</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/&title=《Go 错误处理指北：Defer、Panic、Recover 三剑客》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/&title=《Go 错误处理指北：Defer、Panic、Recover 三剑客》 — 江湖十年&source=Go 语言中的错误处理不仅仅只有 if err != nil，defer、panic 和 recover 这三个相对来说不不如 if err != nil..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 错误处理指北：Defer、Panic、Recover 三剑客》 — 江湖十年&url=http://www.jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2024/10/20/go-tools-addlicense/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">一行命令为项目文件添加开源协议头</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2024/10/01/go-error-guidelines-error-handling/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 错误处理指北：如何优雅的处理错误？</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/&title=《Go 错误处理指北：Defer、Panic、Recover 三剑客》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/&title=《Go 错误处理指北：Defer、Panic、Recover 三剑客》 — 江湖十年&source=Go 语言中的错误处理不仅仅只有 if err != nil，defer、panic 和 recover 这三个相对来说不不如 if err != nil..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 错误处理指北：Defer、Panic、Recover 三剑客》 — 江湖十年&url=http://www.jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2024/10/13/go-error-guidelines-defer-panic-recover/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

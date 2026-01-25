@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>使用 MCP Gateway 一键将你的 HTTP 接口转换成 MCP Server | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,MCP,网关">
+    <meta name="description" content="最近 MCP 非常火热，各家厂商也都提供了自己的 MCP Server 实现，截止发文当日在 https:&#x2F;&#x2F;mcp.so&#x2F; 网站中已经收录了超过 1.3w+ 数量的 MCP Server，仿佛一夜之间所有的 HTTP 接口都变成了 MCP 接口。 MCP Server 短期内如此大规模的爆发，市面上这么多的 HTTP 服务，全部要转换成 MCP 服务，显然不是一天两天就能通过开发实现的，这需要大">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用 MCP Gateway 一键将你的 HTTP 接口转换成 MCP Server">
+<meta property="og:url" content="http://www.jianghushinian.cn/2025/05/14/mcp-gateway/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="最近 MCP 非常火热，各家厂商也都提供了自己的 MCP Server 实现，截止发文当日在 https:&#x2F;&#x2F;mcp.so&#x2F; 网站中已经收录了超过 1.3w+ 数量的 MCP Server，仿佛一夜之间所有的 HTTP 接口都变成了 MCP 接口。 MCP Server 短期内如此大规模的爆发，市面上这么多的 HTTP 服务，全部要转换成 MCP 服务，显然不是一天两天就能通过开发实现的，这需要大">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/05/14/mcp-gateway/mcp-gateway-console.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/05/14/mcp-gateway/mcp-gateway-chat.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/05/14/mcp-gateway/map-gateway-admin.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/05/14/mcp-gateway/mcp-gateway-config.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/05/14/mcp-gateway/mock-user-svc.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/05/14/mcp-gateway/chat-create-user.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/05/14/mcp-gateway/user.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/05/14/mcp-gateway/openapi.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2025/05/14/mcp-gateway/openapi-mcp-server.png">
+<meta property="article:published_time" content="2025-05-14T08:00:31.000Z">
+<meta property="article:modified_time" content="2026-01-25T04:52:54.087Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="MCP">
+<meta property="article:tag" content="网关">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2025/05/14/mcp-gateway/mcp-gateway-console.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">使用 MCP Gateway 一键将你的 HTTP 接口转换成 MCP Server</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">使用 MCP Gateway 一键将你的 HTTP 接口转换成 MCP Server</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2025-05-14T08:00:31.000Z" itemprop="datePublished" class="page-time">
+  2025-05-14
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#MCP-Gateway-介绍"><span class="post-toc-number">1.</span> <span class="post-toc-text">MCP Gateway 介绍</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#部署-MCP-Gateway"><span class="post-toc-number">2.</span> <span class="post-toc-text">部署 MCP Gateway</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#准备-Kubernetes-集群"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">准备 Kubernetes 集群</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#在-Kubernetes-集群部署-MCP-Gateway"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">在 Kubernetes 集群部署 MCP Gateway</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#MCP-Gateway-初体验"><span class="post-toc-number">3.</span> <span class="post-toc-text">MCP Gateway 初体验</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#创建-MCP-Server"><span class="post-toc-number">4.</span> <span class="post-toc-text">创建 MCP Server</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#一键将-OpenAPI-转换为-MCP-Server"><span class="post-toc-number">4.1.</span> <span class="post-toc-text">一键将 OpenAPI 转换为 MCP Server</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">5.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-mcp-gateway"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">使用 MCP Gateway 一键将你的 HTTP 接口转换成 MCP Server</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2025-05-14 16:00:31" datetime="2025-05-14T08:00:31.000Z"  itemprop="datePublished">2025-05-14</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>最近 MCP 非常火热，各家厂商也都提供了自己的 MCP Server 实现，截止发文当日在 <a href="https://mcp.so/" target="_blank" rel="noopener">https://mcp.so/</a> 网站中已经收录了超过 1.3w+ 数量的 MCP Server，仿佛一夜之间所有的 HTTP 接口都变成了 MCP 接口。</p>
+<p>MCP Server 短期内如此大规模的爆发，市面上这么多的 HTTP 服务，全部要转换成 MCP 服务，显然不是一天两天就能通过开发实现的，这需要大量的人力资源。那么有没有一种方式能够低成本的将 HTTP Server 转换成 MCP Server 呢？本文就为大家介绍一款能够实现一键将你的 HTTP 接口转换成 MCP Server 的 Go 项目 <a href="https://github.com/mcp-ecosystem/mcp-gateway" target="_blank" rel="noopener">mcp-gateway</a>。</p>
+<a id="more"></a>
+
+<h3 id="MCP-Gateway-介绍"><a href="#MCP-Gateway-介绍" class="headerlink" title="MCP Gateway 介绍"></a>MCP Gateway 介绍</h3><p>MCP Gateway 是用 Go 编写的服务，顾名思义本质上是一个网关服务，实现了 MCP 协议。它能够将现有 API 快速转化为 MCP 服务，无需改动任何一行代码。</p>
+<p>使用  mcp-gateway 将 HTTP 接口转换为 MCP 服务，我们唯一要提供的就是一个符合 OpenAPI 规范的 HTTP 接口文档。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>关于 OpenAPI 规范，你可以参考我写的另一篇文章《<a href="https://jianghushinian.cn/2023/02/12/build-api-documentation-using-openapi/" target="_blank" rel="noopener">使用 OpenAPI 构建 API 文档</a>》。</p>
+</blockquote>
+<p>MCP Gateway 提供了控制台页面来管理 MCP Server 配置：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="mcp-gateway-console.png" alt="MCP Gateway 控制台" title="">
+                </div>
+                <div class="image-caption">MCP Gateway 控制台</div>
+            </figure>
+
+<p>上图中两个卡片就表示两个 MCP 服务，服务可以来自于手动编写的 MCP 服务配置，也可以来自于通过 OpenAPI 接口文档进行一键转换得到的 MCP 服务配置。</p>
+<p>有了 MCP 服务，我们可以通过与大模型对话的方式来测试 MCP 服务是否可用：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="mcp-gateway-chat.png" alt="MCP Gateway 聊天" title="">
+                </div>
+                <div class="image-caption">MCP Gateway 聊天</div>
+            </figure>
+
+<p>图中展示了通过与大模型进行聊天会话的形式，来调用 MCP Server 创建用户。</p>
+<p>接下来，我将带大家一起在本地部署一个 MCP Gateway 并演示其用法。</p>
+<h3 id="部署-MCP-Gateway"><a href="#部署-MCP-Gateway" class="headerlink" title="部署 MCP Gateway"></a>部署 MCP Gateway</h3><p>MCP Gateway 官方文档中 <a href="https://mcp.ifuryst.com/getting-started/quick-start/" target="_blank" rel="noopener">https://mcp.ifuryst.com/getting-started/quick-start/</a> 提供了 Docker 和二进制两种部署方式，都非常简单，可以实现一键部署。在这里我们换一种玩法，实现在 Kubernetes 中部署 MCP Gateway 服务。</p>
+<h4 id="准备-Kubernetes-集群"><a href="#准备-Kubernetes-集群" class="headerlink" title="准备 Kubernetes 集群"></a>准备 Kubernetes 集群</h4><p>本次示例，我将在本机 Mac 环境中使用 kind 安装 Kubernetes 集群，这样你也能非常方便的复现，只要跟着我一步一步操作，你就能轻松部署 MCP Gateway 服务。</p>
+<p>首先编写如下 kind 配置：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">kind:</span> <span class="string">Cluster</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">kind.x-k8s.io/v1alpha4</span></span><br><span class="line"><span class="attr">name:</span> <span class="string">mcp-cluster</span></span><br><span class="line"><span class="attr">nodes:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">role:</span> <span class="string">control-plane</span></span><br><span class="line">    <span class="attr">extraPortMappings:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">30080</span></span><br><span class="line">        <span class="attr">hostPort:</span> <span class="number">30080</span></span><br><span class="line">        <span class="attr">listenAddress:</span> <span class="string">"0.0.0.0"</span></span><br><span class="line">        <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">30081</span></span><br><span class="line">        <span class="attr">hostPort:</span> <span class="number">30081</span></span><br><span class="line">        <span class="attr">listenAddress:</span> <span class="string">"0.0.0.0"</span></span><br><span class="line">        <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">30082</span></span><br><span class="line">        <span class="attr">hostPort:</span> <span class="number">30082</span></span><br><span class="line">        <span class="attr">listenAddress:</span> <span class="string">"0.0.0.0"</span></span><br><span class="line">        <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">30083</span></span><br><span class="line">        <span class="attr">hostPort:</span> <span class="number">30083</span></span><br><span class="line">        <span class="attr">listenAddress:</span> <span class="string">"0.0.0.0"</span></span><br><span class="line">        <span class="attr">protocol:</span> <span class="string">TCP</span></span><br></pre></td></tr></table></figure>
+
+<p>这里定义一个单节点的 Kubernetes 集群，并映射了多个容器端口到主机端口，这样，当我们为容器创建 NodePort 类型的 Service 资源时，其 NodePort 端口就能在 Mac 主机上直接访问了。</p>
+<p>按照如下步骤来安装 Kubernetes 集群：</p>
+<blockquote>
+<p>NOTE:</p>
+<p>你需要提前安装好 kind 工具：<a href="https://kind.sigs.k8s.io/docs/user/quick-start/#installation" target="_blank" rel="noopener">https://kind.sigs.k8s.io/docs/user/quick-start/#installation</a></p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 根据配置文件创建 Kubernetes 集群</span></span><br><span class="line">$ kind create cluster --config=config.yaml</span><br><span class="line"><span class="comment"># 查看本机现有的 Kubernetes 集群</span></span><br><span class="line">$ kind get clusters                       </span><br><span class="line">mcp-cluster</span><br><span class="line"><span class="comment"># 查看 Kubernetes 集群节点信息</span></span><br><span class="line">$ k get node -o wide</span><br><span class="line">NAME                        STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                         KERNEL-VERSION     CONTAINER-RUNTIME</span><br><span class="line">mcp-cluster-control-plane   Ready    control-plane   56s   v1.32.2   172.22.0.3    &lt;none&gt;        Debian GNU/Linux 12 (bookworm)   6.10.14-linuxkit   containerd://2.0.2</span><br></pre></td></tr></table></figure>
+
+<p>现在你就拥有了一个 Kubernetes 集群。</p>
+<h4 id="在-Kubernetes-集群部署-MCP-Gateway"><a href="#在-Kubernetes-集群部署-MCP-Gateway" class="headerlink" title="在 Kubernetes 集群部署 MCP Gateway"></a>在 Kubernetes 集群部署 MCP Gateway</h4><p>接下来，我们需要编写 Kubernetes 资源 yaml，以此来实现部署 MCP Gateway。</p>
+<p>MCP Gateway 提供了如下几个组件：</p>
+<ul>
+<li>API Server: 管理平台后端，可理解为控制面</li>
+<li>MCP Gateway: 核心服务，负责实际的网关服务，可理解为数据面</li>
+<li>Mock User Service: 模拟用户服务，提供测试用的用户服务（你的存量API服务可能就是类似这样的）</li>
+<li>Web 前端: 管理平台前端，提供可视化的管理界面</li>
+<li>Nginx: 反向代理其他几个服务</li>
+</ul>
+<p>不过官方其实只提供了一个 All-in-One 的镜像，所以部署起来没想象中复杂，无需独立部署以上各个组件。</p>
+<p>关于 MCP Gateway 的设计你可以在这里 <a href="https://mcp.ifuryst.com/development/architecture" target="_blank" rel="noopener">https://mcp.ifuryst.com/development/architecture</a> 看到 MCP 网关架构总揽图。</p>
+<p>根据官方提供的 Docker 部署文档，我们可以编写出如下 Kubernetes 资源 yaml：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br></pre></td><td class="code"><pre><span class="line">apiVersion: v1</span><br><span class="line">kind: Namespace</span><br><span class="line">metadata:</span><br><span class="line">  name: mcp</span><br><span class="line">---</span><br><span class="line">apiVersion: apps/v1</span><br><span class="line">kind: Deployment</span><br><span class="line">metadata:</span><br><span class="line">  name: mcp-gateway</span><br><span class="line">  namespace: mcp</span><br><span class="line">  labels:</span><br><span class="line">    app: mcp-gateway</span><br><span class="line">spec:</span><br><span class="line">  replicas: 1</span><br><span class="line">  selector:</span><br><span class="line">    matchLabels:</span><br><span class="line">      app: mcp-gateway</span><br><span class="line">  template:</span><br><span class="line">    metadata:</span><br><span class="line">      name: mcp-gateway</span><br><span class="line">      labels:</span><br><span class="line">        app: mcp-gateway</span><br><span class="line">    spec:</span><br><span class="line">      containers:</span><br><span class="line">        - name: mcp-gateway</span><br><span class="line">          image: registry.ap-southeast-1.aliyuncs.com/mcp-ecosystem/mcp-gateway-allinone:latest</span><br><span class="line">          imagePullPolicy: IfNotPresent</span><br><span class="line">          ports:</span><br><span class="line">            - containerPort: 80   <span class="comment"># Web 界面端口</span></span><br><span class="line">            - containerPort: 5234 <span class="comment"># API Server 端口</span></span><br><span class="line">            - containerPort: 5235 <span class="comment"># MCP Gateway 端口</span></span><br><span class="line">            - containerPort: 5335 <span class="comment"># MCP Gateway 管理端口（承载诸如 reload 的内部接口，生产环境切勿对外）</span></span><br><span class="line">            - containerPort: 5236 <span class="comment"># Mock User Service 端口</span></span><br><span class="line">          env:</span><br><span class="line">            - name: ENV</span><br><span class="line">              value: production</span><br><span class="line">            - name: OPENAI_BASE_URL</span><br><span class="line">              value: https://dashscope.aliyuncs.com/compatible-mode/v1</span><br><span class="line">            - name: OPENAI_API_KEY</span><br><span class="line">              value: sk-xxx</span><br><span class="line">            - name: OPENAI_MODEL</span><br><span class="line">              value: qwen-turbo</span><br><span class="line">          volumeMounts:</span><br><span class="line">            - mountPath: /app/configs <span class="comment"># 配置文件目录</span></span><br><span class="line">              name: config-volume</span><br><span class="line">            - mountPath: /app/data <span class="comment"># 数据目录</span></span><br><span class="line">              name: data-volume</span><br><span class="line">            - mountPath: /app/.env</span><br><span class="line">              name: env-volume</span><br><span class="line">      restartPolicy: Always</span><br><span class="line">      volumes:</span><br><span class="line">        - name: config-volume</span><br><span class="line">          configMap:</span><br><span class="line">            name: mcp-config</span><br><span class="line">        - name: env-volume</span><br><span class="line">          configMap:</span><br><span class="line">            name: mcp-env</span><br><span class="line">        - name: data-volume</span><br><span class="line">          persistentVolumeClaim:</span><br><span class="line">            claimName: mcp-storage</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">  name: mcp-gateway-web</span><br><span class="line">  namespace: mcp</span><br><span class="line">spec:</span><br><span class="line">  <span class="built_in">type</span>: NodePort</span><br><span class="line">  selector:</span><br><span class="line">    app: mcp-gateway</span><br><span class="line">  ports:</span><br><span class="line">    - name: web</span><br><span class="line">      port: 80</span><br><span class="line">      targetPort: 80</span><br><span class="line">      nodePort: 30080  <span class="comment"># 映射到宿主机 30080 端口</span></span><br><span class="line">    - name: api-server</span><br><span class="line">      port: 5234</span><br><span class="line">      targetPort: 5234</span><br><span class="line">      nodePort: 30081</span><br><span class="line">    - name: mcp-gateway</span><br><span class="line">      port: 5235</span><br><span class="line">      targetPort: 5235</span><br><span class="line">      nodePort: 30082</span><br><span class="line">    - name: mock-user</span><br><span class="line">      port: 5236</span><br><span class="line">      targetPort: 5236</span><br><span class="line">      nodePort: 30083</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: ConfigMap</span><br><span class="line">metadata:</span><br><span class="line">  name: mcp-config</span><br><span class="line">  namespace: mcp</span><br><span class="line">data:</span><br><span class="line">  mcp-gateway.yaml: |</span><br><span class="line">    ...</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: ConfigMap</span><br><span class="line">metadata:</span><br><span class="line">  name: mcp-env</span><br><span class="line">  namespace: mcp</span><br><span class="line">data:</span><br><span class="line">  ...</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: PersistentVolumeClaim</span><br><span class="line">metadata:</span><br><span class="line">  name: mcp-storage</span><br><span class="line">  namespace: mcp</span><br><span class="line">spec:</span><br><span class="line">  accessModes:</span><br><span class="line">    - ReadWriteOnce</span><br><span class="line">  volumeMode: Filesystem</span><br><span class="line">  resources:</span><br><span class="line">    requests:</span><br><span class="line">      storage: 8Gi</span><br><span class="line">  storageClassName: standard</span><br></pre></td></tr></table></figure>
+
+<p>这个资源清单看似很长，不过不要慌，其实这些都是从官方文档 <a href="https://mcp.ifuryst.com/deployment/docker" target="_blank" rel="noopener">https://mcp.ifuryst.com/deployment/docker</a> 中摘抄下来的必要配置。</p>
+<p>我为你解读下这个 yaml 是怎么来的：</p>
+<ul>
+<li>首先是 Namespace 资源的创建，这个无需多言，我将部署的资源全部放在 mcp 这个 Namespace 下。</li>
+<li>接着是 Deployment 资源，这里定义的 Pod 就是在部署 MCP Gateway，其中的镜像就是官方提供的 All-in-One 镜像。</li>
+<li>容器的端口说明如下：<ul>
+<li><code>80</code>: Web 界面端口</li>
+<li><code>5234</code>: API Server 端口</li>
+<li><code>5235</code>: MCP Gateway 端口</li>
+<li><code>5335</code>: MCP Gateway 管理端口（承载诸如 reload 的内部接口，生产环境切勿对外）</li>
+<li><code>5236</code>: Mock User Service 端口</li>
+</ul>
+</li>
+<li>Service 资源会通过 NodePort 的方式，暴露这几个端口。而前文中，我们已经在通过 kind 创建 Kubernetes 集群时，将这些 NodePort 端口映射到宿主机了。</li>
+<li>此外，容器还挂载了配置文件和持久化存储 PVC，这些也都是参考官方 Docker 部署文档来改造的。</li>
+<li>最后，有一个重中之重的配置项，就是容器环境变量中的 <code>OPENAI_BASE_URL</code>、<code>OPENAI_API_KEY</code> 和 <code>OPENAI_MODEL</code>，这三项是用来调用大模型的，你可以申请自己的 API，我这里配置的是阿里的千问大模型，如果你也用千问，那么只需要修改 <code>OPENAI_API_KEY</code> 这一项即可。</li>
+</ul>
+<blockquote>
+<p>NOTE:<br>注意，文章篇幅所限，这里的配置并不完整，你可以访问 <a href="https://github.com/jianghushinian/blog-go-example/blob/main/mcp-gateway/mcp-gateway.yaml" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/mcp-gateway/mcp-gateway.yaml</a> 获取完整 yaml。</p>
+</blockquote>
+<p>接下来可以通过如下步骤将 MCP Gateway 部署到 Kubernetes 集群：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 可以想在宿主机上将 All-in-One 镜像拉取到本地</span></span><br><span class="line">$ docker pull registry.ap-southeast-1.aliyuncs.com/mcp-ecosystem/mcp-gateway-allinone:latest</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="comment"># 接着将 All-in-One 镜像导入 kind 安装的 Kubernetes 集群</span></span><br><span class="line">$ kind load docker-image registry.ap-southeast-1.aliyuncs.com/mcp-ecosystem/mcp-gateway-allinone:latest --name mcp-cluster</span><br><span class="line">Image: <span class="string">"registry.ap-southeast-1.aliyuncs.com/mcp-ecosystem/mcp-gateway-allinone:latest"</span> with ID <span class="string">"sha256:f5f22d5680e39822835c700b5ed9cea19e31910f5aed6b7f0957a2fa45f21f72"</span> not yet present on node <span class="string">"mcp-cluster-control-plane"</span>, loading...</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将 MCP Gateway 部署到 Kubernetes 集群</span></span><br><span class="line">$ kubectl apply -f mcp-gateway.yaml</span><br><span class="line">namespace/mcp created</span><br><span class="line">deployment.apps/mcp-gateway created</span><br><span class="line">service/mcp-gateway-web created</span><br><span class="line">configmap/mcp-config created</span><br><span class="line">configmap/mcp-env created</span><br><span class="line">persistentvolumeclaim/mcp-storage created</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看部署的所有资源</span></span><br><span class="line">$ kubectl -n mcp get all</span><br><span class="line">NAME                               READY   STATUS    RESTARTS   AGE</span><br><span class="line">pod/mcp-gateway-5d745d4f8b-4rtpv   1/1     Running   0          2m16s</span><br><span class="line"></span><br><span class="line">NAME                      TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)                                                     AGE</span><br><span class="line">service/mcp-gateway-web   NodePort   10.96.248.189   &lt;none&gt;        80:30080/TCP,5234:30081/TCP,5235:30082/TCP,5335:30083/TCP   2m16s</span><br><span class="line"></span><br><span class="line">NAME                          READY   UP-TO-DATE   AVAILABLE   AGE</span><br><span class="line">deployment.apps/mcp-gateway   1/1     1            1           2m17s</span><br><span class="line"></span><br><span class="line">NAME                                     DESIRED   CURRENT   READY   AGE</span><br><span class="line">replicaset.apps/mcp-gateway-5d745d4f8b   1         1         1       2m17s</span><br></pre></td></tr></table></figure>
+
+<p>现在我们就将 MCP Gateway 部署到 Kubernetes 集群了。</p>
+<p>接下来就可以上手体验 MCP Gateway 了。</p>
+<h3 id="MCP-Gateway-初体验"><a href="#MCP-Gateway-初体验" class="headerlink" title="MCP Gateway 初体验"></a>MCP Gateway 初体验</h3><h3 id="创建-MCP-Server"><a href="#创建-MCP-Server" class="headerlink" title="创建 MCP Server"></a>创建 MCP Server</h3><p>访问 <a href="http://127.0.0.1:30080/" target="_blank" rel="noopener">http://127.0.0.1:30080/</a> 会跳转到登录页面，然后用户名和密码都是 <code>admin</code>，输入后就进入到管理控制台页面了：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="map-gateway-admin.png" alt="MCP Gateway 管理控制台" title="">
+                </div>
+                <div class="image-caption">MCP Gateway 管理控制台</div>
+            </figure>
+
+<p>我们可以使用官方提供的 <a href="https://github.com/mcp-ecosystem/mcp-gateway/blob/main/configs/mock-user-svc.yaml" target="_blank" rel="noopener">https://github.com/mcp-ecosystem/mcp-gateway/blob/main/configs/mock-user-svc.yaml</a> 配置信息来创建一个 MPC Server。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="mcp-gateway-config.png" alt="MCP Gateway 配置" title="">
+                </div>
+                <div class="image-caption">MCP Gateway 配置</div>
+            </figure>
+
+<p>现在我们就得到了一个可用的 MCP Server：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="mock-user-svc.png" alt="MCP 用户服务" title="">
+                </div>
+                <div class="image-caption">MCP 用户服务</div>
+            </figure>
+
+<p><code>mock-user-svc</code> 是 MCP Gateway 官方提供的用于测试用的 MCP Server，我们可以使用它来测试 MCP Gateway 运行状态是否正常。</p>
+<p>在聊天窗口，我们可以选择 MCP Server <code>mock-user-svc</code>，并进行会话聊天：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="chat-create-user.png" alt="通过聊天创建用户" title="">
+                </div>
+                <div class="image-caption">通过聊天创建用户</div>
+            </figure>
+
+<p>输入 <code>帮我创建用户 jianghushinian007@outlook.com</code>，大模型就会自动帮我们调用 MCP 提供的用户注册工具来注册用户。</p>
+<p>我们还可以访问 <a href="http://127.0.0.1:30083/users/email/jianghushinian007@outlook.com" target="_blank" rel="noopener">http://127.0.0.1:30083/users/email/jianghushinian007@outlook.com</a> 来验证用户是否真的注册成功了。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="user.png" alt="查看已创建用户" title="">
+                </div>
+                <div class="image-caption">查看已创建用户</div>
+            </figure>
+
+<h4 id="一键将-OpenAPI-转换为-MCP-Server"><a href="#一键将-OpenAPI-转换为-MCP-Server" class="headerlink" title="一键将 OpenAPI 转换为 MCP Server"></a>一键将 OpenAPI 转换为 MCP Server</h4><p>其实 MCP Gateway 最核心的功能我们已经演示完成了，不过我最近发现它新增了 <code>导入 OpenAPI</code> 的按钮，这极大的方便了我们实现一键将 OpenAPI 转换为 MCP Server，而无需编写 MCP Server 配置文件。</p>
+<p>你可以在 <a href="https://editor.swagger.io/" target="_blank" rel="noopener">https://editor.swagger.io/</a> 下载一个标准的 OpenAPI 3.0 文档，并将其保存为 <code>petstore.yaml</code>。</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/mcp-gateway/configs/petstore.yaml" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/mcp-gateway/configs/petstore.yaml</a></p>
+</blockquote>
+<p>然后，只需要通过拖拽的方式，将 <code>petstore.yaml</code> 文档导入 MCP Gateway 即可：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="openapi.png" alt="OpenAPI 3.0 文档" title="">
+                </div>
+                <div class="image-caption">OpenAPI 3.0 文档</div>
+            </figure>
+
+<p>现在我们就得到了一个新的 MCP Server。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="openapi-mcp-server.png" alt="OpenAPI 转换的 MCP Server" title="">
+                </div>
+                <div class="image-caption">OpenAPI 转换的 MCP Server</div>
+            </figure>
+
+<p>当然，因为这个示例是使用了 Swagger 官方提供的示例文档，这个转换后的 MCP Server 暂时不可使用，因为后台没有真正的 HTTP 服务供我们调用。</p>
+<p>但是，这个过程完整的演示了如何一键将 OpenAPI 转换为 MCP Server，可以说非常丝滑。你可以参照这个方式，尝试将公司现有的 HTTP 服务接口，转换成 MCP Server 供大模型使用。</p>
+<p>MCP Gateway 剩下的能力就交给你自行去探索了。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文带大家体验了 MCP Gateway 的部署和使用，以及如何方便快捷的通关 MCP Gateway 一键将 OpenAPI 转换为 MCP Server，这极大的提升了我们的效率。</p>
+<p>其实这个方案现在很多网关项目都在做，比如现在做的比较不错的阿里开源网关项目 Higress，这个项目已经非常成熟，如果有需要你可以调研一下。</p>
+<p>今天之所以想介绍 MCP Gateway 项目，是因为这是一个纯用 Go 语言编写的轻量级 MCP 网关项目，非常适合我们学习原理。虽然本文没有讲解其实现原理，但是这个项目代码量并不多，你完全可以自己尝试阅读源码。甚至可以在此基础上进行魔改，并去掉无用组件，比如聊天功能，其实可以集成类似 MCP 官方提供的 <a href="https://github.com/modelcontextprotocol/inspector" target="_blank" rel="noopener">inspector</a> 组件来检查 MCP 服务的可用性，让网关项目回归简单，不必集成大模型的聊天功能。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/mcp-gateway" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>MCP Gateway 官方文档：<a href="https://mcp.ifuryst.com/getting-started/quick-start" target="_blank" rel="noopener">https://mcp.ifuryst.com/getting-started/quick-start</a></li>
+<li>MCP Gateway GitHub 源码：<a href="https://github.com/mcp-ecosystem/mcp-gateway" target="_blank" rel="noopener">https://github.com/mcp-ecosystem/mcp-gateway</a></li>
+<li>MCP 官方文档：<a href="https://modelcontextprotocol.io/introduction" target="_blank" rel="noopener">https://modelcontextprotocol.io/introduction</a></li>
+<li>MCP 官方 inspector 工具：<a href="https://github.com/modelcontextprotocol/inspector" target="_blank" rel="noopener">https://github.com/modelcontextprotocol/inspector</a></li>
+<li>MCP 市场：<a href="https://mcp.so/" target="_blank" rel="noopener">https://mcp.so/</a></li>
+<li>Swagger 官方示例文档网址：<a href="https://editor.swagger.io/#/" target="_blank" rel="noopener">https://editor.swagger.io/#/</a></li>
+<li>使用 OpenAPI 构建 API 文档：<a href="https://jianghushinian.cn/2023/02/12/build-api-documentation-using-openapi/" target="_blank" rel="noopener">https://jianghushinian.cn/2023/02/12/build-api-documentation-using-openapi/</a></li>
+<li>kind 官方文档：<a href="https://kind.sigs.k8s.io/docs/user/quick-start/#installation" target="_blank" rel="noopener">https://kind.sigs.k8s.io/docs/user/quick-start/#installation</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/mcp-gateway" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/mcp-gateway</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2025/05/14/mcp-gateway/" target="_blank" rel="noopener">https://jianghushinian.cn/2025/05/14/mcp-gateway/</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-01-25T04:52:54.087Z" itemprop="dateUpdated">2026-01-25 12:52:54</time>
+</span><br>
+
+
+        
+        <a href="/2025/05/14/mcp-gateway/" target="_blank" rel="external">http://www.jianghushinian.cn/2025/05/14/mcp-gateway/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MCP/" rel="tag">MCP</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E7%BD%91%E5%85%B3/" rel="tag">网关</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/05/14/mcp-gateway/&title=《使用 MCP Gateway 一键将你的 HTTP 接口转换成 MCP Server》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/05/14/mcp-gateway/&title=《使用 MCP Gateway 一键将你的 HTTP 接口转换成 MCP Server》 — 江湖十年&source=最近 MCP 非常火热，各家厂商也都提供了自己的 MCP Server 实现，截止发文当日在 https://mcp.so/ 网站中已经收录了超过 1.3..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/05/14/mcp-gateway/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用 MCP Gateway 一键将你的 HTTP 接口转换成 MCP Server》 — 江湖十年&url=http://www.jianghushinian.cn/2025/05/14/mcp-gateway/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/05/14/mcp-gateway/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2025/05/17/scc/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">一行命令统计代码行数</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2025/05/09/goroutine-workerpool/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">在 Go 语言中如何实现协程池</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2025/05/14/mcp-gateway/&title=《使用 MCP Gateway 一键将你的 HTTP 接口转换成 MCP Server》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2025/05/14/mcp-gateway/&title=《使用 MCP Gateway 一键将你的 HTTP 接口转换成 MCP Server》 — 江湖十年&source=最近 MCP 非常火热，各家厂商也都提供了自己的 MCP Server 实现，截止发文当日在 https://mcp.so/ 网站中已经收录了超过 1.3..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2025/05/14/mcp-gateway/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用 MCP Gateway 一键将你的 HTTP 接口转换成 MCP Server》 — 江湖十年&url=http://www.jianghushinian.cn/2025/05/14/mcp-gateway/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2025/05/14/mcp-gateway/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2025/05/14/mcp-gateway/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
