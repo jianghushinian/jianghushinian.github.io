@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go GOPROXY 兜底链的坑：从一次诡异的 CI lint 失败说起 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go">
+    <meta name="description" content="一天，我正在搬砖，本地修改完 Go 代码后，打算通过 make image 命令来构建 Docker 镜像进行测试。不过在构建镜像的过程中有一个报错，因为 make build 直接构建二进制已经通过，那肯定不是代码的问题，就没有在意。因为本机网络环境不是很好，大概率是网络问题导致 GOPROXY 代理站的模块拉取不到，直接让 Claude Code 帮我来解决。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go GOPROXY 兜底链的坑：从一次诡异的 CI lint 失败说起">
+<meta property="og:url" content="http://www.jianghushinian.cn/2026/09/05/multi-goproxy/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="一天，我正在搬砖，本地修改完 Go 代码后，打算通过 make image 命令来构建 Docker 镜像进行测试。不过在构建镜像的过程中有一个报错，因为 make build 直接构建二进制已经通过，那肯定不是代码的问题，就没有在意。因为本机网络环境不是很好，大概率是网络问题导致 GOPROXY 代理站的模块拉取不到，直接让 Claude Code 帮我来解决。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/09/05/multi-goproxy/1.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/09/05/multi-goproxy/2.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/09/05/multi-goproxy/3.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/09/05/multi-goproxy/4.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/09/05/multi-goproxy/5.png">
+<meta property="article:published_time" content="2026-09-05T09:24:00.000Z">
+<meta property="article:modified_time" content="2026-09-05T09:29:58.617Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2026/09/05/multi-goproxy/1.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go GOPROXY 兜底链的坑：从一次诡异的 CI lint 失败说起</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go GOPROXY 兜底链的坑：从一次诡异的 CI lint 失败说起</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2026-09-05T09:24:00.000Z" itemprop="datePublished" class="page-time">
+  2026-09-05
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#CI-lint-失败"><span class="post-toc-number">1.</span> <span class="post-toc-text">CI lint 失败</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#常见解决方案"><span class="post-toc-number">2.</span> <span class="post-toc-text">常见解决方案</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#终极解决方案"><span class="post-toc-number">3.</span> <span class="post-toc-text">终极解决方案</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#探究原理"><span class="post-toc-number">4.</span> <span class="post-toc-text">探究原理</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#官方文档"><span class="post-toc-number">4.1.</span> <span class="post-toc-text">官方文档</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#源码佐证"><span class="post-toc-number">4.2.</span> <span class="post-toc-text">源码佐证</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#手动验证流程"><span class="post-toc-number">4.3.</span> <span class="post-toc-text">手动验证流程</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#扩展"><span class="post-toc-number">5.</span> <span class="post-toc-text">扩展</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">6.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-multi-goproxy"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go GOPROXY 兜底链的坑：从一次诡异的 CI lint 失败说起</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2026-09-05 17:24:00" datetime="2026-09-05T09:24:00.000Z"  itemprop="datePublished">2026-09-05</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>一天，我正在搬砖，本地修改完 Go 代码后，打算通过 <code>make image</code> 命令来构建 Docker 镜像进行测试。不过在构建镜像的过程中有一个报错，因为 <code>make build</code> 直接构建二进制已经通过，那肯定不是代码的问题，就没有在意。因为本机网络环境不是很好，大概率是网络问题导致 <code>GOPROXY</code> 代理站的模块拉取不到，直接让 Claude Code 帮我来解决。</p>
+<a id="more"></a>
+
+<p>Claude Code 非常给力，几秒钟就解决了问题，测试也很顺利。接下来就是将代码 Push 到远程 Git 仓库。过了几分钟，我收到了一封 CI 失败的邮件，这便引起了我的注意，感觉事情没有那么简单。</p>
+<h3 id="CI-lint-失败"><a href="#CI-lint-失败" class="headerlink" title="CI lint 失败"></a>CI lint 失败</h3><p>果然，我在 CI 日志中看到了 <code>make lint</code> 的报错：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">internal/sensor/<span class="built_in">builtin</span>/echo_sensor.go:35:4: e.Interval undefined</span><br><span class="line">    (<span class="built_in">type</span> *EchoSensor has no field or method Interval) (typecheck)</span><br><span class="line">internal/sensor/metric_engine.go:157:4: m.Interval undefined</span><br><span class="line">    (<span class="built_in">type</span> *MetricEngine has no field or method Interval) (typecheck)</span><br></pre></td></tr></table></figure>
+
+<p>这个报错非常奇怪，因为 <code>make build</code> 是依赖 <code>make lint</code> 的，所以我本地已经验证过 <code>make lint</code> 是没有问题的，这就很诡异了。</p>
+<p>于是，我又让 Claude Code 帮我分析一下日志。这一次 Claude Code 分析了一会，结果依然是 <code>GOPROXY</code> 代理的问题，提示我 CI 上也要换一个 <code>GOPROXY</code> 地址。我使用 CI 中的 <code>GOPROXY</code> 重新在本地执行 <code>make image</code> 看了一下日志，果然发现了重点：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/go/pkg/mod/go.mongodb.org/mongo-driver@v1.17.9/x/mongo/driver/compression.go:17:2:</span><br><span class="line">zip: not a valid zip file</span><br></pre></td></tr></table></figure>
+
+<p>经过分析，确认是 <code>GOPROXY</code> 代理站中的 <code>github.com/klauspost/compress/@v/v1.18.5.zip</code> 这个包文件损坏了，<code>go mod download</code> 下载失败。</p>
+<h3 id="常见解决方案"><a href="#常见解决方案" class="headerlink" title="常见解决方案"></a>常见解决方案</h3><p>不过没关系，我还有备用的 <code>GOPROXY</code> 代理站。解决方案非常简单，配置 <code>GOPROXY</code> 为：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GOPROXY=<span class="string">"https://goproxy.proxy2,https://goproxy.proxy1,direct"</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>NOTE:</p>
+<p><a href="https://goproxy.proxy1" target="_blank" rel="noopener">https://goproxy.proxy1</a> 为之前失败的 <code>GOPROXY</code>；<a href="https://goproxy.proxy2" target="_blank" rel="noopener">https://goproxy.proxy2</a> 为备用的 <code>GOPROXY</code>。</p>
+</blockquote>
+<p>这是一个非常标准的 <code>GOPROXY</code> 配置做法，通过逗号（<code>,</code>）分隔多个 PROXY 镜像站。<code>go mod download</code> 下载 Go 模块时，首先尝试 <code>proxy2</code>，如果 <code>proxy2</code>失败，则继续尝试 <code>proxy1</code>，如果 <code>proxy1</code> 也失败，则回退到不经过代理，直接访问源站。</p>
+<p>为了保险起见，我直接配置了两个代理站，然后本地本地验证了一下，没什么问题，再次 Push 到远程 Git 仓库。</p>
+<p>结果，过了一会，我再次收到了一封 CI 失败的邮件。</p>
+<h3 id="终极解决方案"><a href="#终极解决方案" class="headerlink" title="终极解决方案"></a>终极解决方案</h3><p>这一次 CI 的日志中，显示有多个模块出现<font style="color:rgb(0, 0, 0);"> </font><code>500 Internal Server Error</code> 错误。</p>
+<p>经过我的实测，发现确实是 <code>proxy2</code> 代理站不够稳定，偶现 <code>500</code> 错误。但这就有点奇怪了，既然 <code>proxy2</code> 不够稳定，我也配置了降级策略，为什么 <code>GOPROXY</code> 没有切换到 <code>proxy1</code> 呢？</p>
+<p>按照常理来分析，<code>proxy1</code> 只有 <code>klauspost/compress</code> 包有问题，<code>proxy2</code> 不够稳定。那么两者结合，极大概率不会出现问题，因为大部分模块都可以从 <code>proxy2</code> 下载成功，当 <code>proxy2</code> 下载失败时，自动降级到 <code>proxy1</code>，除非遇到 <code>klauspost/compress</code> 被降级到 <code>proxy1</code>，否则将都会成功。</p>
+<p>那我为什么还是遇到了失败呢？</p>
+<p>于是，我又让 Claude Code 帮我分析一下。Claude Code 给了我一个非常简单直接的答案：</p>
+<p><code>GOPROXY</code> 的分隔符如果为逗号（<code>,</code>），那么只有在遇到 HTTP <code>404/410</code> 错误时，才会降级。而我遇到的是 <code>500</code> 错误，则不会降级。只需要将逗号（<code>,</code>）换成管道符（<code>|</code>）即可。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GOPROXY=<span class="string">"https://goproxy.proxy2|https://goproxy.proxy1|direct"</span></span><br></pre></td></tr></table></figure>
+
+<p>一顿操作尝试后，果然成功了。而且每次都能成功，看来降级问题解决了。</p>
+<h3 id="探究原理"><a href="#探究原理" class="headerlink" title="探究原理"></a>探究原理</h3><p>使用逗号（<code>,</code>）来分隔多个 <code>GOPROXY</code> 配置项，可谓是每一位 Gopher 的常识了。在 Google 上搜索 <code>go goproxy</code> 关键字：</p>
+<!-- 这是一张图片，ocr 内容为： -->
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="1.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>搜到的所有文章，每一篇都是这么讲解的，无一例外。</p>
+<p>即使是大名鼎鼎的 <a href="https://goproxy.io/" target="_blank" rel="noopener">https://goproxy.io/</a> 和 <a href="https://goproxy.cn/" target="_blank" rel="noopener">https://goproxy.cn/</a> 也同样如此：</p>
+<!-- 这是一张图片，ocr 内容为： -->
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="2.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<!-- 这是一张图片，ocr 内容为： -->
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="3.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>网上能搜到的各种文章，几乎最终都会归纳到如下 3 种情况之一：</p>
+<p>官方默认值是：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ GOPROXY=https://proxy.golang.org,direct</span><br></pre></td></tr></table></figure>
+
+<p>国内应该配置为：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">export</span> GOPROXY=https://goproxy.cn</span><br></pre></td></tr></table></figure>
+
+<p>或者：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">export</span> GOPROXY=https://goproxy.io,direct</span><br></pre></td></tr></table></figure>
+
+<p>再没有了，大家的答案出奇的一致。道理我们都懂，也一直是这样使用的。</p>
+<p>但今天，却不灵了。</p>
+<p>虽然问题解决了。但是为了谨慎求证，避免埋坑，我还是刻意继续搜了一下官方文档以及 Go 源码，进行了进一步的探索。</p>
+<h4 id="官方文档"><a href="#官方文档" class="headerlink" title="官方文档"></a>官方文档</h4><p>其实，在官方文档中，还真有提到使用管道符（<code>|</code>）来分隔多个 PROXY 配置项：</p>
+<blockquote>
+<p><a href="https://go.dev/ref/mod#goproxy-protocol" target="_blank" rel="noopener">https://go.dev/ref/mod#goproxy-protocol</a></p>
+</blockquote>
+<!-- 这是一张图片，ocr 内容为： -->
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="4.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>但我从 Google 上搜索到的文章，也确实没看到有人提到这个。</p>
+<p>这其实是一件很诡异的一件事情，甚至细思极恐。但也说明遇到这种现象的人确实不多。</p>
+<h4 id="源码佐证"><a href="#源码佐证" class="headerlink" title="源码佐证"></a>源码佐证</h4><p>虽然 Claude Code 和 Go 官方文档都告诉了我们解决方案。但我还是想从源码的角度，来探究一下，<code>go mod download</code> 到底是怎么处理 <code>GOPROXY</code> 的。</p>
+<p>首先我在 <code>go mod download</code> 命令相关的代码中找到了 <code>proxyList</code> 函数：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.26.0/src/cmd/go/internal/modfetch/proxy.go#L71" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.26.0/src/cmd/go/internal/modfetch/proxy.go#L71</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">proxyList</span><span class="params">()</span> <span class="params">([]proxySpec, error)</span></span> &#123;</span><br><span class="line">	proxyOnce.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    	...</span><br><span class="line"></span><br><span class="line">		goproxy := cfg.GOPROXY</span><br><span class="line">		<span class="keyword">for</span> goproxy != <span class="string">""</span> &#123;</span><br><span class="line">			<span class="keyword">var</span> url <span class="keyword">string</span></span><br><span class="line">			fallBackOnError := <span class="literal">false</span> <span class="comment">// 默认值为 false</span></span><br><span class="line">			<span class="keyword">if</span> i := strings.IndexAny(goproxy, <span class="string">",|"</span>); i &gt;= <span class="number">0</span> &#123;</span><br><span class="line">				url = goproxy[:i]</span><br><span class="line">				fallBackOnError = goproxy[i] == <span class="string">'|'</span> <span class="comment">// 如果是管道符，则为 true</span></span><br><span class="line">				goproxy = goproxy[i+<span class="number">1</span>:]</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				url = goproxy</span><br><span class="line">				goproxy = <span class="string">""</span></span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			...</span><br><span class="line"></span><br><span class="line">            proxyOnce.list = <span class="built_in">append</span>(proxyOnce.list, proxySpec&#123;</span><br><span class="line">				url:             url,</span><br><span class="line">				fallBackOnError: fallBackOnError,</span><br><span class="line">			&#125;)</span><br><span class="line">        &#125;</span><br><span class="line">        ...</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> proxyOnce.list, proxyOnce.err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个函数顾名思义，用来列出 <code>GOPROXY</code> 的配置项列表。</p>
+<p>这里有一行重点 <code>fallBackOnError := false</code>，如果 PROXY 分隔符为管道符（<code>|</code>），则设置 <code>fallBackOnError</code> 值为 <code>true</code>。</p>
+<p><code>fallBackOnError</code> 是 <code>proxySpec</code> 结构体的一个字段：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> proxySpec <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// url is the proxy URL or one of "off", "direct", "noproxy".</span></span><br><span class="line">	url <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// fallBackOnError is true if a request should be attempted on the next proxy</span></span><br><span class="line">	<span class="comment">// in the list after any error from this proxy. If fallBackOnError is false,</span></span><br><span class="line">	<span class="comment">// the request will only be attempted on the next proxy if the error is</span></span><br><span class="line">	<span class="comment">// equivalent to os.ErrNotFound, which is true for 404 and 410 responses.</span></span><br><span class="line">	fallBackOnError <span class="keyword">bool</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>根据注释可以知道，<code>fallBackOnError</code> 用于控制回退行为：</p>
+<ul>
+<li><code>fallBackOnError</code> 为 <code>true</code> 时，如果当前代理返回任何错误，都会尝试列表中的下一个代理。</li>
+<li>如果 <code>fallBackOnError</code> 为 <code>false</code>，只有当错误等同于 <code>os.ErrNotFound</code> 时（即 404 和 410 响应），才会尝试下一个代理。</li>
+</ul>
+<p>接着我们看一下 <code>proxyList</code> 函数的调用方 <code>TryProxies</code> 的定义：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.26.0/src/cmd/go/internal/modfetch/proxy.go#L138" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.26.0/src/cmd/go/internal/modfetch/proxy.go#L138</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TryProxies</span><span class="params">(f <span class="keyword">func</span>(proxy <span class="keyword">string</span>)</span> <span class="title">error</span>) <span class="title">error</span></span> &#123;</span><br><span class="line">	proxies, err := proxyList()</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> _, proxy := <span class="keyword">range</span> proxies &#123;</span><br><span class="line">		err := f(proxy.url) <span class="comment">// 执行 HTTP 请求</span></span><br><span class="line">		<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span> <span class="comment">// 成功直接返回</span></span><br><span class="line">		&#125;</span><br><span class="line">		isNotExistErr := errors.Is(err, fs.ErrNotExist)</span><br><span class="line"></span><br><span class="line">		...</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 是否应该回退</span></span><br><span class="line">		<span class="keyword">if</span> !proxy.fallBackOnError &amp;&amp; !isNotExistErr &#123;</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> bestErr</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里遍历每一个 <code>proxy</code>（这里的 <code>proxy</code> 就是 <code>proxySpec</code> 结构体）执行 HTTP 请求，下载 Go 模块。</p>
+<p>如果成功，直接返回。否则，会判断是否应该回退。重点代码片段：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> !proxy.fallBackOnError &amp;&amp; !isNotExistErr &#123;</span><br><span class="line">    <span class="keyword">break</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>只有当 <code>fallBackOnError</code> 为 <code>true</code>，并且不是 <code>isNotExistErr</code> 错误时，才进行回退降级处理。</p>
+<p><code>fallBackOnError</code> 为 <code>true</code> 的情况我们已经知道了，就是 <code>GOPROXY</code> 分隔符为管道符（<code>|</code>）时。而 <code>isNotExistErr</code> 错误是从执行 HTTP 请求的 <code>f(proxy.url)</code> 返回结果中获得的。我们知道，Go HTTP 请求出错，会返回 <code>*HTTPError</code> 类型，而它的 <code>Is</code> 方法定义如下：</p>
+<blockquote>
+<p><a href="https://github.com/golang/go/blob/go1.26.0/src/cmd/go/internal/web/api.go#L72" target="_blank" rel="noopener">https://github.com/golang/go/blob/go1.26.0/src/cmd/go/internal/web/api.go#L72</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(e *HTTPError)</span> <span class="title">Is</span><span class="params">(target error)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> target == fs.ErrNotExist &amp;&amp; (e.StatusCode == <span class="number">404</span> || e.StatusCode == <span class="number">410</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，当返回的 HTTP 状态码为 404 或 410 时，<code>Is</code> 方法才会返回 <code>true</code>。</p>
+<p>所以，源码看完了，能够证实两件事情：</p>
+<ol>
+<li>当使用逗号（<code>,</code>）作为 <code>GOPROXY</code> 分隔符，执行 <code>go mod download</code> 遇到 404、410 状态码时，才会回退。</li>
+<li>而使用管道符（<code>|</code>）作为 <code>GOPROXY</code> 分隔符时，执行 <code>go mod download</code> 遇到任何错误，都会回退。</li>
+</ol>
+<p>此外，还可以发现下载 Go 模块是在 <code>for</code> 循环中执行。也就是说，下载每一个 Go 模块，都会经历这个过程。而不是执行到某个模块时，遇到问题，切换代理后，下载下一个模块，就不再切换回来了。这可以最大限度的解决 PROXY 不稳定的问题。</p>
+<h4 id="手动验证流程"><a href="#手动验证流程" class="headerlink" title="手动验证流程"></a>手动验证流程</h4><p>我写了一个 demo，可以用来验证 <code>GOPROXY</code> 配置中逗号 (<code>,</code>) 和管道 (<code>|</code>) 分隔符的区别。执行 <code>go mod download</code> 遇到不同情况的表现，都可以通过这个 demo 还原出来。</p>
+<p>感兴趣的读者，可以点击链接进行查看：</p>
+<p><a href="https://github.com/jianghushinian/blog-go-example/tree/main/multi-goproxy" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/multi-goproxy</a></p>
+<p>也特别建议读者可以自己将代码 clone 下来，实操一遍，加深理解。</p>
+<h3 id="扩展"><a href="#扩展" class="headerlink" title="扩展"></a>扩展</h3><p><code>GOPROXY</code> 其实是 Go Module Proxy 协议的一部分，一个 Go Proxy 代理站的原理并不复杂，只需要根据协议实现如下几个核心端点，就是一个 Go Proxy 代理站：</p>
+<table>
+<thead>
+<tr>
+<th>端点</th>
+<th>说明</th>
+<th>响应格式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/&lt;module&gt;/@v/list</code></td>
+<td>列出所有已知版本</td>
+<td>纯文本，每行一个版本</td>
+</tr>
+<tr>
+<td><code>/&lt;module&gt;/@v/&lt;version&gt;.info</code></td>
+<td>版本元数据</td>
+<td>JSON: <code>{Version, Time}</code></td>
+</tr>
+<tr>
+<td><code>/&lt;module&gt;/@v/&lt;version&gt;.mod</code></td>
+<td>go.mod 文件内容</td>
+<td>文本</td>
+</tr>
+<tr>
+<td><code>/&lt;module&gt;/@v/&lt;version&gt;.zip</code></td>
+<td>模块源码压缩包</td>
+<td>二进制</td>
+</tr>
+<tr>
+<td><code>/&lt;module&gt;/@latest</code></td>
+<td>最新版本信息</td>
+<td>JSON: <code>{Version, Time}</code></td>
+</tr>
+</tbody></table>
+<p>比如，拿 <a href="https://goproxy.cn/" target="_blank" rel="noopener">https://goproxy.cn/</a> 来举例子。</p>
+<p>就访问我下载失败的 <code>github.com/klauspost/compress@v1.18.5</code> 模块，则可以访问这个地址 <a href="https://goproxy.cn/github.com/klauspost/compress/@v/v1.18.5.info" target="_blank" rel="noopener">https://goproxy.cn/github.com/klauspost/compress/@v/v1.18.5.info</a> ，得到如下结果：</p>
+<!-- 这是一张图片，ocr 内容为： -->
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="5.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>其他端点，你可以自行尝试。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文通过一个真实的 CI lint 失败案例，来带大家探索 GOPROXY 不为人知的隐藏使用技巧。虽然 <code>GOPROXY=[https://goproxy.io,direct](https://goproxy.io,direct)</code> 能解决 99% 的问题，但当遇到 PROXY 网站不稳定时，我们还有管道符（<code>|</code>）这根救命稻草。</p>
+<p>尽管这是一个非常微小的技巧，微不足道。但我还是愿意专门为此写一篇文章，来分享给大家。身份 Gopher，我想大部分人写了几年 Go 代码，都不一定能遇到这个问题。而 Google 搜索出来的答案，也确实证实了这一点，所以才有了这篇文章。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>Go Modules Reference：<a href="https://go.dev/ref/mod#goproxy-protocol" target="_blank" rel="noopener">https://go.dev/ref/mod#goproxy-protocol</a></li>
+<li>The most trusted Go module proxy in China：<a href="https://goproxy.cn/" target="_blank" rel="noopener">https://goproxy.cn/</a></li>
+<li>A Global Proxy for Go Modules：<a href="https://goproxy.io/" target="_blank" rel="noopener">https://goproxy.io/</a></li>
+<li>Go Proxy 相关源码：<a href="https://github.com/golang/go/tree/go1.26.0/src/cmd/go/internal/modfetch" target="_blank" rel="noopener">https://github.com/golang/go/tree/go1.26.0/src/cmd/go/internal/modfetch</a></li>
+<li>手动验证 <code>GOPROXY</code> 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/multi-goproxy" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/multi-goproxy</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2026/09/05/multi-goproxy/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/09/05/multi-goproxy/</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-09-05T09:29:58.617Z" itemprop="dateUpdated">2026-09-05 17:29:58</time>
+</span><br>
+
+
+        
+        <a href="/2026/09/05/multi-goproxy/" target="_blank" rel="external">http://www.jianghushinian.cn/2026/09/05/multi-goproxy/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/09/05/multi-goproxy/&title=《Go GOPROXY 兜底链的坑：从一次诡异的 CI lint 失败说起》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/09/05/multi-goproxy/&title=《Go GOPROXY 兜底链的坑：从一次诡异的 CI lint 失败说起》 — 江湖十年&source=一天，我正在搬砖，本地修改完 Go 代码后，打算通过 make image 命令来构建 Docker 镜像进行测试。不过在构建镜像的过程中有一个报错，因为..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/09/05/multi-goproxy/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go GOPROXY 兜底链的坑：从一次诡异的 CI lint 失败说起》 — 江湖十年&url=http://www.jianghushinian.cn/2026/09/05/multi-goproxy/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/09/05/multi-goproxy/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2026/07/25/go-get-1/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 虚荣域名详解：我用 go get -x 抓了个包，终于看清了 Go 工具链“对暗号”的全过程</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/09/05/multi-goproxy/&title=《Go GOPROXY 兜底链的坑：从一次诡异的 CI lint 失败说起》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/09/05/multi-goproxy/&title=《Go GOPROXY 兜底链的坑：从一次诡异的 CI lint 失败说起》 — 江湖十年&source=一天，我正在搬砖，本地修改完 Go 代码后，打算通过 make image 命令来构建 Docker 镜像进行测试。不过在构建镜像的过程中有一个报错，因为..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/09/05/multi-goproxy/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go GOPROXY 兜底链的坑：从一次诡异的 CI lint 失败说起》 — 江湖十年&url=http://www.jianghushinian.cn/2026/09/05/multi-goproxy/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/09/05/multi-goproxy/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2026/09/05/multi-goproxy/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
