@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 1.27 测试相关变化详解：新特性与升级避坑 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,单元测试">
+    <meta name="description" content="Go 1.27 已于 2026 年 8 月 19 日发布。这个版本中，实现了多个与测试相关的改动：既有让编写测试更省心的新 API，也有默认开启、可能导致升级后 go test 直接失败的 vet 检查。本文就来系统梳理这些变化，并给出升级时的注意事项。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 1.27 测试相关变化详解：新特性与升级避坑">
+<meta property="og:url" content="http://www.jianghushinian.cn/2026/10/11/go1.27-testing-changes/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="Go 1.27 已于 2026 年 8 月 19 日发布。这个版本中，实现了多个与测试相关的改动：既有让编写测试更省心的新 API，也有默认开启、可能导致升级后 go test 直接失败的 vet 检查。本文就来系统梳理这些变化，并给出升级时的注意事项。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-11T02:30:00.000Z">
+<meta property="article:modified_time" content="2026-10-11T14:13:10.332Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="单元测试">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 1.27 测试相关变化详解：新特性与升级避坑</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 1.27 测试相关变化详解：新特性与升级避坑</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2026-10-11T02:30:00.000Z" itemprop="datePublished" class="page-time">
+  2026-10-11
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#测试相关变化一览"><span class="post-toc-number">1.</span> <span class="post-toc-text">测试相关变化一览</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#测试服务-httptest-NewTestServer"><span class="post-toc-number">2.</span> <span class="post-toc-text">测试服务 httptest.NewTestServer</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#httptest-NewServer-存在的问题"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">httptest.NewServer 存在的问题</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#NewTestServer-的签名与改进"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">NewTestServer 的签名与改进</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#示例：同一组测试用例，两种写法"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">示例：同一组测试用例，两种写法</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#注意点一：内存网络的请求路由"><span class="post-toc-number">2.4.</span> <span class="post-toc-text">注意点一：内存网络的请求路由</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#注意点二：Start-与-Client-的调用顺序"><span class="post-toc-number">2.5.</span> <span class="post-toc-text">注意点二：Start 与 Client 的调用顺序</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#并发测试-testing-synctest"><span class="post-toc-number">3.</span> <span class="post-toc-text">并发测试 testing&#x2F;synctest</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#1-27-的新变化：Sleep"><span class="post-toc-number">3.1.</span> <span class="post-toc-text">1.27 的新变化：Sleep</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#虚拟时钟与持久阻塞"><span class="post-toc-number">3.2.</span> <span class="post-toc-text">虚拟时钟与持久阻塞</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Wait-等的是什么"><span class="post-toc-number">3.3.</span> <span class="post-toc-text">Wait 等的是什么</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#示例"><span class="post-toc-number">3.4.</span> <span class="post-toc-text">示例</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#限制"><span class="post-toc-number">3.5.</span> <span class="post-toc-text">限制</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#NewTestServer-与-synctest-的结合"><span class="post-toc-number">4.</span> <span class="post-toc-text">NewTestServer 与 synctest 的结合</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#需要注意的问题：并发调用-synctest-Sleep"><span class="post-toc-number">4.1.</span> <span class="post-toc-text">需要注意的问题：并发调用 synctest.Sleep</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#go-test-命令行工具的变化"><span class="post-toc-number">5.</span> <span class="post-toc-text">go test 命令行工具的变化</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#stdversion-检查默认启用"><span class="post-toc-number">5.1.</span> <span class="post-toc-text">stdversion 检查默认启用</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#go-test-json-新增-OutputType-字段"><span class="post-toc-number">5.2.</span> <span class="post-toc-text">go test -json 新增 OutputType 字段</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#vet-printf-检查-w-的指针"><span class="post-toc-number">6.</span> <span class="post-toc-text">vet printf 检查 %w 的指针</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#其他值得一提的变化"><span class="post-toc-number">7.</span> <span class="post-toc-text">其他值得一提的变化</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">8.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go1.27-testing-changes"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 1.27 测试相关变化详解：新特性与升级避坑</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2026-10-11 10:30:00" datetime="2026-10-11T02:30:00.000Z"  itemprop="datePublished">2026-10-11</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>Go 1.27 已于 2026 年 8 月 19 日发布。这个版本中，实现了多个与测试相关的改动：既有让编写测试更省心的新 API，也有默认开启、可能导致升级后 <code>go test</code> 直接失败的 vet 检查。本文就来系统梳理这些变化，并给出升级时的注意事项。</p>
+<a id="more"></a>
+
+<p>本文涉及的全部示例代码，我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/go127" target="_blank" rel="noopener">blog-go-example/test/go127</a> 目录下，各子目录为独立模块，可单独运行。</p>
+<h3 id="测试相关变化一览"><a href="#测试相关变化一览" class="headerlink" title="测试相关变化一览"></a>测试相关变化一览</h3><p>为了方便阅读，这里先列出本文要讲的几处变化：</p>
+<table>
+<thead>
+<tr>
+<th>变化</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>httptest.NewTestServer</code></td>
+<td>新增</td>
+<td>基于内存网络的测试服务器，自动清理、panic 计入测试结果</td>
+</tr>
+<tr>
+<td><code>testing/synctest.Sleep</code></td>
+<td>新增</td>
+<td><code>time.Sleep</code> 与 <code>synctest.Wait</code> 的组合</td>
+</tr>
+<tr>
+<td><code>go test -json</code> 的 <code>OutputType</code></td>
+<td>新增</td>
+<td>区分普通输出、测试框架输出、错误、错误续行</td>
+</tr>
+<tr>
+<td><code>stdversion</code> vet 检查</td>
+<td>默认启用</td>
+<td>检查是否使用了高于 <code>go</code> 指令声明的标准库符号</td>
+</tr>
+<tr>
+<td><code>printf</code> vet 的 <code>%w</code> 指针规则</td>
+<td>新增</td>
+<td>报告会让 <code>errors.Is</code>、<code>errors.As</code> 失效的 <code>%w</code> 包装</td>
+</tr>
+</tbody></table>
+<p>其中 <code>httptest.NewTestServer</code> 与 <code>testing/synctest</code> 关系密切，本文会有示例放在一起讲解。</p>
+<h3 id="测试服务-httptest-NewTestServer"><a href="#测试服务-httptest-NewTestServer" class="headerlink" title="测试服务 httptest.NewTestServer"></a>测试服务 httptest.NewTestServer</h3><h4 id="httptest-NewServer-存在的问题"><a href="#httptest-NewServer-存在的问题" class="headerlink" title="httptest.NewServer 存在的问题"></a>httptest.NewServer 存在的问题</h4><p>在 Go 1.27 之前版本，Go 提供了 <code>httptest.NewServer</code> 用来创建测试服务，它会在 loopback（即本机回环地址 <code>127.0.0.1</code>）上启动一个真实的 HTTP 服务器，并返回服务器的 URL。它简单直接，但也存在几个长期存在的问题：</p>
+<ul>
+<li>一般需要通过手动调用 <code>defer server.Close()</code> 释放资源，容易遗漏。</li>
+<li>它会监听一个真实的 TCP 端口，测试数量多时可能耗尽端口。</li>
+<li>handler 中业务代码如果发生 panic，<code>net/http</code> 会将其 recover 并记录到 stderr，<strong>测试本身不会失败</strong>。</li>
+<li>使用真实的网络 I/O，无法完美配合 <code>testing/synctest</code> 使用（网络阻塞不属于持久阻塞）。</li>
+</ul>
+<blockquote>
+<p>NOTE:</p>
+<p>如果你对 <code>httptest.NewServer</code> 还不太熟悉，可以参考我之前的文章<a href="https://jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/" target="_blank" rel="noopener">《在 Go 语言单元测试中如何解决 HTTP 网络依赖问题》</a>。</p>
+</blockquote>
+<h4 id="NewTestServer-的签名与改进"><a href="#NewTestServer-的签名与改进" class="headerlink" title="NewTestServer 的签名与改进"></a>NewTestServer 的签名与改进</h4><p>Go 1.27 新增了 <code>httptest.NewTestServer</code>，其签名如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewTestServer</span><span class="params">(t testing.TB, handler http.Handler)</span> *<span class="title">Server</span></span></span><br></pre></td></tr></table></figure>
+
+<p>它返回的类型依然是 <code>*httptest.Server</code>，与 <code>NewServer</code> 相同，区别在于：</p>
+<ul>
+<li>接收 <code>testing.TB</code>，并通过 <code>t.Cleanup</code> 在测试结束时自动关闭，无需再写 <code>defer server.Close()</code>。</li>
+<li>默认使用内存网络（in-memory network），<code>server.Listener == nil</code>，不占用真实端口。</li>
+<li>handler 中的 panic 会被报告为测试失败（<code>t.Errorf</code>）。</li>
+<li>内存网络将 HTTP 通信转化为内存中的连接，可以配合 <code>testing/synctest</code> 使用。</li>
+</ul>
+<blockquote>
+<p>NOTE:</p>
+<p><code>testing/synctest</code> 在 Go 1.25 正式转正，我在之前的文章<a href="https://jianghushinian.cn/2025/09/05/testing-synctest/" target="_blank" rel="noopener">《使用 testing/synctest 测试并发代码》</a>中做过介绍，此处不再展开，只讲它在 1.27 中的新变化。</p>
+</blockquote>
+<h4 id="示例：同一组测试用例，两种写法"><a href="#示例：同一组测试用例，两种写法" class="headerlink" title="示例：同一组测试用例，两种写法"></a>示例：同一组测试用例，两种写法</h4><p>下面用同一个被测客户端 <code>UserClient</code> 来对比两种写法。客户端代码如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/http/client/client.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/http/client/client.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// UserClient 用户客户端</span></span><br><span class="line"><span class="keyword">type</span> UserClient <span class="keyword">struct</span> &#123;</span><br><span class="line">	BaseURL <span class="keyword">string</span></span><br><span class="line">	Client  *http.Client</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewUserClient 创建用户客户端实例</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewUserClient</span><span class="params">(baseURL <span class="keyword">string</span>, client *http.Client)</span> *<span class="title">UserClient</span></span> &#123;</span><br><span class="line">	uc := &amp;UserClient&#123;BaseURL: baseURL, Client: client&#125;</span><br><span class="line">	<span class="keyword">if</span> client == <span class="literal">nil</span> &#123;</span><br><span class="line">		uc.Client = http.DefaultClient</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> uc</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// GetUser 从 HTTP 服务获取用户信息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *UserClient)</span> <span class="title">GetUser</span><span class="params">(userID <span class="keyword">int</span>)</span> <span class="params">(*User, error)</span></span> &#123;</span><br><span class="line">	url := fmt.Sprintf(<span class="string">"%s/users/%d"</span>, c.BaseURL, userID)</span><br><span class="line">	resp, err := c.Client.Get(url)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> resp.Body.Close()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> resp.StatusCode != http.StatusOK &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"API status code: %d"</span>, resp.StatusCode)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> user User</span><br><span class="line">	<span class="keyword">if</span> err := json.NewDecoder(resp.Body).Decode(&amp;user); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;user, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意 <code>UserClient</code> 通过构造函数注入了一个 <code>*http.Client</code>，这是使用 <code>NewTestServer</code> 的前提，原因稍后会说明。</p>
+<p>使用老写法 <code>NewServer</code> 的测试用例 <code>TestUserClientA</code> 如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/http/client/client_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/http/client/client_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">ts := httptest.NewServer(</span><br><span class="line">	http.HandlerFunc(<span class="function"><span class="keyword">func</span><span class="params">(w http.ResponseWriter, r *http.Request)</span></span> &#123;</span><br><span class="line">		w.WriteHeader(tt.status)</span><br><span class="line">		<span class="keyword">if</span> tt.response != <span class="string">""</span> &#123;</span><br><span class="line">			w.Write([]<span class="keyword">byte</span>(tt.response))</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;),</span><br><span class="line">)</span><br><span class="line"><span class="keyword">defer</span> ts.Close()</span><br><span class="line"></span><br><span class="line">client := NewUserClient(ts.URL, <span class="literal">nil</span>)</span><br><span class="line">user, err := client.GetUser(tt.user.ID)</span><br></pre></td></tr></table></figure>
+
+<p>使用新写法 <code>NewTestServer</code> 的测试用例 <code>TestUserClientB</code> 如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/http/client/client_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/http/client/client_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">ts := httptest.NewTestServer(</span><br><span class="line">	t,</span><br><span class="line">	http.HandlerFunc(<span class="function"><span class="keyword">func</span><span class="params">(w http.ResponseWriter, r *http.Request)</span></span> &#123;</span><br><span class="line">		w.WriteHeader(tt.status)</span><br><span class="line">		<span class="keyword">if</span> tt.response != <span class="string">""</span> &#123;</span><br><span class="line">			w.Write([]<span class="keyword">byte</span>(tt.response))</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;),</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">client := ts.Client()</span><br><span class="line">uc := NewUserClient(ts.URL, client)</span><br><span class="line">user, err := uc.GetUser(tt.user.ID)</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，新写法去掉了 <code>defer ts.Close()</code>，并且必须通过 <code>ts.Client()</code> 获取客户端。这两点背后分别是自动清理和内存网络路由机制，下面分别说明。</p>
+<h4 id="注意点一：内存网络的请求路由"><a href="#注意点一：内存网络的请求路由" class="headerlink" title="注意点一：内存网络的请求路由"></a>注意点一：内存网络的请求路由</h4><p>内存网络下，请求的”任意地址都路由到测试服务器”这一行为，实现在 <code>server.Client()</code> 返回的 <code>*http.Client</code> 的 Transport 中：它的 <code>DialContext</code> 直接返回内存 listener 的连接，从而忽略请求地址。</p>
+<p>因此在内存网络模式下，必须使用 <code>server.Client()</code>，普通的 <code>http.DefaultClient</code> 无法访问内存服务器。此外，<code>server.URL</code> 在首次调用 <code>Client()</code>、<code>Start()</code> 或 <code>StartTLS()</code> 之前是空字符串，调用之后会被设置为 <code>http://example.com</code>。</p>
+<p>核心逻辑用下面这段精简的测试代码说明即可：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/http/client/routing_demo_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/http/client/routing_demo_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">ts := httptest.NewTestServer(t, http.HandlerFunc(<span class="function"><span class="keyword">func</span><span class="params">(w http.ResponseWriter, r *http.Request)</span></span> &#123;</span><br><span class="line">	fmt.Fprintf(w, <span class="string">"served by test server, host=%s path=%s"</span>, r.Host, r.URL.Path)</span><br><span class="line">&#125;))</span><br><span class="line"></span><br><span class="line"><span class="comment">// server.Client()：无视请求地址，一律路由到内存服务器</span></span><br><span class="line">resp, err := ts.Client().Get(<span class="string">"http://totally.other.host/anything"</span>)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	t.Fatalf(<span class="string">"server.Client() should reach the in-memory server: %v"</span>, err)</span><br><span class="line">&#125;</span><br><span class="line">io.Copy(io.Discard, resp.Body)</span><br><span class="line">resp.Body.Close()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 普通 client：没有这层路由，会真的去拨 server.URL 里的地址（内存模式下是 example.com）。</span></span><br><span class="line"><span class="comment">// 这里用 DialContext 把连接拦下来，只是为了证明它确实在拨那个地址，而不是真的访问公网。</span></span><br><span class="line"><span class="keyword">var</span> dialed <span class="keyword">string</span></span><br><span class="line">plain := &amp;http.Client&#123;Transport: &amp;http.Transport&#123;</span><br><span class="line">	DialContext: <span class="function"><span class="keyword">func</span><span class="params">(_ context.Context, _ <span class="keyword">string</span>, addr <span class="keyword">string</span>)</span> <span class="params">(net.Conn, error)</span></span> &#123;</span><br><span class="line">		dialed = addr</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">"blocked by demo"</span>)</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;&#125;</span><br><span class="line"><span class="keyword">if</span> _, err := plain.Get(ts.URL); err == <span class="literal">nil</span> &#123;</span><br><span class="line">	t.Fatal(<span class="string">"plain client should not reach the in-memory server"</span>)</span><br><span class="line">&#125;</span><br><span class="line">t.Logf(<span class="string">"plain client dialed %q, not the in-memory listener"</span>, dialed)</span><br></pre></td></tr></table></figure>
+
+<p>运行结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -tags inmemory_demo -run TestInMemoryRoutingGotcha -v .</span><br><span class="line">=== RUN   TestInMemoryRoutingGotcha</span><br><span class="line">    routing_demo_test.go:27: before Client(): url=<span class="string">""</span> listener=&lt;nil&gt;</span><br><span class="line">    routing_demo_test.go:29: after  Client(): url=<span class="string">"http://example.com"</span> listener=&lt;nil&gt;</span><br><span class="line">    routing_demo_test.go:38: server.Client() -&gt; <span class="string">"served by test server, host=totally.other.host path=/anything"</span></span><br><span class="line">    routing_demo_test.go:52: plain client dialed <span class="string">"example.com:80"</span> (real network), not the <span class="keyword">in</span>-memory listener</span><br><span class="line">--- PASS: TestInMemoryRoutingGotcha (0.00s)</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，<code>server.Client()</code> 无视请求地址，将 <code>http://totally.other.host/anything</code> 路由到了内存服务器；而普通的 client 会去访问真实的 <code>example.com:80</code>，请求直接打到公网。</p>
+<p>这一点也解释了一个容易被忽略的问题：如果被测客户端内部使用的是 <code>http.Get</code> 这样的包级函数，而不是注入的 <code>http.Client</code>，那么用旧的 <code>NewServer</code>（loopback 网络）测试时能够通过——因为 URL 确实可以访问；但换成内存网络后，请求会被发往公网，测试行为与线上不一致。换句话说，<code>NewTestServer</code> 会让这类隐藏问题暴露出来，这也是为什么推荐通过依赖注入的方式使用 <code>*http.Client</code>。</p>
+<h4 id="注意点二：Start-与-Client-的调用顺序"><a href="#注意点二：Start-与-Client-的调用顺序" class="headerlink" title="注意点二：Start 与 Client 的调用顺序"></a>注意点二：Start 与 Client 的调用顺序</h4><p><code>NewTestServer</code> 默认使用内存网络。如果确实需要真实端口（例如需要用其它工具访问该服务器），可以调用 <code>Start()</code> 或 <code>StartTLS()</code>，此时服务器会切换回 loopback 真实监听。</p>
+<p>需要注意的是调用顺序：应当先调用 <code>Start()</code>，再调用 <code>Client()</code>。如果反过来先调用 <code>Client()</code>，再调用 <code>Start()</code>，会 panic：<code>Server already started</code>。</p>
+<p>示例 <code>startorder_demo_test.go</code> 的验证结果如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/http/client/startorder_demo_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/http/client/startorder_demo_test.go</a></p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -tags startorder_demo -v .</span><br><span class="line">    startorder_demo_test.go:21: after Start: url=<span class="string">"http://127.0.0.1:56966"</span> listener=<span class="literal">true</span></span><br><span class="line">--- PASS: TestStartBeforeClient (0.00s)</span><br><span class="line">    startorder_demo_test.go:37: recovered panic: Server already started</span><br><span class="line">--- PASS: TestClientThenStartPanics (0.00s)</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，先 <code>Start()</code> 时 <code>server.URL</code> 变为 <code>http://127.0.0.1:56966</code>，<code>Listener</code> 也不为空；而先 <code>Client()</code> 再 <code>Start()</code> 则会 panic。</p>
+<h3 id="并发测试-testing-synctest"><a href="#并发测试-testing-synctest" class="headerlink" title="并发测试 testing/synctest"></a>并发测试 testing/synctest</h3><h4 id="1-27-的新变化：Sleep"><a href="#1-27-的新变化：Sleep" class="headerlink" title="1.27 的新变化：Sleep"></a>1.27 的新变化：Sleep</h4><p><code>testing/synctest</code> 在 Go 1.24 引入实验版本（<code>Run</code>、<code>Wait</code>），Go 1.25 转正（<code>Run</code> 被 <code>Test</code> 取代），Go 1.27 又新增了 <code>Sleep</code>。截至 Go 1.27，该包对外只提供 3 个函数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Test</span><span class="params">(t *testing.T, f <span class="keyword">func</span>(*testing.T)</span>) // <span class="title">Go</span> 1.25</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Wait</span><span class="params">()</span>                                 // <span class="title">Go</span> 1.25</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Sleep</span><span class="params">(d time.Duration)</span>                 // <span class="title">Go</span> 1.27 新增</span></span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>Sleep</code> 等价于 <code>time.Sleep(d)</code> 后跟一次 <code>Wait()</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Sleep</span><span class="params">(d time.Duration)</span></span> &#123;</span><br><span class="line">	time.Sleep(d)</span><br><span class="line">	Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>它的用途是：在气泡内推进虚拟时间，同时等待其它 goroutine 稳定下来，从而使“睡一段时间后断言”的写法既快速又可靠。</p>
+<p>为了理解 <code>Sleep</code> 到底等的是什么，需要先回顾两个核心概念：虚拟时钟和持久阻塞。</p>
+<h4 id="虚拟时钟与持久阻塞"><a href="#虚拟时钟与持久阻塞" class="headerlink" title="虚拟时钟与持久阻塞"></a>虚拟时钟与持久阻塞</h4><p><code>Test</code> 会在一个隔离的“气泡”中运行测试函数。气泡内的时间是一个虚拟时钟，起点固定为 UTC 2000-01-01 00:00。气泡内的所有 <code>time.Now()</code>、<code>time.Sleep()</code> 和定时器都基于这个虚拟时钟。</p>
+<p>当气泡内的所有 goroutine 都处于持久阻塞（durably blocked）状态时，虚拟时钟才会向前推进。所谓持久阻塞，是指某个 goroutine 阻塞，且只能被气泡内的其它 goroutine 唤醒。以下操作会被视为持久阻塞：</p>
+<ul>
+<li>在 <code>nil</code> channel 上发送或接收；</li>
+<li>在同一气泡内创建的 channel 上阻塞发送或接收；</li>
+<li>每个 <code>case</code> 都持久阻塞的 <code>select</code> 语句；</li>
+<li><code>time.Sleep</code>；</li>
+<li><code>sync.Cond.Wait</code>；</li>
+<li><code>sync.WaitGroup.Wait</code>。</li>
+</ul>
+<p>以下操作不属于持久阻塞（因为它们可能被气泡外的事件唤醒）：</p>
+<ul>
+<li><code>sync.Mutex</code>、<code>sync.RWMutex</code> 等锁竞争；</li>
+<li>网络 I/O；</li>
+<li>文件 I/O、系统调用。</li>
+</ul>
+<p>当气泡被持久阻塞时，按以下顺序处理：</p>
+<ul>
+<li>如果有未完成的 <code>Wait</code> 调用，则返回；</li>
+<li>否则，虚拟时钟推进到下一个可以唤醒某个 goroutine 的时刻；</li>
+<li>否则，气泡陷入死锁，<code>Test</code> 会 panic。</li>
+</ul>
+<h4 id="Wait-等的是什么"><a href="#Wait-等的是什么" class="headerlink" title="Wait 等的是什么"></a>Wait 等的是什么</h4><p>一个常见的误解是：<code>Wait</code> 在等“其它 goroutine 把活干完”。实际上，<code>Wait</code> 等待的是一条纯粹的状态谓词：除调用者外（调用 <code>Wait</code> 的那个 goroutine，通常是测试函数自己的 goroutine），气泡内其它每个 goroutine 都处于持久阻塞状态（或已退出）。</p>
+<p>之所以要把调用者排除在外，是因为调用者一调用 <code>Wait</code>，自己就会先被阻塞住，直到条件满足才返回——把自己的状态算进谓词里没有意义。所以可以把 <code>Wait</code> 理解为“等其它 goroutine 都稳定下来（要么持久阻塞，要么退出），我再继续”。它并不关心“任务”是否真正完成。</p>
+<p>来看下面这个例子：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/synctest/wait_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/synctest/wait_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">synctest.Test(t, <span class="function"><span class="keyword">func</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> done atomic.Bool</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">		done.Store(<span class="literal">true</span>)</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">	t.Log(done.Load()) <span class="comment">// 此处 done 可能仍然是 false</span></span><br><span class="line">	synctest.Wait()</span><br><span class="line">	t.Log(done.Load()) <span class="comment">// 此处 done 必然是 true</span></span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>这段代码的关键在于虚拟时钟是怎么“跳”到 1s 的：测试 goroutine 和被测 goroutine 都调用了 <code>time.Sleep(1 * time.Second)</code>，同时处于持久阻塞。按照上文的规则，当气泡内所有 goroutine 都持久阻塞时，虚拟时钟不会一秒一秒地走，而是直接推进到“最早能唤醒某个 goroutine”的时刻——也就是 1s。此时两个定时器同时到期，两个 goroutine 都恢复为可运行，但谁先执行是不确定的：</p>
+<ul>
+<li>如果测试 goroutine 先执行：第一个 <code>t.Log(done)</code> 读到的是 <code>false</code>，因为子 goroutine 还没运行到 <code>done.Store(true)</code>。随后调用 <code>synctest.Wait()</code>，此时子 goroutine 处于可运行状态（既未持久阻塞也未退出），<code>Wait</code> 不会返回；子 goroutine 会被继续执行，<code>Store(true)</code> 后退出，<code>Wait</code> 这才返回，所以第二个 <code>t.Log(done)</code> 必然是 <code>true</code>。</li>
+<li>如果子 goroutine 先执行：<code>done.Store(true)</code> 完成、子 goroutine 退出，测试 goroutine 再执行时第一个 <code>t.Log(done)</code> 读到的就是 <code>true</code>；此时调用 <code>Wait</code> 只需确认“其它 goroutine 已退出”立刻就能返回，第二个仍然是 <code>true</code>。</li>
+</ul>
+<p>无论哪种顺序，<code>Wait</code> 之后都能确定 <code>done</code> 已经是 <code>true</code>，这正是用 <code>Wait</code>（或 <code>Sleep</code>）来做断言的意义所在。</p>
+<p>这也是 <code>Sleep = time.Sleep + Wait</code> 的意义：仅仅“睡够时间”只保证自己醒来了，<code>Wait</code> 才保证其它 goroutine 都已稳定下来，此时做断言才有确定性。</p>
+<h4 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h4><p>下面这个例子分别用真实时间和 <code>synctest</code> 来测试同一段逻辑，可以直观地看到差异：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/synctest/synctest_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/synctest/synctest_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestTime</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	start := time.Now() <span class="comment">// 起始时间为当前时间</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">		t.Log(time.Since(start)) <span class="comment">// 每次输出都是 "1s"</span></span><br><span class="line">	&#125;()</span><br><span class="line">	time.Sleep(<span class="number">2</span> * time.Second)</span><br><span class="line">	t.Log(time.Since(start)) <span class="comment">// 每次输出都是 "2s"</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestTimeWithSynctest</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	synctest.Test(t, <span class="function"><span class="keyword">func</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">		start := time.Now() <span class="comment">// 起始时间为 2000-01-01 UTC</span></span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">			t.Log(time.Since(start)) <span class="comment">// 每次输出都是 "1s"</span></span><br><span class="line">		&#125;()</span><br><span class="line">		time.Sleep(<span class="number">2</span> * time.Second)</span><br><span class="line">		t.Log(time.Since(start)) <span class="comment">// 每次输出都是 "2s"</span></span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>TestTime</code> 会让测试真的等待 2 秒，而 <code>TestTimeWithSynctest</code> 在虚拟时间上前进 2 秒，真实世界瞬间完成。</p>
+<p>使用 <code>Sleep</code> 的写法则更加简洁，示例 <code>sleep_test.go</code> 如下：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/synctest/sleep_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/synctest/sleep_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestSleep</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	realStart := time.Now()</span><br><span class="line"></span><br><span class="line">	synctest.Test(t, <span class="function"><span class="keyword">func</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">		start := time.Now() <span class="comment">// 气泡内的虚拟时间</span></span><br><span class="line"></span><br><span class="line">		woke := <span class="built_in">make</span>(<span class="keyword">chan</span> time.Duration, <span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			time.Sleep(time.Second)</span><br><span class="line">			woke &lt;- time.Since(start)</span><br><span class="line">		&#125;()</span><br><span class="line"></span><br><span class="line">		synctest.Sleep(<span class="number">2</span> * time.Second)</span><br><span class="line"></span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> d := &lt;-woke:</span><br><span class="line">			<span class="keyword">if</span> d != time.Second &#123;</span><br><span class="line">				t.Fatalf(<span class="string">"worker virtual sleep = %v, want 1s"</span>, d)</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">			t.Fatal(<span class="string">"worker goroutine not settled after synctest.Sleep"</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">real</span> := time.Since(realStart); <span class="built_in">real</span> &gt;= <span class="number">100</span>*time.Millisecond &#123;</span><br><span class="line">		t.Fatalf(<span class="string">"2s of virtual time should cost ~no real time, took %v"</span>, <span class="built_in">real</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个示例想要验证的是 <code>synctest.Sleep</code> 的两个特性，整个 <code>select</code> 断言都建立在第二个特性上：</p>
+<ul>
+<li><strong>虚拟时间真的在推进</strong>：worker 睡满 1 秒后，用 <code>time.Since(start)</code> 量到的就是恰好 <code>1s</code>，断言 <code>d != time.Second</code> 不会触发。</li>
+<li><strong>返回时其它 goroutine 必然已稳定</strong>：<code>Sleep(2 * time.Second)</code> 返回时，worker 早已睡满 1 秒并把结果写入了 channel（main 的 2 秒定时器晚于 worker 的 1 秒定时器，且 <code>Sleep</code> 内部还会再 <code>Wait</code> 一次），所以 <code>select</code> 的 <code>default</code> 分支永远走不到。</li>
+<li><strong>虚拟时间几乎不花真实时间</strong>：结尾断言整个虚拟 2 秒只消耗不到 100ms 的真实时间。</li>
+</ul>
+<p>也就是说，<code>synctest.Sleep</code> 之后可以像等待普通 goroutine 结果一样直接做断言，不再需要手写 <code>time.Sleep</code> + <code>synctest.Wait</code> 两步。</p>
+<h4 id="限制"><a href="#限制" class="headerlink" title="限制"></a>限制</h4><p><code>testing/synctest</code> 也有若干限制，使用时需要注意：</p>
+<ul>
+<li>气泡内不能调用 <code>t.Run</code>（子测试）、<code>t.Parallel</code>、<code>t.Deadline</code>。</li>
+<li>网络 I/O、文件 I/O 等不属于持久阻塞，在气泡内使用会阻止时钟推进。也正因如此，<code>NewTestServer</code> 才提供了内存网络。</li>
+<li>在气泡外操作气泡内创建的 channel 会导致气泡 panic。</li>
+</ul>
+<h3 id="NewTestServer-与-synctest-的结合"><a href="#NewTestServer-与-synctest-的结合" class="headerlink" title="NewTestServer 与 synctest 的结合"></a>NewTestServer 与 synctest 的结合</h3><p>前面提到，内存网络将 HTTP 通信转化为内存中的连接，这正是为了配合 <code>testing/synctest</code>：真实网络 I/O 不属于持久阻塞，若在气泡内使用真实端口，时钟将无法推进。因此，<code>NewTestServer</code> 与 <code>synctest</code> 配合使用非常自然。</p>
+<p>示例 <code>newtestserver_test.go</code> 演示了这一点：10 个并发请求，handler 各耗时 100ms。</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/synctest/newtestserver_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/synctest/newtestserver_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestNewTestServerWithSynctest</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	realStart := time.Now()</span><br><span class="line"></span><br><span class="line">	synctest.Test(t, <span class="function"><span class="keyword">func</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">		start := time.Now() <span class="comment">// 气泡内虚拟时间</span></span><br><span class="line"></span><br><span class="line">		ts := httptest.NewTestServer(t, http.HandlerFunc(<span class="function"><span class="keyword">func</span><span class="params">(w http.ResponseWriter, r *http.Request)</span></span> &#123;</span><br><span class="line">			time.Sleep(<span class="number">100</span> * time.Millisecond)</span><br><span class="line">			fmt.Fprint(w, <span class="string">"ok"</span>)</span><br><span class="line">		&#125;))</span><br><span class="line">		client := ts.Client()</span><br><span class="line"></span><br><span class="line">		<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">		<span class="keyword">for</span> <span class="keyword">range</span> <span class="number">10</span> &#123;</span><br><span class="line">			wg.Add(<span class="number">1</span>)</span><br><span class="line">			<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">				<span class="keyword">defer</span> wg.Done()</span><br><span class="line">				resp, err := client.Get(<span class="string">"http://example.com/"</span>)</span><br><span class="line">				<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">					t.Errorf(<span class="string">"request failed: %v"</span>, err)</span><br><span class="line">					<span class="keyword">return</span></span><br><span class="line">				&#125;</span><br><span class="line">				resp.Body.Close()</span><br><span class="line">			&#125;()</span><br><span class="line">		&#125;</span><br><span class="line">		wg.Wait()</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> elapsed := time.Since(start); elapsed != <span class="number">100</span>*time.Millisecond &#123;</span><br><span class="line">			t.Fatalf(<span class="string">"virtual elapsed = %v, want 100ms"</span>, elapsed)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">real</span> := time.Since(realStart); <span class="built_in">real</span> &gt;= <span class="number">100</span>*time.Millisecond &#123;</span><br><span class="line">		t.Fatalf(<span class="string">"10 concurrent 100ms requests should cost ~no real time, took %v"</span>, <span class="built_in">real</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由于 10 个请求并发处理，虚拟时间只前进 100ms，真实世界几乎不花时间。运行结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -run TestNewTestServerWithSynctest -v .</span><br><span class="line">=== RUN   TestNewTestServerWithSynctest</span><br><span class="line">--- PASS: TestNewTestServerWithSynctest (0.00s)</span><br></pre></td></tr></table></figure>
+
+<h4 id="需要注意的问题：并发调用-synctest-Sleep"><a href="#需要注意的问题：并发调用-synctest-Sleep" class="headerlink" title="需要注意的问题：并发调用 synctest.Sleep"></a>需要注意的问题：并发调用 synctest.Sleep</h4><p><code>synctest.Sleep</code> 内部会调用 <code>Wait</code>，而在同一时刻只允许有一个 <code>Wait</code> 调用者。如果在多个 handler goroutine 中并发调用 <code>synctest.Sleep</code>，就会 panic：<code>wait already in progress</code>，并且会被 <code>NewTestServer</code> 捕获后报告为 <code>t.Errorf</code>，导致测试失败。</p>
+<p>示例 <code>concurrent_sleep_demo_test.go</code> 演示了这一错误：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/synctest/concurrent_sleep_demo_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/synctest/concurrent_sleep_demo_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ts := httptest.NewTestServer(t, http.HandlerFunc(<span class="function"><span class="keyword">func</span><span class="params">(w http.ResponseWriter, r *http.Request)</span></span> &#123;</span><br><span class="line">	synctest.Sleep(<span class="number">100</span> * time.Millisecond) <span class="comment">// 错误示范：并发调用 Wait</span></span><br><span class="line">	w.WriteHeader(http.StatusOK)</span><br><span class="line">&#125;))</span><br></pre></td></tr></table></figure>
+
+<p>运行结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -tags concurrentsleep_demo -v .</span><br><span class="line">    server.go:202: httptest: panic <span class="keyword">in</span> server handler: <span class="built_in">wait</span> already <span class="keyword">in</span> progress</span><br><span class="line">--- FAIL: TestConcurrentSynctestSleep (0.00s)</span><br></pre></td></tr></table></figure>
+
+<p>正确的做法是：在气泡内等待时间只放在测试主流程中（使用 <code>synctest.Wait</code>/<code>synctest.Sleep</code>），handler 中则使用普通的 <code>time.Sleep</code>。上文的 <code>newtestserver_test.go</code> 正是这样写的。</p>
+<h3 id="go-test-命令行工具的变化"><a href="#go-test-命令行工具的变化" class="headerlink" title="go test 命令行工具的变化"></a>go test 命令行工具的变化</h3><h4 id="stdversion-检查默认启用"><a href="#stdversion-检查默认启用" class="headerlink" title="stdversion 检查默认启用"></a>stdversion 检查默认启用</h4><p><code>stdversion</code> 是一个 vet 分析器，检查的是：代码里用到的标准库 API（函数、类型、方法）是不是比 <code>go.mod</code> 声明的 <code>go</code> 指令版本还新。比如 <code>go.mod</code> 写的是 <code>go 1.24</code>，代码却用了 Go 1.25 才加入的 <code>sync.WaitGroup.Go</code>，它就会报错。</p>
+<p>为什么需要这种检查？这里要区分语法和 API 两类问题。语法是新旧 Go 版本差异中被编译器严格校验的部分——例如 <code>range over func</code> 需要 Go 1.23，如果 <code>go.mod</code> 的 <code>go</code> 指令低于该版本，编译时就会报错：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cannot range over func(yield func(int) bool) &#123;…&#125; (value of type func(yield func(int) bool)):</span><br><span class="line">requires go1.23 or later (-lang was set to go1.21; check go.mod)</span><br></pre></td></tr></table></figure>
+
+<p>而标准库 API 则长期缺乏类似的检查：只要实际用于构建的工具链足够新，即使 <code>go.mod</code> 的 <code>go</code> 指令版本较老，使用新 API 也能编译通过、测试通过。需要说明的是，这里的「工具链」指实际用来编译、运行的 Go 版本，它由本机安装的版本、<code>GOTOOLCHAIN</code> 环境变量以及 <code>go.mod</code> 中的 <code>toolchain</code> 指令共同决定，与 <code>go</code> 指令声明的语言版本是两回事。问题会在别人用较老版本工具链构建（CI 矩阵、被更老版本的模块依赖）时才暴露，而本地往往无法发现。</p>
+<p><code>stdversion</code> 正是为填补这一空缺而设计的。它并不是 Go 1.27 才出现的分析器：早在 Go 1.23，<code>go vet</code> 就已包含它，同时也支持通过 <code>go test -vet=stdversion</code> 手动启用。只是此前 <code>go test</code> 的默认 vet 列表并不包含它。Go 1.27 起，<code>go test</code> 也默认启用该检查，这也是升级到 1.27 后老项目测试可能直接失败的原因之一。</p>
+<p>示例模块 <code>stdversion</code> 的 <code>go.mod</code> 声明为 <code>go 1.24</code>，但使用 Go 1.25 才加入的 <code>sync.WaitGroup.Go</code>。先看 <code>go.mod</code>：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/stdversion/go.mod" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/stdversion/go.mod</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">module github.com/jianghushinian/blog-<span class="keyword">go</span>-example/test/go127/stdversion</span><br><span class="line"></span><br><span class="line"><span class="keyword">go</span> <span class="number">1.24</span></span><br><span class="line"></span><br><span class="line">toolchain go1<span class="number">.27</span><span class="number">.0</span></span><br></pre></td></tr></table></figure>
+
+<p>再看测试代码：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/stdversion/waitgroupgo_demo_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/stdversion/waitgroupgo_demo_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//go:build stdversion_demo</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestWaitGroupGoTooNew</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">	wg.Go(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;&#125;)</span><br><span class="line">	wg.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -tags stdversion_demo .</span><br><span class="line"><span class="comment"># github.com/jianghushinian/blog-go-example/test/go127/stdversion</span></span><br><span class="line">./waitgroupgo_demo_test.go:19:5: sync.(*WaitGroup).Go requires go1.25 or later (module is go1.24)</span><br><span class="line">FAIL	github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/go127/stdversion [build failed]</span><br></pre></td></tr></table></figure>
+
+<p>解决方式有两种：</p>
+<ul>
+<li>将 <code>go.mod</code> 的 <code>go</code> 指令提升到实际使用的 API 版本；</li>
+<li>或通过 <code>go test -vet=off</code> 关闭 vet（也可以在 <code>-vet</code> 列表中移除 <code>stdversion</code>）。</li>
+</ul>
+<blockquote>
+<p>NOTE:</p>
+<p>该示例模块的 <code>go.mod</code> 中除 <code>go 1.24</code> 外还声明了 <code>toolchain go1.27.0</code>，用于确保使用 Go 1.27 工具链运行。关于 <code>go</code> 指令与 <code>toolchain</code> 指令的区别，可以参考 Go 官方文档 <a href="https://go.dev/doc/toolchain" target="_blank" rel="noopener">https://go.dev/doc/toolchain</a> 。</p>
+</blockquote>
+<h4 id="go-test-json-新增-OutputType-字段"><a href="#go-test-json-新增-OutputType-字段" class="headerlink" title="go test -json 新增 OutputType 字段"></a>go test -json 新增 OutputType 字段</h4><p><code>go test -json</code> 会以 JSON 形式输出测试事件。Go 1.27 为其中 <code>Action</code> 为 <code>output</code> 的事件新增了 <code>OutputType</code> 字段，用于区分输出来源，取值有四种：</p>
+<ul>
+<li>空字符串：普通输出，例如 <code>t.Log</code>、<code>fmt.Println</code> 的内容。</li>
+<li><code>frame</code>：测试框架输出的内容，例如 <code>=== RUN</code>、<code>--- FAIL</code>。</li>
+<li><code>error</code>：错误信息，例如 <code>t.Error</code>、<code>t.Fatal</code> 的内容。</li>
+<li><code>error-continue</code>：多行错误的续行。</li>
+</ul>
+<p>一条 <code>OutputType</code> 为 <code>error</code> 的事件示例如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="attr">"Time"</span>:<span class="string">"2026-10-11T16:30:47.302846+08:00"</span>,<span class="attr">"Action"</span>:<span class="string">"output"</span>,<span class="attr">"Package"</span>:<span class="string">"github.com/jianghushinian/blog-go-example/test/go127/outputtype"</span>,<span class="attr">"Test"</span>:<span class="string">"TestOutputTypeDemo/fatal"</span>,<span class="attr">"Output"</span>:<span class="string">"    outputtype_test.go:31: fatal error stops the subtest\n"</span>,<span class="attr">"OutputType"</span>:<span class="string">"error"</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>示例 <code>outputtype</code> 通过拉起 <code>go test -json</code> 子进程并解析事件，验证了四种类型的存在：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/outputtype/outputtype_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/outputtype/outputtype_test.go</a></p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -v -run TestOutputTypeVerifier .</span><br><span class="line">    outputtype_test.go:92: OutputType=(blank)          count=2 sample=<span class="string">"    outputtype_test.go:23: regular log line\n"</span></span><br><span class="line">    outputtype_test.go:92: OutputType=frame            count=6 sample=<span class="string">"=== RUN   TestOutputTypeDemo\n"</span></span><br><span class="line">    outputtype_test.go:92: OutputType=error            count=3 sample=<span class="string">"    outputtype_test.go:31: fatal error stops the subtest\n"</span></span><br><span class="line">    outputtype_test.go:92: OutputType=error-continue   count=1 sample=<span class="string">"        line error\n"</span></span><br><span class="line">--- PASS: TestOutputTypeVerifier (0.54s)</span><br></pre></td></tr></table></figure>
+
+<p>这里有一个需要注意的问题：<code>go test -json</code> 会隐式注入 <code>-test.v=test2json</code>，如果同时显式传入 <code>-v</code>，<code>-v</code> 会被解析为 <code>-test.v=true</code>，从而覆盖 <code>test2json</code>，导致 <code>error</code> 和 <code>error-continue</code> 丢失。也就是说，<code>go test -json -v</code> 反而得不到错误类型，这是一个已知问题（<a href="https://github.com/golang/go/issues/70384" target="_blank" rel="noopener">golang/go#70384</a>）。</p>
+<p>下面的两组输出可以印证这一点。为了让 demo 产生错误输出，需要设置 <code>OUTPUTTYPE_DEMO=1</code> 环境变量（demo 默认不产生错误，这样日常 <code>go test ./...</code> 才能保持全部通过）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ OUTPUTTYPE_DEMO=1 go <span class="built_in">test</span> -json -count=1 -run <span class="string">'^TestOutputTypeDemo$'</span> . | grep -o <span class="string">'"OutputType":"[^"]*"'</span> | sort | uniq -c</span><br><span class="line">   3 <span class="string">"OutputType"</span>:<span class="string">"error"</span></span><br><span class="line">   1 <span class="string">"OutputType"</span>:<span class="string">"error-continue"</span></span><br><span class="line">   6 <span class="string">"OutputType"</span>:<span class="string">"frame"</span></span><br><span class="line"></span><br><span class="line">$ OUTPUTTYPE_DEMO=1 go <span class="built_in">test</span> -json -v -count=1 -run <span class="string">'^TestOutputTypeDemo$'</span> . | grep -o <span class="string">'"OutputType":"[^"]*"'</span> | sort | uniq -c</span><br><span class="line">   6 <span class="string">"OutputType"</span>:<span class="string">"frame"</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到，加上 <code>-v</code> 之后，所有 <code>error</code>、<code>error-continue</code> 事件都消失了。如果你在编写自定义的测试报告器，需要留意这一点。</p>
+<h3 id="vet-printf-检查-w-的指针"><a href="#vet-printf-检查-w-的指针" class="headerlink" title="vet printf 检查 %w 的指针"></a>vet printf 检查 %w 的指针</h3><p><code>printf</code> 和前面讲过的 <code>stdversion</code> 一样，都是 vet 的检查项（vet 中每个检查项由一个分析器实现），而且 <code>printf</code> 早已是 <code>go test</code> 默认运行的检查之一。Go 1.27 为它新增了一条规则：<code>fmt.Errorf</code> 的 <code>%w</code> 操作数不应是“实现了 <code>error</code> 的类型的指针”（即 <code>*E</code>，其中 <code>E</code> 实现了 <code>error</code>）。</p>
+<p>这条规则针对的是如下写法：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/printfw/wrapptr_demo_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/printfw/wrapptr_demo_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">err := fmt.Errorf(<span class="string">"operation failed: %w"</span>, &amp;myErr&#123;msg: <span class="string">"boom"</span>&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>以 <code>myErr</code> 为例，<code>myErr</code> 和 <code>*myErr</code> 都实现了 <code>error</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> myErr <span class="keyword">struct</span> &#123;</span><br><span class="line">	msg <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Error 使用值接收者：myErr 和 *myErr 都实现 error。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(e myErr)</span> <span class="title">Error</span><span class="params">()</span> <span class="title">string</span></span> &#123; <span class="keyword">return</span> e.msg &#125;</span><br></pre></td></tr></table></figure>
+
+<p>当 <code>%w</code> 包装的是 <code>&amp;myErr{}</code> 时，错误链中保存的动态类型是 <code>*myErr</code> 而不是 <code>myErr</code>。这会导致 <code>errors.Is(err, myErr{...})</code>、<code>errors.As(err, &amp;target)</code> 以及针对 <code>myErr</code> 的类型断言全部匹配失败，而编译期没有任何提示。最典型的情况是 <code>fmt.Errorf(&quot;%w&quot;, &amp;err)</code>（<code>err</code> 是一个 <code>error</code> 变量），它会把 <code>*error</code> 塞进错误链，使 <code>errors.Is</code>、<code>errors.As</code> 整条路径失效。</p>
+<p>示例 <code>printfw</code> 演示了这一问题。下面这段代码直接触发 vet：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/printfw/wrapptr_demo_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/printfw/wrapptr_demo_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//go:build printfw_demo</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestWrapPointer</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	err := fmt.Errorf(<span class="string">"operation failed: %w"</span>, &amp;myErr&#123;msg: <span class="string">"boom"</span>&#125;)</span><br><span class="line">	t.Logf(<span class="string">"wrapped: %v"</span>, err)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go <span class="built_in">test</span> -tags printfw_demo .</span><br><span class="line"><span class="comment"># github.com/jianghushinian/blog-go-example/test/go127/printfw</span></span><br><span class="line">./wrapptr_demo_test.go:17:39: %w wants operand of error <span class="built_in">type</span> myErr, not pointer <span class="built_in">type</span> *myErr (defeats errors.Is)</span><br><span class="line">FAIL	github.com/jianghushinian/blog-go-example/<span class="built_in">test</span>/go127/printfw [build failed]</span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是，该子检查只对生效版本大于等于 1.27 的文件生效（依据 <code>go.mod</code> 的 <code>go</code> 指令判断）。也就是说，只有把 <code>go.mod</code> 的 <code>go</code> 指令升到 1.27，它才会报错；停留在老版本的项目不受影响。</p>
+<p>此外，<code>printf</code> 检查位于 vet 中，因此它的触发时机与 vet 一致：<code>go build</code> 不会执行 vet，<code>go vet</code> 会报告，<code>go test</code> 会因默认执行 vet 而失败。</p>
+<p>正确的写法是包装值本身，此时错误链中的动态类型就是 <code>myErr</code>，<code>errors.Is</code>、<code>errors.As</code> 可以按预期工作：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/printfw/printfw_test.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/go127/printfw/printfw_test.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestCorrectWrapping</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	err := fmt.Errorf(<span class="string">"operation failed: %w"</span>, myErr&#123;msg: <span class="string">"boom"</span>&#125;)</span><br><span class="line">	<span class="keyword">if</span> !errors.Is(err, myErr&#123;msg: <span class="string">"boom"</span>&#125;) &#123;</span><br><span class="line">		t.Fatalf(<span class="string">"errors.Is should match the value type, got: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">var</span> target myErr</span><br><span class="line">	<span class="keyword">if</span> !errors.As(err, &amp;target) &#123;</span><br><span class="line">		t.Fatalf(<span class="string">"errors.As should match the value type, got: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="其他值得一提的变化"><a href="#其他值得一提的变化" class="headerlink" title="其他值得一提的变化"></a>其他值得一提的变化</h3><p>除上述内容外，Go 1.27 还有几处与测试、诊断相关的改动，这里简单提一下：</p>
+<ul>
+<li><code>goroutineleak</code> profile 转正：基于 GC 可达性检测永久阻塞的 goroutine，可通过 <code>/debug/pprof/goroutineleak</code> 端点获取，用于排查测试或程序中的 goroutine 泄漏。</li>
+<li>推荐使用 <code>testing/cryptotest.SetGlobalRandom</code>：替换已经废弃的 <code>crypto/tls.Config.Rand</code>，用于编写可复现的加密相关测试。</li>
+</ul>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>本文梳理了 Go 1.27 中与测试相关的主要变化：</p>
+<ul>
+<li><code>httptest.NewTestServer</code> 基于内存网络，自动清理，并将 handler 中的 panic 计入测试结果；需要注意内存网络下必须使用 <code>server.Client()</code>，以及 <code>Start()</code> 与 <code>Client()</code> 的调用顺序。</li>
+<li><code>testing/synctest.Sleep</code> 是 <code>time.Sleep</code> 与 <code>synctest.Wait</code> 的组合；需要理解持久阻塞和虚拟时钟，避免并发调用 <code>synctest.Sleep</code>。</li>
+<li><code>go test</code> 默认启用 <code>stdversion</code> 检查，<code>-json</code> 新增 <code>OutputType</code> 字段（注意不要与 <code>-v</code> 同时使用）。</li>
+<li><code>printf</code> vet 针对 <code>%w</code> 指针包装新增了检查，仅在 <code>go</code> 指令不低于 1.27 时生效。</li>
+</ul>
+<p>升级到 Go 1.27 时，可以参考下面的清单：</p>
+<ul>
+<li>升级 <code>go</code> 指令前先执行 <code>go vet ./...</code>，确认没有因为 <code>stdversion</code> 或 <code>printf</code> 检查而失败。</li>
+<li>排查 <code>fmt.Errorf(&quot;%w&quot;, ...)</code> 中是否包装了指针，尤其是 <code>&amp;err</code> 这类写法。</li>
+<li>若测试因 <code>stdversion</code> 失败，确认是真实的版本违约，还是需要提升 <code>go</code> 指令或调整 vet 配置。</li>
+<li>若使用自定义测试报告器，注意适配 <code>-json</code> 的 <code>OutputType</code> 字段，并避免 <code>-json</code> 与 <code>-v</code> 同时使用。</li>
+</ul>
+<p>希望此文能对你有所启发。</p>
+<p>本文示例源码我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/go127" target="_blank" rel="noopener">GitHub</a> 中，欢迎点击查看。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>Go 1.27 Release Notes：<a href="https://go.dev/doc/go1.27" target="_blank" rel="noopener">https://go.dev/doc/go1.27</a></li>
+<li>testing/synctest Documentation：<a href="https://pkg.go.dev/testing/synctest" target="_blank" rel="noopener">https://pkg.go.dev/testing/synctest</a></li>
+<li>net/http/httptest Documentation：<a href="https://pkg.go.dev/net/http/httptest" target="_blank" rel="noopener">https://pkg.go.dev/net/http/httptest</a></li>
+<li>Go 1.27 OutputType issue：#70384：<a href="https://github.com/golang/go/issues/70384" target="_blank" rel="noopener">https://github.com/golang/go/issues/70384</a></li>
+<li>stdversion 提案：go.dev/design/46136-vet-std-references：<a href="https://go.dev/design/46136-vet-std-references" target="_blank" rel="noopener">https://go.dev/design/46136-vet-std-references</a></li>
+<li>stdversion 在 <code>go test</code> 默认启用：#77729：<a href="https://github.com/golang/go/issues/77729" target="_blank" rel="noopener">https://github.com/golang/go/issues/77729</a></li>
+<li>go 指令与 toolchain 指令说明：<a href="https://go.dev/doc/toolchain" target="_blank" rel="noopener">https://go.dev/doc/toolchain</a></li>
+<li>在 Go 语言单元测试中如何解决 HTTP 网络依赖问题：<a href="https://jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/" target="_blank" rel="noopener">https://jianghushinian.cn/2023/07/15/how-to-resolve-http-dependencies-in-go-testing/</a></li>
+<li>使用 testing/synctest 测试并发代码：<a href="https://jianghushinian.cn/2025/09/05/testing-synctest/" target="_blank" rel="noopener">https://jianghushinian.cn/2025/09/05/testing-synctest/</a></li>
+<li>本文 GitHub 示例代码：<a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/go127" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/tree/main/test/go127</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2026/10/11/go1.27-testing-changes/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/10/11/go1.27-testing-changes/</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-10-11T14:13:10.332Z" itemprop="dateUpdated">2026-10-11 22:13:10</time>
+</span><br>
+
+
+        
+        <a href="/2026/10/11/go1.27-testing-changes/" target="_blank" rel="external">http://www.jianghushinian.cn/2026/10/11/go1.27-testing-changes/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95/" rel="tag">单元测试</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/10/11/go1.27-testing-changes/&title=《Go 1.27 测试相关变化详解：新特性与升级避坑》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/10/11/go1.27-testing-changes/&title=《Go 1.27 测试相关变化详解：新特性与升级避坑》 — 江湖十年&source=Go 1.27 已于 2026 年 8 月 19 日发布。这个版本中，实现了多个与测试相关的改动：既有让编写测试更省心的新 API，也有默认开启、可能导致..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/10/11/go1.27-testing-changes/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 1.27 测试相关变化详解：新特性与升级避坑》 — 江湖十年&url=http://www.jianghushinian.cn/2026/10/11/go1.27-testing-changes/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/10/11/go1.27-testing-changes/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2026/09/05/multi-goproxy/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go GOPROXY 兜底链的坑：从一次诡异的 CI lint 失败说起</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/10/11/go1.27-testing-changes/&title=《Go 1.27 测试相关变化详解：新特性与升级避坑》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/10/11/go1.27-testing-changes/&title=《Go 1.27 测试相关变化详解：新特性与升级避坑》 — 江湖十年&source=Go 1.27 已于 2026 年 8 月 19 日发布。这个版本中，实现了多个与测试相关的改动：既有让编写测试更省心的新 API，也有默认开启、可能导致..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/10/11/go1.27-testing-changes/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 1.27 测试相关变化详解：新特性与升级避坑》 — 江湖十年&url=http://www.jianghushinian.cn/2026/10/11/go1.27-testing-changes/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/10/11/go1.27-testing-changes/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2026/10/11/go1.27-testing-changes/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
