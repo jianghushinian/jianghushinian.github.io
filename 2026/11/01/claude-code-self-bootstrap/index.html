@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>使用 AI，要频繁使用「自举」能力 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Agent,AI,Claude Code,效率工具">
+    <meta name="description" content="最近我发现一个现象：不少人已经在用 Claude Code 这类 agent 工具，但一碰到工具本身的问题，第一反应还是去浏览器搜教程。怎么配置、怎么写 hook、怎么接 MCP，搜到的答案还经常是过时的。 其实最该问的，就是工具自己。 这种“让 AI 自己解决自己的问题”的能力，我把它叫做“自举”——自己搞定自己。这篇文章，就是因为看到身边有一些人不知道还能这么用，才想写一写。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用 AI，要频繁使用「自举」能力">
+<meta property="og:url" content="http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="最近我发现一个现象：不少人已经在用 Claude Code 这类 agent 工具，但一碰到工具本身的问题，第一反应还是去浏览器搜教程。怎么配置、怎么写 hook、怎么接 MCP，搜到的答案还经常是过时的。 其实最该问的，就是工具自己。 这种“让 AI 自己解决自己的问题”的能力，我把它叫做“自举”——自己搞定自己。这篇文章，就是因为看到身边有一些人不知道还能这么用，才想写一写。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/notification-done.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/notification-input.png">
+<meta property="article:published_time" content="2026-11-01T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-01T15:12:16.076Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Agent">
+<meta property="article:tag" content="AI">
+<meta property="article:tag" content="Claude Code">
+<meta property="article:tag" content="效率工具">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/notification-done.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">使用 AI，要频繁使用「自举」能力</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">使用 AI，要频繁使用「自举」能力</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2026-11-01T02:00:00.000Z" itemprop="datePublished" class="page-time">
+  2026-11-01
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/AI/">AI</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#先说痛点"><span class="post-toc-number">1.</span> <span class="post-toc-text">先说痛点</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#把需求丢给它"><span class="post-toc-number">2.</span> <span class="post-toc-text">把需求丢给它</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#原理：hooks-是-Claude-Code-的事件回调"><span class="post-toc-number">3.</span> <span class="post-toc-text">原理：hooks 是 Claude Code 的事件回调</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#动手：一个脚本-两行配置"><span class="post-toc-number">4.</span> <span class="post-toc-text">动手：一个脚本 + 两行配置</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#效果"><span class="post-toc-number">5.</span> <span class="post-toc-text">效果</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#几个坑"><span class="post-toc-number">6.</span> <span class="post-toc-text">几个坑</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#说明一下术语"><span class="post-toc-number">7.</span> <span class="post-toc-text">说明一下术语</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#最后"><span class="post-toc-number">8.</span> <span class="post-toc-text">最后</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-claude-code-self-bootstrap"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">使用 AI，要频繁使用「自举」能力</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2026-11-01 10:00:00" datetime="2026-11-01T02:00:00.000Z"  itemprop="datePublished">2026-11-01</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/AI/">AI</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>最近我发现一个现象：不少人已经在用 Claude Code 这类 agent 工具，但一碰到工具本身的问题，第一反应还是去浏览器搜教程。怎么配置、怎么写 hook、怎么接 MCP，搜到的答案还经常是过时的。</p>
+<p>其实最该问的，就是工具自己。</p>
+<p>这种“让 AI 自己解决自己的问题”的能力，我把它叫做“自举”——自己搞定自己。这篇文章，就是因为看到身边有一些人不知道还能这么用，才想写一写。</p>
+<a id="more"></a>
+
+<p>下面就拿一个具体例子展开：怎么让 Claude Code 给自己写一套任务通知。</p>
+<h3 id="先说痛点"><a href="#先说痛点" class="headerlink" title="先说痛点"></a>先说痛点</h3><p>我用 Claude Code 的典型姿势是：丢给它一个任务，然后切到其他桌面或应用处理别的事情，比如浏览器查资料，或者去回个消息。问题在于，我很难判断它现在的状态：</p>
+<ul>
+<li>是还在干活？</li>
+<li>是早就干完了？</li>
+<li>还是卡在权限确认上，等我点“允许”？</li>
+</ul>
+<p>前两种情况还好，第三种最为致命——它安安静静地卡在那里，我不切回来，它能卡到天荒地老。</p>
+<p>所以我的需求很简单：<strong>任务完成，通知我；需要我确认，也通知我。</strong> 不管我当时在哪个窗口。</p>
+<p>按以前的思路，我得去翻文档，查 Claude Code 支持哪些通知方式、配置写在哪个文件、字段叫什么。但这次我们可以换个做法：直接把需求丢给它自己。</p>
+<h3 id="把需求丢给它"><a href="#把需求丢给它" class="headerlink" title="把需求丢给它"></a>把需求丢给它</h3><p>我原话大概是这么说的：</p>
+<blockquote>
+<p>现在你干完活，或者中途需要我确认的时候，我没法第一时间知道——要么已经干完了，要么卡在权限确认上等我。帮我解决一下：任务完成时给我发桌面通知，需要我确认时也发通知，不管我当时在哪个窗口。实现方式你定，hooks 或者别的都行。</p>
+</blockquote>
+<p>注意最后半句，我其实只知道“可以通过 hooks 实现”，具体怎么配并不清楚。但这不重要——它清楚就行。</p>
+<p>它去看了我的 <code>~/.claude/settings.json</code>，发现我已经挂了一堆 hooks，于是没有覆盖，而是在 <code>Stop</code> 和 <code>Notification</code> 两个事件上各追加了一条。然后写了个小脚本，还造了一条假的通知事件把脚本实际跑了一遍，最后检查了配置文件格式没被改坏。</p>
+<p>整个过程我只提供了需求，没有查任何文档。</p>
+<h3 id="原理：hooks-是-Claude-Code-的事件回调"><a href="#原理：hooks-是-Claude-Code-的事件回调" class="headerlink" title="原理：hooks 是 Claude Code 的事件回调"></a>原理：hooks 是 Claude Code 的事件回调</h3><p>Claude Code 的 hooks，本质就是在特定生命周期事件发生时，执行你指定的命令。事件很多，这次只用到两个：</p>
+<table>
+<thead>
+<tr>
+<th>事件</th>
+<th>触发时机</th>
+<th>这次用来做什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Stop</code></td>
+<td>主 agent 结束一轮回复时</td>
+<td>通知你“活干完了”</td>
+</tr>
+<tr>
+<td><code>Notification</code></td>
+<td>需要权限确认、等待你输入等</td>
+<td>通知你“该你上场了”</td>
+</tr>
+</tbody></table>
+<p>hook 的输入会通过 stdin 以 JSON 传进来，里面有当前工作目录、通知消息等字段，脚本里按需取用即可。</p>
+<h3 id="动手：一个脚本-两行配置"><a href="#动手：一个脚本-两行配置" class="headerlink" title="动手：一个脚本 + 两行配置"></a>动手：一个脚本 + 两行配置</h3><p>通知脚本放在 <code>~/.claude/hooks/notify.sh</code>，macOS 下用 <code>osascript</code> 发系统通知：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># Claude Code 桌面通知 hook</span></span><br><span class="line"><span class="comment"># 用法: notify.sh done|input   （从 stdin 读取 hook JSON）</span></span><br><span class="line"><span class="built_in">set</span> -u</span><br><span class="line"></span><br><span class="line">payload=$(cat)</span><br><span class="line">JQ=/usr/<span class="built_in">local</span>/bin/jq</span><br><span class="line">[ -x <span class="string">"<span class="variable">$JQ</span>"</span> ] || JQ=$(<span class="built_in">command</span> -v jq 2&gt;/dev/null) || JQ=<span class="string">""</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">get</span></span>() &#123;</span><br><span class="line">  [ -n <span class="string">"<span class="variable">$JQ</span>"</span> ] || <span class="built_in">return</span> 0</span><br><span class="line">  <span class="built_in">printf</span> <span class="string">'%s'</span> <span class="string">"<span class="variable">$payload</span>"</span> | <span class="string">"<span class="variable">$JQ</span>"</span> -r <span class="string">"<span class="variable">$1</span> // empty"</span> 2&gt;/dev/null</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">cwd=$(get <span class="string">'.cwd'</span>)</span><br><span class="line">project=$(basename <span class="string">"<span class="variable">$&#123;cwd:-Claude Code&#125;</span>"</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">case</span> <span class="string">"<span class="variable">$&#123;1:-&#125;</span>"</span> <span class="keyword">in</span></span><br><span class="line">  input)</span><br><span class="line">    title=<span class="string">"Claude Code · 需要你确认"</span></span><br><span class="line">    msg=$(get <span class="string">'.message'</span>)</span><br><span class="line">    msg=<span class="string">"<span class="variable">$&#123;msg:-有任务在等待你的输入&#125;</span>"</span></span><br><span class="line">    ;;</span><br><span class="line">  <span class="keyword">done</span>)</span><br><span class="line">    title=<span class="string">"Claude Code · 任务完成"</span></span><br><span class="line">    msg=<span class="string">"「<span class="variable">$&#123;project&#125;</span>」已停止输出，可以回来看了"</span></span><br><span class="line">    ;;</span><br><span class="line">  *)</span><br><span class="line">    <span class="built_in">exit</span> 0</span><br><span class="line">    ;;</span><br><span class="line"><span class="keyword">esac</span></span><br><span class="line"></span><br><span class="line">/usr/bin/osascript - <span class="string">"<span class="variable">$title</span>"</span> <span class="string">"<span class="variable">$msg</span>"</span> <span class="string">"<span class="variable">$project</span>"</span> &lt;&lt;<span class="string">'APPLESCRIPT'</span> &gt;/dev/null 2&gt;&amp;1</span><br><span class="line">on run argv</span><br><span class="line">  display notification (item 2 of argv) with title (item 1 of argv) subtitle (item 3 of argv) sound name <span class="string">"Glass"</span></span><br><span class="line">end run</span><br><span class="line">APPLESCRIPT</span><br></pre></td></tr></table></figure>
+
+<p>然后让它把配置追加到 <code>~/.claude/settings.json</code>（注意是追加，不是覆盖）：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"hooks"</span>: &#123;</span><br><span class="line">    <span class="attr">"Notification"</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">"hooks"</span>: [</span><br><span class="line">          &#123;</span><br><span class="line">            <span class="attr">"async"</span>: <span class="literal">true</span>,</span><br><span class="line">            <span class="attr">"command"</span>: <span class="string">"~/.claude/hooks/notify.sh input"</span>,</span><br><span class="line">            <span class="attr">"timeout"</span>: <span class="number">10</span>,</span><br><span class="line">            <span class="attr">"type"</span>: <span class="string">"command"</span></span><br><span class="line">          &#125;</span><br><span class="line">        ]</span><br><span class="line">      &#125;</span><br><span class="line">    ],</span><br><span class="line">    <span class="attr">"Stop"</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">"hooks"</span>: [</span><br><span class="line">          &#123;</span><br><span class="line">            <span class="attr">"async"</span>: <span class="literal">true</span>,</span><br><span class="line">            <span class="attr">"command"</span>: <span class="string">"~/.claude/hooks/notify.sh done"</span>,</span><br><span class="line">            <span class="attr">"timeout"</span>: <span class="number">10</span>,</span><br><span class="line">            <span class="attr">"type"</span>: <span class="string">"command"</span></span><br><span class="line">          &#125;</span><br><span class="line">        ]</span><br><span class="line">      &#125;</span><br><span class="line">    ]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>几个细节值得说一句：</p>
+<ul>
+<li><code>async: true</code> 让 hook 在后台跑，不会拖慢会话；</li>
+<li>命令走 shell，<code>~</code> 可以正常展开，用绝对路径当然更稳；</li>
+<li>如果你已经有其他 hooks，记得合并到同一个事件的 <code>hooks</code> 数组里，而不是整个替换。</li>
+</ul>
+<h3 id="效果"><a href="#效果" class="headerlink" title="效果"></a>效果</h3><p>配置完之后，不管我在浏览器、微信还是 IDE，任务一结束就能看到：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="notification-done.png" alt="任务完成通知" title="">
+                </div>
+                <div class="image-caption">任务完成通知</div>
+            </figure>
+
+<p>需要我点确认的时候也一样：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="notification-input.png" alt="等待确认通知" title="">
+                </div>
+                <div class="image-caption">等待确认通知</div>
+            </figure>
+
+<h3 id="几个坑"><a href="#几个坑" class="headerlink" title="几个坑"></a>几个坑</h3><ol>
+<li><strong>macOS 通知会显示成 Script Editor。</strong> 因为是通过 <code>osascript</code> 发的。如果没看到通知，去“系统设置 → 通知”里把 Script Editor 允许，再检查下勿扰/专注模式。</li>
+<li><strong><code>Stop</code> 是每轮回复都触发。</strong> 包括你问一句它答一句的场景。嫌吵可以删掉 <code>sound name &quot;Glass&quot;</code> 静音，或者干脆去掉 <code>Stop</code> 那条 hook，只保留需要确认时的提醒。</li>
+<li><strong>想要手机推送。</strong> settings 里还有 <code>inputNeededNotifEnabled</code> 和 <code>agentPushNotifEnabled</code> 两个开关，配合 Remote Control 可以把提醒推到手机。</li>
+</ol>
+<h3 id="说明一下术语"><a href="#说明一下术语" class="headerlink" title="说明一下术语"></a>说明一下术语</h3><p>严格来说，这里叫“自举”是一种比喻。自举（bootstrapping）原指编译器自己编译自己，强调用自身的能力把自己抬起来；而我做的这件事，更准确的说法是 agent 的<strong>自我扩展</strong>（self-extension）——让它给自己写 hook、加技能、改配置。换句话说，改的是它的 harness（配置、hooks、skills 这些外围设施），不是模型本身。</p>
+<p>所以标题我还是保留“自举”，因为它更形象；但如果要严谨一点，说“自我扩展”更合适。</p>
+<h3 id="最后"><a href="#最后" class="headerlink" title="最后"></a>最后</h3><p>这件事本身很小，但它体现了一种使用 AI 的方式：<strong>你只需要知道“它能做什么”，具体怎么做，交给它。</strong></p>
+<p>我不知道 hooks 的字段怎么拼，不知道 settings 该合并还是覆盖，不知道 osascript 的参数怎么转义——这些它都知道。我要做的，只是把需求描述清楚，然后 review 一下它改了什么。</p>
+<p>这就是我理解的“自举”：不是让 AI 替你思考，而是把你从“查文档、拼配置、试错”这类体力活里解放出来。你和 AI 之间的分工，应该更接近“你提需求，它实现”，而不是“你查教程，再指挥它实现”。</p>
+<p>下次再遇到工具本身不好用的问题，不妨先问它一句：你自己能不能改？</p>
+<p>希望此文能对你有所启发。</p>
+<p><strong>延伸阅读</strong></p>
+<ul>
+<li>Claude Code Hooks 文档：<a href="https://docs.claude.com/en/docs/claude-code/hooks" target="_blank" rel="noopener">https://docs.claude.com/en/docs/claude-code/hooks</a></li>
+<li>Claude Code Settings 文档：<a href="https://docs.claude.com/en/docs/claude-code/settings" target="_blank" rel="noopener">https://docs.claude.com/en/docs/claude-code/settings</a></li>
+<li>macOS <code>osascript</code> 手册：<a href="https://ss64.com/mac/osascript.html" target="_blank" rel="noopener">https://ss64.com/mac/osascript.html</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/</a></li>
+</ul>
+<p><strong>联系我</strong></p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-11-01T15:12:16.076Z" itemprop="dateUpdated">2026-11-01 23:12:16</time>
+</span><br>
+
+
+        
+        <a href="/2026/11/01/claude-code-self-bootstrap/" target="_blank" rel="external">http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/AI/" rel="tag">AI</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Agent/" rel="tag">Agent</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Claude-Code/" rel="tag">Claude Code</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%95%88%E7%8E%87%E5%B7%A5%E5%85%B7/" rel="tag">效率工具</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/&title=《使用 AI，要频繁使用「自举」能力》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/&title=《使用 AI，要频繁使用「自举」能力》 — 江湖十年&source=最近我发现一个现象：不少人已经在用 Claude Code 这类 agent 工具，但一碰到工具本身的问题，第一反应还是去浏览器搜教程。怎么配置、怎么写 ..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用 AI，要频繁使用「自举」能力》 — 江湖十年&url=http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2026/10/17/how-to-build-wealth-as-a-career-person/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">职场人士如何积累财富</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/&title=《使用 AI，要频繁使用「自举」能力》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/&title=《使用 AI，要频繁使用「自举」能力》 — 江湖十年&source=最近我发现一个现象：不少人已经在用 Claude Code 这类 agent 工具，但一碰到工具本身的问题，第一反应还是去浏览器搜教程。怎么配置、怎么写 ..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《使用 AI，要频繁使用「自举」能力》 — 江湖十年&url=http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2026/11/01/claude-code-self-bootstrap/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
