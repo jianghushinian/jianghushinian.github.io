@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Rob Pike 讲透 Go 并发模式：goroutine、channel 与 select | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,并发">
+    <meta name="description" content="大家好，我是江湖十年。 今天继续 Go 并发模式系列。这次要整理的，是 Rob Pike 在 2012 年 Google I&#x2F;O 上的演讲《Go Concurrency Patterns》。内容从最基础的 goroutine 和 channel 讲起，一步步构造出生成器、扇入、超时、退出等常见模式，最后用一个简化版的 Google 搜索把这些模式串了起来。 本文根据演讲 PPT 和视频整理，逐页讲">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Rob Pike 讲透 Go 并发模式：goroutine、channel 与 select">
+<meta property="og:url" content="http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="大家好，我是江湖十年。 今天继续 Go 并发模式系列。这次要整理的，是 Rob Pike 在 2012 年 Google I&#x2F;O 上的演讲《Go Concurrency Patterns》。内容从最基础的 goroutine 和 channel 讲起，一步步构造出生成器、扇入、超时、退出等常见模式，最后用一个简化版的 Google 搜索把这些模式串了起来。 本文根据演讲 PPT 和视频整理，逐页讲">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/fan-in.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/daisy-chain.png">
+<meta property="article:published_time" content="2026-11-06T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-11T04:07:58.346Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="并发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/fan-in.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Rob Pike 讲透 Go 并发模式：goroutine、channel 与 select</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Rob Pike 讲透 Go 并发模式：goroutine、channel 与 select</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2026-11-06T02:00:00.000Z" itemprop="datePublished" class="page-time">
+  2026-11-06
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#为什么要支持并发？"><span class="post-toc-number">1.</span> <span class="post-toc-text">为什么要支持并发？</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#并发不是并行"><span class="post-toc-number">2.</span> <span class="post-toc-text">并发不是并行</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#并发特性的历史"><span class="post-toc-number">3.</span> <span class="post-toc-text">并发特性的历史</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#一个无聊的函数"><span class="post-toc-number">4.</span> <span class="post-toc-text">一个无聊的函数</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#goroutine-是什么"><span class="post-toc-number">5.</span> <span class="post-toc-text">goroutine 是什么</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#真正的通信需要-channel"><span class="post-toc-number">6.</span> <span class="post-toc-text">真正的通信需要 channel</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#模式一：生成器"><span class="post-toc-number">7.</span> <span class="post-toc-text">模式一：生成器</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#模式二：扇入（fan-in）"><span class="post-toc-number">8.</span> <span class="post-toc-text">模式二：扇入（fan-in）</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#模式三：恢复顺序"><span class="post-toc-number">9.</span> <span class="post-toc-text">模式三：恢复顺序</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#select-语句"><span class="post-toc-number">10.</span> <span class="post-toc-text">select 语句</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#超时"><span class="post-toc-number">11.</span> <span class="post-toc-text">超时</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#退出与确认"><span class="post-toc-number">12.</span> <span class="post-toc-text">退出与确认</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#菊花链（daisy-chain）"><span class="post-toc-number">13.</span> <span class="post-toc-text">菊花链（daisy chain）</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#从玩具到系统软件"><span class="post-toc-number">14.</span> <span class="post-toc-text">从玩具到系统软件</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Google-Search-1-0：串行"><span class="post-toc-number">14.1.</span> <span class="post-toc-text">Google Search 1.0：串行</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Google-Search-2-0：并发"><span class="post-toc-number">14.2.</span> <span class="post-toc-text">Google Search 2.0：并发</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Google-Search-2-1：超时"><span class="post-toc-number">14.3.</span> <span class="post-toc-text">Google Search 2.1：超时</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#用副本避免超时"><span class="post-toc-number">14.4.</span> <span class="post-toc-text">用副本避免超时</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Google-Search-3-0：把所有东西拼起来"><span class="post-toc-number">14.5.</span> <span class="post-toc-text">Google Search 3.0：把所有东西拼起来</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">15.</span> <span class="post-toc-text">总结</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#不要滥用"><span class="post-toc-number">16.</span> <span class="post-toc-text">不要滥用</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go-concurrency-patterns-talk-basics"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Rob Pike 讲透 Go 并发模式：goroutine、channel 与 select</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2026-11-06 10:00:00" datetime="2026-11-06T02:00:00.000Z"  itemprop="datePublished">2026-11-06</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>大家好，我是江湖十年。</p>
+<p>今天继续 Go 并发模式系列。这次要整理的，是 Rob Pike 在 2012 年 Google I/O 上的演讲《<a href="https://go.dev/talks/2012/concurrency.slide" target="_blank" rel="noopener">Go Concurrency Patterns</a>》。内容从最基础的 goroutine 和 channel 讲起，一步步构造出生成器、扇入、超时、退出等常见模式，最后用一个简化版的 Google 搜索把这些模式串了起来。</p>
+<p>本文根据演讲 PPT 和视频整理，逐页讲解其中的内容。</p>
+<a id="more"></a>
+
+<blockquote>
+<p>演讲视频：<a href="https://www.youtube.com/watch?v=f6kdp27TYZs" target="_blank" rel="noopener">https://www.youtube.com/watch?v=f6kdp27TYZs</a><br>演讲 PPT：<a href="https://go.dev/talks/2012/concurrency.slide" target="_blank" rel="noopener">https://go.dev/talks/2012/concurrency.slide</a></p>
+</blockquote>
+<h3 id="为什么要支持并发？"><a href="#为什么要支持并发？" class="headerlink" title="为什么要支持并发？"></a>为什么要支持并发？</h3><p>Go 语言刚公布时，很多人对它内置的并发特性很感兴趣。Rob Pike 在开头抛出了一连串问题，为什么要支持并发？到底什么是并发？这个想法从哪儿来？它适合用来做什么？又该怎么用？</p>
+<p>他先回答了”为什么”。看看周围的世界，你看到的是一个一次只做一件事、单步前进的世界，还是一个由许多相互独立、各自行动的部分组成的复杂世界？答案显然是后者。顺序处理本身并不能描述世界的行为，这就是 Go 要支持并发的原因。</p>
+<h3 id="并发不是并行"><a href="#并发不是并行" class="headerlink" title="并发不是并行"></a>并发不是并行</h3><p>接下来是定义。<strong>并发</strong>（concurrency）是独立执行的计算的组合，是一种组织软件结构的方式，尤其适合用来写出与真实世界良好交互的清晰代码。</p>
+<p>但并发不是并行（parallelism）。并发不等于并行，尽管并发能够带来并行。如果只有一个处理器，程序仍然可以是并发的，但无法并行执行；反过来，一个写得很好的并发程序，在多处理器上可能高效地并行运行。</p>
+<p>Rob Pike 强调，这套模型的目标是易理解、易使用、易推理，你不需要成为并发专家。与直接处理线程、信号量、锁、屏障（barrier）等并行细节相比，这种方式要舒服得多。</p>
+<h3 id="并发特性的历史"><a href="#并发特性的历史" class="headerlink" title="并发特性的历史"></a>并发特性的历史</h3><p>Go 的并发特性看起来很新颖，其实有着很长的历史渊源，可以追溯到 1978 年 Hoare 提出的 CSP，甚至可以追溯到 1975 年 Dijkstra 的守卫命令（guarded commands）。</p>
+<p>具有类似特性的语言包括：</p>
+<ul>
+<li>Occam（May，1983）</li>
+<li>Erlang（Armstrong，1986）</li>
+<li>Newsqueak（Pike，1988）</li>
+<li>Concurrent ML（Reppy，1993）</li>
+<li>Alef（Winterbottom，1995）</li>
+<li>Limbo（Dorward、Pike、Winterbottom，1996）</li>
+</ul>
+<p>Go 是 Newsqueak-Alef-Limbo 这条分支上的最新成员，其区别性特征是<strong>一等公民的 channel</strong>。Erlang 更接近最初的 CSP，它通过进程名与进程通信，而不是通过 channel 通信。两种模型是等价的，只是表达方式不同。一个粗略的类比是，按文件名写文件（进程，Erlang）对比按文件描述符写文件（channel，Go）。</p>
+<h3 id="一个无聊的函数"><a href="#一个无聊的函数" class="headerlink" title="一个无聊的函数"></a>一个无聊的函数</h3><p>为了展示并发原语的特性，需要一个例子。为了避免分散注意力，Rob Pike 选了一个无聊的例子：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">boring</span><span class="params">(msg <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; ; i++ &#123;</span><br><span class="line">        fmt.Println(msg, i)</span><br><span class="line">        time.Sleep(time.Second)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个函数会永远运行下去，像一个无聊的派对客人。稍微不那么无聊的版本，是让消息之间的间隔变得不可预测，但仍然不超过一秒：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">boring</span><span class="params">(msg <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; ; i++ &#123;</span><br><span class="line">        fmt.Println(msg, i)</span><br><span class="line">        time.Sleep(time.Duration(rand.Intn(<span class="number">1e3</span>)) * time.Millisecond)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>直接调用 <code>boring(&quot;boring!&quot;)</code>，主函数就再也回不来了。加上 <code>go</code> 关键字则完全不同：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">go</span> boring(<span class="string">"boring!"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>go</code> 语句会照常运行函数，但不会让调用者等待，它启动了一个 goroutine。这个功能类似于 shell 命令末尾的 <code>&amp;</code>。不过，当 <code>main</code> 返回时，程序就退出了，boring 函数也会随之结束，所以屏幕上什么也看不到。我们可以让主函数多待一会儿：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">go</span> boring(<span class="string">"boring!"</span>)</span><br><span class="line">    fmt.Println(<span class="string">"I'm listening."</span>)</span><br><span class="line">    time.Sleep(<span class="number">2</span> * time.Second)</span><br><span class="line">    fmt.Println(<span class="string">"You're boring; I'm leaving."</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样就既能证明主函数和启动的 goroutine 都在运行，又能看到 boring 的输出。</p>
+<h3 id="goroutine-是什么"><a href="#goroutine-是什么" class="headerlink" title="goroutine 是什么"></a>goroutine 是什么</h3><p>goroutine 是由 <code>go</code> 语句启动的、独立执行的函数。它有自己的调用栈，栈会按需增长和收缩。它非常轻量，一个程序里同时存在几千个甚至几十万个 goroutine 都是实际可行的。它不是线程。一个只有几千个 goroutine 的程序，可能只有一个线程。goroutine 会在需要时被动态多路复用到线程上，以保证所有 goroutine 都能运行。不过，如果你把它想象成一个非常廉价的线程，也不会差太远。</p>
+<h3 id="真正的通信需要-channel"><a href="#真正的通信需要-channel" class="headerlink" title="真正的通信需要 channel"></a>真正的通信需要 channel</h3><p>前面的例子其实作弊了。主函数看不到另一个 goroutine 的输出，那些内容只是打印到屏幕上，我们假装看到了一场对话。真正的对话需要通信。</p>
+<p>Go 中的 channel 在两个 goroutine 之间提供连接，让它们能够通信。声明和初始化 channel 的方式如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Declaring and initializing.</span></span><br><span class="line"><span class="keyword">var</span> c <span class="keyword">chan</span> <span class="keyword">int</span></span><br><span class="line">c = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br><span class="line"><span class="comment">// or</span></span><br><span class="line">c := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br></pre></td></tr></table></figure>
+
+<p>向 channel 发送值：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Sending on a channel.</span></span><br><span class="line">c &lt;- <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<p>从 channel 接收值，箭头指示了数据的流动方向：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Receiving from a channel.</span></span><br><span class="line"><span class="comment">// The "arrow" indicates the direction of data flow.</span></span><br><span class="line">value = &lt;-c</span><br></pre></td></tr></table></figure>
+
+<p>用 channel 把 main 和 boring 连起来之后，两者就能通信了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    c := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">string</span>)</span><br><span class="line">    <span class="keyword">go</span> boring(<span class="string">"boring!"</span>, c)</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">5</span>; i++ &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"You say: %q\n"</span>, &lt;-c) <span class="comment">// Receive expression is just a value.</span></span><br><span class="line">    &#125;</span><br><span class="line">    fmt.Println(<span class="string">"You're boring; I'm leaving."</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">boring</span><span class="params">(msg <span class="keyword">string</span>, c <span class="keyword">chan</span> <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; ; i++ &#123;</span><br><span class="line">        c &lt;- fmt.Sprintf(<span class="string">"%s %d"</span>, msg, i) <span class="comment">// Expression to be sent can be any suitable value.</span></span><br><span class="line">        time.Sleep(time.Duration(rand.Intn(<span class="number">1e3</span>)) * time.Millisecond)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里有一个关键点。当 main 执行 <code>&lt;-c</code> 时，它会等待有值被发送过来；同样，当 boring 执行 <code>c &lt;- value</code> 时，它会等待接收方准备好。发送方和接收方必须都准备好，才能完成这次通信，否则就会一直等待。因此，<strong>channel 既通信又同步</strong>。</p>
+<p>顺便提一下带缓冲的 channel。缓冲区会移除同步，让 channel 更像 Erlang 的邮箱（mailbox）。带缓冲的 channel 对某些问题很重要，但推理起来更微妙，这里没有用到。</p>
+<blockquote>
+<p>译注：Erlang 的 mailbox 是每个进程自带的消息队列，其他进程发来的消息会先进入这里，再由进程通过 <code>receive</code> 取出。</p>
+</blockquote>
+<p>由此可以引出 Go 的核心哲学：</p>
+<blockquote>
+<p>Don’t communicate by sharing memory, share memory by communicating.</p>
+</blockquote>
+<p>不要通过共享内存来通信，而要通过通信来共享内存。</p>
+<h3 id="模式一：生成器"><a href="#模式一：生成器" class="headerlink" title="模式一：生成器"></a>模式一：生成器</h3><p>有了这些原则，就可以开始看并发模式了。Rob Pike 特意给”模式”加了引号，因为这里说的并不是面向对象意义上的设计模式，而只是一些简单却能做有趣事情的小例子。</p>
+<p>第一个、可能也是最重要的并发模式叫<strong>生成器</strong>（generator），也就是返回 channel 的函数。channel 和字符串、整数一样，是一等公民的值。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">c := boring(<span class="string">"boring!"</span>) <span class="comment">// Function returning a channel.</span></span><br><span class="line"><span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">5</span>; i++ &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"You say: %q\n"</span>, &lt;-c)</span><br><span class="line">&#125;</span><br><span class="line">fmt.Println(<span class="string">"You're boring; I'm leaving."</span>)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">boring</span><span class="params">(msg <span class="keyword">string</span>)</span> &lt;-<span class="title">chan</span> <span class="title">string</span></span> &#123; <span class="comment">// Returns receive-only channel of strings.</span></span><br><span class="line">    c := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">string</span>)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; <span class="comment">// We launch the goroutine from inside the function.</span></span><br><span class="line">        <span class="keyword">for</span> i := <span class="number">0</span>; ; i++ &#123;</span><br><span class="line">            c &lt;- fmt.Sprintf(<span class="string">"%s %d"</span>, msg, i)</span><br><span class="line">            time.Sleep(time.Duration(rand.Intn(<span class="number">1e3</span>)) * time.Millisecond)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">    <span class="keyword">return</span> c <span class="comment">// Return the channel to the caller.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>返回值类型 <code>&lt;-chan string</code> 表示一个只能接收的 channel，因为调用方只会从它里面读值。goroutine 不再由 main 启动，而是在 boring 函数内部启动。从外部看，这只是一个调用后返回 channel 的函数；在内部，它已经启动了一个并发运行的计算。</p>
+<p>这也意味着 channel 可以作为服务的句柄（handle）。我们可以创建同一种服务的多个实例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    joe := boring(<span class="string">"Joe"</span>)</span><br><span class="line">    ann := boring(<span class="string">"Ann"</span>)</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">5</span>; i++ &#123;</span><br><span class="line">        fmt.Println(&lt;-joe)</span><br><span class="line">        fmt.Println(&lt;-ann)</span><br><span class="line">    &#125;</span><br><span class="line">    fmt.Println(<span class="string">"You're both boring; I'm leaving."</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Joe 和 Ann 会按同样的节奏轮流说话。但这是因为 channel 的同步特性，两者不仅在打印时轮流，在执行时也会轮流。如果 Ann 准备好发送，而 Joe 还没发送，Ann 就会阻塞，等待把值交给 main。这可能有点烦人，也许 Ann 比 Joe 更健谈，并不想等 Joe。</p>
+<h3 id="模式二：扇入（fan-in）"><a href="#模式二：扇入（fan-in）" class="headerlink" title="模式二：扇入（fan-in）"></a>模式二：扇入（fan-in）</h3><p>解决办法是写一个扇入函数，也就是多路复用器（multiplexer），把两个输入合并成一个输出 channel：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="fan-in.png" alt="Rob Pike 2012 演讲中的 fan-in 示意图" title="">
+                </div>
+                <div class="image-caption">Rob Pike 2012 演讲中的 fan-in 示意图</div>
+            </figure>
+
+<p><em>图片来自 Rob Pike 2012 演讲 PPT。</em></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">fanIn</span><span class="params">(input1, input2 &lt;-<span class="keyword">chan</span> <span class="keyword">string</span>)</span> &lt;-<span class="title">chan</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    c := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">string</span>)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; <span class="keyword">for</span> &#123; c &lt;- &lt;-input1 &#125; &#125;()</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; <span class="keyword">for</span> &#123; c &lt;- &lt;-input2 &#125; &#125;()</span><br><span class="line">    <span class="keyword">return</span> c</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    c := fanIn(boring(<span class="string">"Joe"</span>), boring(<span class="string">"Ann"</span>))</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">        fmt.Println(&lt;-c)</span><br><span class="line">    &#125;</span><br><span class="line">    fmt.Println(<span class="string">"You're both boring; I'm leaving."</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>fanIn</code> 函数本身也遵循生成器模式，它接收两个 channel，返回另一个 channel。内部启动两个独立的 goroutine，一个把 input1 的数据复制到输出，另一个把 input2 的数据复制到输出。这样 Joe 和 Ann 就完全解耦了，谁准备好谁就先说话，不再需要步调一致。</p>
+<h3 id="模式三：恢复顺序"><a href="#模式三：恢复顺序" class="headerlink" title="模式三：恢复顺序"></a>模式三：恢复顺序</h3><p>如果反过来，就是想让两者严格同步呢？前面说过，channel 是一等公民的值，这意味着可以把 channel 放在 channel 上发送。我们可以定义一种消息类型，里面包含一个用于回复的 channel：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Message <span class="keyword">struct</span> &#123;</span><br><span class="line">    str <span class="keyword">string</span></span><br><span class="line">    wait <span class="keyword">chan</span> <span class="keyword">bool</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>主循环先接收所有消息，然后再通过各自的私有 channel 放行：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">5</span>; i++ &#123;</span><br><span class="line">    msg1 := &lt;-c; fmt.Println(msg1.str)</span><br><span class="line">    msg2 := &lt;-c; fmt.Println(msg2.str)</span><br><span class="line">    msg1.wait &lt;- <span class="literal">true</span></span><br><span class="line">    msg2.wait &lt;- <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个 <code>wait</code> channel 在所有消息之间共享：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">waitForIt := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>) <span class="comment">// Shared between all messages.</span></span><br></pre></td></tr></table></figure>
+
+<p>每个说话者在发送消息时，会带上这个等待 channel，然后阻塞等待放行信号：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">c &lt;- Message&#123; fmt.Sprintf(<span class="string">"%s: %d"</span>, msg, i), waitForIt &#125;</span><br><span class="line">time.Sleep(time.Duration(rand.Intn(<span class="number">2e3</span>)) * time.Millisecond)</span><br><span class="line">&lt;-waitForIt</span><br></pre></td></tr></table></figure>
+
+<p>这样一来，即使各个 goroutine 的执行时机是随机的，主循环也可以通过控制放行顺序，让它们重新回到步调一致的状态。</p>
+<h3 id="select-语句"><a href="#select-语句" class="headerlink" title="select 语句"></a>select 语句</h3><p>接下来是并发独有的控制结构，也是 channel 和 goroutine 被内建到语言中的原因，这就是 <code>select</code> 语句。</p>
+<p><code>select</code> 看起来像 <code>switch</code>，但每个 <code>case</code> 不是表达式，而是一次通信：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line"><span class="keyword">case</span> v1 := &lt;-c1:</span><br><span class="line">    fmt.Printf(<span class="string">"received %v from c1\n"</span>, v1)</span><br><span class="line"><span class="keyword">case</span> v2 := &lt;-c2:</span><br><span class="line">    fmt.Printf(<span class="string">"received %v from c2\n"</span>, v1)</span><br><span class="line"><span class="keyword">case</span> c3 &lt;- <span class="number">23</span>:</span><br><span class="line">    fmt.Printf(<span class="string">"sent %v to c3\n"</span>, <span class="number">23</span>)</span><br><span class="line"><span class="keyword">default</span>:</span><br><span class="line">    fmt.Printf(<span class="string">"no one was ready to communicate\n"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>它的规则可以概括为：</p>
+<ul>
+<li>所有 channel 都会被求值。</li>
+<li><code>select</code> 会阻塞，直到其中某一次通信可以执行，然后执行该 case。</li>
+<li>如果多个 case 同时可以执行，<code>select</code> 会伪随机地选择一个。</li>
+<li>如果存在 <code>default</code> 子句，那么没有任何 channel 就绪时，它会立即执行。</li>
+</ul>
+<p><code>default</code> 提供了非阻塞通信的能力。如果没有 <code>default</code>，<code>select</code> 会一直阻塞，直到某个 channel 可以通信。</p>
+<p>用 <code>select</code> 重写 <code>fanIn</code>，只需要一个 goroutine：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">fanIn</span><span class="params">(input1, input2 &lt;-<span class="keyword">chan</span> <span class="keyword">string</span>)</span> &lt;-<span class="title">chan</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    c := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">string</span>)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">for</span> &#123;</span><br><span class="line">            <span class="keyword">select</span> &#123;</span><br><span class="line">            <span class="keyword">case</span> s := &lt;-input1:  c &lt;- s</span><br><span class="line">            <span class="keyword">case</span> s := &lt;-input2:  c &lt;- s</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">    <span class="keyword">return</span> c</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>之前是启动两个 goroutine，各自负责一个输入 channel；现在只启动一个 goroutine，在循环里用 <code>select</code> 选择哪个输入已经就绪。行为完全一样，只是实现方式不同。</p>
+<h3 id="超时"><a href="#超时" class="headerlink" title="超时"></a>超时</h3><p><code>select</code> 最重要的用途之一是给通信加超时。如果对方太无聊，你大概不想一直等下去：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    c := boring(<span class="string">"Joe"</span>)</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> s := &lt;-c:</span><br><span class="line">            fmt.Println(s)</span><br><span class="line">        <span class="keyword">case</span> &lt;-time.After(<span class="number">1</span> * time.Second):</span><br><span class="line">            fmt.Println(<span class="string">"You're too slow."</span>)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>time.After</code> 会返回一个 channel，在指定时长之后向该 channel 投递一次当前时间。上面这段代码的意思是，要么从 Joe 那里收到一条消息，要么一秒过去后放弃等待。这里的超时是针对<strong>每一条消息</strong>的。</p>
+<p>也可以把定时器放到循环外面，让整个对话有一个总超时：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    c := boring(<span class="string">"Joe"</span>)</span><br><span class="line">    timeout := time.After(<span class="number">5</span> * time.Second)</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> s := &lt;-c:</span><br><span class="line">            fmt.Println(s)</span><br><span class="line">        <span class="keyword">case</span> &lt;-timeout:</span><br><span class="line">            fmt.Println(<span class="string">"You talk too much."</span>)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>不管 Joe 说了多少话，五秒一到，整个循环就结束。</p>
+<h3 id="退出与确认"><a href="#退出与确认" class="headerlink" title="退出与确认"></a>退出与确认</h3><p>除了超时，还可以主动让 Joe 停下来：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">quit := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>)</span><br><span class="line">c := boring(<span class="string">"Joe"</span>, quit)</span><br><span class="line"><span class="keyword">for</span> i := rand.Intn(<span class="number">10</span>); i &gt;= <span class="number">0</span>; i-- &#123; fmt.Println(&lt;-c) &#125;</span><br><span class="line">quit &lt;- <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>boring 函数内部则多了一个 <code>quit</code> case：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line"><span class="keyword">case</span> c &lt;- fmt.Sprintf(<span class="string">"%s: %d"</span>, msg, i):</span><br><span class="line">    <span class="comment">// do nothing</span></span><br><span class="line"><span class="keyword">case</span> &lt;-quit:</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>但这还不够。如果 Joe 在退出前需要做一些清理工作呢？main 返回时整个程序就结束了，也许 Joe 还需要删除临时文件。我们需要确认他已经做完。</p>
+<p>办法是让 Joe 在完成后回一条消息：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">quit := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">string</span>)</span><br><span class="line">c := boring(<span class="string">"Joe"</span>, quit)</span><br><span class="line"><span class="keyword">for</span> i := rand.Intn(<span class="number">10</span>); i &gt;= <span class="number">0</span>; i-- &#123; fmt.Println(&lt;-c) &#125;</span><br><span class="line">quit &lt;- <span class="string">"Bye!"</span></span><br><span class="line">fmt.Printf(<span class="string">"Joe says: %q\n"</span>, &lt;-quit)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line"><span class="keyword">case</span> c &lt;- fmt.Sprintf(<span class="string">"%s: %d"</span>, msg, i):</span><br><span class="line">    <span class="comment">// do nothing</span></span><br><span class="line"><span class="keyword">case</span> &lt;-quit:</span><br><span class="line">    cleanup()</span><br><span class="line">    quit &lt;- <span class="string">"See you!"</span></span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这是一次往返通信。我们告诉 Joe “再见”，Joe 收到后执行清理，再回复 “回头见”，主函数收到回复后才确信可以安全退出。</p>
+<h3 id="菊花链（daisy-chain）"><a href="#菊花链（daisy-chain）" class="headerlink" title="菊花链（daisy chain）"></a>菊花链（daisy chain）</h3><p>沿着往返通信的思路，还可以构造一条很长的链，像一群 gopher 在玩传话游戏：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="daisy-chain.png" alt="Rob Pike 2012 演讲中的 daisy chain 示意图" title="">
+                </div>
+                <div class="image-caption">Rob Pike 2012 演讲中的 daisy chain 示意图</div>
+            </figure>
+
+<p><em>图片来自 Rob Pike 2012 演讲 PPT。</em></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">(left, right <span class="keyword">chan</span> <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">    left &lt;- <span class="number">1</span> + &lt;-right</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">const</span> n = <span class="number">10000</span></span><br><span class="line">    leftmost := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br><span class="line">    right := leftmost</span><br><span class="line">    left := leftmost</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; n; i++ &#123;</span><br><span class="line">        right = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br><span class="line">        <span class="keyword">go</span> f(left, right)</span><br><span class="line">        left = right</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(c <span class="keyword">chan</span> <span class="keyword">int</span>)</span></span> &#123; c &lt;- <span class="number">1</span> &#125;(right)</span><br><span class="line">    fmt.Println(&lt;-leftmost)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>每个 gopher 从右边的 channel 接收值，加一，再发送到左边的 channel。值从最右端进入，沿着链条一路传递，最后从最左端出来，一共被加了 <code>n</code> 次。为了好玩，实际跑过 10 万个这样的 gopher，程序链接、运行、完成所有通信所需的时间依然很短。这个例子虽然 silly，但很诚实，因为它真的创建了这么多 goroutine，并完成了完整的通信。</p>
+<h3 id="从玩具到系统软件"><a href="#从玩具到系统软件" class="headerlink" title="从玩具到系统软件"></a>从玩具到系统软件</h3><p>前面都是玩具例子。Go 是为编写系统软件设计的，接下来要看看这些想法如何用于真正的软件。接下来用 Google 搜索来演示，当然，这仍然是一个玩具，只是借用搜索的结构。</p>
+<p>一次 Google 搜索背后有许多独立执行的后端，Web 搜索、图片搜索、视频搜索、地图、新闻等等，另外还有广告系统。我们要并行地把查询发给这些后端，再把答案收集起来。</p>
+<p>先伪造一个搜索框架：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">    Web = fakeSearch(<span class="string">"web"</span>)</span><br><span class="line">    Image = fakeSearch(<span class="string">"image"</span>)</span><br><span class="line">    Video = fakeSearch(<span class="string">"video"</span>)</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Search <span class="function"><span class="keyword">func</span><span class="params">(query <span class="keyword">string</span>)</span> <span class="title">Result</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">fakeSearch</span><span class="params">(kind <span class="keyword">string</span>)</span> <span class="title">Search</span></span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(query <span class="keyword">string</span>)</span> <span class="title">Result</span></span> &#123;</span><br><span class="line">              time.Sleep(time.Duration(rand.Intn(<span class="number">100</span>)) * time.Millisecond)</span><br><span class="line">              <span class="keyword">return</span> Result(fmt.Sprintf(<span class="string">"%s result for %q\n"</span>, kind, query))</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Search</code> 是一个函数类型，接收查询并返回结果。<code>fakeSearch</code> 返回一个模拟搜索函数，它会随机休眠最多 100 毫秒，然后返回一个假结果。</p>
+<p>测试框架时，记录一下总耗时：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    rand.Seed(time.Now().UnixNano())</span><br><span class="line">    start := time.Now()</span><br><span class="line">    results := Google(<span class="string">"golang"</span>)</span><br><span class="line">    elapsed := time.Since(start)</span><br><span class="line">    fmt.Println(results)</span><br><span class="line">    fmt.Println(elapsed)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="Google-Search-1-0：串行"><a href="#Google-Search-1-0：串行" class="headerlink" title="Google Search 1.0：串行"></a>Google Search 1.0：串行</h4><p>最初的版本最简单，依次调用 Web、Image、Video，把结果追加到切片里：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Google</span><span class="params">(query <span class="keyword">string</span>)</span> <span class="params">(results []Result)</span></span> &#123;</span><br><span class="line">    results = <span class="built_in">append</span>(results, Web(query))</span><br><span class="line">    results = <span class="built_in">append</span>(results, Image(query))</span><br><span class="line">    results = <span class="built_in">append</span>(results, Video(query))</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>每个后端最多可能花费 100 毫秒，所以总耗时可能接近 300 毫秒。问题是，程序在等第一个后端返回时，另外两个后端其实什么也没做。</p>
+<h4 id="Google-Search-2-0：并发"><a href="#Google-Search-2-0：并发" class="headerlink" title="Google Search 2.0：并发"></a>Google Search 2.0：并发</h4><p>把三个搜索放进 goroutine 里并发执行，再从同一个 channel 收集结果：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Google</span><span class="params">(query <span class="keyword">string</span>)</span> <span class="params">(results []Result)</span></span> &#123;</span><br><span class="line">    c := <span class="built_in">make</span>(<span class="keyword">chan</span> Result)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c &lt;- Web(query) &#125; ()</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c &lt;- Image(query) &#125; ()</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c &lt;- Video(query) &#125; ()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">3</span>; i++ &#123;</span><br><span class="line">        result := &lt;-c</span><br><span class="line">        results = <span class="built_in">append</span>(results, result)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>没有锁，没有条件变量，也没有回调。三个搜索并发执行，总耗时只取决于最慢的那个后端。运行结果常常只有几十毫秒，例如 76 毫秒、88 毫秒。而且结果到达的顺序是不确定的，这正是并发的表现。</p>
+<h4 id="Google-Search-2-1：超时"><a href="#Google-Search-2-1：超时" class="headerlink" title="Google Search 2.1：超时"></a>Google Search 2.1：超时</h4><p>服务器偶尔会很慢。假设我们只愿意为整个搜索等待 80 毫秒，就可以把超时模式加进来：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">c := <span class="built_in">make</span>(<span class="keyword">chan</span> Result)</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c &lt;- Web(query) &#125; ()</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c &lt;- Image(query) &#125; ()</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c &lt;- Video(query) &#125; ()</span><br><span class="line"></span><br><span class="line">timeout := time.After(<span class="number">80</span> * time.Millisecond)</span><br><span class="line"><span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">3</span>; i++ &#123;</span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> result := &lt;-c:</span><br><span class="line">        results = <span class="built_in">append</span>(results, result)</span><br><span class="line">    <span class="keyword">case</span> &lt;-timeout:</span><br><span class="line">        fmt.Println(<span class="string">"timed out"</span>)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">return</span></span><br></pre></td></tr></table></figure>
+
+<p>这样程序一定会在 80 毫秒左右给出答案，但代价是慢服务器的结果可能被直接丢弃。</p>
+<h4 id="用副本避免超时"><a href="#用副本避免超时" class="headerlink" title="用副本避免超时"></a>用副本避免超时</h4><p>如果不想丢弃慢服务器的结果，可以复制服务器。向多个副本发送同一个请求，采用最先返回的响应：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">First</span><span class="params">(query <span class="keyword">string</span>, replicas ...Search)</span> <span class="title">Result</span></span> &#123;</span><br><span class="line">    c := <span class="built_in">make</span>(<span class="keyword">chan</span> Result)</span><br><span class="line">    searchReplica := <span class="function"><span class="keyword">func</span><span class="params">(i <span class="keyword">int</span>)</span></span> &#123; c &lt;- replicas[i](query) &#125;</span><br><span class="line">    <span class="keyword">for</span> i := <span class="keyword">range</span> replicas &#123;</span><br><span class="line">        <span class="keyword">go</span> searchReplica(i)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> &lt;-c</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>First</code> 接收一个查询和任意多个搜索副本，为每个副本启动一个 goroutine，然后只返回最先到达的结果。使用时可以这样：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    rand.Seed(time.Now().UnixNano())</span><br><span class="line">    start := time.Now()</span><br><span class="line">    result := First(<span class="string">"golang"</span>,</span><br><span class="line">        fakeSearch(<span class="string">"replica 1"</span>),</span><br><span class="line">        fakeSearch(<span class="string">"replica 2"</span>))</span><br><span class="line">    elapsed := time.Since(start)</span><br><span class="line">    fmt.Println(result)</span><br><span class="line">    fmt.Println(elapsed)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>哪个副本先返回就用哪个，整体延迟因此降低。</p>
+<h4 id="Google-Search-3-0：把所有东西拼起来"><a href="#Google-Search-3-0：把所有东西拼起来" class="headerlink" title="Google Search 3.0：把所有东西拼起来"></a>Google Search 3.0：把所有东西拼起来</h4><p>最后，把并发、副本和超时组合到一起：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">c := <span class="built_in">make</span>(<span class="keyword">chan</span> Result)</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c &lt;- First(query, Web1, Web2) &#125; ()</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c &lt;- First(query, Image1, Image2) &#125; ()</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c &lt;- First(query, Video1, Video2) &#125; ()</span><br><span class="line">timeout := time.After(<span class="number">80</span> * time.Millisecond)</span><br><span class="line"><span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">3</span>; i++ &#123;</span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> result := &lt;-c:</span><br><span class="line">        results = <span class="built_in">append</span>(results, result)</span><br><span class="line">    <span class="keyword">case</span> &lt;-timeout:</span><br><span class="line">        fmt.Println(<span class="string">"timed out"</span>)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">return</span></span><br></pre></td></tr></table></figure>
+
+<p>三个后端各自有两个副本，每个后端都通过 <code>First</code> 取最先返回的副本结果，整体再受 80 毫秒超时保护。运行这个版本，通常都能在 80 毫秒内拿到全部三个结果。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>只用了几次简单的变换，我们就用 Go 的并发原语，把一个</p>
+<ul>
+<li>慢的</li>
+<li>串行的</li>
+<li>对失败敏感的</li>
+</ul>
+<p>程序，变成了一个</p>
+<ul>
+<li>快的</li>
+<li>并发的</li>
+<li>带副本的</li>
+<li>健壮的</li>
+</ul>
+<p>程序。</p>
+<p>而且整个过程依然没有锁、没有条件变量、没有回调。程序很容易理解，更重要的是，其中每个组成部分都是直截了当的顺序代码，我们只是组合了它们各自独立的执行，从而得到整个服务器的行为。这正是并发特性被加入 Go 的原因。</p>
+<h3 id="不要滥用"><a href="#不要滥用" class="headerlink" title="不要滥用"></a>不要滥用</h3><p>最后是一点忠告。这些东西很好玩，写第一个并发程序、观察它的行为确实很有趣，你应该动手试试。但不要过度使用。</p>
+<p>goroutine 和 channel 是很重要的理念，是构造程序的工具，但它们不是用来替代内存屏障这类底层机制的。有时候你需要的只是一个引用计数器；当然可以用 channel 加 goroutine 来实现，但那就有点杀鸡用牛刀了。</p>
+<p>Go 的 <code>sync</code> 和 <code>sync/atomic</code> 包提供了互斥锁、条件变量、原子操作等工具，适合解决更小的问题。很多时候，这些工具会和 goroutine、channel 配合使用，共同解决一个更大的问题。<strong>始终为任务选择正确的工具。</strong></p>
+<p>本文完。</p>
+<p>希望此文能对你有所启发。</p>
+<p>延伸阅读</p>
+<ul>
+<li>Go Concurrency Patterns 演讲 PPT：<a href="https://go.dev/talks/2012/concurrency.slide" target="_blank" rel="noopener">https://go.dev/talks/2012/concurrency.slide</a></li>
+<li>Go Concurrency Patterns 演讲视频：<a href="https://www.youtube.com/watch?v=f6kdp27TYZs" target="_blank" rel="noopener">https://www.youtube.com/watch?v=f6kdp27TYZs</a></li>
+<li>Sameer Ajmani 讲透 Go 高级并发模式：泄漏、取消与并发控制：<a href="https://jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/</a></li>
+<li>Go 并发模式：Context 译文：<a href="https://jianghushinian.cn/2026/11/03/go-concurrency-patterns-context/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/03/go-concurrency-patterns-context/</a></li>
+<li>Go 并发模式：Pipeline 与取消 译文：<a href="https://jianghushinian.cn/2026/11/04/go-concurrency-patterns-pipelines/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/04/go-concurrency-patterns-pipelines/</a></li>
+<li>Go 并发模式：超时，不再等待 译文：<a href="https://jianghushinian.cn/2026/11/05/go-concurrency-patterns-timeouts/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/05/go-concurrency-patterns-timeouts/</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/</a></li>
+</ul>
+<p>联系我</p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-11-11T04:07:58.346Z" itemprop="dateUpdated">2026-11-11 12:07:58</time>
+</span><br>
+
+
+        
+        <a href="/2026/11/06/go-concurrency-patterns-talk-basics/" target="_blank" rel="external">http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%B9%B6%E5%8F%91/" rel="tag">并发</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/&title=《Rob Pike 讲透 Go 并发模式：goroutine、channel 与 select》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/&title=《Rob Pike 讲透 Go 并发模式：goroutine、channel 与 select》 — 江湖十年&source=大家好，我是江湖十年。
+今天继续 Go 并发模式系列。这次要整理的，是 Rob Pike 在 2012 年 Google I/O 上的演讲《Go Conc..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Rob Pike 讲透 Go 并发模式：goroutine、channel 与 select》 — 江湖十年&url=http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2026/11/07/go-concurrency-patterns-talk-advanced/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">Sameer Ajmani 讲透 Go 高级并发模式：泄漏、取消与并发控制</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2026/11/05/go-concurrency-patterns-timeouts/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 并发模式：超时，不再等待</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/&title=《Rob Pike 讲透 Go 并发模式：goroutine、channel 与 select》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/&title=《Rob Pike 讲透 Go 并发模式：goroutine、channel 与 select》 — 江湖十年&source=大家好，我是江湖十年。
+今天继续 Go 并发模式系列。这次要整理的，是 Rob Pike 在 2012 年 Google I/O 上的演讲《Go Conc..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Rob Pike 讲透 Go 并发模式：goroutine、channel 与 select》 — 江湖十年&url=http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

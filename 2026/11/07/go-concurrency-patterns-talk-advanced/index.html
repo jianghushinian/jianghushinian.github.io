@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Sameer Ajmani 讲透 Go 高级并发模式：泄漏、取消与并发控制 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,并发">
+    <meta name="description" content="大家好，我是江湖十年。 接着上一篇 Rob Pike 的《Go Concurrency Patterns》，这次整理 Sameer Ajmani 在 2013 年 Google I&#x2F;O 上的演讲《Advanced Go Concurrency Patterns》。如果说 2012 年那场讲的是并发原语的基础用法，这一场就进入了真实场景，如何写出长期运行、能够正确清理、可以被取消的并发程序。 内容从">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Sameer Ajmani 讲透 Go 高级并发模式：泄漏、取消与并发控制">
+<meta property="og:url" content="http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="大家好，我是江湖十年。 接着上一篇 Rob Pike 的《Go Concurrency Patterns》，这次整理 Sameer Ajmani 在 2013 年 Google I&#x2F;O 上的演讲《Advanced Go Concurrency Patterns》。如果说 2012 年那场讲的是并发原语的基础用法，这一场就进入了真实场景，如何写出长期运行、能够正确清理、可以被取消的并发程序。 内容从">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/get-ready.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/race.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/crash.png">
+<meta property="article:published_time" content="2026-11-07T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-11T04:31:38.238Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="并发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/get-ready.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Sameer Ajmani 讲透 Go 高级并发模式：泄漏、取消与并发控制</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Sameer Ajmani 讲透 Go 高级并发模式：泄漏、取消与并发控制</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2026-11-07T02:00:00.000Z" itemprop="datePublished" class="page-time">
+  2026-11-07
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#并发内建于语言之中"><span class="post-toc-number">1.</span> <span class="post-toc-text">并发内建于语言之中</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#例子：ping-pong"><span class="post-toc-number">2.</span> <span class="post-toc-text">例子：ping-pong</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#死锁检测"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">死锁检测</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#panic-会打印所有栈"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">panic 会打印所有栈</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#问题：启动容易，停止难"><span class="post-toc-number">3.</span> <span class="post-toc-text">问题：启动容易，停止难</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#例子：RSS-阅读器"><span class="post-toc-number">4.</span> <span class="post-toc-text">例子：RSS 阅读器</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#搭建-Subscribe"><span class="post-toc-number">5.</span> <span class="post-toc-text">搭建 Subscribe</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#朴素实现与三个-bug"><span class="post-toc-number">6.</span> <span class="post-toc-text">朴素实现与三个 bug</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Bug-1：对-s-closed-和-s-err-的访问没有同步"><span class="post-toc-number">6.1.</span> <span class="post-toc-text">Bug 1：对 s.closed 和 s.err 的访问没有同步</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Bug-2：time-Sleep-会让-loop-无法及时退出"><span class="post-toc-number">6.2.</span> <span class="post-toc-text">Bug 2：time.Sleep 会让 loop 无法及时退出</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#Bug-3：loop-可能永远阻塞在-s-updates-上"><span class="post-toc-number">6.3.</span> <span class="post-toc-text">Bug 3：loop 可能永远阻塞在 s.updates 上</span></a></li></ol></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#解法：for-select-循环"><span class="post-toc-number">7.</span> <span class="post-toc-text">解法：for-select 循环</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Case-1：关闭"><span class="post-toc-number">8.</span> <span class="post-toc-text">Case 1：关闭</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Case-2：抓取"><span class="post-toc-number">9.</span> <span class="post-toc-text">Case 2：抓取</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#Case-3：发送"><span class="post-toc-number">10.</span> <span class="post-toc-text">Case 3：发送</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#把三个-case-合到一起"><span class="post-toc-number">11.</span> <span class="post-toc-text">把三个 case 合到一起</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#改进一：去重"><span class="post-toc-number">12.</span> <span class="post-toc-text">改进一：去重</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#改进二：限制-pending-队列的长度"><span class="post-toc-number">13.</span> <span class="post-toc-text">改进二：限制 pending 队列的长度</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#改进三：异步抓取"><span class="post-toc-number">14.</span> <span class="post-toc-text">改进三：异步抓取</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#总结"><span class="post-toc-number">15.</span> <span class="post-toc-text">总结</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go-concurrency-patterns-talk-advanced"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Sameer Ajmani 讲透 Go 高级并发模式：泄漏、取消与并发控制</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2026-11-07 10:00:00" datetime="2026-11-07T02:00:00.000Z"  itemprop="datePublished">2026-11-07</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>大家好，我是江湖十年。</p>
+<p>接着上一篇 Rob Pike 的《Go Concurrency Patterns》，这次整理 Sameer Ajmani 在 2013 年 Google I/O 上的演讲《<a href="https://go.dev/talks/2013/advconc.slide" target="_blank" rel="noopener">Advanced Go Concurrency Patterns</a>》。如果说 2012 年那场讲的是并发原语的基础用法，这一场就进入了真实场景，如何写出长期运行、能够正确清理、可以被取消的并发程序。</p>
+<p>内容从一个 ping-pong 小游戏入手，展示 goroutine 泄漏和死锁检测，然后完整实现了一个 RSS 订阅器，并逐一修复朴素实现中的三个 bug，最后总结出 for-select 循环、服务 channel 与回复 channel、nil channel 这几个关键技巧。</p>
+<p>本文根据演讲 PPT 和视频整理，逐页讲解其中的内容。</p>
+<a id="more"></a>
+
+<blockquote>
+<p>演讲视频：<a href="https://www.youtube.com/watch?v=QDDwwePbDtw" target="_blank" rel="noopener">https://www.youtube.com/watch?v=QDDwwePbDtw</a><br>演讲 PPT：<a href="https://go.dev/talks/2013/advconc.slide" target="_blank" rel="noopener">https://go.dev/talks/2013/advconc.slide</a></p>
+</blockquote>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="get-ready.png" alt="Sameer Ajmani 2013 演讲中的 Get ready 幻灯片" title="">
+                </div>
+                <div class="image-caption">Sameer Ajmani 2013 演讲中的 Get ready 幻灯片</div>
+            </figure>
+
+<p><em>图片来自 Sameer Ajmani 2013 演讲 PPT。</em></p>
+<h3 id="并发内建于语言之中"><a href="#并发内建于语言之中" class="headerlink" title="并发内建于语言之中"></a>并发内建于语言之中</h3><p>Go 在语言和运行时层面支持并发，而不是把它做成一个库。这会改变你组织程序结构的方式。</p>
+<p>goroutine 是在同一地址空间中独立执行的函数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">go</span> f()</span><br><span class="line"><span class="keyword">go</span> g(<span class="number">1</span>, <span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+
+<p>channel 是带类型的值，让 goroutine 能够同步并交换信息：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">c := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c &lt;- <span class="number">3</span> &#125;()</span><br><span class="line">n := &lt;-c</span><br></pre></td></tr></table></figure>
+
+<p>这些是基础。如果对 goroutine 和 channel 还不太熟，建议先补一下 Rob Pike 2012 年的《Go Concurrency Patterns》。</p>
+<h3 id="例子：ping-pong"><a href="#例子：ping-pong" class="headerlink" title="例子：ping-pong"></a>例子：ping-pong</h3><p>先用一个小游戏来开场。两个玩家来回击球，球本身就是一个 channel：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Ball <span class="keyword">struct</span>&#123; hits <span class="keyword">int</span> &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    table := <span class="built_in">make</span>(<span class="keyword">chan</span> *Ball)</span><br><span class="line">    <span class="keyword">go</span> player(<span class="string">"ping"</span>, table)</span><br><span class="line">    <span class="keyword">go</span> player(<span class="string">"pong"</span>, table)</span><br><span class="line"></span><br><span class="line">    table &lt;- <span class="built_in">new</span>(Ball) <span class="comment">// game on; toss the ball</span></span><br><span class="line">    time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">    &lt;-table <span class="comment">// game over; grab the ball</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">player</span><span class="params">(name <span class="keyword">string</span>, table <span class="keyword">chan</span> *Ball)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        ball := &lt;-table</span><br><span class="line">        ball.hits++</span><br><span class="line">        fmt.Println(name, ball.hits)</span><br><span class="line">        time.Sleep(<span class="number">100</span> * time.Millisecond)</span><br><span class="line">        table &lt;- ball</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>主函数把一个 <code>Ball</code> 发到 <code>table</code> 上，两个玩家从 <code>table</code> 接收球、加一、打印，再打回去。一秒之后，主函数从 <code>table</code> 把球收走，游戏结束。</p>
+<h4 id="死锁检测"><a href="#死锁检测" class="headerlink" title="死锁检测"></a>死锁检测</h4><p>如果主函数不发球会怎样？把发球那一行注释掉：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    table := <span class="built_in">make</span>(<span class="keyword">chan</span> *Ball)</span><br><span class="line">    <span class="keyword">go</span> player(<span class="string">"ping"</span>, table)</span><br><span class="line">    <span class="keyword">go</span> player(<span class="string">"pong"</span>, table)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// table &lt;- new(Ball) // game on; toss the ball</span></span><br><span class="line">    time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">    &lt;-table <span class="comment">// game over; grab the ball</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>主函数等待从 <code>table</code> 接收球，两个玩家也在等待从 <code>table</code> 接收球，而没有任何人发送。程序会立刻崩溃，并输出：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fatal error: all goroutines are asleep - deadlock!</span><br></pre></td></tr></table></figure>
+
+<p>Go 运行时会检测这种所有 goroutine 都永久阻塞的情况，也就是死锁。这是一项非常实用的能力。</p>
+<h4 id="panic-会打印所有栈"><a href="#panic-会打印所有栈" class="headerlink" title="panic 会打印所有栈"></a>panic 会打印所有栈</h4><p>即使没有死锁，也可以在游戏进行中主动 panic，查看各个 goroutine 的状态：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    table := <span class="built_in">make</span>(<span class="keyword">chan</span> *Ball)</span><br><span class="line">    <span class="keyword">go</span> player(<span class="string">"ping"</span>, table)</span><br><span class="line">    <span class="keyword">go</span> player(<span class="string">"pong"</span>, table)</span><br><span class="line"></span><br><span class="line">    table &lt;- <span class="built_in">new</span>(Ball) <span class="comment">// game on; toss the ball</span></span><br><span class="line">    time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">    &lt;-table <span class="comment">// game over; grab the ball</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">panic</span>(<span class="string">"show me the stacks"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">player</span><span class="params">(name <span class="keyword">string</span>, table <span class="keyword">chan</span> *Ball)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        ball := &lt;-table</span><br><span class="line">        ball.hits++</span><br><span class="line">        fmt.Println(name, ball.hits)</span><br><span class="line">        time.Sleep(<span class="number">100</span> * time.Millisecond)</span><br><span class="line">        table &lt;- ball</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>panic 会打印所有 goroutine 的调用栈。你可以清楚地看到 ping 和 pong 分别阻塞在 <code>chan receive</code> 还是 <code>chan send</code>，主函数又停在什么位置。<strong>栈转储和死锁检测器</strong>是调试并发程序时非常有力的工具，这一点值得反复强调。</p>
+<h3 id="问题：启动容易，停止难"><a href="#问题：启动容易，停止难" class="headerlink" title="问题：启动容易，停止难"></a>问题：启动容易，停止难</h3><p><code>go</code> 关键字让启动并发变得很简单，但长期运行的程序还需要清理。接下来要讨论的，是如何编写能够处理通信、周期事件和取消的程序。</p>
+<p>核心仍然是 <code>select</code> 语句。它类似 <code>switch</code>，但选择哪个分支，取决于哪个通信操作已经就绪：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line"><span class="keyword">case</span> xc &lt;- x:</span><br><span class="line">    <span class="comment">// sent x on xc</span></span><br><span class="line"><span class="keyword">case</span> y := &lt;-yc:</span><br><span class="line">    <span class="comment">// received y from yc</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="例子：RSS-阅读器"><a href="#例子：RSS-阅读器" class="headerlink" title="例子：RSS 阅读器"></a>例子：RSS 阅读器</h3><p>Sameer 最喜欢的 RSS 阅读器停止服务了，于是他决定自己写一个。从哪里开始？先找现成的 RSS 客户端。在 pkg.go.dev 上搜索 “rss”，可以找到一个提供如下接口的库：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Fetch fetches Items for uri and returns the time when the next</span></span><br><span class="line"><span class="comment">// fetch should be attempted.  On failure, Fetch returns an error.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Fetch</span><span class="params">(uri <span class="keyword">string</span>)</span> <span class="params">(items []Item, next time.Time, err error)</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Item <span class="keyword">struct</span>&#123;</span><br><span class="line">    Title, Channel, GUID <span class="keyword">string</span> <span class="comment">// a subset of RSS fields</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Fetch</code> 一次返回一批 <code>Item</code>、下一次应该抓取的时间，以及可能出现的错误。</p>
+<p>但我们想要的是一个流：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;-<span class="keyword">chan</span> Item</span><br></pre></td></tr></table></figure>
+
+<p>而且还想要多个订阅。已有的接口和期望的接口之间存在着差距，接下来要做的，就是把前者转换成后者。</p>
+<p>现有的抽象如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Fetcher <span class="keyword">interface</span> &#123;</span><br><span class="line">    Fetch() (items []Item, next time.Time, err error)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Fetch</span><span class="params">(domain <span class="keyword">string</span>)</span> <span class="title">Fetcher</span></span> &#123;...&#125; <span class="comment">// fetches Items from domain</span></span><br></pre></td></tr></table></figure>
+
+<p>期望的抽象如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Subscription <span class="keyword">interface</span> &#123;</span><br><span class="line">    Updates() &lt;-<span class="keyword">chan</span> Item <span class="comment">// stream of Items</span></span><br><span class="line">    Close() error         <span class="comment">// shuts down the stream</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Subscribe</span><span class="params">(fetcher Fetcher)</span> <span class="title">Subscription</span></span> &#123;...&#125; <span class="comment">// converts Fetches to a stream</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Merge</span><span class="params">(subs ...Subscription)</span> <span class="title">Subscription</span></span> &#123;...&#125; <span class="comment">// merges several streams</span></span><br></pre></td></tr></table></figure>
+
+<p><code>Subscribe</code> 把周期性的 <code>Fetch</code> 调用转换成 <code>Item</code> 流，<code>Merge</code> 把多个订阅合并成一个流。</p>
+<p>完整的使用示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// Subscribe to some feeds, and create a merged update stream.</span></span><br><span class="line">    merged := Merge(</span><br><span class="line">        Subscribe(Fetch(<span class="string">"blog.golang.org"</span>)),</span><br><span class="line">        Subscribe(Fetch(<span class="string">"googleblog.blogspot.com"</span>)),</span><br><span class="line">        Subscribe(Fetch(<span class="string">"googledevelopers.blogspot.com"</span>)))</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Close the subscriptions after some time.</span></span><br><span class="line">    time.AfterFunc(<span class="number">3</span>*time.Second, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        fmt.Println(<span class="string">"closed:"</span>, merged.Close())</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Print the stream.</span></span><br><span class="line">    <span class="keyword">for</span> it := <span class="keyword">range</span> merged.Updates() &#123;</span><br><span class="line">        fmt.Println(it.Channel, it.Title)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">panic</span>(<span class="string">"show me the stacks"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>程序订阅三个博客，三秒后关闭合并后的订阅，同时不断打印收到的条目。最后的 panic 是为了让所有 goroutine 的栈都显示出来，方便观察清理是否完成。</p>
+<h3 id="搭建-Subscribe"><a href="#搭建-Subscribe" class="headerlink" title="搭建 Subscribe"></a>搭建 Subscribe</h3><p><code>Subscribe</code> 创建一个新的订阅，它会反复抓取条目，直到 <code>Close</code> 被调用：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Subscribe</span><span class="params">(fetcher Fetcher)</span> <span class="title">Subscription</span></span> &#123;</span><br><span class="line">    s := &amp;sub&#123;</span><br><span class="line">        fetcher: fetcher,</span><br><span class="line">        updates: <span class="built_in">make</span>(<span class="keyword">chan</span> Item), <span class="comment">// for Updates</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">go</span> s.loop()</span><br><span class="line">    <span class="keyword">return</span> s</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// sub implements the Subscription interface.</span></span><br><span class="line"><span class="keyword">type</span> sub <span class="keyword">struct</span> &#123;</span><br><span class="line">    fetcher Fetcher   <span class="comment">// fetches items</span></span><br><span class="line">    updates <span class="keyword">chan</span> Item <span class="comment">// delivers items to the user</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// loop fetches items using s.fetcher and sends them</span></span><br><span class="line"><span class="comment">// on s.updates.  loop exits when s.Close is called.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *sub)</span> <span class="title">loop</span><span class="params">()</span></span> &#123;...&#125;</span><br></pre></td></tr></table></figure>
+
+<p>为了让 <code>sub</code> 实现 <code>Subscription</code> 接口，还需要定义 <code>Updates</code> 和 <code>Close</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *sub)</span> <span class="title">Updates</span><span class="params">()</span> &lt;-<span class="title">chan</span> <span class="title">Item</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> s.updates</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *sub)</span> <span class="title">Close</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="comment">// <span class="doctag">TODO:</span> make loop exit</span></span><br><span class="line">    <span class="comment">// <span class="doctag">TODO:</span> find out about any error</span></span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此时 <code>Close</code> 还只是占位。先明确 <code>loop</code> 的职责，然后再逐步实现它。</p>
+<p><code>loop</code> 需要做三件事：</p>
+<ul>
+<li>周期性地调用 <code>Fetch</code>；</li>
+<li>把抓到的条目发送到 <code>Updates</code> channel；</li>
+<li>在 <code>Close</code> 被调用时退出，并报告可能出现的错误。</li>
+</ul>
+<h3 id="朴素实现与三个-bug"><a href="#朴素实现与三个-bug" class="headerlink" title="朴素实现与三个 bug"></a>朴素实现与三个 bug</h3><p>最直观的写法是在循环里检查一个 <code>closed</code> 标志，然后抓取、发送、休眠：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> s.closed &#123;</span><br><span class="line">        <span class="built_in">close</span>(s.updates)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    items, next, err := s.fetcher.Fetch()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        s.err = err</span><br><span class="line">        time.Sleep(<span class="number">10</span> * time.Second)</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> _, item := <span class="keyword">range</span> items &#123;</span><br><span class="line">        s.updates &lt;- item</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> now := time.Now(); next.After(now) &#123;</span><br><span class="line">        time.Sleep(next.Sub(now))</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *naiveSub)</span> <span class="title">Close</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    s.closed = <span class="literal">true</span></span><br><span class="line">    <span class="keyword">return</span> s.err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码看起来合理，但有三个严重的问题。</p>
+<h4 id="Bug-1：对-s-closed-和-s-err-的访问没有同步"><a href="#Bug-1：对-s-closed-和-s-err-的访问没有同步" class="headerlink" title="Bug 1：对 s.closed 和 s.err 的访问没有同步"></a>Bug 1：对 s.closed 和 s.err 的访问没有同步</h4><p><code>loop</code> 在自己的 goroutine 里读取 <code>s.closed</code>、写入 <code>s.err</code>，而 <code>Close</code> 在主 goroutine 里写入 <code>s.closed</code>、读取 <code>s.err</code>。这是典型的数据竞争。</p>
+<p>用竞态检测器运行程序就能发现：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go run -race naivemain.go</span><br></pre></td></tr></table></figure>
+
+<p>竞态检测器会明确报出，<code>Close</code> 对 <code>s.closed</code> 的写和 <code>loop</code> 对它的读之间存在 data race。这里顺带强调一下 <code>-race</code> 的价值。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="race.png" alt="Sameer Ajmani 2013 演讲中的竞态检测示意图" title="">
+                </div>
+                <div class="image-caption">Sameer Ajmani 2013 演讲中的竞态检测示意图</div>
+            </figure>
+
+<p><em>图片来自 Sameer Ajmani 2013 演讲 PPT。</em></p>
+<h4 id="Bug-2：time-Sleep-会让-loop-无法及时退出"><a href="#Bug-2：time-Sleep-会让-loop-无法及时退出" class="headerlink" title="Bug 2：time.Sleep 会让 loop 无法及时退出"></a>Bug 2：time.Sleep 会让 loop 无法及时退出</h4><p><code>loop</code> 中可能休眠很久。如果 <code>Fetch</code> 失败，它会休眠 10 秒；正常情况下，它也会一直睡到下一次抓取时间。在这段时间里，即使 <code>Close</code> 把 <code>s.closed</code> 设为 <code>true</code>，<code>loop</code> 也不会醒来检查，只能等休眠结束。清理因此被延迟。</p>
+<h4 id="Bug-3：loop-可能永远阻塞在-s-updates-上"><a href="#Bug-3：loop-可能永远阻塞在-s-updates-上" class="headerlink" title="Bug 3：loop 可能永远阻塞在 s.updates 上"></a>Bug 3：loop 可能永远阻塞在 s.updates 上</h4><p>如果用户不再从 <code>Updates</code> 接收条目，<code>loop</code> 就会永远阻塞在 <code>s.updates &lt;- item</code> 这一行。它没有机会回到循环顶部检查 <code>s.closed</code>，于是永远不会退出。</p>
+<p>这三个问题的根源相同，<code>loop</code> 在任何一个状态下都可能无限期阻塞，无法响应外部的取消。</p>
+<h3 id="解法：for-select-循环"><a href="#解法：for-select-循环" class="headerlink" title="解法：for-select 循环"></a>解法：for-select 循环</h3><p>解决方案是把 <code>loop</code> 的循环体改成一个包含三个 case 的 <code>select</code>：</p>
+<ul>
+<li><code>Close</code> 被调用了；</li>
+<li>到了调用 <code>Fetch</code> 的时间；</li>
+<li>可以向 <code>s.updates</code> 发送一个条目。</li>
+</ul>
+<p>结构如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *sub)</span> <span class="title">loop</span><span class="params">()</span></span> &#123;</span><br><span class="line">    ... declare mutable state ...</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        ... set up channels <span class="keyword">for</span> cases ...</span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> &lt;-c1:</span><br><span class="line">            ... read/write state ...</span><br><span class="line">        <span class="keyword">case</span> c2 &lt;- x:</span><br><span class="line">            ... read/write state ...</span><br><span class="line">        <span class="keyword">case</span> y := &lt;-c3:</span><br><span class="line">            ... read/write state ...</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>loop</code> 运行在自己的 goroutine 中，<code>select</code> 保证它不会在任何单一状态下无限阻塞。各个 case 之间通过 <code>loop</code> 内部的局部状态交互，而不是通过共享内存加锁。</p>
+<h3 id="Case-1：关闭"><a href="#Case-1：关闭" class="headerlink" title="Case 1：关闭"></a>Case 1：关闭</h3><p><code>Close</code> 需要和 <code>loop</code> 通信。这里使用一个”请求 channel”，它的元素类型本身又是一个 channel，用于回传错误：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> sub <span class="keyword">struct</span> &#123;</span><br><span class="line">    closing <span class="keyword">chan</span> <span class="keyword">chan</span> error</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>服务方（<code>loop</code>）在自己的 channel 上监听请求；客户端（<code>Close</code>）把请求发送到 <code>s.closing</code>，请求的内容是”退出，并把错误回复给我”。在这个例子中，请求里唯一的东西就是回复 channel。</p>
+<p><code>Close</code> 的实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *sub)</span> <span class="title">Close</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    errc := <span class="built_in">make</span>(<span class="keyword">chan</span> error)</span><br><span class="line">    s.closing &lt;- errc</span><br><span class="line">    <span class="keyword">return</span> &lt;-errc</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Close</code> 发送一个回复 channel，然后等待 <code>loop</code> 的响应。</p>
+<p><code>loop</code> 收到请求后，把 <code>Fetch</code> 过程中记录的错误回复过去，关闭 <code>updates</code> 告诉接收方已经结束，然后返回：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> err error <span class="comment">// set when Fetch fails</span></span><br><span class="line"><span class="keyword">for</span> &#123;</span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> errc := &lt;-s.closing:</span><br><span class="line">        errc &lt;- err</span><br><span class="line">        <span class="built_in">close</span>(s.updates) <span class="comment">// tells receiver we're done</span></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样 <code>Close</code> 不仅能通知 <code>loop</code> 退出，还能确认它确实退出了，并拿到最终的错误。这就是”服务 channel + 回复 channel”的模式。</p>
+<h3 id="Case-2：抓取"><a href="#Case-2：抓取" class="headerlink" title="Case 2：抓取"></a>Case 2：抓取</h3><p>抓取需要按计划进行。保存待抓取的条目、下一次抓取时间和错误：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> pending []Item <span class="comment">// appended by fetch; consumed by send</span></span><br><span class="line"><span class="keyword">var</span> next time.Time <span class="comment">// initially January 1, year 0</span></span><br><span class="line"><span class="keyword">var</span> err error</span><br><span class="line"><span class="keyword">for</span> &#123;</span><br><span class="line">    <span class="keyword">var</span> fetchDelay time.Duration <span class="comment">// initially 0 (no delay)</span></span><br><span class="line">    <span class="keyword">if</span> now := time.Now(); next.After(now) &#123;</span><br><span class="line">        fetchDelay = next.Sub(now)</span><br><span class="line">    &#125;</span><br><span class="line">    startFetch := time.After(fetchDelay)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> &lt;-startFetch:</span><br><span class="line">        <span class="keyword">var</span> fetched []Item</span><br><span class="line">        fetched, next, err = s.fetcher.Fetch()</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            next = time.Now().Add(<span class="number">10</span> * time.Second)</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        &#125;</span><br><span class="line">        pending = <span class="built_in">append</span>(pending, fetched...)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>next</code> 的零值是 <code>0001-01-01 00:00:00 +0000 UTC</code>，所以第一次循环时 <code>fetchDelay</code> 为 0，会立即抓取。之后根据 <code>Fetch</code> 返回的 <code>next</code> 计算延迟。如果抓取失败，就把下一次尝试推迟 10 秒。</p>
+<p>注意这里的 <code>break</code> 只会跳出 <code>select</code>，不会跳出 <code>for</code> 循环。失败时跳过 <code>pending</code> 的追加，然后继续下一轮。</p>
+<h3 id="Case-3：发送"><a href="#Case-3：发送" class="headerlink" title="Case 3：发送"></a>Case 3：发送</h3><p>发送逻辑看起来很简单，每次把 <code>pending</code> 的第一个元素发出去：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> pending []Item <span class="comment">// appended by fetch; consumed by send</span></span><br><span class="line"><span class="keyword">for</span> &#123;</span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> s.updates &lt;- pending[<span class="number">0</span>]:</span><br><span class="line">        pending = pending[<span class="number">1</span>:]</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>但这段代码会崩溃。当 <code>pending</code> 为空时，<code>pending[0]</code> 会触发 index out of range。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="crash.png" alt="Sameer Ajmani 2013 演讲中的崩溃示意图" title="">
+                </div>
+                <div class="image-caption">Sameer Ajmani 2013 演讲中的崩溃示意图</div>
+            </figure>
+
+<p><em>图片来自 Sameer Ajmani 2013 演讲 PPT。</em></p>
+<p>解决办法是利用 <strong>nil channel</strong> 的特性。向 nil channel 发送、从 nil channel 接收都会永久阻塞，而 <code>select</code> 永远不会选择一个会阻塞的 case。例如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    a, b := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">string</span>), <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">string</span>)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; a &lt;- <span class="string">"a"</span> &#125;()</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; b &lt;- <span class="string">"b"</span> &#125;()</span><br><span class="line">    <span class="keyword">if</span> rand.Intn(<span class="number">2</span>) == <span class="number">0</span> &#123;</span><br><span class="line">        a = <span class="literal">nil</span></span><br><span class="line">        fmt.Println(<span class="string">"nil a"</span>)</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        b = <span class="literal">nil</span></span><br><span class="line">        fmt.Println(<span class="string">"nil b"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> s := &lt;-a:</span><br><span class="line">        fmt.Println(<span class="string">"got"</span>, s)</span><br><span class="line">    <span class="keyword">case</span> s := &lt;-b:</span><br><span class="line">        fmt.Println(<span class="string">"got"</span>, s)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>被置为 nil 的那个 channel 对应的 case 永远不会被选中，<code>select</code> 只会走另一个分支。</p>
+<p>发送 case 的正确写法，是只在 <code>pending</code> 非空时才启用发送：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> pending []Item <span class="comment">// appended by fetch; consumed by send</span></span><br><span class="line"><span class="keyword">for</span> &#123;</span><br><span class="line">    <span class="keyword">var</span> first Item</span><br><span class="line">    <span class="keyword">var</span> updates <span class="keyword">chan</span> Item</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(pending) &gt; <span class="number">0</span> &#123;</span><br><span class="line">        first = pending[<span class="number">0</span>]</span><br><span class="line">        updates = s.updates <span class="comment">// enable send case</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> updates &lt;- first:</span><br><span class="line">        pending = pending[<span class="number">1</span>:]</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当 <code>pending</code> 为空时，<code>updates</code> 是 nil，发送 case 被禁用，<code>select</code> 不会选中它。这就是”用 nil channel 动态开关 case”的技巧。</p>
+<h3 id="把三个-case-合到一起"><a href="#把三个-case-合到一起" class="headerlink" title="把三个 case 合到一起"></a>把三个 case 合到一起</h3><p>三个 case 共享 <code>err</code>、<code>next</code> 和 <code>pending</code> 这些局部状态，合并后就是完整的 <code>loop</code> 主体：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line"><span class="keyword">case</span> errc := &lt;-s.closing:</span><br><span class="line">    errc &lt;- err</span><br><span class="line">    <span class="built_in">close</span>(s.updates)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line"><span class="keyword">case</span> &lt;-startFetch:</span><br><span class="line">    <span class="keyword">var</span> fetched []Item</span><br><span class="line">    fetched, next, err = s.fetcher.Fetch()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        next = time.Now().Add(<span class="number">10</span> * time.Second)</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">    &#125;</span><br><span class="line">    pending = <span class="built_in">append</span>(pending, fetched...)</span><br><span class="line"><span class="keyword">case</span> updates &lt;- first:</span><br><span class="line">    pending = pending[<span class="number">1</span>:]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>三个 bug 都解决了：</p>
+<ul>
+<li>所有对 <code>closed</code> 和 <code>err</code> 的访问都发生在 <code>loop</code> 这一个 goroutine 里，不再有数据竞争；</li>
+<li>不再使用 <code>time.Sleep</code>，而是用 <code>time.After</code> 创建一个定时 channel，<code>Close</code> 随时可以被 <code>select</code> 选中；</li>
+<li>发送 case 可以被 nil channel 禁用，<code>loop</code> 不会卡死在发送上，始终有机会处理 <code>Close</code>。</li>
+</ul>
+<p>并且依然没有锁、没有条件变量、没有回调。</p>
+<h3 id="改进一：去重"><a href="#改进一：去重" class="headerlink" title="改进一：去重"></a>改进一：去重</h3><p><code>Fetch</code> 可能返回重复的条目。维护一个已见 <code>GUID</code> 的集合，在加入 <code>pending</code> 之前过滤：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> pending []Item</span><br><span class="line"><span class="keyword">var</span> next time.Time</span><br><span class="line"><span class="keyword">var</span> err error</span><br><span class="line"><span class="keyword">var</span> seen = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">bool</span>) <span class="comment">// set of item.GUIDs</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> &lt;-startFetch:</span><br><span class="line">    <span class="keyword">var</span> fetched []Item</span><br><span class="line">    fetched, next, err = s.fetcher.Fetch()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        next = time.Now().Add(<span class="number">10</span> * time.Second)</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> _, item := <span class="keyword">range</span> fetched &#123;</span><br><span class="line">        <span class="keyword">if</span> !seen[item.GUID] &#123;</span><br><span class="line">            pending = <span class="built_in">append</span>(pending, item)</span><br><span class="line">            seen[item.GUID] = <span class="literal">true</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>seen</code> 由 <code>loop</code> 独占访问，所以仍然不需要加锁。</p>
+<h3 id="改进二：限制-pending-队列的长度"><a href="#改进二：限制-pending-队列的长度" class="headerlink" title="改进二：限制 pending 队列的长度"></a>改进二：限制 pending 队列的长度</h3><p>如果用户消费得慢，<code>pending</code> 会无限增长。可以设置一个上限：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> maxPending = <span class="number">10</span></span><br></pre></td></tr></table></figure>
+
+<p>当待发送条目达到上限时，禁用抓取 case：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> fetchDelay time.Duration</span><br><span class="line"><span class="keyword">if</span> now := time.Now(); next.After(now) &#123;</span><br><span class="line">    fetchDelay = next.Sub(now)</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">var</span> startFetch &lt;-<span class="keyword">chan</span> time.Time</span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(pending) &lt; maxPending &#123;</span><br><span class="line">    startFetch = time.After(fetchDelay) <span class="comment">// enable fetch case</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里又一次用到了 nil channel。<code>startFetch</code> 的静态类型是 <code>&lt;-chan time.Time</code>，当 <code>pending</code> 已满时保持为 nil，抓取 case 就不会被选中。另一种策略是从 <code>pending</code> 头部丢弃较旧的条目。</p>
+<h3 id="改进三：异步抓取"><a href="#改进三：异步抓取" class="headerlink" title="改进三：异步抓取"></a>改进三：异步抓取</h3><p><code>Fetch</code> 可能很慢。如果直接在 <code>select</code> 的 case 里调用它，整个 <code>loop</code> 都会被阻塞，期间无法处理 <code>Close</code>，也无法发送条目。</p>
+<p>解决办法是把 <code>Fetch</code> 放到单独的 goroutine 中执行，通过一个 <code>fetchDone</code> channel 把结果送回 <code>loop</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> fetchResult <span class="keyword">struct</span>&#123; fetched []Item; next time.Time; err error &#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> fetchDone <span class="keyword">chan</span> fetchResult <span class="comment">// if non-nil, Fetch is running</span></span><br></pre></td></tr></table></figure>
+
+<p>只有在没有正在进行的抓取，并且 <code>pending</code> 未满时，才启用抓取：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> startFetch &lt;-<span class="keyword">chan</span> time.Time</span><br><span class="line"><span class="keyword">if</span> fetchDone == <span class="literal">nil</span> &amp;&amp; <span class="built_in">len</span>(pending) &lt; maxPending &#123;</span><br><span class="line">    startFetch = time.After(fetchDelay) <span class="comment">// enable fetch case</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>select</code> 中增加一个处理结果的 case：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line"><span class="keyword">case</span> &lt;-startFetch:</span><br><span class="line">    fetchDone = <span class="built_in">make</span>(<span class="keyword">chan</span> fetchResult, <span class="number">1</span>)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        fetched, next, err := s.fetcher.Fetch()</span><br><span class="line">        fetchDone &lt;- fetchResult&#123;fetched, next, err&#125;</span><br><span class="line">    &#125;()</span><br><span class="line"><span class="keyword">case</span> result := &lt;-fetchDone:</span><br><span class="line">    fetchDone = <span class="literal">nil</span></span><br><span class="line">    <span class="comment">// Use result.fetched, result.next, result.err</span></span><br></pre></td></tr></table></figure>
+
+<p><code>fetchDone</code> 带有容量为 1 的缓冲区，保证抓取 goroutine 发送结果后可以退出，即使 <code>loop</code> 暂时还没准备好接收。结果被取走后，把 <code>fetchDone</code> 置为 nil，允许下一次抓取。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>到这里，<code>Subscribe</code> 就实现完了。它响应及时、能够正确清理、也容易阅读和修改。最后总结出三个关键技术：</p>
+<ul>
+<li><strong>for-select 循环</strong>，让 goroutine 在多个状态之间保持响应；</li>
+<li><strong>服务 channel 与回复 channel</strong>（<code>chan chan error</code>），让客户端能够请求退出并等待确认；</li>
+<li><strong>select case 中的 nil channel</strong>，用来动态启用或禁用某个分支。</li>
+</ul>
+<p>完整的实现还包括 <code>Merge</code>，细节可以在线查看。</p>
+<p>并发编程本身可能很棘手，Go 让它变得更容易：</p>
+<ul>
+<li>channel 可以传递数据、定时器事件和取消信号；</li>
+<li>goroutine 串行化了对局部可变状态的访问；</li>
+<li>栈转储和死锁检测器；</li>
+<li>竞态检测器。</li>
+</ul>
+<p>本文完。</p>
+<p>希望此文能对你有所启发。</p>
+<p>延伸阅读</p>
+<ul>
+<li>Advanced Go Concurrency Patterns 演讲 PPT：<a href="https://go.dev/talks/2013/advconc.slide" target="_blank" rel="noopener">https://go.dev/talks/2013/advconc.slide</a></li>
+<li>Advanced Go Concurrency Patterns 演讲视频：<a href="https://www.youtube.com/watch?v=QDDwwePbDtw" target="_blank" rel="noopener">https://www.youtube.com/watch?v=QDDwwePbDtw</a></li>
+<li>演讲代码：<a href="https://github.com/golang/talks/tree/master/content/2013/advconc" target="_blank" rel="noopener">https://github.com/golang/talks/tree/master/content/2013/advconc</a></li>
+<li>Rob Pike 讲透 Go 并发模式：goroutine、channel 与 select：<a href="https://jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/06/go-concurrency-patterns-talk-basics/</a></li>
+<li>Go 并发模式：Context 译文：<a href="https://jianghushinian.cn/2026/11/03/go-concurrency-patterns-context/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/03/go-concurrency-patterns-context/</a></li>
+<li>Go 并发模式：Pipeline 与取消 译文：<a href="https://jianghushinian.cn/2026/11/04/go-concurrency-patterns-pipelines/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/04/go-concurrency-patterns-pipelines/</a></li>
+<li>Go 并发模式：超时，不再等待 译文：<a href="https://jianghushinian.cn/2026/11/05/go-concurrency-patterns-timeouts/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/05/go-concurrency-patterns-timeouts/</a></li>
+<li>Concurrency is not parallelism：<a href="https://go.dev/s/concurrency-is-not-parallelism" target="_blank" rel="noopener">https://go.dev/s/concurrency-is-not-parallelism</a></li>
+<li>Share memory by communicating：<a href="https://go.dev/doc/codewalk/sharemem" target="_blank" rel="noopener">https://go.dev/doc/codewalk/sharemem</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/</a></li>
+</ul>
+<p>联系我</p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-11-11T04:31:38.238Z" itemprop="dateUpdated">2026-11-11 12:31:38</time>
+</span><br>
+
+
+        
+        <a href="/2026/11/07/go-concurrency-patterns-talk-advanced/" target="_blank" rel="external">http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%B9%B6%E5%8F%91/" rel="tag">并发</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/&title=《Sameer Ajmani 讲透 Go 高级并发模式：泄漏、取消与并发控制》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/&title=《Sameer Ajmani 讲透 Go 高级并发模式：泄漏、取消与并发控制》 — 江湖十年&source=大家好，我是江湖十年。
+接着上一篇 Rob Pike 的《Go Concurrency Patterns》，这次整理 Sameer Ajmani 在 20..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Sameer Ajmani 讲透 Go 高级并发模式：泄漏、取消与并发控制》 — 江湖十年&url=http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2026/11/08/code-was-never-the-hard-part/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">「写代码从来不是难点」是对所有程序员的侮辱</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2026/11/06/go-concurrency-patterns-talk-basics/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Rob Pike 讲透 Go 并发模式：goroutine、channel 与 select</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/&title=《Sameer Ajmani 讲透 Go 高级并发模式：泄漏、取消与并发控制》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/&title=《Sameer Ajmani 讲透 Go 高级并发模式：泄漏、取消与并发控制》 — 江湖十年&source=大家好，我是江湖十年。
+接着上一篇 Rob Pike 的《Go Concurrency Patterns》，这次整理 Sameer Ajmani 在 20..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Sameer Ajmani 讲透 Go 高级并发模式：泄漏、取消与并发控制》 — 江湖十年&url=http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
