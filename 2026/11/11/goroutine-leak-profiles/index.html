@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 1.27 新增 goroutine leak profiler：在生产环境中定位 goroutine 泄漏 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,并发,goroutine,pprof">
+    <meta name="description" content="大家好，我是江湖十年。 Go 1.27 发布有一段时间了，我之前专门写过《Go 1.27 测试相关变化详解：新特性与升级避坑》，分享测试相关功能。今天再来分享一下 Go 1.27 新增的 goroutine leak profiler 能力，2026 年 9 月 Go 官方发表过《Goroutine Leak Profiles》，作者是 Vlad Saioc。文章介绍了 Go 1.27 新增的 g">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 1.27 新增 goroutine leak profiler：在生产环境中定位 goroutine 泄漏">
+<meta property="og:url" content="http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="大家好，我是江湖十年。 Go 1.27 发布有一段时间了，我之前专门写过《Go 1.27 测试相关变化详解：新特性与升级避坑》，分享测试相关功能。今天再来分享一下 Go 1.27 新增的 goroutine leak profiler 能力，2026 年 9 月 Go 官方发表过《Goroutine Leak Profiles》，作者是 Vlad Saioc。文章介绍了 Go 1.27 新增的 g">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/gc-original.svg">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/gc-modified.svg">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/daisy-chain.svg">
+<meta property="article:published_time" content="2026-11-11T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-15T11:12:41.320Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="并发">
+<meta property="article:tag" content="goroutine">
+<meta property="article:tag" content="pprof">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/gc-original.svg">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 1.27 新增 goroutine leak profiler：在生产环境中定位 goroutine 泄漏</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 1.27 新增 goroutine leak profiler：在生产环境中定位 goroutine 泄漏</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2026-11-11T02:00:00.000Z" itemprop="datePublished" class="page-time">
+  2026-11-11
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#示例：并发-workers"><span class="post-toc-number">1.</span> <span class="post-toc-text">示例：并发 workers</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#用-goroutine-leak-profiler-调试"><span class="post-toc-number">1.1.</span> <span class="post-toc-text">用 goroutine leak profiler 调试</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#收集-profile"><span class="post-toc-number">1.2.</span> <span class="post-toc-text">收集 profile</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#修复泄漏"><span class="post-toc-number">1.3.</span> <span class="post-toc-text">修复泄漏</span></a></li></ol></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#实现原理"><span class="post-toc-number">2.</span> <span class="post-toc-text">实现原理</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#核心概念"><span class="post-toc-number">2.1.</span> <span class="post-toc-text">核心概念</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#限制"><span class="post-toc-number">2.2.</span> <span class="post-toc-text">限制</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#性能影响"><span class="post-toc-number">2.3.</span> <span class="post-toc-text">性能影响</span></a></li></ol></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#致谢"><span class="post-toc-number">3.</span> <span class="post-toc-text">致谢</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#补充示例"><span class="post-toc-number">4.</span> <span class="post-toc-text">补充示例</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#示例：重复发送"><span class="post-toc-number">4.1.</span> <span class="post-toc-text">示例：重复发送</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#示例：提前返回"><span class="post-toc-number">4.2.</span> <span class="post-toc-text">示例：提前返回</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#示例：超时"><span class="post-toc-number">4.3.</span> <span class="post-toc-text">示例：超时</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#示例：range-channel-却没有关闭"><span class="post-toc-number">4.4.</span> <span class="post-toc-text">示例：range channel 却没有关闭</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#示例：违反方法契约"><span class="post-toc-number">4.5.</span> <span class="post-toc-text">示例：违反方法契约</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#示例（Cockroach）：漏掉-Unlock"><span class="post-toc-number">4.6.</span> <span class="post-toc-text">示例（Cockroach）：漏掉 Unlock</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#示例（etcd）：意料之外的-channel-操作顺序"><span class="post-toc-number">4.7.</span> <span class="post-toc-text">示例（etcd）：意料之外的 channel 操作顺序</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#示例（Kubernetes）：channels-和-mutexes-相互阻塞"><span class="post-toc-number">4.8.</span> <span class="post-toc-text">示例（Kubernetes）：channels 和 mutexes 相互阻塞</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#示例（Moby）：误用-sync-WaitGroup"><span class="post-toc-number">4.9.</span> <span class="post-toc-text">示例（Moby）：误用 sync.WaitGroup</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#示例（Moby）：channels-和-mutexes-相互阻塞"><span class="post-toc-number">4.10.</span> <span class="post-toc-text">示例（Moby）：channels 和 mutexes 相互阻塞</span></a></li></ol></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-goroutine-leak-profiles"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 1.27 新增 goroutine leak profiler：在生产环境中定位 goroutine 泄漏</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2026-11-11 10:00:00" datetime="2026-11-11T02:00:00.000Z"  itemprop="datePublished">2026-11-11</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>大家好，我是江湖十年。</p>
+<p>Go 1.27 发布有一段时间了，我之前专门写过<a href="https://jianghushinian.cn/2026/10/11/go1.27-testing-changes/" target="_blank" rel="noopener">《Go 1.27 测试相关变化详解：新特性与升级避坑》</a>，分享测试相关功能。今天再来分享一下 Go 1.27 新增的 goroutine leak profiler 能力，2026 年 9 月 Go 官方发表过《<a href="https://go.dev/blog/goroutine-leak-profiles" target="_blank" rel="noopener">Goroutine Leak Profiles</a>》，作者是 Vlad Saioc。文章介绍了 Go 1.27 新增的 goroutine leak profiler，它可以在运行中的 Go 程序里，包括生产环境，精准定位那些永久阻塞的 goroutine。本文是对这篇文章的中文翻译。</p>
+<a id="more"></a>
+
+<p>如下为译文：</p>
+<blockquote>
+<p>原文地址：<a href="https://go.dev/blog/goroutine-leak-profiles" target="_blank" rel="noopener">https://go.dev/blog/goroutine-leak-profiles</a></p>
+</blockquote>
+<p><em>Vlad Saioc</em></p>
+<p><em>2026 年 9 月 2 日</em></p>
+<p>Go 的<a href="https://go.dev/tour/concurrency/1" target="_blank" rel="noopener">并发特性</a>强大且易用，但正是这种易用，有时也会让经验丰富的开发者犯错。幸运的是，Go 生态提供了一些有用的调试工具，比如<a href="https://go.dev/doc/articles/race_detector" target="_blank" rel="noopener">竞态检测器</a>（race detector），但即便是现有工具，也可能漏掉一些并发 bug，比如本文要讨论的主题——goroutine 泄漏（goroutine leak）。</p>
+<p>Goroutines 通过共享的并发原语（concurrency primitives）同步或交换信息，比如 channels、锁和 wait groups。在通信过程中，goroutines 经常会阻塞（block）在这些原语上，也就是等待某个条件满足；常见的例子包括等待获取已被持有的互斥锁，或从 channel 接收消息。Goroutines 也可能阻塞在操作系统操作上，比如从网络 socket 或文件读取数据。</p>
+<p>如果一个 goroutine 被阻塞，而解除阻塞所需的条件永远不可能满足，我们就可以认为它泄漏了。随着时间推移，泄漏的 goroutines 越积越多，会因内存占用过高（泄漏的 goroutines 本身，或它们引用的内存）以及垃圾回收器带来的 CPU 开销而拖慢性能，尤其是在使用 <code>GOMEMLIMIT</code> 时。</p>
+<p>Goroutine 泄漏出了名地难以检测。在单元测试中，最重要的突破之一是开源库 <a href="https://github.com/uber-go/goleak" target="_blank" rel="noopener"><code>goleak</code></a>，它可以在单个测试结束后，把所有未终止的 goroutines 标记为可疑对象。类似地，Go 1.25 在标准库中引入了 <a href="https://go.dev/blog/testing-time" target="_blank" rel="noopener"><code>synctest</code> 包</a>，它让 Go 开发者能更好地控制并发事件的顺序，从而可靠地测试那些难以复现的场景，显著提升并发代码单元测试的质量。</p>
+<p>遗憾的是，这两种方法都无法检查生产系统中的 goroutine 泄漏，尤其是在规模较大时，生产系统的行为可能超出测试覆盖的范围。Goroutine profiles 是基础手段，可以用来检查哪些操作阻塞了过多 goroutines，或分析增长趋势。但 goroutine profiles 无法区分哪些 goroutines 是泄漏的，哪些只是按设计暂时大量阻塞，比如微服务流量上涨导致的阻塞。同样，数量较少的泄漏可能潜伏多年而不被发现。</p>
+<p>Go 1.27 引入了 <strong>goroutine leak profiler</strong>，这是一种灵活且轻量的机制，用于在运行中的 Go 程序里查找 goroutine 泄漏，包括生产系统。与以往需要人工分析的方法不同，这种机制很精确，几乎不会产生误报。代价是它只覆盖一部分 goroutine 泄漏：goroutines 永久阻塞在 channels 或 <a href="https://go.dev/pkg/sync" target="_blank" rel="noopener"><code>sync</code> 包</a>原语上。幸运的是，正如后面的例子所示，这已经覆盖了 goroutine 泄漏中相当大的一部分。</p>
+<p>接下来几节会展示如何使用这个特性，然后给出一些可检测泄漏的补充示例，并介绍底层实现和取舍。</p>
+<h2 id="示例：并发-workers"><a href="#示例：并发-workers" class="headerlink" title="示例：并发 workers"></a>示例：并发 workers</h2><p>考虑一个并发处理工作项的函数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> result <span class="keyword">struct</span> &#123;</span><br><span class="line">    res workResult</span><br><span class="line">    err error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">processWorkItems</span><span class="params">(ws []workItem)</span> <span class="params">([]workResult, error)</span></span> &#123;</span><br><span class="line">    <span class="comment">// Process work items in parallel, aggregating results in ch.</span></span><br><span class="line">    ch := <span class="built_in">make</span>(<span class="keyword">chan</span> result)</span><br><span class="line">    <span class="keyword">for</span> _, w := <span class="keyword">range</span> ws &#123;</span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">            res, err := processWorkItem(w)</span><br><span class="line">            ch &lt;- result&#123;res, err&#125;</span><br><span class="line">        &#125;()</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Collect the results from ch, or return an error if one is found.</span></span><br><span class="line">    <span class="keyword">var</span> results []workResult</span><br><span class="line">    <span class="keyword">for</span> <span class="keyword">range</span> <span class="built_in">len</span>(ws) &#123;</span><br><span class="line">        r := &lt;-ch</span><br><span class="line">        <span class="keyword">if</span> r.err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="comment">// This early return may cause goroutine leaks.</span></span><br><span class="line">            <span class="keyword">return</span> <span class="literal">nil</span>, r.err</span><br><span class="line">        &#125;</span><br><span class="line">        results = <span class="built_in">append</span>(results, r.res)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> results, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为 <code>ch</code> 是无缓冲 channel，每个 worker goroutine 在发送结果时都会阻塞，直到主 goroutine 从 channel 接收。如果 <code>processWorkItems</code> 因为错误而提前返回，接收循环就结束了，剩下的发送方 goroutines 会永远阻塞。</p>
+<p>这个例子代表了一类在真实 Go 程序中常见的错误，包括 Uber 的生产服务也不例外。下面看看如何用新的 goroutine leak profiler 找到这些泄漏。</p>
+<h3 id="用-goroutine-leak-profiler-调试"><a href="#用-goroutine-leak-profiler-调试" class="headerlink" title="用 goroutine leak profiler 调试"></a>用 goroutine leak profiler 调试</h3><p>这个 profile 可以通过 <a href="https://go.dev/pkg/runtime/pprof" target="_blank" rel="noopener"><code>runtime/pprof</code> 包</a>使用，profile 类型名为 <code>goroutineleak</code>；也可以安装 <a href="https://go.dev/pkg/net/http/pprof" target="_blank" rel="noopener"><code>net/http/pprof</code> 包</a>定义的 profile handlers 来使用。如果你的服务里已经配置了 <code>net/http/pprof</code>，那就什么都不用做！这个 profile 会自动出现在 <code>/debug/pprof/goroutineleak</code> 端点，无论 handlers 安装在哪个 host 和 port。</p>
+<p>下面把前面的并发 bug 放到一个完整程序里，并配置好 <code>net/http/pprof</code> 包。这样你就可以自己动手试试了！</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"errors"</span></span><br><span class="line">    <span class="string">"log"</span></span><br><span class="line">    <span class="string">"net/http"</span></span><br><span class="line">    _ <span class="string">"net/http/pprof"</span></span><br><span class="line">    <span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> workItem <span class="keyword">int</span></span><br><span class="line"><span class="keyword">type</span> workResult <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">processWorkItem</span><span class="params">(w workItem)</span> <span class="params">(workResult, error)</span></span> &#123;</span><br><span class="line">    time.Sleep(<span class="number">10</span> * time.Millisecond)</span><br><span class="line">    <span class="keyword">if</span> w == <span class="number">5</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>, errors.New(<span class="string">"simulated error"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> workResult(w * <span class="number">2</span>), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> result <span class="keyword">struct</span> &#123;</span><br><span class="line">    res workResult</span><br><span class="line">    err error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">processWorkItems</span><span class="params">(ws []workItem)</span> <span class="params">([]workResult, error)</span></span> &#123;</span><br><span class="line">    ch := <span class="built_in">make</span>(<span class="keyword">chan</span> result)</span><br><span class="line">    <span class="keyword">for</span> _, w := <span class="keyword">range</span> ws &#123;</span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">            res, err := processWorkItem(w)</span><br><span class="line">            ch &lt;- result&#123;res, err&#125;</span><br><span class="line">        &#125;()</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> results []workResult</span><br><span class="line">    <span class="keyword">for</span> <span class="keyword">range</span> <span class="built_in">len</span>(ws) &#123;</span><br><span class="line">        r := &lt;-ch</span><br><span class="line">        <span class="keyword">if</span> r.err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">nil</span>, r.err</span><br><span class="line">        &#125;</span><br><span class="line">        results = <span class="built_in">append</span>(results, r.res)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> results, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// Start pprof server</span></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        log.Println(http.ListenAndServe(<span class="string">"localhost:6060"</span>, <span class="literal">nil</span>))</span><br><span class="line">    &#125;()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Repeatedly trigger the leak</span></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        items := []workItem&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">9</span>, <span class="number">10</span>&#125;</span><br><span class="line">        _, err := processWorkItems(items)</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            log.Printf(<span class="string">"Error processing items: %v"</span>, err)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        time.Sleep(time.Second)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>构建上面的程序，然后运行：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go build -o leaky</span><br><span class="line">$ .&#x2F;leaky</span><br></pre></td></tr></table></figure>
+
+<h3 id="收集-profile"><a href="#收集-profile" class="headerlink" title="收集 profile"></a>收集 profile</h3><p>程序很快就会开始积累泄漏，然后你可以在 <a href="http://localhost:6060/debug/pprof" target="_blank" rel="noopener">http://localhost:6060/debug/pprof</a> 的 web UI 中查看。</p>
+<p>或者用 <code>curl</code> 收集 goroutine leak profile，再用 <code>go tool pprof</code> 分析：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ curl http:&#x2F;&#x2F;localhost:6060&#x2F;debug&#x2F;pprof&#x2F;goroutineleak &gt; leak.prof</span><br><span class="line">$ go tool pprof leak.prof</span><br><span class="line">Type: goroutineleak</span><br><span class="line">Time: 2026-03-01 13:19:49 UTC</span><br><span class="line">Entering interactive mode (type &quot;help&quot; for commands, &quot;o&quot; for options)</span><br><span class="line">(pprof) list processWorkItems</span><br><span class="line">Total: 116</span><br><span class="line">ROUTINE &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; main.processWorkItems.func1 in ...&#x2F;main.go</span><br><span class="line">         0        116 (flat, cum)   100% of Total</span><br><span class="line">         .          .     31:           go func() &#123;</span><br><span class="line">         .          .     32:                   res, err :&#x3D; processWorkItem(w)</span><br><span class="line">         .        116     33:                   ch &lt;- result&#123;res, err&#125;</span><br><span class="line">         .          .     34:           &#125;()</span><br></pre></td></tr></table></figure>
+
+<p>profile 显示泄漏发生在 <code>ch &lt;- result{res, err}</code>（第 33 行），直接指出了罪魁祸首。值得注意的是，程序运行得越久，泄漏的 goroutines 数量就越多。</p>
+<h3 id="修复泄漏"><a href="#修复泄漏" class="headerlink" title="修复泄漏"></a>修复泄漏</h3><p>只要给 <code>ch</code> 加上<strong>缓冲区</strong>就能修复：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ch := <span class="built_in">make</span>(<span class="keyword">chan</span> result, <span class="built_in">len</span>(ws))</span><br></pre></td></tr></table></figure>
+
+<p>这样，即使 <code>processWorkItems</code> 提前返回，所有工作项 goroutines 也都能把消息发出去，而不会阻塞。</p>
+<p>更多真实案例见<a href="#补充示例">这一节</a>。</p>
+<h2 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h2><p>这一节面向对 goroutine leak profiler 内部泄漏检测原理感兴趣的读者。如果只关心性能开销和限制，可以直接跳到<a href="#限制">这一节</a>。</p>
+<h3 id="核心概念"><a href="#核心概念" class="headerlink" title="核心概念"></a>核心概念</h3><p>先从一个初步观察开始：如果一个 goroutine 阻塞在某个并发原语上，而其他任何 goroutine 都无法访问这个原语（这里说的是无法通过内存中的引用访问），那它显然泄漏了。这已经是一条很强的线索，我们可以进一步推广，给出一个 goroutine 没有泄漏的定义，我们称之为<strong>存活性</strong>（liveness）。我们用归纳法形式化定义存活性：</p>
+<p>一个 goroutine 是<strong>存活的</strong>（live），当且仅当：</p>
+<ol>
+<li><p>它没有被并发原语阻塞，或者</p>
+</li>
+<li><p>至少有一个阻塞它的并发原语被另一个存活的 goroutine 引用。</p>
+</li>
+</ol>
+<p>基本情况很简单，没有被阻塞的 goroutines 显然没有泄漏。归纳步骤背后的假设是，任何没有泄漏的 goroutine，最终都可能用自己引用的并发原语，让其他被这些原语阻塞的 goroutines 恢复运行。</p>
+<p>为了找出所有存活的 goroutines，我们从明显存活的、未被阻塞的 goroutines 出发，沿着它们持有的引用（也就是通过它们的局部变量）追踪，找出它们能访问的并发原语。然后逐步把阻塞在这些原语上的 goroutines 也标记为存活，重复这个过程，直到不再发现新的存活 goroutines。</p>
+<p>幸运的是，Go runtime 已经通过<a href="https://go.dev/doc/gc-guide" target="_blank" rel="noopener">垃圾回收器</a>（GC）计算内存可达性，所以下一步就是改造 GC 来满足我们的需求。下面两张图可以快速对比两种 GC：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="gc-original.svg" alt="原始 GC 标记示意图" title="">
+                </div>
+                <div class="image-caption">原始 GC 标记示意图</div>
+            </figure>
+
+<p><em>图片来自 Go 官方博客。</em></p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="gc-modified.svg" alt="改造后的 GC 标记示意图" title="">
+                </div>
+                <div class="image-caption">改造后的 GC 标记示意图</div>
+            </figure>
+
+<p><em>图片来自 Go 官方博客。</em></p>
+<p>不需要彻底重写 GC。Go runtime 使用的是并发三色标记清除垃圾回收器（现在是 <a href="https://go.dev/blog/greenteagc" target="_blank" rel="noopener">Green Tea</a> 变体！），它的工作方式已经和我们的目标很契合。只需要做几处关键改动：</p>
+<ol>
+<li><p>在初始阶段，常规 GC 会把<strong>所有</strong> goroutines（以及全局变量）都标记为可达，这样它们永远不会被当作垃圾，也就是把它们当作<strong>根对象</strong>（mark root）。我们改成只把未被阻塞的 goroutines 作为根对象，因为它们一定是存活的。</p>
+</li>
+<li><p>接下来是标记阶段，GC 会从根对象出发，顺着引用关系一路追踪下去，把能访问到的对象都<strong>标记</strong>为可用内存。虽然我们不直接修改这个阶段，但第 1 步的改动会隐式保证 GC 只标记存活 goroutines 引用的内存。</p>
+</li>
+<li><p>标记阶段结束时，检查所有在第 1 步中没有被当作根对象的阻塞 goroutines。如果一个 goroutine 被至少一个在第 2 步中标记过的并发原语阻塞，就把它加入根集合，然后 GC 从第 2 步继续标记。这正好对应存活性定义中的归纳步骤。</p>
+</li>
+<li><p>所有存活的 goroutines 都找出来之后，任何没有被加入根集合的 goroutine，其状态都被设为泄漏。</p>
+</li>
+<li><p>最后，标记阶段会再跑一遍。这一次，所有被判定为泄漏的 goroutines 也会作为根对象加入根集合，让 GC 像常规运行那样完成标记，把它本来会标记的内存都标记出来。</p>
+</li>
+</ol>
+<p>GC 周期结束后，goroutine leak profiler 会像常规 goroutine profile 那样收集数据，并只筛选出严格意义上的泄漏 goroutines。</p>
+<h3 id="限制"><a href="#限制" class="headerlink" title="限制"></a>限制</h3><p>上面的例子展示了 goroutine leak profiles 的用途。不过，垃圾回收器有一些限制，可能导致它漏掉一些泄漏：</p>
+<ol>
+<li><p><strong>内存可达范围过大</strong>（Memory overreach）：如果一个并发原语一直可以通过<strong>全局变量</strong>或<strong>可运行的 goroutines</strong> 访问到，那么阻塞在它上面的 goroutines 永远不会被报告为泄漏，即使这个并发原语以后根本不会再被使用。</p>
+<p>可以通过更严格地管理对并发原语引用的访问，并更清晰地划定它们的生命周期来缓解。</p>
+</li>
+<li><p><strong>非标准阻塞</strong>（Non-standard blocking）：为了保证正确性，goroutine 泄漏检测严格限定在 Go 语言内置的并发原语上，包括：channel 的发送和接收操作（包括对 <code>nil</code> channels 的操作）、阻塞的 <code>select</code> 语句（也就是没有 <code>default</code> 分支，甚至包括没有任何 case 的 <code>select</code> 语句），以及 <a href="https://go.dev/pkg/sync" target="_blank" rel="noopener"><code>sync</code></a> 包中的成员，具体是 <code>Mutex</code>、<code>RWMutex</code>、<code>WaitGroup</code> 和 <code>Cond</code>。</p>
+<p>因为其他原因阻塞的 goroutines，比如文件 IO、网络 IO 或直接系统调用，永远不会被当作泄漏。这条规则同样适用于自定义的、用户实现的并发机制，比如自旋锁，除非它们的底层实现依赖上面列出的原语。</p>
+</li>
+<li><p><strong>不确定性</strong>（Non-determinism）：泄漏只有在发生之后才能被检测到，无法提前预测，所以在不稳定的程序里复现和诊断泄漏仍然是个挑战。为了获得最好的效果，建议混合使用多种方法：在包括生产在内的各个层面使用 goroutine leak profiles，同时配合用 <code>goleak</code> 和 <code>synctest</code> 插桩的完整测试套件。</p>
+</li>
+</ol>
+<h3 id="性能影响"><a href="#性能影响" class="headerlink" title="性能影响"></a>性能影响</h3><p>Goroutine 泄漏检测在设计上尽量降低性能影响，但仍然有一些成本。</p>
+<p>内存开销可以忽略不计，只是一些用于记录状态的少量额外内存；不过 goroutine 泄漏检测可能比常规 GC 慢。最能说明问题的是一个我们称为“菊花链”（daisy-chain）的极端情况：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="daisy-chain.svg" alt="daisy-chain 示意图" title="">
+                </div>
+                <div class="image-caption">daisy-chain 示意图</div>
+            </figure>
+
+<p><em>图片来自 Go 官方博客。</em></p>
+<p>在这个没有泄漏的例子中，可运行的 goroutine G₀ 持有原语 P₁ 的引用，P₁ 阻塞了 G₁，依此类推。</p>
+<p>这意味着，要证明某个 Pᵢ₊₁ 是存活的，必须先证明 Pᵢ 是存活的，这带来两项成本：</p>
+<ol>
+<li><p>GC 标记阶段实际上会被 goroutines 的扫描顺序串行化，因为从某个 Pᵢ 可达的所有内存都必须先标记完，Pᵢ₊₁ 才能被加入根集合。</p>
+</li>
+<li><p>目前每一轮标记结束时都会检查所有阻塞的 goroutines，一个 GC 周期最坏情况下是 O(n²) 步，其中 n 是所有 goroutines 的总数。</p>
+</li>
+</ol>
+<p>第二点最终可以优化，但第一点是泄漏检测的固有局限，无法绕过。</p>
+<p>尽管如此，还是要提醒读者：除非通过 runtime flags 另行配置，GC 仍然会和用户代码并发运行。而且，如果一个 goroutine 泄漏在某个时间点能被观察到，那么在同一次执行的未来任何时间点也能被观察到。所以周期性采集 profile 的基础设施可以调整采集频率，比如每 4 小时一次，把开销降到最低，而几乎不损失泄漏检测能力。</p>
+<h2 id="致谢"><a href="#致谢" class="headerlink" title="致谢"></a>致谢</h2><p>Goroutine 泄漏检测是奥胡斯大学、圣路易斯华盛顿大学和 Uber 合作研究的成果，相关论文是 <a href="https://dl.acm.org/doi/pdf/10.1145/3676641.3715990" target="_blank" rel="noopener">“Dynamic Partial Deadlock Detection and Recovery via Garbage Collection”</a>（Saioc 等，ASPLOS 2025）。</p>
+<p>从学术原型到真正的 Go 特性，离不开 Google Go 团队的 Michael Knyszek 和 Michael Pratt，以及 PJ Malloy（<a href="https://github.com/thepudds" target="_blank" rel="noopener">@thepudds</a>）的指导。</p>
+<h2 id="补充示例"><a href="#补充示例" class="headerlink" title="补充示例"></a>补充示例</h2><p>下面是一些会导致泄漏的编码模式，来自工业级代码库和开源项目，按复杂度从低到高排列。</p>
+<p>你可以在 <a href="https://go.dev/play/p/S4Uw66sMbpj" target="_blank" rel="noopener">Go playground</a> 上快速试用 goroutine 泄漏检测器，也可以拿自己的泄漏来实验。</p>
+<h3 id="示例：重复发送"><a href="#示例：重复发送" class="headerlink" title="示例：重复发送"></a>示例：重复发送</h3><p>最简单的泄漏之一，是向 channel 发送了比预期更多的消息。下面这个例子里，一个 goroutine 预期通过无缓冲 channel 向主 goroutine 发送一条消息。但在错误分支里，发送操作之后漏掉了 <code>return</code> 语句。因此，每次遇到错误时，发送方都会尝试发送两条消息，从而造成泄漏。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DoubleSend</span><span class="params">()</span></span> &#123;</span><br><span class="line">    ch := <span class="built_in">make</span>(<span class="keyword">chan</span> any)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(err error)</span></span> &#123;</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="comment">// In case of an error, send nil.</span></span><br><span class="line">            ch &lt;- <span class="literal">nil</span></span><br><span class="line">            <span class="comment">// Return statement is missing.</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// Otherwise, continue with normal behaviour.</span></span><br><span class="line">        <span class="comment">// This send is still executed, which causes a leak in the error case.</span></span><br><span class="line">        ch &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">    &#125;(fmt.Errorf(<span class="string">"error"</span>))</span><br><span class="line">    <span class="comment">// Receive only one message.</span></span><br><span class="line">    &lt;-ch</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>虽然 profile 不会明确指出是漏了 <code>return</code> 导致的，但至少会把泄漏的发送操作标出来，把你引到出问题的函数。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">(pprof) list DoubleSend</span><br><span class="line">Total: 1</span><br><span class="line">ROUTINE &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; main.DoubleSend.func1 in ...&#x2F;main.go</span><br><span class="line">         0          1 (flat, cum)   100% of Total</span><br><span class="line">         .          .    118:   go func(err error) &#123;</span><br><span class="line">         .          .    119:           if err !&#x3D; nil &#123;</span><br><span class="line">         .          .    121:                   ch &lt;- nil</span><br><span class="line">         .          .    123:           &#125;</span><br><span class="line">         .          1    126:           ch &lt;- struct&#123;&#125;&#123;&#125;</span><br><span class="line">         .          .    127:   &#125;(fmt.Errorf(&quot;error&quot;))</span><br><span class="line">         .          .    129:   &lt;-ch</span><br></pre></td></tr></table></figure>
+
+<p>这个泄漏很好修，只要在错误分支的发送操作后加上 <code>return</code> 就行。</p>
+<h3 id="示例：提前返回"><a href="#示例：提前返回" class="headerlink" title="示例：提前返回"></a>示例：提前返回</h3><p>相反的情况同样常见：接收方在某些控制流路径上跳过了通信操作，这实际上就是开头示例的简化版。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Incoming error simulates an error produced internally.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">EarlyReturn</span><span class="params">(err error)</span></span> &#123;</span><br><span class="line">    ch := <span class="built_in">make</span>(<span class="keyword">chan</span> any)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Create a worker goroutine.</span></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="comment">// Send something to the channel.</span></span><br><span class="line">        <span class="comment">// Leaks if the parent goroutine terminates early.</span></span><br><span class="line">        ch &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">    &#125;()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="comment">// The parent goroutine quits too early in case of an error.</span></span><br><span class="line">        <span class="comment">// Sender leaks.</span></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Receive is only executed if there is no error.</span></span><br><span class="line">    &lt;-ch</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>profile 会把泄漏暴露出来：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">ROUTINE &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; main.EarlyReturn.func1 in ...&#x2F;main.go</span><br><span class="line">         0          1 (flat, cum)   100% of Total</span><br><span class="line">         .          .    140:   go func() &#123;</span><br><span class="line">         .          1    143:           ch &lt;- struct&#123;&#125;&#123;&#125;</span><br><span class="line">         .          .    144:   &#125;()</span><br><span class="line">         .          .    145:</span><br><span class="line">         .          .    146:   if err !&#x3D; nil &#123;</span><br></pre></td></tr></table></figure>
+
+<p>这个泄漏可以通过给 <code>ch</code> 一个大小为 1 的缓冲区来解决。</p>
+<h3 id="示例：超时"><a href="#示例：超时" class="headerlink" title="示例：超时"></a>示例：超时</h3><p>上面<strong>提前返回</strong>模式的一种变体涉及 contexts 和非确定性选择（<code>select</code> 语句）：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Timeout</span><span class="params">(ctx context.Context)</span></span> &#123;</span><br><span class="line">    <span class="comment">// An unbuffered channel is used to coordinate</span></span><br><span class="line">    <span class="comment">// a worker and parent thread</span></span><br><span class="line">    ch := <span class="built_in">make</span>(<span class="keyword">chan</span> any)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Create worker goroutine</span></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="comment">// Perform some work then signal to the parent thread.</span></span><br><span class="line">        ch &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">    &#125;()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Wait for message from worker or context</span></span><br><span class="line">    <span class="comment">// to be cancelled or timed out.</span></span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> &lt;-ch: <span class="comment">// Receive message from worker</span></span><br><span class="line">    <span class="keyword">case</span> &lt;-ctx.Done():</span><br><span class="line">        <span class="comment">// Sender leaks because there is no</span></span><br><span class="line">        <span class="comment">// future rendezvous over the channel.</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果 context 在发送方与父 goroutine 同步之前就被取消，发送方就会泄漏：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">(pprof) list Timeout</span><br><span class="line">Total: 10</span><br><span class="line">ROUTINE &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; main.Timeout.func1.1 in ...&#x2F;main.go</span><br><span class="line">         0         10 (flat, cum)   100% of Total</span><br><span class="line">         .          .    198:           go func() &#123;</span><br><span class="line">         .         10    201:                   ch &lt;- struct&#123;&#125;&#123;&#125;</span><br><span class="line">         .          .    202:           &#125;()</span><br></pre></td></tr></table></figure>
+
+<p>和前一个例子一样，修复方法是给 channel 一个大小为 1 的缓冲区。</p>
+<h3 id="示例：range-channel-却没有关闭"><a href="#示例：range-channel-却没有关闭" class="headerlink" title="示例：range channel 却没有关闭"></a>示例：range channel 却没有关闭</h3><p>用 <code>range</code> <a href="https://go.dev/tour/concurrency/4" target="_blank" rel="noopener">遍历 channels</a> 可以让你在循环中反复从 channel 接收值。一旦 channel 关闭，并且 channel 缓冲区里已入队的值都被接收完，循环就会退出。</p>
+<p>重要的是，<strong>如果 channel 永远不关闭</strong>，<code>range</code> 循环会永远阻塞执行它的 goroutine。省略 <code>close</code> 操作是一个常见错误，比如下面这样：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Incoming list of items and the number of workers.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">noCloseRange</span><span class="params">(list []any, workers <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">    <span class="comment">// Create a channel that distributes work items.</span></span><br><span class="line">    ch := <span class="built_in">make</span>(<span class="keyword">chan</span> any)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Create the worker goroutines.</span></span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; workers; i++ &#123;</span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">            <span class="comment">// Each worker pulls items from the channel</span></span><br><span class="line">            <span class="comment">// and then processes it.</span></span><br><span class="line">            <span class="keyword">for</span> item := <span class="keyword">range</span> ch &#123;</span><br><span class="line">                <span class="comment">// Process each item</span></span><br><span class="line">                _ = item</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;()</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Queue items to the workers by using the channel.</span></span><br><span class="line">    <span class="keyword">for</span> _, item := <span class="keyword">range</span> list &#123;</span><br><span class="line">        <span class="comment">// The parent leaks by sending an item if workers == 0</span></span><br><span class="line">        <span class="comment">// or if all the workers panic, but the panic is recovered.</span></span><br><span class="line">        ch &lt;- item</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Otherwise, the channel is never closed, so workers</span></span><br><span class="line">    <span class="comment">// leak once there are no more items left to process.</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"><span class="keyword">go</span> noCloseRange([]any&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>&#125;, <span class="number">3</span>) <span class="comment">// Leaks all 3 workers</span></span><br></pre></td></tr></table></figure>
+
+<p>这样的程序，goroutine leak profile 会包含下面这些内容：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Type: goroutineleak</span><br><span class="line">(pprof) list noCloseRange.func1</span><br><span class="line">Total: 4</span><br><span class="line">ROUTINE &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; main.noCloseRange.func1 in ...&#x2F;main.go</span><br><span class="line">         0          3 (flat, cum) 75.00% of Total</span><br><span class="line">         .          .     82:           go func() &#123;</span><br><span class="line">         .          3     84:                   for item :&#x3D; range ch &#123;</span><br><span class="line">         .          .     86:                           _ &#x3D; item</span><br><span class="line">         .          .     87:                   &#125;</span><br><span class="line">         .          .     88:           &#125;()</span><br></pre></td></tr></table></figure>
+
+<p>我们看到 3 个 workers 都阻塞在 <code>range ch</code> 上，这已经足够提示泄漏的原因了。修复方法很简单，所有消息发送完之后关闭 channel：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> _, item := <span class="keyword">range</span> list &#123;</span><br><span class="line">    ch &lt;- item</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// All items have been sent. It is now safe to close.</span></span><br><span class="line"><span class="built_in">close</span>(ch)</span><br></pre></td></tr></table></figure>
+
+<p><strong>额外发现！</strong> 眼尖的读者可能发现这个例子还有另一个潜在泄漏：如果 workers 的数量被误设为 0，父 goroutine（发送方）就会泄漏：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">go</span> noCloseRange([]any&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>&#125;, <span class="number">0</span>) <span class="comment">// Sender leaks with 0 workers</span></span><br></pre></td></tr></table></figure>
+
+<p>profile 同样能捕获：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">(pprof) list noCloseRange$</span><br><span class="line">Total: 4</span><br><span class="line">ROUTINE &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; main.noCloseRange in ...&#x2F;main.go</span><br><span class="line">         0          1 (flat, cum) 25.00% of Total</span><br><span class="line">         .          .     76:func noCloseRange(list []any, workers int) &#123;</span><br><span class="line">...</span><br><span class="line">         .          .     92:   for _, item :&#x3D; range list &#123;</span><br><span class="line">         .          1     95:           ch &lt;- item</span><br><span class="line">         .          .     96:   &#125;</span><br></pre></td></tr></table></figure>
+
+<p>虽然在真实的生产系统中可以假设 <code>workers &gt; 0</code> 一定成立，但 goroutine leak profiles 仍然可以用来隐式监控那些万一发生的违规情况，而不需要保守地加上 <code>workers &lt;= 0</code> 检查。</p>
+<h3 id="示例：违反方法契约"><a href="#示例：违反方法契约" class="headerlink" title="示例：违反方法契约"></a>示例：违反方法契约</h3><p>到目前为止，这些模式涉及的代码范围都相对有限。但当功能分散到多个函数、方法和包中，实现又被接口遮挡时，手动检测泄漏的难度会急剧上升。</p>
+<p>本节就是一个例子：自定义的 <code>worker</code> 类型内嵌了两个 channel 字段，<code>ch</code> 和 <code>done</code>，它的 <code>Start</code> 方法会创建一个循环 goroutine，用 <code>select</code> 语句同时读这两个 channels。这个 goroutine 只有通过 <code>done</code> channel 收到消息才能终止，而 <code>done</code> 由 <code>Stop</code> 方法关闭。</p>
+<p><code>Start</code> 方法可以被调用任意多次，但只要调用过至少一次，最终就应该调用 <code>Stop</code>。</p>
+<p>因此，<code>Start</code> 和 <code>Stop</code> 构成了一种隐式契约，规定了方法的调用顺序。破坏这个契约会导致不良行为，在这个例子里就是 goroutine 泄漏：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">MethodContractViolation</span><span class="params">()</span></span> &#123;</span><br><span class="line">    items := <span class="built_in">make</span>([]any, <span class="number">10</span>)</span><br><span class="line">    <span class="comment">// Create a new worker</span></span><br><span class="line">    w := NewWorker()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Start worker</span></span><br><span class="line">    w.Start()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Operate on worker</span></span><br><span class="line">    <span class="keyword">for</span> _, item := <span class="keyword">range</span> items &#123;</span><br><span class="line">        w.AddToQueue(item)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Exits without calling ’Stop’.</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> worker <span class="keyword">struct</span> &#123;</span><br><span class="line">    ch   <span class="keyword">chan</span> any</span><br><span class="line">    done <span class="keyword">chan</span> any</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Worker <span class="keyword">interface</span> &#123;</span><br><span class="line">    Start()</span><br><span class="line">    Stop()</span><br><span class="line">    AddToQueue(item any)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewWorker</span><span class="params">()</span> <span class="title">Worker</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> &amp;worker&#123;</span><br><span class="line">        ch:   <span class="built_in">make</span>(<span class="keyword">chan</span> any),</span><br><span class="line">        done: <span class="built_in">make</span>(<span class="keyword">chan</span> any),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Start spawns a background goroutine that extracts items pushed to the queue.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *worker)</span> <span class="title">Start</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">for</span> &#123;</span><br><span class="line">            <span class="keyword">select</span> &#123;</span><br><span class="line">            <span class="keyword">case</span> &lt;-w.ch: <span class="comment">// Normal workflow</span></span><br><span class="line">            <span class="keyword">case</span> &lt;-w.done:</span><br><span class="line">                <span class="keyword">return</span> <span class="comment">// Shut down</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *worker)</span> <span class="title">Stop</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// Allows goroutine created by Start to terminate</span></span><br><span class="line">    <span class="built_in">close</span>(w.done)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *worker)</span> <span class="title">AddToQueue</span><span class="params">(item any)</span></span> &#123;</span><br><span class="line">    w.ch &lt;- item</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在实践中，这个问题会更麻烦，因为这类自定义类型通常只以接口形式导出，这个例子里就是没有透露实现细节的 <code>Worker</code> 类型。客户端甚至可能根本不知道底层实现，于是在不知不觉中违反了隐式契约。</p>
+<p>幸运的是，抓取 goroutine leak profile 可以揭示这个缺陷：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">(pprof) list Start</span><br><span class="line">Total: 1</span><br><span class="line">ROUTINE &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; main.(*worker).Start.func1 in ...&#x2F;main.go</span><br><span class="line">         0          1 (flat, cum)   100% of Total</span><br><span class="line">         .          .    266:   go func() &#123;</span><br><span class="line">         .          .    267:           for &#123;</span><br><span class="line">         .          1    268:                   select &#123;</span><br><span class="line">         .          .    269:                   case &lt;-w.ch:</span><br><span class="line">         .          .    270:                   case &lt;-w.done:</span><br><span class="line">         .          .    271:                           return</span><br></pre></td></tr></table></figure>
+
+<p>修复方法自然是顺着线索找到 <code>Start</code> 的调用处，补上一次 <code>Stop</code> 调用。</p>
+<h3 id="示例（Cockroach）：漏掉-Unlock"><a href="#示例（Cockroach）：漏掉-Unlock" class="headerlink" title="示例（Cockroach）：漏掉 Unlock"></a>示例（Cockroach）：漏掉 <code>Unlock</code></h3><p>下面这个<a href="https://github.com/cockroachdb/cockroach/pull/584" target="_blank" rel="noopener">例子</a>来自 <a href="https://github.com/cockroachdb/cockroach" target="_blank" rel="noopener">CockroachDB</a>。它在循环中获取并释放锁，但在执行 <code>break</code> 语句之前忘了解锁：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Gossip <span class="keyword">struct</span> &#123;</span><br><span class="line">    mu     sync.Mutex</span><br><span class="line">    closed <span class="keyword">bool</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Gossip)</span> <span class="title">bootstrap</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        g.mu.Lock()</span><br><span class="line">        <span class="keyword">if</span> g.closed &#123;</span><br><span class="line">            <span class="comment">// Missing g.mu.Unlock</span></span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        &#125;</span><br><span class="line">        g.mu.Unlock()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Cockroach584</span><span class="params">()</span></span> &#123;</span><br><span class="line">    g := &amp;Gossip&#123;</span><br><span class="line">        closed: <span class="literal">true</span>,</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    g.bootstrap()</span><br><span class="line">    g.bootstrap() <span class="comment">// Causes a leak</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种情况下，goroutine 在获取锁失败时会泄漏。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">(pprof) list Gossip</span><br><span class="line">Total: 1</span><br><span class="line">ROUTINE &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; main.(*Gossip).bootstrap in ...&#x2F;main.go</span><br><span class="line">         0          1 (flat, cum)   100% of Total</span><br><span class="line">         .          .    165:func (g *Gossip) bootstrap() &#123;</span><br><span class="line">         .          .    166:   for &#123;</span><br><span class="line">         .          1    167:           g.mu.Lock()</span><br><span class="line">         .          .    168:           if g.closed &#123;</span><br><span class="line">         .          .    170:                   break</span><br><span class="line">         .          .    171:           &#125;</span><br><span class="line">         .          .    172:           g.mu.Unlock()</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>break</code> 之前加一次 <code>Unlock</code> 调用即可修复。</p>
+<h3 id="示例（etcd）：意料之外的-channel-操作顺序"><a href="#示例（etcd）：意料之外的-channel-操作顺序" class="headerlink" title="示例（etcd）：意料之外的 channel 操作顺序"></a>示例（etcd）：意料之外的 channel 操作顺序</h3><p>这个<a href="https://github.com/etcd-io/etcd/pull/6857" target="_blank" rel="noopener">例子</a>来自 <a href="https://github.com/etcd-io/etcd" target="_blank" rel="noopener">etcd</a>，展示了 channel 操作之间意料之外的顺序如何导致 goroutine 泄漏：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> node <span class="keyword">struct</span> &#123;</span><br><span class="line">    status <span class="keyword">chan</span> <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">    stop   <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">    done   <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(n *node)</span> <span class="title">Status</span><span class="params">()</span> <span class="title">struct</span></span>&#123;&#125; &#123;</span><br><span class="line">    c := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">    n.status &lt;- c</span><br><span class="line">    <span class="keyword">return</span> &lt;-c</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(n *node)</span> <span class="title">run</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> c := &lt;-n.status:</span><br><span class="line">            c &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">        <span class="keyword">case</span> &lt;-n.stop:</span><br><span class="line">            <span class="built_in">close</span>(n.done)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(n *node)</span> <span class="title">Stop</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> n.stop &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;:</span><br><span class="line">    <span class="keyword">case</span> &lt;-n.done:</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    &lt;-n.done</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Etcd6857</span><span class="params">()</span></span> &#123;</span><br><span class="line">    n := &amp;node&#123;</span><br><span class="line">        status: <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;),</span><br><span class="line">        stop:   <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;),</span><br><span class="line">        done:   <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;),</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">go</span> n.run()</span><br><span class="line">    <span class="keyword">go</span> n.Status()</span><br><span class="line">    <span class="keyword">go</span> n.Stop()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>run</code> 方法启动一个循环，预期反复从 <code>status</code> channel 接收消息（由调用 <code>Status</code> 方法发送）。同时，它也可以从 <code>stop</code> channel 接收一条消息（由 <code>Stop</code> 方法发送），收到后关闭 <code>done</code> channel 并退出。<code>Stop</code> 方法本身随后会等待从 <code>done</code> 接收消息，一旦 <code>done</code> 关闭，它就会解除阻塞。</p>
+<p>如果 <code>run</code>、<code>Status</code> 和 <code>Stop</code> 方法并发执行，就可能发生泄漏。<code>Stop</code> 和 <code>run</code> 这两个 goroutines 可能完成同步并退出，却没有接收 <code>Status</code> 发出的消息，导致 <code>Status</code> 永远阻塞。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">(pprof) list Status</span><br><span class="line">Total: 8</span><br><span class="line">ROUTINE &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; main.(*node).Status in ...&#x2F;main.go</span><br><span class="line">         0          8 (flat, cum)   100% of Total</span><br><span class="line">         .          .     16:func (n *node) Status() struct&#123;&#125; &#123;</span><br><span class="line">         .          .     17:   c :&#x3D; make(chan struct&#123;&#125;)</span><br><span class="line">         .          8     18:   n.status &lt;- c</span><br><span class="line">         .          .     19:   return &lt;-c</span><br><span class="line">         .          .     20:&#125;</span><br></pre></td></tr></table></figure>
+
+<p>把发往 <code>status</code> 的发送操作包进 <code>select</code> 语句，让另一个 <code>case</code> 分支尝试从 <code>done</code> 接收消息，这样，当 <code>Status</code> 在竞争中输给 <code>Stop</code> 调用时，运行 <code>Status</code> 的 goroutine 就能优雅退出。</p>
+<h3 id="示例（Kubernetes）：channels-和-mutexes-相互阻塞"><a href="#示例（Kubernetes）：channels-和-mutexes-相互阻塞" class="headerlink" title="示例（Kubernetes）：channels 和 mutexes 相互阻塞"></a>示例（Kubernetes）：channels 和 mutexes 相互阻塞</h3><p>这个<a href="https://github.com/kubernetes/kubernetes/pull/6632" target="_blank" rel="noopener">例子</a>出现在 <a href="https://github.com/kubernetes/kubernetes" target="_blank" rel="noopener">Kubernetes</a> 中，是 channels 和锁混用导致的结果：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Connection <span class="keyword">struct</span> &#123;</span><br><span class="line">    closeChan <span class="keyword">chan</span> <span class="keyword">bool</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> idleAwareFramer <span class="keyword">struct</span> &#123;</span><br><span class="line">    resetChan <span class="keyword">chan</span> <span class="keyword">bool</span></span><br><span class="line">    writeLock sync.Mutex</span><br><span class="line">    conn      *Connection</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(i *idleAwareFramer)</span> <span class="title">monitor</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> resetChan = i.resetChan</span><br><span class="line">    <span class="keyword">for</span> <span class="keyword">range</span> i.conn.closeChan &#123;</span><br><span class="line">        i.writeLock.Lock()</span><br><span class="line">        <span class="built_in">close</span>(resetChan)</span><br><span class="line">        i.resetChan = <span class="literal">nil</span></span><br><span class="line">        i.writeLock.Unlock()</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(i *idleAwareFramer)</span> <span class="title">WriteFrame</span><span class="params">()</span></span> &#123;</span><br><span class="line">    i.writeLock.Lock()</span><br><span class="line">    <span class="keyword">defer</span> i.writeLock.Unlock()</span><br><span class="line">    <span class="keyword">if</span> i.resetChan == <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    i.resetChan &lt;- <span class="literal">true</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewIdleAwareFramer</span><span class="params">()</span> *<span class="title">idleAwareFramer</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> &amp;idleAwareFramer&#123;</span><br><span class="line">        resetChan: <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>),</span><br><span class="line">        conn: &amp;Connection&#123;</span><br><span class="line">            closeChan: <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>),</span><br><span class="line">        &#125;,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Kubernetes6632</span><span class="params">()</span></span> &#123;</span><br><span class="line">    i := NewIdleAwareFramer()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        i.conn.closeChan &lt;- <span class="literal">true</span></span><br><span class="line">    &#125;()</span><br><span class="line">    <span class="keyword">go</span> i.monitor()</span><br><span class="line">    <span class="keyword">go</span> i.WriteFrame()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行 <code>WriteFrame</code> 的 goroutine 可能先获取 idle-aware framer 的锁，然后向 <code>resetChan</code> channel 发送消息，而 <code>monitor</code> goroutine 此时正等待从 <code>closeChan</code> channel 接收消息。消息发出后，<code>monitor</code> goroutine 会尝试获取同一把锁。但由于 <code>resetChan</code> 上没有任何流量，发送操作会永远阻塞，导致 <code>WriteFrame</code> goroutine 无法释放锁。于是两个 goroutines 都泄漏了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">(pprof) list AwareFramer</span><br><span class="line">Total: 200</span><br><span class="line">ROUTINE &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; main.(*idleAwareFramer).WriteFrame in ...&#x2F;main.go</span><br><span class="line">         0        100 (flat, cum) 50.00% of Total</span><br><span class="line">         .          .     32:func (i *idleAwareFramer) WriteFrame() &#123;</span><br><span class="line">         .          .     33:   i.writeLock.Lock()</span><br><span class="line">         .          .     34:   defer i.writeLock.Unlock()</span><br><span class="line">         .          .     35:   if i.resetChan &#x3D;&#x3D; nil &#123;</span><br><span class="line">         .          .     36:           return</span><br><span class="line">         .          .     37:   &#125;</span><br><span class="line">         .        100     38:   i.resetChan &lt;- true</span><br><span class="line">         .          .     39:&#125;</span><br><span class="line">ROUTINE &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; main.(*idleAwareFramer).monitor in ...&#x2F;main.go</span><br><span class="line">         0        100 (flat, cum) 50.00% of Total</span><br><span class="line">         .          .     21:func (i *idleAwareFramer) monitor() &#123;</span><br><span class="line">         .          .     22:   var resetChan &#x3D; i.resetChan</span><br><span class="line">         .          .     23:   for range i.conn.closeChan &#123;</span><br><span class="line">         .        100     24:           i.writeLock.Lock()</span><br><span class="line">         .          .     25:           close(resetChan)</span><br></pre></td></tr></table></figure>
+
+<p>修复方法是在 <code>monitor</code> goroutine 从 <code>closeChan</code> 收到消息后，另外启动一个 goroutine，在尝试获取锁之前先把 <code>resetChan</code> 排空。</p>
+<h3 id="示例（Moby）：误用-sync-WaitGroup"><a href="#示例（Moby）：误用-sync-WaitGroup" class="headerlink" title="示例（Moby）：误用 sync.WaitGroup"></a>示例（Moby）：误用 <code>sync.WaitGroup</code></h3><p>下面这个 <a href="https://github.com/moby/moby" target="_blank" rel="noopener">Moby</a> 中的<a href="https://github.com/moby/moby/pull/25384" target="_blank" rel="noopener">例子</a>展示了 wait groups 如何导致泄漏：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Manager <span class="keyword">struct</span> &#123;</span><br><span class="line">    plugins []<span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pm *Manager)</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> group sync.WaitGroup</span><br><span class="line">    group.Add(<span class="built_in">len</span>(pm.plugins))</span><br><span class="line">    <span class="keyword">for</span> _, p := <span class="keyword">range</span> pm.plugins &#123;</span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(p <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">            <span class="keyword">defer</span> group.Done()</span><br><span class="line">        &#125;(p)</span><br><span class="line">        group.Wait() <span class="comment">// Block here</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Moby25384</span><span class="params">()</span></span> &#123;</span><br><span class="line">    pm := &amp;Manager&#123;</span><br><span class="line">        plugins: []<span class="keyword">int</span>&#123;<span class="number">1</span>, <span class="number">2</span>&#125;,</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">go</span> pm.init()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>group</code> 这个 wait group 会根据插件管理器 <code>pm</code> 持有的插件数量增加计数器，然后遍历每个插件并启动一个 goroutine。每个 goroutine 完成任务后调用 <code>Done</code> 减少计数器。然而，<code>group</code> 错误地在循环体内部调用了 <code>Wait</code>，而不是在循环之后！当管理器持有多个插件时，运行 <code>init</code> 方法的 goroutine 就会泄漏。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">(pprof) list init</span><br><span class="line">Total: 1</span><br><span class="line">ROUTINE &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; main.(*Manager).init in ...&#x2F;main.go</span><br><span class="line">         0          1 (flat, cum)   100% of Total</span><br><span class="line">         .          .     17:   group.Add(len(pm.plugins))</span><br><span class="line">         .          .     18:   for _, p :&#x3D; range pm.plugins &#123;</span><br><span class="line">         .          .     19:           go func(p int) &#123;</span><br><span class="line">         .          .     20:                   defer group.Done()</span><br><span class="line">         .          .     21:           &#125;(p)</span><br><span class="line">         .          1     22:           group.Wait() &#x2F;&#x2F; Block here</span><br><span class="line">         .          .     23:   &#125;</span><br></pre></td></tr></table></figure>
+
+<p>把 <code>Wait</code> 移到循环外面即可轻松修复。</p>
+<h3 id="示例（Moby）：channels-和-mutexes-相互阻塞"><a href="#示例（Moby）：channels-和-mutexes-相互阻塞" class="headerlink" title="示例（Moby）：channels 和 mutexes 相互阻塞"></a>示例（Moby）：channels 和 mutexes 相互阻塞</h3><p>Moby 中的另一个<a href="https://github.com/moby/moby/pull/28462" target="_blank" rel="noopener">例子</a>展示了 channels 和锁混用导致的泄漏：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> (</span><br><span class="line">    State <span class="keyword">struct</span> &#123;</span><br><span class="line">        Health *Health</span><br><span class="line">    &#125;</span><br><span class="line">    Container <span class="keyword">struct</span> &#123;</span><br><span class="line">        sync.Mutex</span><br><span class="line">        State *State</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Store <span class="keyword">struct</span> &#123;</span><br><span class="line">        ctr *Container</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Daemon <span class="keyword">struct</span> &#123;</span><br><span class="line">        containers Store</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Health <span class="keyword">struct</span> &#123;</span><br><span class="line">        stop <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *Daemon)</span> <span class="title">StateChanged</span><span class="params">()</span></span> &#123;</span><br><span class="line">    c := d.containers.ctr</span><br><span class="line">    c.Lock()</span><br><span class="line">    d.updateHealthMonitorElseBranch(c)</span><br><span class="line">    <span class="keyword">defer</span> c.Unlock()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *Daemon)</span> <span class="title">updateHealthMonitorElseBranch</span><span class="params">(c *Container)</span></span> &#123;</span><br><span class="line">    c.State.Health.CloseMonitorChannel()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Health)</span> <span class="title">CloseMonitorChannel</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> s.stop != <span class="literal">nil</span> &#123;</span><br><span class="line">        s.stop &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">monitor</span><span class="params">(c *Container, stop <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> &lt;-stop:</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            handleProbeResult(c)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">handleProbeResult</span><span class="params">(c *Container)</span></span> &#123;</span><br><span class="line">    c.Lock()</span><br><span class="line">    <span class="keyword">defer</span> c.Unlock()</span><br><span class="line">    <span class="comment">// Additional work...</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewDaemonAndContainer</span><span class="params">()</span> <span class="params">(*Daemon, *Container)</span></span> &#123;</span><br><span class="line">    c := &amp;Container&#123;</span><br><span class="line">        State: &amp;State&#123;&amp;Health&#123;</span><br><span class="line">            stop: <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;),</span><br><span class="line">        &#125;&#125;,</span><br><span class="line">    &#125;</span><br><span class="line">    d := &amp;Daemon&#123;Store&#123;c&#125;&#125;</span><br><span class="line">    <span class="keyword">return</span> d, c</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Moby28462</span><span class="params">()</span></span> &#123;</span><br><span class="line">    d, c := NewDaemonAndContainer()</span><br><span class="line">    <span class="keyword">go</span> monitor(c, c.State.Health.stop)</span><br><span class="line">    <span class="keyword">go</span> d.StateChanged()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用 <code>StateChanged</code> 的 goroutine 可能先获取 daemon 中保存的 container 的锁，然后在 daemon 上调用 <code>updateHealthMonitorElseBranch</code> 方法，尝试向 container 的 <code>stop</code> channel 发送消息。然而，如果消息还没有被接收，运行 <code>monitor</code> 的 goroutine 可能收不到 <code>stop</code> 上的消息，而是选择 <code>select</code> 语句的 <code>default</code> 分支继续执行。这样它就会尝试获取同一把 container 锁，而这把锁已经被 <code>StateChanged</code> goroutine 持有，最终两个 goroutines 都泄漏。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">(pprof) list .CloseMonitorChannel</span><br><span class="line">Total: 2</span><br><span class="line">ROUTINE &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; main.(*Health).CloseMonitorChannel in ...&#x2F;main.go</span><br><span class="line">         0          1 (flat, cum) 50.00% of Total</span><br><span class="line">         .          .     66:func (s *Health) CloseMonitorChannel() &#123;</span><br><span class="line">         .          .     67:   if s.stop !&#x3D; nil &#123;</span><br><span class="line">         .          1     68:           s.stop &lt;- struct&#123;&#125;&#123;&#125;</span><br><span class="line">         .          .     69:   &#125;</span><br><span class="line">         .          .     70:&#125;</span><br><span class="line">(pprof) list main.handleProbeResult</span><br><span class="line">Total: 2</span><br><span class="line">ROUTINE &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; main.handleProbeResult in ...&#x2F;main.go</span><br><span class="line">         0          1 (flat, cum) 50.00% of Total</span><br><span class="line">         .          .     83:func handleProbeResult(c *Container) &#123;</span><br><span class="line">         .          1     84:   c.Lock()</span><br><span class="line">         .          .     85:   &#x2F;&#x2F; Additional work...</span><br><span class="line">         .          .     86:   defer c.Unlock()</span><br><span class="line">         .          .     87:&#125;</span><br></pre></td></tr></table></figure>
+
+<p>修复方法是关闭 <code>stop</code> channel，而不是向它发送消息。因为关闭 channel 不是阻塞操作，<code>StateChanged</code> goroutine 就能释放锁。反过来，这又会解除 <code>monitor</code> goroutine 的阻塞，让它在下一轮循环中选择已经不再阻塞的 <code>&lt;-stop</code> 分支并退出。</p>
+<p>原文完。</p>
+<p>希望此文能对你有所启发。</p>
+<p>延伸阅读</p>
+<ul>
+<li>Goroutine Leak Profiles 原文：<a href="https://go.dev/blog/goroutine-leak-profiles" target="_blank" rel="noopener">https://go.dev/blog/goroutine-leak-profiles</a></li>
+<li>Go 1.27 测试相关变化详解：新特性与升级避坑：<a href="https://jianghushinian.cn/2026/10/11/go1.27-testing-changes/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/10/11/go1.27-testing-changes/</a></li>
+<li>Go 并发模式：超时，不再等待：<a href="https://jianghushinian.cn/2026/11/05/go-concurrency-patterns-timeouts/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/05/go-concurrency-patterns-timeouts/</a></li>
+<li>Go 高级并发模式：Sameer Ajmani 2013 演讲详解：<a href="https://jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2026/11/11/goroutine-leak-profiles/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/11/goroutine-leak-profiles/</a></li>
+</ul>
+<p>联系我</p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-11-15T11:12:41.320Z" itemprop="dateUpdated">2026-11-15 19:12:41</time>
+</span><br>
+
+
+        
+        <a href="/2026/11/11/goroutine-leak-profiles/" target="_blank" rel="external">http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/goroutine/" rel="tag">goroutine</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/pprof/" rel="tag">pprof</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%B9%B6%E5%8F%91/" rel="tag">并发</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/&title=《Go 1.27 新增 goroutine leak profiler：在生产环境中定位 goroutine 泄漏》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/&title=《Go 1.27 新增 goroutine leak profiler：在生产环境中定位 goroutine 泄漏》 — 江湖十年&source=大家好，我是江湖十年。
+Go 1.27 发布有一段时间了，我之前专门写过《Go 1.27 测试相关变化详解：新特性与升级避坑》，分享测试相关功能。今天再来..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 1.27 新增 goroutine leak profiler：在生产环境中定位 goroutine 泄漏》 — 江湖十年&url=http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2026/11/15/harness-ai-coding/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">OneXAI Harness：把团队规范变成 AI 能执行的工具</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2026/11/08/code-was-never-the-hard-part/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">「写代码从来不是难点」是对所有程序员的侮辱</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/&title=《Go 1.27 新增 goroutine leak profiler：在生产环境中定位 goroutine 泄漏》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/&title=《Go 1.27 新增 goroutine leak profiler：在生产环境中定位 goroutine 泄漏》 — 江湖十年&source=大家好，我是江湖十年。
+Go 1.27 发布有一段时间了，我之前专门写过《Go 1.27 测试相关变化详解：新特性与升级避坑》，分享测试相关功能。今天再来..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 1.27 新增 goroutine leak profiler：在生产环境中定位 goroutine 泄漏》 — 江湖十年&url=http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2026/11/11/goroutine-leak-profiles/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

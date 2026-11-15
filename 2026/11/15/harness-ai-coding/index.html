@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>OneXAI Harness：把团队规范变成 AI 能执行的工具 | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,Agent,AI,AI Coding,工程化,Harness">
+    <meta name="description" content="用 AI 写代码，最惊艳的时刻往往是第一次：一个函数、一个文件、一个小 Demo，随便哪个模型都能写得有模有样。 但真正把 AI Coding 放进日常开发之后，就会出现新的问题：代码能跑，但它不像自己或团队内写的代码。架构设计、代码风格、命名规范等，Coding Agent 往往有自己的想法。 如果想要彻底解决这些问题，则需要不断打磨 AGENTS.md、Skills、MCP 等外围配套设施，而">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OneXAI Harness：把团队规范变成 AI 能执行的工具">
+<meta property="og:url" content="http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="用 AI 写代码，最惊艳的时刻往往是第一次：一个函数、一个文件、一个小 Demo，随便哪个模型都能写得有模有样。 但真正把 AI Coding 放进日常开发之后，就会出现新的问题：代码能跑，但它不像自己或团队内写的代码。架构设计、代码风格、命名规范等，Coding Agent 往往有自己的想法。 如果想要彻底解决这些问题，则需要不断打磨 AGENTS.md、Skills、MCP 等外围配套设施，而">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/harness-cover.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/harness-workflow.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/harness-create.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/harness-tree.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/harness-api.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/harness-ide.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/harness-conventions.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/harness-check.png">
+<meta property="og:image" content="http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/harness-quality.png">
+<meta property="article:published_time" content="2026-11-15T01:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-15T03:49:22.390Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="Agent">
+<meta property="article:tag" content="AI">
+<meta property="article:tag" content="AI Coding">
+<meta property="article:tag" content="工程化">
+<meta property="article:tag" content="Harness">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/harness-cover.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">OneXAI Harness：把团队规范变成 AI 能执行的工具</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">OneXAI Harness：把团队规范变成 AI 能执行的工具</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2026-11-15T01:00:00.000Z" itemprop="datePublished" class="page-time">
+  2026-11-15
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/AI/">AI</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#AI-Coding-的瓶颈，早就不是生成速度"><span class="post-toc-number">1.</span> <span class="post-toc-text">AI Coding 的瓶颈，早就不是生成速度</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#OneXAI-Harness-想解决的，是「确定性」"><span class="post-toc-number">2.</span> <span class="post-toc-text">OneXAI Harness 想解决的，是「确定性」</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#一条闭环：规范-→-骨架-→-业务-→-校验-→-交付"><span class="post-toc-number">3.</span> <span class="post-toc-text">一条闭环：规范 → 骨架 → 业务 → 校验 → 交付</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#先看它提供了什么"><span class="post-toc-number">4.</span> <span class="post-toc-text">先看它提供了什么</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#第一步：一条命令，生成能持续扩展的骨架"><span class="post-toc-number">5.</span> <span class="post-toc-text">第一步：一条命令，生成能持续扩展的骨架</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#第二步：加一个资源，而不是加一堆胶水代码"><span class="post-toc-number">6.</span> <span class="post-toc-text">第二步：加一个资源，而不是加一堆胶水代码</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#第三步：把-AI-接进来，一行初始化"><span class="post-toc-number">7.</span> <span class="post-toc-text">第三步：把 AI 接进来，一行初始化</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#第四步：规范不是写在文档里，而是-CI-里的一道门"><span class="post-toc-number">8.</span> <span class="post-toc-text">第四步：规范不是写在文档里，而是 CI 里的一道门</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#效果：一致性比单次惊艳更重要"><span class="post-toc-number">9.</span> <span class="post-toc-text">效果：一致性比单次惊艳更重要</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#它适合谁，不适合谁"><span class="post-toc-number">10.</span> <span class="post-toc-text">它适合谁，不适合谁</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#最后"><span class="post-toc-number">11.</span> <span class="post-toc-text">最后</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-harness-ai-coding"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">OneXAI Harness：把团队规范变成 AI 能执行的工具</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2026-11-15 09:00:00" datetime="2026-11-15T01:00:00.000Z"  itemprop="datePublished">2026-11-15</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/AI/">AI</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>用 AI 写代码，最惊艳的时刻往往是第一次：一个函数、一个文件、一个小 Demo，随便哪个模型都能写得有模有样。</p>
+<p>但真正把 AI Coding 放进日常开发之后，就会出现新的问题：代码能跑，但它不像自己或团队内写的代码。架构设计、代码风格、命名规范等，Coding Agent 往往有自己的想法。</p>
+<p>如果想要彻底解决这些问题，则需要不断打磨 AGENTS.md、Skills、MCP 等外围配套设施，而这些都属于 Harness。</p>
+<p>这篇文章带你体验一下 <a href="https://onex.feizaonet.com/downloads" target="_blank" rel="noopener">OneXAI Harness</a> 的强大，我会用真实命令跑一遍：从空目录生成一个 Go 工程，加一个 REST 资源，接入 Claude Code，再让规范检查真正拦住一次不合规提交。</p>
+<a id="more"></a>
+
+<h3 id="AI-Coding-的瓶颈，早就不是生成速度"><a href="#AI-Coding-的瓶颈，早就不是生成速度" class="headerlink" title="AI Coding 的瓶颈，早就不是生成速度"></a>AI Coding 的瓶颈，早就不是生成速度</h3><p>先说我观察到的一个结论：代码生成速度，已经不是瓶颈了；项目级的一致性，才是。</p>
+<p>我观察到的痛点大概有三层：</p>
+<p>第一层，<strong>规范在文档里，AI 不一定读</strong>。很多团队都有编码规范，但规范是写给人看的，不是写给模型看的。你把它贴进 Prompt，短会话还行，一旦上下文变长，模型开始丢细节；你让每个人自己贴，十个人能贴出十个版本。</p>
+<p>第二层，<strong>每次生成的起点不一样</strong>。同一个项目，今天让模型加一个接口，它可能新建一个 <code>service</code> 目录；明天换个人，它又把逻辑塞回 <code>handler</code>。架构不是设计出来的，是模型即兴发挥出来的。</p>
+<p>第三层，<strong>规范只能靠人 Review</strong>。哪条规则是强制的、哪条只是建议、哪条可以例外，全靠 Reviewer 的记忆和耐心。人一累，规范就变成「下次注意」。更扎心的是，现在还有人 Review AI 生成的代码吗？看得过来吗？</p>
+<p>所以 AI 写得越快，Review 越像瓶颈。代码生成从「写」转移到了「审」，但审这件事并没有变快。</p>
+<h3 id="OneXAI-Harness-想解决的，是「确定性」"><a href="#OneXAI-Harness-想解决的，是「确定性」" class="headerlink" title="OneXAI Harness 想解决的，是「确定性」"></a>OneXAI Harness 想解决的，是「确定性」</h3><p>OneXAI Harness 的定位可以用一句话概括：</p>
+<blockquote>
+<p>把团队规范从「写在文档里」，变成 AI 能调用的工具、脚手架能生成的代码、CI 能执行的检查。</p>
+</blockquote>
+<p>它主要提供四类能力：</p>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>入口</th>
+<th>解决的问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>规范查询</td>
+<td><code>harness convention &lt;topic&gt;</code> / MCP <code>convention_&lt;topic&gt;</code></td>
+<td>AI 按需加载正确的那条规范</td>
+</tr>
+<tr>
+<td>工程脚手架</td>
+<td><code>harness create ...</code></td>
+<td>架构、目录、依赖关系一次生成</td>
+</tr>
+<tr>
+<td>IDE 接入</td>
+<td><code>harness ide init --ide=claude</code></td>
+<td>一行命令把 OneXAI Harness 接进 AI IDE</td>
+</tr>
+<tr>
+<td>机器校验</td>
+<td><code>harness convention check</code></td>
+<td>把可机检的规范变成 CI 门禁</td>
+</tr>
+</tbody></table>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="harness-cover.png" alt="OneXAI Harness：把团队规范，变成 AI 能执行的工具" title="">
+                </div>
+                <div class="image-caption">OneXAI Harness：把团队规范，变成 AI 能执行的工具</div>
+            </figure>
+
+<p>和「写一份更长的 Prompt」相比，这套东西的关键差别在于：<strong>规范不再依赖模型记忆，而是变成模型可以主动调用的工具；架构不再依赖模型发挥，而是由脚手架确定性生成；合规不再依赖人眼，而是能返回退出码。</strong></p>
+<h3 id="一条闭环：规范-→-骨架-→-业务-→-校验-→-交付"><a href="#一条闭环：规范-→-骨架-→-业务-→-校验-→-交付" class="headerlink" title="一条闭环：规范 → 骨架 → 业务 → 校验 → 交付"></a>一条闭环：规范 → 骨架 → 业务 → 校验 → 交付</h3><p>OneXAI Harness 的工作方式，可以画成一条闭环：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="harness-workflow.png" alt="从规范到可合并代码的五步闭环" title="">
+                </div>
+                <div class="image-caption">从规范到可合并代码的五步闭环</div>
+            </figure>
+
+<ol>
+<li><strong>规范工具化</strong>：把 Go 开发规范拆成 40+ 个主题，每个主题都能通过 CLI 或 MCP 工具查询；</li>
+<li><strong>确定性脚手架</strong>：用 20 个 <code>create</code> 命令生成项目骨架，目录、分层、依赖方向、基础设施一次到位；</li>
+<li><strong>AI 写业务</strong>：模型在既定格子里填业务逻辑，需要规范时自己去查；</li>
+<li><strong>机器校验</strong>：<code>harness convention check</code> 定位到文件、行号和规则 ID，退出码可直接驱动 CI；</li>
+<li><strong>持续交付</strong>：不合规就挡在合并之前，Review 只需要看业务逻辑。</li>
+</ol>
+<p>这里的分工很重要：<strong>OneXAI Harness 负责确定性的部分，AI 负责创造性的部分。</strong></p>
+<p>确定性的部分包括目录结构、依赖方向、日志初始化、错误码、路由注册、Store 初始化、Dockerfile、Makefile、健康检查、优雅退出等。这些东西每个项目都要有，但每个项目都让 AI 重新发明一遍，纯属浪费，而且必然不一致。</p>
+<p>创造性的部分才是业务：这个资源有哪些字段、状态怎么流转、权限怎么判断、查询怎么组合。这些交给 AI 写，人只需要 Review 业务本身。</p>
+<p>规范本身也分了级别，不是所有规则都一刀切：</p>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>含义</th>
+<th>处理方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Mandatory（强制）</td>
+<td>所有项目必须遵守</td>
+<td>违反需要正式评审；部分规则有机器检查</td>
+</tr>
+<tr>
+<td>Recommended（建议）</td>
+<td>没有正当理由就遵守</td>
+<td>存量项目逐步采用</td>
+</tr>
+<tr>
+<td>Reference（参考）</td>
+<td>作为指导，不强制</td>
+<td>按项目上下文灵活采用</td>
+</tr>
+</tbody></table>
+<h3 id="先看它提供了什么"><a href="#先看它提供了什么" class="headerlink" title="先看它提供了什么"></a>先看它提供了什么</h3><p>OneXAI Harness 是一个命令行工具，安装包在<a href="https://onex.feizaonet.com/downloads" target="_blank" rel="noopener">下载页</a>按操作系统和 CPU 架构选择，解压后放进 <code>PATH</code> 即可；AK/SK 则需要到 <a href="https://onex.feizaonet.com/account?tab=aksk" target="_blank" rel="noopener">OneX 账号页</a>创建。装好之后，<code>harness --help</code> 会把命令分成几组：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ harness --<span class="built_in">help</span></span><br><span class="line"></span><br><span class="line">Project Commands:</span><br><span class="line">  create            Create a new project</span><br><span class="line"></span><br><span class="line">Convention Commands (AI Coding):</span><br><span class="line">  convention        Query Go development conventions and coding standards used by the OneX team</span><br><span class="line"></span><br><span class="line">Local Development Commands:</span><br><span class="line">  compose           Manage the <span class="built_in">local</span> OneX backend services</span><br><span class="line"></span><br><span class="line">AI Commands:</span><br><span class="line">  ide               Initialize AI coding IDE configurations <span class="keyword">for</span> harness integration</span><br><span class="line">  mcp               Start an MCP server exposing harness commands as tools</span><br></pre></td></tr></table></figure>
+
+<p>真正撑起「生成」能力的是 <code>create</code> 命令。<code>harness create --help</code> 列了 20 个子命令，覆盖非常全面：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>命令</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>新建单体项目</td>
+<td><code>webserver</code>、<code>jobserver</code>、<code>mqserver</code>、<code>mcpserver</code>、<code>clitool</code>、<code>console</code></td>
+</tr>
+<tr>
+<td>学习示例</td>
+<td><code>quickstart</code></td>
+</tr>
+<tr>
+<td>多服务工程</td>
+<td><code>project -c onexstack.yaml</code></td>
+</tr>
+<tr>
+<td>给现有项目加资源</td>
+<td><code>api</code>、<code>job</code>、<code>mq</code>、<code>mcp</code>、<code>cmd</code>、<code>micro</code></td>
+</tr>
+<tr>
+<td>声明式平台</td>
+<td><code>declserver</code>、<code>crd</code>、<code>controller-manager</code>、<code>controller</code></td>
+</tr>
+<tr>
+<td>Operator</td>
+<td><code>operator</code>、<code>operator-api</code></td>
+</tr>
+</tbody></table>
+<p>如果你熟悉 K8s，想必已经能看出来 OneXAI Harness 的强大了，它可以设计类 K8s API Server 架构的 Web 项目。</p>
+<p>命令虽然多，但大多数团队不需要全用。最常用的是两个：<code>create webserver</code> 起一个服务，<code>create api</code> 往里加资源。下面就从这两个开始。</p>
+<h3 id="第一步：一条命令，生成能持续扩展的骨架"><a href="#第一步：一条命令，生成能持续扩展的骨架" class="headerlink" title="第一步：一条命令，生成能持续扩展的骨架"></a>第一步：一条命令，生成能持续扩展的骨架</h3><p>我在一个空目录里执行了下面这条命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ harness create webserver ./blog-api \</span><br><span class="line">    --binary-name blog-apiserver \</span><br><span class="line">    --module-path github.com/example/blog-api \</span><br><span class="line">    --web-framework gin --storage-type sqlite \</span><br><span class="line">    --deployment-method docker --makefile-mode structured \</span><br><span class="line">    --with-healthz --with-user</span><br></pre></td></tr></table></figure>
+
+<p>输出是熟悉的 <code>CREATED</code> 列表：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">CREATED cmd&#x2F;blog-apiserver&#x2F;main.go</span><br><span class="line">CREATED internal&#x2F;apiserver&#x2F;handler&#x2F;user.go</span><br><span class="line">CREATED internal&#x2F;apiserver&#x2F;biz&#x2F;biz.go</span><br><span class="line">CREATED internal&#x2F;apiserver&#x2F;store&#x2F;store.go</span><br><span class="line">CREATED pkg&#x2F;api&#x2F;apiserver&#x2F;v1&#x2F;user.proto</span><br><span class="line">CREATED configs&#x2F;blog-apiserver.yaml</span><br><span class="line">CREATED build&#x2F;docker&#x2F;blog-apiserver&#x2F;Dockerfile</span><br><span class="line">CREATED Makefile</span><br><span class="line">... 112 more files</span><br><span class="line"></span><br><span class="line">✅ WebServer project creation succeeded blog-api</span><br></pre></td></tr></table></figure>
+
+<p>一共 121 个文件。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="harness-create.png" alt="一条命令生成 WebServer 工程骨架" title="">
+                </div>
+                <div class="image-caption">一条命令生成 WebServer 工程骨架</div>
+            </figure>
+
+<p>第一次看到 121 这个数字，可能会觉得「生成这么多，是不是过度设计」。但把目录拆开看，就知道这些文件大多不是业务代码，而是每个正经服务都绕不开的基础设施：</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="harness-tree.png" alt="脚手架生成的项目目录结构" title="">
+                </div>
+                <div class="image-caption">脚手架生成的项目目录结构</div>
+            </figure>
+
+<p>关键在分层，以及层和层之间的依赖方向：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">cmd&#x2F;blog-apiserver&#x2F;        # 入口、配置加载、优雅退出</span><br><span class="line">internal&#x2F;apiserver&#x2F;</span><br><span class="line">├── handler&#x2F;               # HTTP 参数校验、路由注册</span><br><span class="line">├── biz&#x2F;                   # 业务逻辑，不依赖 HTTP</span><br><span class="line">├── store&#x2F;                 # GORM 持久化与事务</span><br><span class="line">├── model&#x2F;                 # 数据模型与 Hook</span><br><span class="line">└── pkg&#x2F;                   # validation &#x2F; conversion</span><br><span class="line">pkg&#x2F;api&#x2F;apiserver&#x2F;v1&#x2F;      # proto：请求 &#x2F; 响应 &#x2F; 资源定义</span><br><span class="line">pkg&#x2F;generated&#x2F;             # 生成的客户端 SDK</span><br><span class="line">configs&#x2F;                   # 分层配置</span><br><span class="line">build&#x2F;docker&#x2F;              # 多阶段镜像构建</span><br><span class="line">scripts&#x2F;make-rules&#x2F;        # 标准化 Makefile 规则</span><br><span class="line">docs&#x2F;                      # 中英文文档骨架</span><br><span class="line">Makefile                   # build &#x2F; test &#x2F; lint &#x2F; protoc</span><br></pre></td></tr></table></figure>
+
+<p>依赖方向是 <code>handler → biz → store → model</code>。Handler 只做参数校验和响应封装，Biz 不依赖 HTTP，Store 管持久化和事务，Model 只描述数据和 Hook。这个方向一旦定下来，AI 后面往里填东西就不容易乱：它知道业务逻辑该放 Biz，不能塞 Handler；知道查库该走 Store，不能直接在 Handler 里开 <code>db</code>。</p>
+<p>这就是「格子」的价值。<strong>让 AI 写业务，前提是先有一个它不会写歪的地方。</strong> Harness 先搭框架，再让 AI 做填空题。</p>
+<p>骨架生成完，先按输出里的提示做一次完整构建：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> blog-api/</span><br><span class="line">$ make deps                  <span class="comment"># 安装 protoc、wire 等工具</span></span><br><span class="line">$ make protoc                <span class="comment"># 生成 proto / gRPC 代码</span></span><br><span class="line">$ go mod tidy                <span class="comment"># 整理依赖</span></span><br><span class="line">$ go generate ./...          <span class="comment"># 生成 wire 依赖注入代码</span></span><br><span class="line">$ make build BINS=blog-apiserver</span><br></pre></td></tr></table></figure>
+
+<p>这一步能通过，说明工具链、依赖注入和编译链路都通了。</p>
+<blockquote>
+<p>NOTE:</p>
+<p><code>make deps</code> 和 <code>go generate ./...</code> 这两步很容易漏。前者装 protoc 插件，后者生成 <code>wire_gen.go</code>；少任何一步，<code>make build</code> 都会失败。如果 <code>make deps</code> 卡在 <code>protoc-gen-onexmesh-client</code>，先确认这个插件已经按 <code>scripts/make-rules/tools.mk</code> 里标注的版本装好，并且 <code>$(go env GOPATH)/bin</code> 在 <code>PATH</code> 里。另外，如果目录还不是 git 仓库，<code>make</code> 里的版本信息会报 <code>HEAD</code> 相关错误，先 <code>git init</code> 并提交一次即可。</p>
+</blockquote>
+<h3 id="第二步：加一个资源，而不是加一堆胶水代码"><a href="#第二步：加一个资源，而不是加一堆胶水代码" class="headerlink" title="第二步：加一个资源，而不是加一堆胶水代码"></a>第二步：加一个资源，而不是加一堆胶水代码</h3><p>骨架有了，接下来加一个博客文章资源。命令很短：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ harness create api --kinds post --binary-name blog-apiserver</span><br></pre></td></tr></table></figure>
+
+<p>它没有只生成一个 handler，而是把一整条链路都接好了：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">CREATED internal&#x2F;apiserver&#x2F;pkg&#x2F;validation&#x2F;post.go</span><br><span class="line">CREATED internal&#x2F;apiserver&#x2F;store&#x2F;post.go</span><br><span class="line">CREATED internal&#x2F;apiserver&#x2F;model&#x2F;hook_post.go</span><br><span class="line">CREATED internal&#x2F;apiserver&#x2F;handler&#x2F;post.go</span><br><span class="line">CREATED pkg&#x2F;api&#x2F;apiserver&#x2F;v1&#x2F;post.proto</span><br><span class="line">CREATED internal&#x2F;apiserver&#x2F;biz&#x2F;v1&#x2F;post&#x2F;post.go</span><br><span class="line">CREATED internal&#x2F;apiserver&#x2F;model&#x2F;post.go</span><br><span class="line">CREATED internal&#x2F;pkg&#x2F;errno&#x2F;post.go</span><br><span class="line">CREATED internal&#x2F;apiserver&#x2F;pkg&#x2F;conversion&#x2F;post.go</span><br><span class="line">UPDATED internal&#x2F;apiserver&#x2F;store&#x2F;store.go</span><br><span class="line">UPDATED internal&#x2F;apiserver&#x2F;biz&#x2F;biz.go</span><br><span class="line"></span><br><span class="line">✅ REST resource(s) creation succeeded post</span><br></pre></td></tr></table></figure>
+
+<p>9 个新文件，并自动更新 2 个已有文件。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="harness-api.png" alt="加一个资源，proto、handler、validation、biz、store、model、errno 一次生成" title="">
+                </div>
+                <div class="image-caption">加一个资源，proto、handler、validation、biz、store、model、errno 一次生成</div>
+            </figure>
+
+<p>这 11 个文件分别对应什么：</p>
+<ul>
+<li><code>post.proto</code>：请求、响应、资源定义；</li>
+<li><code>handler/post.go</code>：HTTP 路由、参数绑定、调用 Biz；</li>
+<li><code>validation/post.go</code>：创建和更新的参数校验；</li>
+<li><code>biz/v1/post/post.go</code>：业务逻辑入口；</li>
+<li><code>store/post.go</code>：持久化实现；</li>
+<li><code>model/post.go</code> 和 <code>hook_post.go</code>：数据模型与 Hook；</li>
+<li><code>errno/post.go</code>：资源相关的错误码；</li>
+<li><code>conversion/post.go</code>：模型与 API 对象之间的转换；</li>
+<li><code>store.go</code> 和 <code>biz.go</code>：把新资源注册进接口和依赖注入。</li>
+</ul>
+<p>这些文件里的业务内容，OneXAI Harness 不替你做。字段怎么定、状态怎么流转、哪些字段可更新、查询怎么分页，仍然是你要和 AI 一起决定的事。但它把「胶水」写完了：路由注册了、接口实现了、依赖都准备好了、错误码占位了。你 Review 的时候，注意力可以放在业务上，而不是「它是不是又忘了把 Store 加进 <code>IStore</code>」。</p>
+<p>资源加完后，重新生成并编译：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ make protoc.apiserver      <span class="comment"># 生成新资源的 proto 代码</span></span><br><span class="line">$ go generate ./...          <span class="comment"># 重新生成 wire 依赖注入代码</span></span><br><span class="line">$ make build BINS=blog-apiserver</span><br></pre></td></tr></table></figure>
+
+<p>到这一步，AI 才真正开始工作。它面对的不是一张白纸，而是一个入口、配置、健康检查、日志、链路追踪和优雅退出都已经接好的工程。它要做的，是在既定结构里补上“文章”这个资源的具体逻辑。</p>
+<h3 id="第三步：把-AI-接进来，一行初始化"><a href="#第三步：把-AI-接进来，一行初始化" class="headerlink" title="第三步：把 AI 接进来，一行初始化"></a>第三步：把 AI 接进来，一行初始化</h3><p>OneXAI Harness 支持通过 <code>ide init</code> 把自身接入 AI IDE。我用的是 Claude Code：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ harness ide init --ide=claude</span><br><span class="line">▸ Claude Code</span><br><span class="line">  ✓ .mcp.json (merged)</span><br><span class="line">  ✓ .claude/commands/harness.md</span><br><span class="line">  ✓ .claude/commands/onex-commit.md</span><br><span class="line">  ✓ .claude/commands/onex-review.md</span><br><span class="line">  ✓ .claude/skills/harness-conventions.md</span><br><span class="line"></span><br><span class="line">✓ IDE initialization complete.</span><br><span class="line">Restart your IDE <span class="keyword">for</span> changes to take effect.</span><br></pre></td></tr></table></figure>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="harness-ide.png" alt="一行命令接入 Claude Code，批准后 MCP 即可用" title="">
+                </div>
+                <div class="image-caption">一行命令接入 Claude Code，批准后 MCP 即可用</div>
+            </figure>
+
+<p>它做了几件事：</p>
+<ul>
+<li>把 OneXAI Harness 注册成 MCP Server，写进 <code>.mcp.json</code>，而且是 <strong>merge</strong> 不是覆盖——已经有别的 MCP 配置不会被冲掉；</li>
+<li>写了一个 <code>/harness</code> 命令，作为“按 OneX 规范推进任务”的入口；</li>
+<li>写了 <code>onex-commit</code>、<code>onex-review</code> 两个命令，把提交和评审也纳入规范；</li>
+<li>写了一个 <code>harness-conventions</code> Skill，让模型可以在需要时检索规范，而不是一次性塞满上下文。</li>
+</ul>
+<p>重启 IDE 后确认连接。项目级 <code>.mcp.json</code> 里的 Server 可能需要先批准，具体取决于当前项目是否已经信任过：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ claude mcp list</span><br><span class="line">Checking MCP server health…</span><br><span class="line">harness: harness mcp - ⏸ Pending approval (run `claude` to approve)</span><br></pre></td></tr></table></figure>
+
+<p>如果看到 <code>Pending</code>，在项目目录执行 <code>claude</code>，按提示批准这个 Server（或在会话里用 <code>/mcp</code> 批准），再查一次：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ claude mcp list</span><br><span class="line">Checking MCP server health…</span><br><span class="line">harness: harness mcp - ✓ Connected</span><br></pre></td></tr></table></figure>
+
+<p>如果直接就是 <code>Connected</code>，说明这个项目已经信任过该 Server，可以直接用。</p>
+<blockquote>
+<p>NOTE:</p>
+<p>如果之前误点了拒绝，执行 <code>claude mcp reset-project-choices</code> 可以重置项目级的批准记录，下次进入 <code>claude</code> 时会重新询问。</p>
+</blockquote>
+<p>这里最值得说的是 <strong>MCP + Skill 的组合方式</strong>。</p>
+<p>OneXAI Harness 有 40 多套规范。如果全部塞进 <code>CLAUDE.md</code> 或系统 Prompt，先不说 token 成本，模型在长上下文里也会丢细节。它的做法是把每套规范暴露成独立的 MCP 工具，名字是 <code>convention_&lt;topic&gt;</code>，比如：</p>
+<ul>
+<li>写日志时调用 <code>convention_logging</code>；</li>
+<li>设计 REST 接口时调用 <code>convention_rest-api</code>；</li>
+<li>加数据库事务时调用 <code>convention_database</code>；</li>
+<li>不确定目录怎么放时调用 <code>convention_directory</code>。</li>
+</ul>
+<p>每个工具返回的是一份精简的规范内容，不是整篇文档。模型只在当前任务需要时取用相关规则，这就是渐进式披露。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="harness-conventions.png" alt="规范不用一次背完，按需查到正确的那一条" title="">
+                </div>
+                <div class="image-caption">规范不用一次背完，按需查到正确的那一条</div>
+            </figure>
+
+<p>比如我在演示项目里查 <code>logging</code>，返回的内容会按强制、建议、参考三个级别列出来；能自动检查的规则，还会带一行 <code>check:</code>，说明它由 <code>convention check</code> 负责校验：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">$ harness convention logging</span><br><span class="line"><span class="comment"># Logging Conventions (`logging`)</span></span><br><span class="line"></span><br><span class="line">Get mandatory logging rules: English-only, structured KV format, <span class="built_in">log</span> levels, past tense, no sensitive data</span><br><span class="line"></span><br><span class="line"><span class="comment">## Mandatory</span></span><br><span class="line"></span><br><span class="line">- [logging-r01] Mandatory (强制): Rules that ALL components must follow</span><br><span class="line">- [logging-r03] Note on capitalization: Log messages must start with a lowercase letter <span class="keyword">for</span> compactness and consistency. A trailing period is not allowed; question marks (?) and exclamation marks…</span><br><span class="line">- [logging-r06] 使用项目日志库（slog/klog）；禁止标准库 log.Print/Fatal 系列</span><br><span class="line">  - check: `go_ast:no-log-stdlib`</span><br><span class="line"></span><br><span class="line"><span class="comment">## Recommended</span></span><br><span class="line"></span><br><span class="line">- [logging-r02] Recommended (建议): Rules to follow selectively as needed</span><br><span class="line"></span><br><span class="line"><span class="comment">## Reference</span></span><br><span class="line"></span><br><span class="line">- [logging-r04] 2a: Failure <span class="built_in">log</span> format failed to &lt;verb&gt; + &lt;something&gt;, e.g., log.Errorw(err, <span class="string">"failed to initialize casbin adapter"</span>)</span><br><span class="line">- [logging-r05] 2b: Success <span class="built_in">log</span> format &lt;verb&gt; + &lt;something&gt;, e.g., log.Infow(<span class="string">"initialize idempotent success"</span>)</span><br><span class="line"></span><br><span class="line">Run `harness convention check &lt;paths&gt;` after writing code.</span><br></pre></td></tr></table></figure>
+
+<p>这意味着模型不是“大概记得要用结构化日志”，而是能拿到一条明确的、带 ID 的规则，再去写代码。</p>
+<h3 id="第四步：规范不是写在文档里，而是-CI-里的一道门"><a href="#第四步：规范不是写在文档里，而是-CI-里的一道门" class="headerlink" title="第四步：规范不是写在文档里，而是 CI 里的一道门"></a>第四步：规范不是写在文档里，而是 CI 里的一道门</h3><p>前面都是“生成”和“查询”。真正让规范落地的，是检查。</p>
+<p>我新建了一个独立的空目录，在里面放一个 <code>main.go</code>，用标准库 <code>log</code> 打日志。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"log"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    log.Println(<span class="string">"hello"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后在这个目录里跑检查：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ harness convention check --fail-on-findings .</span><br><span class="line">main.go:6: [logging-r06] stdlib <span class="built_in">log</span> is used — use the project logger (slog/klog)</span><br><span class="line">error: 1 convention violation(s)</span><br></pre></td></tr></table></figure>
+
+<p>进程以非 0 退出。</p>
+<blockquote>
+<p>NOTE:</p>
+<p><code>convention check</code> 会递归扫描目录。演示这个 <code>main.go</code> 时最好单独建一个空目录；如果在同时放着 <code>blog-api</code> 的父目录执行，会把项目一起扫进来，看到的就是项目里的其他问题。</p>
+</blockquote>
+<p>把日志换成项目使用的 <code>slog</code>：</p>
+<figure class="highlight diff"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="deletion">- import "log"</span></span><br><span class="line"><span class="addition">+ import "log/slog"</span></span><br><span class="line"></span><br><span class="line"> func main() &#123;</span><br><span class="line"><span class="deletion">-    log.Println("hello")</span></span><br><span class="line"><span class="addition">+    slog.Info("hello", "service", "demo")</span></span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意 <code>import</code> 也要一起换；<code>check</code> 只看有没有调用标准库 <code>log</code>，不会替你发现未使用的 import，<code>go build</code> 才会。</p>
+<p>再跑一次：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ harness convention check --format=json .</span><br><span class="line">[]</span><br></pre></td></tr></table></figure>
+
+<p>退出码为 0。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="harness-check.png" alt="规范检查定位到文件、行号和规则 ID，退出码可直接驱动 CI" title="">
+                </div>
+                <div class="image-caption">规范检查定位到文件、行号和规则 ID，退出码可直接驱动 CI</div>
+            </figure>
+
+<p>这个检查有三个我很在意的点：</p>
+<p>第一，<strong>它是确定性的</strong>。基于 AST 检查，不是让另一个模型来“评审”。同一份代码，跑一百次结果一样，适合放进 CI，也适合在本地 pre-commit 里跑。</p>
+<p>第二，<strong>输出是可行动的</strong>。文件、行号、规则 ID、修复建议，一个都不少。<code>logging-r06</code> 这种 ID 的前缀就是规范主题，执行 <code>harness convention logging</code>（MCP 里是 <code>convention_logging</code>）就能看到对应的规则说明和检查项，不用在几十页规范里翻。</p>
+<p>第三，<strong>退出码能驱动流水线</strong>。<code>--fail-on-findings</code> 一加，不合规就构建失败。规范从此不再靠“下次注意”，而是靠“这次合不进去”。</p>
+<p>当然，不是所有规范都能机器检查。能落成 AST 规则的是其中可判定的一个子集，剩下的仍然要靠 MCP 工具引导 AI、靠 Code Review 兜底。OneXAI Harness 没有假装自己能检查一切。</p>
+<p>还有一个细节值得说。我顺手对脚手架生成的项目跑了一次 check，结果不是 0 findings，而是报了几条 <code>error-return-r11</code>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">internal&#x2F;pkg&#x2F;rid&#x2F;salt.go:37: [error-return-r11] panic in library&#x2F;service code — return an error instead</span><br><span class="line">pkg&#x2F;generated&#x2F;apiserverclient&#x2F;clientset.go:88: [error-return-r11] panic in library&#x2F;service code — return an error instead</span><br><span class="line">pkg&#x2F;generated&#x2F;apiserverclient&#x2F;fake&#x2F;clientset.go:54: [error-return-r11] panic in library&#x2F;service code — return an error instead</span><br><span class="line">pkg&#x2F;generated&#x2F;apiserverclient&#x2F;typed&#x2F;apiserver&#x2F;v1&#x2F;apiserver_client.go:62: [error-return-r11] panic in library&#x2F;service code — return an error instead</span><br><span class="line">error: 4 convention violation(s)</span><br></pre></td></tr></table></figure>
+
+<p>这些和日志无关，都是生成代码里的 <code>panic</code>。这反而让我更放心。<strong>检查器没有给自家脚手架开后门。</strong> 生成器负责把 90% 的重复工作做对，剩下几条仍然需要人判断。规范是工程约束，不是“官方代码一定正确”的背书。</p>
+<h3 id="效果：一致性比单次惊艳更重要"><a href="#效果：一致性比单次惊艳更重要" class="headerlink" title="效果：一致性比单次惊艳更重要"></a>效果：一致性比单次惊艳更重要</h3><p>讲效果之前先说明：下面这些数字来自 OneXAI Harness 官方教程里给出的实际项目与 AI 对比评分，不是严格 benchmark。不同模型、不同仓库、不同严格度，结果会有差异。但方向是清楚的。</p>
+<p>官方给出的几个数据：</p>
+<ul>
+<li>一个 <strong>33,292 行</strong>的 AIOps 平台，Web Server、MCP Server、Job Server 全部基于 <code>harness create</code> 生成，后续由 AI 迭代业务；</li>
+<li>两个 <strong>10 万行级</strong>的存量项目，从前端到后端，基本用一条 Prompt 完成重构，重构后与 OneX 技术栈的架构、风格保持一致；</li>
+<li>重构这两个项目大约花了 <strong>100 多元</strong>的 Token 费用；</li>
+<li>让 AI 对比新项目与 miniblog、onex 两个参考项目，在软件架构、日志、目录结构、开发规范、实现方式、开发风格、错误处理、共享包等维度，一致性评分达到 <strong>96/100</strong>；</li>
+<li>开启更严格的规范校验模式后，代码质量还能再提升 <strong>20%+</strong>。</li>
+</ul>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="harness-quality.png" alt="课程中的真实项目数据：代码量、重构规模、一致性与严格模式收益" title="">
+                </div>
+                <div class="image-caption">课程中的真实项目数据：代码量、重构规模、一致性与严格模式收益</div>
+            </figure>
+
+<p>我自己这次演示得到的数字小一些，但更直观：</p>
+<ul>
+<li>一条 <code>create webserver</code>，生成 <strong>121 个文件</strong>；</li>
+<li>一条 <code>create api --kinds post</code>，新增 <strong>9 个文件</strong>、自动更新 <strong>2 个已有文件</strong>；</li>
+<li>一条 <code>convention check</code>，定位到具体行号，并用退出码区分通过与否。</li>
+</ul>
+<p>这些数字背后其实是同一件事：<strong>AI 生成的代码开始像一个团队写的了。</strong> 不是某一次生成得特别惊艳，而是第十次、第二十次生成，风格仍然收敛在同一套架构里。</p>
+<p>对个人开发者，这意味着少花时间在“把 AI 的代码改回自己的样子”；对团队，这意味着 Review 从“检查有没有遵守规范”转向“检查业务对不对”。</p>
+<h3 id="它适合谁，不适合谁"><a href="#它适合谁，不适合谁" class="headerlink" title="它适合谁，不适合谁"></a>它适合谁，不适合谁</h3><p>我觉得 OneXAI Harness 最适合三类人：</p>
+<ul>
+<li><strong>Go 团队</strong>，尤其是已经在用或愿意采用 OneX / onexstack 技术栈的团队；</li>
+<li><strong>多项目、多服务的团队</strong>，需要把架构、日志、错误码、目录结构统一起来；</li>
+<li><strong>想把 AI Coding 纳入工程流程的团队</strong>，不满足于“AI 写完人肉改”，而是希望有脚手架、有检查、有 CI 门禁。</li>
+</ul>
+<p>它不太适合另外几类场景：</p>
+<ul>
+<li><strong>非 Go 项目</strong>。它的规范和脚手架都是围绕 Go 云原生技术栈构建的，换语言就不是它的主场；</li>
+<li><strong>完全自研、且不打算改变架构的项目</strong>。OneXAI Harness 是强观点的，它会带着 OneX 的目录、分层和基础包进来，如果你不认同这套架构，用起来会一直打架；</li>
+<li><strong>只想让 AI 写个一次性脚本或 Demo 的人</strong>。这种场景用不上 121 个文件的骨架，直接让模型写更快；</li>
+</ul>
+<blockquote>
+<p>NOTE:</p>
+<p>OneXAI Harness 的“强观点”既是优点也是限制。优点是你不需要从零设计架构，缺点是你会被它的架构约束。建议先拿一个真实的小服务试一遍，再决定要不要推广到团队。不要一上来就重构核心系统。</p>
+</blockquote>
+<h3 id="最后"><a href="#最后" class="headerlink" title="最后"></a>最后</h3><p>AI Coding 的上半场，大家比的是“谁生成得快”。下半场比的会是“谁的代码能合并、能维护、能扩展”。</p>
+<p>AI 生成会越来越快、越来越便宜，一致性不会。只要模型还在自由发挥，Review 成本就会一直存在。OneXAI Harness 的思路不是让模型更聪明，而是把模型不该自由发挥的部分收走：规范变成工具，骨架由脚手架生成，合规交给 CI。</p>
+<p>如果你手上正好有一个 Go 项目，我建议按这个顺序试一遍：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">harness create webserver ./demo --binary-name demo-apiserver</span><br><span class="line">harness ide init --ide=claude</span><br><span class="line">harness create api --kinds post --binary-name demo-apiserver</span><br><span class="line">harness convention check --fail-on-findings .</span><br></pre></td></tr></table></figure>
+
+<p>这套是手动版。日常使用时，更常见的是让 Claude Code 通过 MCP 驱动 OneXAI Harness：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ claude</span><br><span class="line">&gt; 用 OneX 规范给这个项目加一个 comment 资源，支持创建、删除、列表；先生成骨架，再补业务逻辑，最后跑一遍规范检查。</span><br></pre></td></tr></table></figure>
+
+<p>模型通常会先调用 <code>create_api</code> 生成资源，需要时查 <code>convention_*</code> 规范，最后用 <code>convention_check</code> 自检。你只需要描述需求，然后 Review 业务逻辑。</p>
+<p>半小时之内，你大致就能判断它是否适合你的团队。</p>
+<p>工具下载地址：<a href="https://onex.feizaonet.com/downloads" target="_blank" rel="noopener">https://onex.feizaonet.com/downloads</a>。文中演示的脚手架、规范查询和检查命令都来自本机实际执行，配图基于真实终端输出做了排版整理。</p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-11-15T03:49:22.390Z" itemprop="dateUpdated">2026-11-15 11:49:22</time>
+</span><br>
+
+
+        
+        <a href="/2026/11/15/harness-ai-coding/" target="_blank" rel="external">http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/AI/" rel="tag">AI</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/AI-Coding/" rel="tag">AI Coding</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Agent/" rel="tag">Agent</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Harness/" rel="tag">Harness</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%B7%A5%E7%A8%8B%E5%8C%96/" rel="tag">工程化</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/&title=《OneXAI Harness：把团队规范变成 AI 能执行的工具》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/&title=《OneXAI Harness：把团队规范变成 AI 能执行的工具》 — 江湖十年&source=用 AI 写代码，最惊艳的时刻往往是第一次：一个函数、一个文件、一个小 Demo，随便哪个模型都能写得有模有样。
+但真正把 AI Coding 放进日常开..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《OneXAI Harness：把团队规范变成 AI 能执行的工具》 — 江湖十年&url=http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2026/11/11/goroutine-leak-profiles/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">Go 1.27 新增 goroutine leak profiler：在生产环境中定位 goroutine 泄漏</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/&title=《OneXAI Harness：把团队规范变成 AI 能执行的工具》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/&title=《OneXAI Harness：把团队规范变成 AI 能执行的工具》 — 江湖十年&source=用 AI 写代码，最惊艳的时刻往往是第一次：一个函数、一个文件、一个小 Demo，随便哪个模型都能写得有模有样。
+但真正把 AI Coding 放进日常开..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《OneXAI Harness：把团队规范变成 AI 能执行的工具》 — 江湖十年&url=http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2026/11/15/harness-ai-coding/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
