@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Go 竞态检测器到底在检测什么？从 data race 到 happens-before | 江湖十年 | 学而不思则罔，思而不学则殆。</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="Go,并发">
+    <meta name="description" content="大家好，我是江湖十年。 go test -race 是 Go 的数据竞争检测器。在并发代码比较多的项目里，它经常被打开，但也经常被误解：打开它，测试可能突然变慢很多；关掉它，线上又可能冒出莫名其妙的数据错误。 它和 go vet 这类静态检查工具不一样：程序必须真正跑起来，并且实际走到出问题的并发路径，它才能报告。这篇文章就把 data race、happens-before、检测器的工作原理和常">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 竞态检测器到底在检测什么？从 data race 到 happens-before">
+<meta property="og:url" content="http://www.jianghushinian.cn/2026/11/21/go-race-detector/index.html">
+<meta property="og:site_name" content="江湖十年">
+<meta property="og:description" content="大家好，我是江湖十年。 go test -race 是 Go 的数据竞争检测器。在并发代码比较多的项目里，它经常被打开，但也经常被误解：打开它，测试可能突然变慢很多；关掉它，线上又可能冒出莫名其妙的数据错误。 它和 go vet 这类静态检查工具不一样：程序必须真正跑起来，并且实际走到出问题的并发路径，它才能报告。这篇文章就把 data race、happens-before、检测器的工作原理和常">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-11-21T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-21T07:35:52.101Z">
+<meta property="article:author" content="江湖十年">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="并发">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="江湖十年" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.png">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">江湖十年</h5>
+          <a href="mailto:jianghushinian007@outlook.com" title="jianghushinian007@outlook.com" class="mail">jianghushinian007@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                归档
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/about"  >
+                <i class="icon icon-lg icon-link"></i>
+                关于
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/jianghushinian" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Go 竞态检测器到底在检测什么？从 data race 到 happens-before</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Go 竞态检测器到底在检测什么？从 data race 到 happens-before</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2026-11-21T02:00:00.000Z" itemprop="datePublished" class="page-time">
+  2026-11-21
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#先跑一个会报错的程序"><span class="post-toc-number">1.</span> <span class="post-toc-text">先跑一个会报错的程序</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#data-race-与-race-condition-不是一回事"><span class="post-toc-number">2.</span> <span class="post-toc-text">data race 与 race condition 不是一回事</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#理解-happens-before，才能理解为什么有些代码“看起来没事”"><span class="post-toc-number">3.</span> <span class="post-toc-text">理解 happens-before，才能理解为什么有些代码“看起来没事”</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#race-detector-是怎么工作的"><span class="post-toc-number">4.</span> <span class="post-toc-text">race detector 是怎么工作的</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#怎么把-race-用对"><span class="post-toc-number">5.</span> <span class="post-toc-text">怎么把 -race 用对</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#八类常见的并发问题"><span class="post-toc-number">6.</span> <span class="post-toc-text">八类常见的并发问题</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#1-共享计数器"><span class="post-toc-number">6.1.</span> <span class="post-toc-text">1. 共享计数器</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#2-并发读写-map"><span class="post-toc-number">6.2.</span> <span class="post-toc-text">2. 并发读写 map</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#3-共享-slice-和-append"><span class="post-toc-number">6.3.</span> <span class="post-toc-text">3. 共享 slice 和 append</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#4-循环变量捕获"><span class="post-toc-number">6.4.</span> <span class="post-toc-text">4. 循环变量捕获</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#5-延迟初始化"><span class="post-toc-number">6.5.</span> <span class="post-toc-text">5. 延迟初始化</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#6-WaitGroup、close-和生命周期问题"><span class="post-toc-number">6.6.</span> <span class="post-toc-text">6. WaitGroup、close 和生命周期问题</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#7-mutex-按值传递或复制"><span class="post-toc-number">6.7.</span> <span class="post-toc-text">7. mutex 按值传递或复制</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#8-共享-buffer-和对象池复用"><span class="post-toc-number">6.8.</span> <span class="post-toc-text">8. 共享 buffer 和对象池复用</span></a></li></ol></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#真实案例：race-报告不会无缘无故出现"><span class="post-toc-number">7.</span> <span class="post-toc-text">真实案例：race 报告不会无缘无故出现</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#局限：没报不等于没有"><span class="post-toc-number">8.</span> <span class="post-toc-text">局限：没报不等于没有</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#平台和工具链"><span class="post-toc-number">9.</span> <span class="post-toc-text">平台和工具链</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#生产环境怎么用"><span class="post-toc-number">10.</span> <span class="post-toc-text">生产环境怎么用</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#修复优先级和辅助工具"><span class="post-toc-number">11.</span> <span class="post-toc-text">修复优先级和辅助工具</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#一份检查清单"><span class="post-toc-number">12.</span> <span class="post-toc-text">一份检查清单</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#最后"><span class="post-toc-number">13.</span> <span class="post-toc-text">最后</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#参考资料"><span class="post-toc-number">14.</span> <span class="post-toc-text">参考资料</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-go-race-detector"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Go 竞态检测器到底在检测什么？从 data race 到 happens-before</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2026-11-21 10:00:00" datetime="2026-11-21T02:00:00.000Z"  itemprop="datePublished">2026-11-21</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Go/">Go</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>大家好，我是江湖十年。</p>
+<p><code>go test -race</code> 是 Go 的数据竞争检测器。在并发代码比较多的项目里，它经常被打开，但也经常被误解：打开它，测试可能突然变慢很多；关掉它，线上又可能冒出莫名其妙的数据错误。</p>
+<p>它和 <code>go vet</code> 这类静态检查工具不一样：程序必须真正跑起来，并且实际走到出问题的并发路径，它才能报告。这篇文章就把 data race、happens-before、检测器的工作原理和常见修复方式串起来，回答三个问题：它到底在检测什么？为什么有些并发 bug 它不报？报出来的栈又该怎么看？</p>
+<a id="more"></a>
+
+<p>本文涉及的全部示例代码，我都放在了 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/race" target="_blank" rel="noopener">blog-go-example/test/race</a> 目录下，各子目录可单独运行。</p>
+<h2 id="先跑一个会报错的程序"><a href="#先跑一个会报错的程序" class="headerlink" title="先跑一个会报错的程序"></a>先跑一个会报错的程序</h2><p>从一个最简单的共享计数器开始：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/race/counter/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/race/counter/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> counter <span class="keyword">int</span></span><br><span class="line">    <span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line"></span><br><span class="line">    wg.Add(<span class="number">2</span>)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">defer</span> wg.Done()</span><br><span class="line">        <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">1000</span>; i++ &#123;</span><br><span class="line">            counter++</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">defer</span> wg.Done()</span><br><span class="line">        <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">1000</span>; i++ &#123;</span><br><span class="line">            counter++</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">    wg.Wait()</span><br><span class="line">    fmt.Println(counter)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>不用 <code>-race</code> 直接运行，结果可能每次都不一样，也可能碰巧打出 <code>2000</code>。但只要加上 <code>-race</code>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">$ go run -race main.go</span><br><span class="line">&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br><span class="line">WARNING: DATA RACE</span><br><span class="line">Read at 0x00c000012158 by goroutine 8:</span><br><span class="line">  main.main.func2()</span><br><span class="line">      .&#x2F;main.go:22 +0x88</span><br><span class="line"></span><br><span class="line">Previous write at 0x00c000012158 by goroutine 7:</span><br><span class="line">  main.main.func1()</span><br><span class="line">      .&#x2F;main.go:16 +0x98</span><br><span class="line"></span><br><span class="line">Goroutine 8 (running) created at:</span><br><span class="line">  main.main()</span><br><span class="line">      .&#x2F;main.go:19 +0x194</span><br><span class="line"></span><br><span class="line">Goroutine 7 (running) created at:</span><br><span class="line">  main.main()</span><br><span class="line">      .&#x2F;main.go:13 +0xfc</span><br><span class="line">&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br></pre></td></tr></table></figure>
+
+<p>实际运行会报多条，这里只截取第一段。这份报告可以拆成四部分：</p>
+<ul>
+<li><code>WARNING: DATA RACE</code>：检测到了数据竞争。</li>
+<li><code>Read at ... by goroutine 8</code>：当前这次访问，以及它发生在哪个 goroutine。</li>
+<li><code>Previous write at ... by goroutine 7</code>：和当前访问冲突的上一次访问。</li>
+<li><code>Goroutine ... created at</code>：两个 goroutine 分别在哪里创建。</li>
+</ul>
+<p>真正要看的不是地址，而是两份调用栈。它们会把你带到具体代码行：这里两次访问都落在 <code>counter++</code> 上。</p>
+<p><code>counter++</code> 看起来是一行，实际上包含“读、加、写”三个动作。两个 goroutine 可能同时读到旧值，再各自写回，最后少加一次。这个问题不是“加锁就完了”这么简单，先要理解它为什么算数据竞争。</p>
+<h2 id="data-race-与-race-condition-不是一回事"><a href="#data-race-与-race-condition-不是一回事" class="headerlink" title="data race 与 race condition 不是一回事"></a>data race 与 race condition 不是一回事</h2><p>Go 内存模型对数据竞争的定义大致是：</p>
+<blockquote>
+<p>两个访问并发地访问同一个内存位置，至少有一次是写，它们之间没有 happens-before 关系，而且不是所有访问都是原子的。</p>
+</blockquote>
+<p>这里的“并发”不是指“同一时刻物理上一起执行”，而是指两个访问没有先后顺序保证，编译器、CPU 可以把它们重排成任意顺序。</p>
+<p>数据竞争是内存模型层面的错误。只要存在数据竞争，程序的行为就没有保证，哪怕某次运行结果看起来正常。</p>
+<p>但 race condition 的范围更大。它指的是“结果依赖执行时序”的逻辑 bug，不一定伴随数据竞争。比如：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/race/racecondition/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/race/racecondition/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">withdraw</span><span class="params">(amount <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    mu.Lock()</span><br><span class="line">    ok := balance &gt;= amount</span><br><span class="line">    mu.Unlock()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> !ok &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    mu.Lock()</span><br><span class="line">    balance -= amount</span><br><span class="line">    mu.Unlock()</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>每次读写 <code>balance</code> 都加了锁，所以 race detector 不会报数据竞争。但“检查余额”和“扣款”不是一个原子操作，两个 goroutine 可能同时通过检查，最后把余额扣成负数。这是 race condition，不是 data race。</p>
+<p>反过来，数据竞争也不一定马上表现为业务错误。它可能只是让某个值短暂不一致，也可能在特定编译器版本、特定 CPU 上才出问题。这正是它难查的原因。</p>
+<p>再比如 <code>sync.Map</code> 的 <code>Load</code> 之后再 <code>Store</code>：如果没有把这两步合成一个原子操作，两个 goroutine 可能都读到旧值，然后各自覆盖。这不是 data race，race detector 不会报，但它仍然是竞态。</p>
+<p>所以 race detector 的定位很明确：它检测 data race，不负责发现死锁、goroutine 泄漏、消息顺序错误，也不负责发现所有逻辑竞态。</p>
+<h2 id="理解-happens-before，才能理解为什么有些代码“看起来没事”"><a href="#理解-happens-before，才能理解为什么有些代码“看起来没事”" class="headerlink" title="理解 happens-before，才能理解为什么有些代码“看起来没事”"></a>理解 happens-before，才能理解为什么有些代码“看起来没事”</h2><p>Go 内存模型用 happens-before 描述事件之间的顺序。如果事件 A happens-before 事件 B，那么 A 以及 A 之前的内存写入，对 B 都是可见的，而且 A 在逻辑上排在 B 前面。</p>
+<p>happens-before 不是 Go 独有的术语。它最早来自 Leslie Lamport 对分布式系统中事件顺序的研究，后来被 Java、C++、Rust、C# 等语言的内存模型采用。Go 内存模型定义的是：在 Go 里，哪些操作能建立这种关系。</p>
+<p>它描述的是一种偏序（partial order）。偏序是相对全序（total order）说的：全序能把任意两个事件都排出先后，偏序只能给其中一部分事件排出先后。有些事件有明确顺序，有些事件之间则没有关系。两个事件没有 happens-before 关系，不代表谁一定先发生，只代表它们的顺序没有保证，这正是数据竞争危险的地方。</p>
+<p>所以，不要把 happens-before 理解成墙上时钟的“A 先执行”。它保证的是可观察的顺序：如果 A happens-before B，B 就必须看到 A 的结果。至于 CPU 内部指令谁先谁后，只要不破坏这个可观察顺序，都可以重排。</p>
+<p>Go 内存模型用两个更基础的关系来定义它：同一 goroutine 里的程序顺序（sequenced before），以及同步操作建立的顺序（synchronized before）。happens-before 是这两个关系的传递闭包。</p>
+<p>所谓传递闭包，就是不断套用传递性：如果 A 在 B 之前，B 又在 C 之前，就把 A 在 C 之前也加进来，直到没有新的关系可加为止。这样，同一 goroutine 里的程序顺序，加上 channel、锁等同步操作建立的顺序，就能一路传递到另一个 goroutine 的后续读取。</p>
+<p>happens-before 可以传递：如果 A happens-before B，B happens-before C，那么 A 也 happens-before C。不过，它不是墙上时钟的先后。<code>time.Sleep</code> 不会建立 happens-before；两个 goroutine 谁先打印日志，也不代表谁先执行。</p>
+<p>Go 里常见的同步关系包括：</p>
+<ul>
+<li>goroutine 创建：<code>go</code> 语句之前的写入 happens-before 新 goroutine 的开始。</li>
+<li>channel 发送和接收：发送操作 happens-before 对应的接收完成。</li>
+<li>channel 关闭：关闭操作 happens-before 因关闭而返回零值的接收。</li>
+<li>锁：第 n 次 <code>Unlock</code> happens-before 第 m 次 <code>Lock</code> 返回（n &lt; m）。</li>
+<li><code>sync.Once</code>、<code>sync.WaitGroup</code>、<code>sync/atomic</code> 等同步原语也会建立相应的顺序。Go 1.19 修订内存模型后，<code>sync/atomic</code> 的操作按顺序一致（seq-cst）语义处理，和 C++ 的 <code>seq_cst</code>、Java 的 <code>volatile</code> 类似。</li>
+</ul>
+<p>注意，goroutine 退出本身不建立 happens-before。一个 goroutine 执行完了，不代表另一个 goroutine 一定能看到它写的数据；必须通过 channel、锁、WaitGroup 等同步操作建立关系。</p>
+<p>看一个 channel 的例子：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/race/happensbefore/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/race/happensbefore/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> x <span class="keyword">int</span></span><br><span class="line">ch := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line"></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    x = <span class="number">1</span></span><br><span class="line">    ch &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">&#125;()</span><br><span class="line"></span><br><span class="line">&lt;-ch</span><br><span class="line">fmt.Println(x) <span class="comment">// 一定看到 1</span></span><br></pre></td></tr></table></figure>
+
+<p>发送 <code>ch &lt;- struct{}{}</code> happens-before 接收 <code>&lt;-ch</code> 完成，所以 <code>x = 1</code> 对主 goroutine 可见。可以把发送看成 release，把接收看成 acquire：发送方在发送之前的写入，对接收方在接收之后的读取可见。</p>
+<p>反过来，如果没有 channel 这条同步边，主 goroutine 即使先 <code>time.Sleep</code> 一秒再读 <code>x</code>，也不能保证看到 <code>1</code>。<code>time.Sleep</code> 只改变了墙上时钟，没有建立 happens-before。</p>
+<p>如果两个访问之间没有这样的关系，又至少有一个写，就构成数据竞争。</p>
+<p>Go 内存模型还有一个重要结论：没有数据竞争的程序，可以表现得像所有 goroutine 都在一个处理器上顺序执行。这就是所谓的 DRF-SC（Data-Race-Free implies Sequential Consistency）。反过来说，一旦有数据竞争，就不要指望程序还保持顺序一致性。</p>
+<h2 id="race-detector-是怎么工作的"><a href="#race-detector-是怎么工作的" class="headerlink" title="race detector 是怎么工作的"></a>race detector 是怎么工作的</h2><p>Go 的 race detector 底层用的是 ThreadSanitizer（简称 TSan）。TSan 是一个动态数据竞争检测器，来自 LLVM/compiler-rt，C/C++ 也在用。你可以把它理解成一个在运行时盯着内存访问的检查器：谁读了、谁写了、有没有同步，它都会记下来。它不是一个需要 <code>import</code> 的库，而是“编译器插桩 + 运行时检查”的一套机制。Go 的 <code>-race</code> 就是把 Go 编译器的插桩和 Go 版的 TSan runtime 接了起来。</p>
+<p>不需要理解 TSan 的全部实现，只要抓住三件事。</p>
+<p>第一，<code>-race</code> 是编译期插桩。编译器会在内存读写前后加入检查代码，同时记录锁、channel、atomic 等同步操作。</p>
+<p>第二，运行时维护一份“谁访问了哪块内存”的记录。每次同步操作发生时，它也会记下两个 goroutine 之间的先后关系。</p>
+<p>第三，当两次访问同一块内存、至少一次是写，而且运行时找不到它们之间的 happens-before 关系时，就报告 data race。</p>
+<p>可以把它想成一个记录员：它不读你的业务代码，只记录内存访问和同步操作，然后沿着这些记录检查有没有“没有同步保护的冲突访问”。</p>
+<p>这也解释了它的几个特点：</p>
+<ul>
+<li>它是动态检测，只检查程序实际执行到的路径。</li>
+<li>它会改变程序时序，可能让某些 race 更容易出现，也可能让某些 race 被掩盖。</li>
+<li>race 是 happens-before 属性，不是物理上同时执行。即使 <code>GOMAXPROCS=1</code>，只要两个访问之间没有同步关系，也可能被报告。</li>
+</ul>
+<p>Go 1.19 升级到 TSan v3 后，检测速度快了不少，内存占用也降低了，但整体开销仍然不小：官方文档给出的数字是执行时间增加 2 到 20 倍，内存增加 5 到 10 倍。</p>
+<h2 id="怎么把-race-用对"><a href="#怎么把-race-用对" class="headerlink" title="怎么把 -race 用对"></a>怎么把 <code>-race</code> 用对</h2><p>最常用的三种方式：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">go <span class="built_in">test</span> -race ./...</span><br><span class="line">go run -race main.go</span><br><span class="line">go build -race -o app</span><br></pre></td></tr></table></figure>
+
+<p><code>-race</code> 是一个构建标志，不是一个运行时开关。也就是说，只有用 <code>-race</code> 编译出来的程序才带检测能力，普通编译出来的二进制不会因为环境变量就突然开始检查。</p>
+<p>几个实用细节：</p>
+<ul>
+<li><code>go test -race</code> 会同时启用 <code>checkptr</code>。<code>checkptr</code> 是 Go 编译器的一个检查开关，专门在运行时检查 <code>unsafe.Pointer</code> 的类型转换和指针运算有没有越界、跨对象或对齐不合法，所以它也能顺带发现一些 unsafe 指针问题。</li>
+<li><code>-race</code> 会定义 <code>race</code> 构建标签，可以用 <code>//go:build race</code> 写只在检测时启用的代码，或者用 <code>//go:build !race</code> 跳过一些在检测下太慢的测试。</li>
+<li>默认检测到 race 后程序会继续运行，最终退出码是 66；<code>go test</code> 会把它当作测试失败。</li>
+<li><code>-race</code> 不能和 <code>-msan</code>、<code>-asan</code> 同时使用。<code>-msan</code> 是 MemorySanitizer，查未初始化内存读取；<code>-asan</code> 是 AddressSanitizer，查越界、use-after-free、double free 等地址错误。它们和 race detector 一样需要在编译期插桩，运行时不能叠加；在 Go 里主要是为了和用 ASan/MSan 编译的 C/C++ 代码互操作。</li>
+<li>可以用 <code>GORACE</code> 环境变量调整检测器的运行时行为，比如遇到第一个 race 就退出、把报告写到文件、调整退出码，或者增大历史记录以保留更完整的调用栈。它不能提高检测覆盖率，也不能让没执行到的代码被发现。</li>
+</ul>
+<p>常用选项：</p>
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>默认值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>log_path</code></td>
+<td>stderr</td>
+<td>把报告写到文件，实际文件名是 <code>log_path.pid</code></td>
+</tr>
+<tr>
+<td><code>exitcode</code></td>
+<td>66</td>
+<td>检测到 race 后的退出码</td>
+</tr>
+<tr>
+<td><code>strip_path_prefix</code></td>
+<td>空</td>
+<td>去掉报告里的路径前缀</td>
+</tr>
+<tr>
+<td><code>history_size</code></td>
+<td>1</td>
+<td>控制每个 goroutine 的记录历史，调大可缓解 <code>failed to restore the stack</code></td>
+</tr>
+<tr>
+<td><code>halt_on_error</code></td>
+<td>0</td>
+<td>检测到第一个 race 后是否立即退出</td>
+</tr>
+<tr>
+<td><code>atexit_sleep_ms</code></td>
+<td>1000</td>
+<td>退出前等待日志刷盘的毫秒数</td>
+</tr>
+</tbody></table>
+<p>例如在 CI 里希望第一个 race 就让任务失败，可以这样跑：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GORACE=<span class="string">"halt_on_error=1"</span> go <span class="built_in">test</span> -race ./...</span><br></pre></td></tr></table></figure>
+
+<p>如果报告里出现 <code>failed to restore the stack</code>，通常说明历史记录不够，可以调大 <code>history_size</code>，代价是更多内存。</p>
+<h2 id="八类常见的并发问题"><a href="#八类常见的并发问题" class="headerlink" title="八类常见的并发问题"></a>八类常见的并发问题</h2><h3 id="1-共享计数器"><a href="#1-共享计数器" class="headerlink" title="1. 共享计数器"></a>1. 共享计数器</h3><p>最典型的就是 <code>counter++</code>。修复方式有两种：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/race/counter/atomic/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/race/counter/atomic/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> counter atomic.Int64</span><br><span class="line">counter.Add(<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<p>或者用锁保护读改写：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/race/counter/mutex/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/race/counter/mutex/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">    mu      sync.Mutex</span><br><span class="line">    counter <span class="keyword">int</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">mu.Lock()</span><br><span class="line">counter++</span><br><span class="line">mu.Unlock()</span><br></pre></td></tr></table></figure>
+
+<p>简单计数优先用 <code>atomic</code>。<code>atomic.Int64</code> 是 Go 1.19 引入的类型化原子类型，比旧的 <code>atomic.AddInt64(&amp;counter, 1)</code> 更好用。如果一段逻辑要同时保护多个字段，或者读改写本身是一个业务操作，用 mutex 更合适。</p>
+<h3 id="2-并发读写-map"><a href="#2-并发读写-map" class="headerlink" title="2. 并发读写 map"></a>2. 并发读写 map</h3><p>Go 的 map 不是并发安全的。多个 goroutine 同时读写，可能触发 <code>fatal error: concurrent map read and map write</code>，也可能被 race detector 报出来。这是 runtime 直接 fatal，<code>recover</code> 拦不住。即使访问的是不同 key，map 扩容时也可能写同一片内部内存。</p>
+<p>完整示例见 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/race/map" target="_blank" rel="noopener">map</a>，修复见 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/race/map/mutex" target="_blank" rel="noopener">map/mutex</a>。</p>
+<p>修复方式：</p>
+<ul>
+<li>用 <code>sync.Mutex</code> 或 <code>sync.RWMutex</code> 保护整个 map。</li>
+<li>读多写少、key 集合相对稳定时，可以考虑 <code>sync.Map</code>。</li>
+<li>更好的方式通常是让每个 goroutine 持有自己的局部 map，最后再合并。</li>
+</ul>
+<p>不要把 <code>sync.Map</code> 当成默认答案。它的 API 和内存模型都更适合特定场景，普通业务 map 加锁往往更直观。</p>
+<h3 id="3-共享-slice-和-append"><a href="#3-共享-slice-和-append" class="headerlink" title="3. 共享 slice 和 append"></a>3. 共享 slice 和 append</h3><p>slice 变量本身不是一个“数组”，而是一个很小的头部。概念上可以把它看成三个字段：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> sliceHeader <span class="keyword">struct</span> &#123;</span><br><span class="line">    data unsafe.Pointer <span class="comment">// 指向底层数组</span></span><br><span class="line">    <span class="built_in">len</span>  <span class="keyword">int</span></span><br><span class="line">    <span class="built_in">cap</span>  <span class="keyword">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>标准库里的 <code>reflect.SliceHeader</code> 也是这三个字段，只是 <code>Data</code> 用 <code>uintptr</code> 表示；运行时内部用的是指针。</p>
+<p>把 slice 赋值、传参或传给 goroutine 时，复制的是这三个字段，底层数组仍然共享。</p>
+<p>所以多个 goroutine 同时对同一个 slice 执行 <code>append</code>，不仅会竞争底层数组，还可能竞争 slice header 本身：一个 goroutine 可能正在改 <code>len</code>、<code>cap</code>，另一个还在读或复制这个 header。只锁 <code>append</code> 不一定够，所有 header 访问都要纳入同一把锁。</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/race/slice/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/race/slice/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> results []<span class="keyword">int</span></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    results = <span class="built_in">append</span>(results, <span class="number">1</span>)</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure>
+
+<p>这段代码即使只启动一个 goroutine，只要主 goroutine 同时读 <code>results</code>，也可能构成数据竞争。</p>
+<p>常见修复：</p>
+<ul>
+<li>用锁保护 append。</li>
+<li>每个 goroutine 写入自己的局部 slice，最后统一合并。</li>
+<li>通过 channel 把结果交给一个 collector goroutine。</li>
+</ul>
+<p>完整修复示例见 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/race/slice/mutex" target="_blank" rel="noopener">slice/mutex</a>。</p>
+<h3 id="4-循环变量捕获"><a href="#4-循环变量捕获" class="headerlink" title="4. 循环变量捕获"></a>4. 循环变量捕获</h3><p>在 Go 1.22 之前，下面这段代码里的 <code>v</code> 是所有迭代共享的：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/race/loopvar/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/race/loopvar/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> _, v := <span class="keyword">range</span> values &#123;</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        use(v)</span><br><span class="line">    &#125;()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Go 1.22 改变了循环变量语义，每轮迭代都会创建新的变量，所以这段代码在新版本里不再因为共享 <code>v</code> 而产生数据竞争。是否启用新语义取决于模块 <code>go.mod</code> 里的 <code>go</code> 版本，老模块即使换了新工具链，也可能仍然保留旧行为。</p>
+<p>但 Go 1.22 只改了“在 <code>for</code> 循环里用 <code>:=</code> 声明”的变量。如果变量是在循环外声明的，比如 <code>var i int</code>，然后在 <code>for</code> 里使用，它仍然只有一份，即使 Go 1.26 也照样会报数据竞争。官方 race detector 文档里的 loop counter 例子就是这种情况：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/race/loopvar/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/race/loopvar/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> i <span class="keyword">int</span></span><br><span class="line"><span class="keyword">for</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++ &#123;</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        fmt.Println(i)</span><br><span class="line">    &#125;()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码通常打印 <code>55555</code>，而不是 <code>01234</code>。修复方式是在启动 goroutine 时把当前值作为参数传进去，或者在循环体里创建局部副本。完整示例见 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/race/loopvar/fixed" target="_blank" rel="noopener">loopvar/fixed</a>。</p>
+<p>另外，如果通过闭包修改外部变量，仍然需要同步。</p>
+<h3 id="5-延迟初始化"><a href="#5-延迟初始化" class="headerlink" title="5. 延迟初始化"></a>5. 延迟初始化</h3><blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/race/once/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/race/once/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> instance *Client</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetClient</span><span class="params">()</span> *<span class="title">Client</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> instance == <span class="literal">nil</span> &#123;</span><br><span class="line">        instance = newClient()</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> instance</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>两个 goroutine 同时调用 <code>GetClient</code>，可能都看到 <code>nil</code>，创建两个实例，也可能一个看到写了一半的对象。</p>
+<p>修复方式：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/race/once/fixed/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/race/once/fixed/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">    once     sync.Once</span><br><span class="line">    instance *Client</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetClient</span><span class="params">()</span> *<span class="title">Client</span></span> &#123;</span><br><span class="line">    once.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        instance = newClient()</span><br><span class="line">    &#125;)</span><br><span class="line">    <span class="keyword">return</span> instance</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Go 1.21 之后还可以用 <code>sync.OnceValue</code>，把初始化逻辑包成一个只执行一次的函数。</p>
+<h3 id="6-WaitGroup、close-和生命周期问题"><a href="#6-WaitGroup、close-和生命周期问题" class="headerlink" title="6. WaitGroup、close 和生命周期问题"></a>6. WaitGroup、close 和生命周期问题</h3><p><code>sync.WaitGroup</code> 的常见错误是把 <code>Add</code> 放进 goroutine：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/race/waitgroup/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/race/waitgroup/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line"><span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        wg.Add(<span class="number">1</span>) <span class="comment">// 错误：可能和 Wait 并发</span></span><br><span class="line">        <span class="keyword">defer</span> wg.Done()</span><br><span class="line">        work()</span><br><span class="line">    &#125;()</span><br><span class="line">&#125;</span><br><span class="line">wg.Wait()</span><br></pre></td></tr></table></figure>
+
+<p><code>Add</code> 应该在启动 goroutine 之前调用。否则 <code>Wait</code> 可能提前返回，主 goroutine 和子 goroutine 再去竞争读写结果。Go 1.25 新增了 <code>WaitGroup.Go</code>，可以自动处理 Add 和 Done（需要 Go 1.25 及以上）：</p>
+<p>完整示例见 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/race/waitgroup/fixed" target="_blank" rel="noopener">waitgroup/fixed</a>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line"><span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">    wg.Go(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        work()</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line">wg.Wait()</span><br></pre></td></tr></table></figure>
+
+<p>另一个常见问题是关闭 channel 和发送操作之间的竞争：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    ch &lt;- <span class="number">1</span></span><br><span class="line">&#125;()</span><br><span class="line"><span class="built_in">close</span>(ch) <span class="comment">// 可能 panic: send on closed channel</span></span><br></pre></td></tr></table></figure>
+
+<p>这不是数据竞争，而是生命周期和顺序问题。race detector 不一定能报出来，但程序会直接 panic。解决方式是明确谁负责关闭 channel，通常由发送方关闭，或者用 <code>sync.Once</code>、<code>done</code> channel 协调。</p>
+<h3 id="7-mutex-按值传递或复制"><a href="#7-mutex-按值传递或复制" class="headerlink" title="7. mutex 按值传递或复制"></a>7. mutex 按值传递或复制</h3><p><code>sync.Mutex</code> 不能按值复制。把包含 mutex 的结构体按值传给函数，或者用值 receiver 定义方法，锁住的都是副本，等于没锁。</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/race/mutex/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/race/mutex/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Counter <span class="keyword">struct</span> &#123;</span><br><span class="line">    mu sync.Mutex</span><br><span class="line">    n  <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c Counter)</span> <span class="title">Inc</span><span class="params">()</span></span> &#123; <span class="comment">// 错误：c 是副本</span></span><br><span class="line">    c.mu.Lock()</span><br><span class="line">    c.n++</span><br><span class="line">    c.mu.Unlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>应该用指针 receiver，也不要按值传递含锁的结构体：</p>
+<blockquote>
+<p><a href="https://github.com/jianghushinian/blog-go-example/blob/main/test/race/mutex/fixed/main.go" target="_blank" rel="noopener">https://github.com/jianghushinian/blog-go-example/blob/main/test/race/mutex/fixed/main.go</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Counter)</span> <span class="title">Inc</span><span class="params">()</span></span> &#123;</span><br><span class="line">    c.mu.Lock()</span><br><span class="line">    c.n++</span><br><span class="line">    c.mu.Unlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>go vet</code> 的 <code>copylocks</code> 会报告这类问题。这个错误很隐蔽，因为代码看起来确实加了锁，只是锁错了对象。</p>
+<h3 id="8-共享-buffer-和对象池复用"><a href="#8-共享-buffer-和对象池复用" class="headerlink" title="8. 共享 buffer 和对象池复用"></a>8. 共享 buffer 和对象池复用</h3><p>共享一个 <code>[]byte</code> 或 <code>bytes.Buffer</code>，一个 goroutine 写入时另一个还在读取，就会造成数据损坏。<code>sync.Pool</code> 也有类似风险：如果对象放回池子后仍被其他地方引用，下一次取出的 goroutine 可能复用它。</p>
+<p>完整示例见 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/race/buffer" target="_blank" rel="noopener">buffer</a>，修复见 <a href="https://github.com/jianghushinian/blog-go-example/tree/main/test/race/buffer/fixed" target="_blank" rel="noopener">buffer/fixed</a>。</p>
+<p>修复思路是明确生命周期：要么每个使用者持有独立 buffer，要么在放回池子前确保没人再引用，取出时彻底重置。不要因为“只是复用一下”就忽略所有权。</p>
+<h2 id="真实案例：race-报告不会无缘无故出现"><a href="#真实案例：race-报告不会无缘无故出现" class="headerlink" title="真实案例：race 报告不会无缘无故出现"></a>真实案例：race 报告不会无缘无故出现</h2><p>Go 官方博客里有两个经典案例。</p>
+<p>第一个是 <code>time.Timer.Reset</code>。代码大致是：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> t *time.Timer</span><br><span class="line">t = time.AfterFunc(randomDuration(), <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    t.Reset(randomDuration())</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>定时器回调里读写 <code>t</code>，主 goroutine 也可能同时访问 <code>t</code>。在某些时序下会触发 nil pointer panic。修复方式是让主 goroutine 单独负责 <code>t</code> 的读写，通过 channel 通知它重置定时器。</p>
+<p>第二个是 <code>ioutil.Discard</code>。它的 <code>ReadFrom</code> 方法内部共享了一个 buffer。Go 团队一开始认为所有写入都会被丢弃，这个 race “不重要”，甚至在 race detector 报告后把它当成误报，专门写了一个只在 race 模式启用的无竞争版本。几个月后，Brad 遇到一个诡异的 hash 计算错误，最后发现根因正是这个共享 buffer。</p>
+<p>这个案例最值得记住的一点是：race detector 报出来的问题，不要因为“这里看起来无害”就忽略。数据竞争可能不会在你以为的地方出问题，但它会以另一种方式造成破坏。</p>
+<p>这不是标准库独有的问题。Uber 在 2022 年曾<a href="https://www.uber.com/en-US/blog/data-race-patterns-in-go/" target="_blank" rel="noopener">统计</a>约 5,000 万行 Go 代码、2,100 个服务，在 6 个月里检测到约 2,000 起数据竞争，修复了约 1,100 起。大型开源项目里也有不少典型事故：</p>
+<ul>
+<li>Kubernetes apiserver 在大量 Pod 删除和 webhook 超时时，审计事件的 <code>Annotations</code> map 被并发写入和编码，触发 <code>fatal error: concurrent map iteration and map write</code>；<a href="https://github.com/kubernetes/kubernetes/issues/120507" target="_blank" rel="noopener">issue #120507</a> 记录了现场，<a href="https://github.com/kubernetes/kubernetes/pull/129472" target="_blank" rel="noopener">PR #129472</a> 通过隔离可变状态修复了问题。</li>
+<li>Prometheus 的矩阵查询把结果 matrix 过早放回 pool，另一个查询复用了同一份数据，导致返回结果串数据；<a href="https://github.com/prometheus/prometheus/issues/4261" target="_blank" rel="noopener">issue #4261</a> 记录了这个案例，最终靠 PromQL 的大改解决。</li>
+<li>Moby 在同时捕获 stdout/stderr 时，JSON 日志的共享 buffer 被并发写，日志内容交错损坏；<a href="https://github.com/moby/moby/issues/43647" target="_blank" rel="noopener">issue #43647</a> 描述了问题，<a href="https://github.com/moby/moby/pull/43650" target="_blank" rel="noopener">PR #43650</a> 给每条日志使用了独立 buffer。</li>
+</ul>
+<p>这些案例有共同的模式：共享 map、共享 buffer、对象池复用，都是“看起来只是读一下”的地方。</p>
+<h2 id="局限：没报不等于没有"><a href="#局限：没报不等于没有" class="headerlink" title="局限：没报不等于没有"></a>局限：没报不等于没有</h2><p>race detector 很有用，但它不是证明工具。</p>
+<p>它只能发现实际执行到的数据竞争。如果某条代码路径没有被测试覆盖，或者某个并发时序没有出现，它就不会报。所以“<code>go test -race</code> 通过”只能说明这次执行没有发现 race，不能说明程序没有 race。</p>
+<p>其他限制包括：</p>
+<ul>
+<li>它检测的是 data race，不是死锁、goroutine 泄漏、消息顺序错误等逻辑问题。</li>
+<li>它会显著改变程序时序，可能掩盖一些 race，也可能暴露一些平时不出现的 race。</li>
+<li>它依赖插桩，cgo 调用的 C 代码、未用 <code>-race</code> 编译的代码可能不在检测范围内。</li>
+<li>它只保留有限的访问历史，旧记录会被覆盖，所以高频访问下可能丢掉关键历史，导致漏报。</li>
+<li>cgo 调用的 C 代码不在插桩范围内，可能漏报。</li>
+<li>原子操作本身不会被报成数据竞争，但原子操作和普通读写混用仍然可能竞争。</li>
+<li>它对平台和工具链有要求。32 位平台不支持；非 Darwin 系统通常需要 cgo 和 C 编译器；Windows 需要较新的 mingw-w64 runtime。</li>
+<li>它有性能开销。官方当前给出的数字是执行时间 2 到 20 倍，内存 5 到 10 倍。</li>
+<li><code>-race</code> 下每个 <code>defer</code> 和 <code>recover</code> 会多分配 8 字节，而且这些内存要等 goroutine 退出才回收，也不会出现在 <code>runtime.ReadMemStats</code> 或 <code>runtime/pprof</code> 里。长生命周期的 goroutine 如果反复 defer/recover，可能导致内存持续增长。</li>
+</ul>
+<h2 id="平台和工具链"><a href="#平台和工具链" class="headerlink" title="平台和工具链"></a>平台和工具链</h2><p>截至 Go 1.27，race detector 支持 Linux 的 amd64、arm64、loong64、ppc64le、riscv64、s390x，macOS 的 amd64、arm64，以及 FreeBSD、NetBSD、Windows 的 amd64。32 位平台不支持。</p>
+<p>在非 Darwin 系统上，<code>-race</code> 通常需要启用 cgo 并安装 C 编译器；Windows 还需要较新的 mingw-w64 runtime。macOS 从 Go 1.20 开始不再需要 cgo 和 Xcode。<code>go help build</code> 里的平台列表可能更新不及时，实际以构建时的检测结果为准。</p>
+<h2 id="生产环境怎么用"><a href="#生产环境怎么用" class="headerlink" title="生产环境怎么用"></a>生产环境怎么用</h2><p>最现实的做法不是“生产环境全量开 <code>-race</code>”，而是分层使用：</p>
+<ol>
+<li>本地开发时，对并发相关的包跑 <code>go test -race</code>。</li>
+<li>CI 里固定跑 <code>go test -race ./...</code>，把它当成必过项。</li>
+<li>集成测试、压力测试、混沌测试优先用 <code>-race</code> 编译，因为这些场景更容易覆盖并发路径；并发测试可以用 <code>-count</code> 多跑几轮，增加命中概率。</li>
+<li>生产环境可以短期、低流量、金丝雀实例开启，但要接受性能和内存开销，并确保日志能收集到。</li>
+<li>对已知的 race 报告，修根因，不要用 suppress 或“看起来没事”糊弄过去。</li>
+</ol>
+<p>如果 CI 里希望快速失败：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GORACE=<span class="string">"halt_on_error=1"</span> go <span class="built_in">test</span> -race ./...</span><br></pre></td></tr></table></figure>
+
+<p>如果要把报告落盘：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GORACE=<span class="string">"log_path=/var/log/myapp/race"</span> go <span class="built_in">test</span> -race ./...</span><br></pre></td></tr></table></figure>
+
+<h2 id="修复优先级和辅助工具"><a href="#修复优先级和辅助工具" class="headerlink" title="修复优先级和辅助工具"></a>修复优先级和辅助工具</h2><p>实际修复时，可以先按这个顺序考虑：</p>
+<ol>
+<li>能复制就复制，能明确所有权就明确所有权，避免共享。</li>
+<li>必须共享时，用锁保护完整的业务操作，而不是只保护单次读写。</li>
+<li>简单计数、标志位等场景，用 <code>sync/atomic</code>。</li>
+<li>channel 更适合传递数据所有权或事件，不要把它当成“万能锁”。</li>
+</ol>
+<p><code>go vet</code> 也能提前发现一类问题，比如 <code>copylocks</code> 会发现复制了 <code>sync.Mutex</code>、<code>sync.WaitGroup</code> 等包含锁的类型，<code>loopclosure</code> 会检查循环变量捕获，<code>waitgroup</code> 会检查 <code>WaitGroup.Add</code> 的位置。这些检查很快，可以和 <code>-race</code> 配合使用，但它们不能替代 race detector。</p>
+<h2 id="一份检查清单"><a href="#一份检查清单" class="headerlink" title="一份检查清单"></a>一份检查清单</h2><p>写完并发代码后，可以按这几条自查：</p>
+<ul>
+<li>所有共享可变状态，是否都有明确的 owner 或同步方式？</li>
+<li>读改写操作，是否用了 mutex、atomic 或 channel 保护？</li>
+<li>map、slice、结构体字段，是否可能在多个 goroutine 之间共享？</li>
+<li>循环变量、闭包捕获的变量，是否真的每轮独立？</li>
+<li>含锁的结构体是否被按值传递或复制？</li>
+<li><code>WaitGroup.Add</code> 是否在启动 goroutine 之前调用？</li>
+<li>channel 由谁关闭？关闭时还有没有发送方？</li>
+<li>共享 buffer 或 <code>sync.Pool</code> 对象，生命周期是否明确？</li>
+<li>atomic 操作是否和普通读写混用？</li>
+<li>是否把 <code>time.Sleep</code> 当成了同步手段？</li>
+<li>并发相关测试是否在 CI 里开了 <code>-race</code>？</li>
+<li>race 报告是否被当成 bug 处理，而不是当成噪声？</li>
+</ul>
+<h2 id="最后"><a href="#最后" class="headerlink" title="最后"></a>最后</h2><p>race detector 的价值，不是让你在 CI 里多跑一个命令，而是把“数据竞争”从一个靠运气发现的问题，变成一个可以被工具稳定报告的问题。</p>
+<p>它有三个边界值得记住：</p>
+<ol>
+<li>它基于 ThreadSanitizer，编译时插桩、运行时检测。</li>
+<li>它只对实际执行到的路径负责，并且会显著改变性能和时序。</li>
+<li>报出来通常就是 bug，不要因为看起来无害就忽略；没报，不等于没有 race。</li>
+</ol>
+<p>把这三句话记住，再配合 <code>go test -race ./...</code>、真实的并发测试和良好的同步设计，race detector 才真正有用。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a href="https://go.dev/blog/race-detector" target="_blank" rel="noopener">Introducing the Go Race Detector</a></li>
+<li><a href="https://go.dev/ref/mem" target="_blank" rel="noopener">The Go Memory Model</a></li>
+<li><a href="https://go.dev/doc/articles/race_detector" target="_blank" rel="noopener">Data Race Detector</a></li>
+<li><a href="https://go.dev/doc/go1.19" target="_blank" rel="noopener">Go 1.19 Release Notes</a></li>
+<li><a href="https://go.dev/doc/go1.22" target="_blank" rel="noopener">Go 1.22 Release Notes</a></li>
+<li><a href="https://go.dev/doc/go1.25" target="_blank" rel="noopener">Go 1.25 Release Notes</a></li>
+<li><a href="https://www.uber.com/en-US/blog/data-race-patterns-in-go/" target="_blank" rel="noopener">Data Race Patterns in Go（Uber）</a></li>
+<li><a href="https://go.dev/doc/faq#atomic_maps" target="_blank" rel="noopener">Go FAQ: Why are map operations not defined to be atomic?</a></li>
+<li><a href="https://go.dev/blog/loopvar-preview" target="_blank" rel="noopener">Fixing For Loops in Go 1.22</a></li>
+<li><a href="https://pkg.go.dev/sync#WaitGroup" target="_blank" rel="noopener">sync.WaitGroup</a></li>
+<li><a href="https://pkg.go.dev/cmd/vet" target="_blank" rel="noopener">cmd/vet</a></li>
+<li><a href="https://github.com/kubernetes/kubernetes/issues/120507" target="_blank" rel="noopener">Kubernetes issue #120507</a></li>
+<li><a href="https://github.com/prometheus/prometheus/issues/4261" target="_blank" rel="noopener">Prometheus issue #4261</a></li>
+<li><a href="https://github.com/moby/moby/issues/43647" target="_blank" rel="noopener">Moby issue #43647</a></li>
+<li><a href="https://github.com/google/sanitizers/wiki/ThreadSanitizerAlgorithm" target="_blank" rel="noopener">ThreadSanitizer Algorithm</a></li>
+<li><a href="https://clang.llvm.org/docs/ThreadSanitizer.html" target="_blank" rel="noopener">ThreadSanitizer (Clang)</a></li>
+</ul>
+<p>希望此文能对你有所启发。</p>
+<p>延伸阅读</p>
+<ul>
+<li>Go 1.27 新增 goroutine leak profiler：在生产环境中定位 goroutine 泄漏：<a href="https://jianghushinian.cn/2026/11/11/goroutine-leak-profiles/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/11/goroutine-leak-profiles/</a></li>
+<li>Go 并发模式：超时，不再等待：<a href="https://jianghushinian.cn/2026/11/05/go-concurrency-patterns-timeouts/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/05/go-concurrency-patterns-timeouts/</a></li>
+<li>Go 高级并发模式：Sameer Ajmani 2013 演讲详解：<a href="https://jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/07/go-concurrency-patterns-talk-advanced/</a></li>
+<li>Go 1.27 测试相关变化详解：新特性与升级避坑：<a href="https://jianghushinian.cn/2026/10/11/go1.27-testing-changes/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/10/11/go1.27-testing-changes/</a></li>
+<li>本文永久地址：<a href="https://jianghushinian.cn/2026/11/21/go-race-detector/" target="_blank" rel="noopener">https://jianghushinian.cn/2026/11/21/go-race-detector/</a></li>
+</ul>
+<p>联系我</p>
+<ul>
+<li>公众号：<a href="https://jianghushinian.cn/about" target="_blank" rel="noopener">Go编程世界</a></li>
+<li>微信：jianghushinian</li>
+<li>邮箱：<a href="mailto:jianghushinian007@outlook.com">jianghushinian007@outlook.com</a></li>
+<li>博客：<a href="https://jianghushinian.cn" target="_blank" rel="noopener">https://jianghushinian.cn</a></li>
+<li>GitHub：<a href="https://github.com/jianghushinian" target="_blank" rel="noopener">https://github.com/jianghushinian</a></li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2026-11-21T07:35:52.101Z" itemprop="dateUpdated">2026-11-21 15:35:52</time>
+</span><br>
+
+
+        
+        <a href="/2026/11/21/go-race-detector/" target="_blank" rel="external">http://www.jianghushinian.cn/2026/11/21/go-race-detector/</a>
+        
+    </div>
+    
+    <footer>
+        <a href="http://www.jianghushinian.cn">
+            <img src="/img/avatar.png" alt="江湖十年">
+            江湖十年
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Go/" rel="tag">Go</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%B9%B6%E5%8F%91/" rel="tag">并发</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/11/21/go-race-detector/&title=《Go 竞态检测器到底在检测什么？从 data race 到 happens-before》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/11/21/go-race-detector/&title=《Go 竞态检测器到底在检测什么？从 data race 到 happens-before》 — 江湖十年&source=大家好，我是江湖十年。
+go test -race 是 Go 的数据竞争检测器。在并发代码比较多的项目里，它经常被打开，但也经常被误解：打开它，测试可能突..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/11/21/go-race-detector/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 竞态检测器到底在检测什么？从 data race 到 happens-before》 — 江湖十年&url=http://www.jianghushinian.cn/2026/11/21/go-race-detector/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/11/21/go-race-detector/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2026/11/15/harness-ai-coding/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">OneXAI Harness：把团队规范变成 AI 能执行的工具</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+    <script src="/js/md5.min.js"></script>
+    <section class="comments" id="comments">
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+            var disqus_shortname = 'https-jianghushinian-cn';
+            var disqus_identifier = location.pathname.slice(1,);
+            var disqus_url = 'https://jianghushinian.cn/' + disqus_identifier;
+            (function () {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the comments.</noscript>
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        <span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        <span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>江湖十年 &copy; 2019 - 2026</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://www.jianghushinian.cn/2026/11/21/go-race-detector/&title=《Go 竞态检测器到底在检测什么？从 data race 到 happens-before》 — 江湖十年&pic=http://www.jianghushinian.cn/img/avatar.png" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://www.jianghushinian.cn/2026/11/21/go-race-detector/&title=《Go 竞态检测器到底在检测什么？从 data race 到 happens-before》 — 江湖十年&source=大家好，我是江湖十年。
+go test -race 是 Go 的数据竞争检测器。在并发代码比较多的项目里，它经常被打开，但也经常被误解：打开它，测试可能突..." data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://www.jianghushinian.cn/2026/11/21/go-race-detector/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Go 竞态检测器到底在检测什么？从 data race 到 happens-before》 — 江湖十年&url=http://www.jianghushinian.cn/2026/11/21/go-race-detector/&via=http://www.jianghushinian.cn" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://www.jianghushinian.cn/2026/11/21/go-race-detector/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://www.jianghushinian.cn/2026/11/21/go-race-detector/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
